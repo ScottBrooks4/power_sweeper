@@ -1,0 +1,19 @@
+{
+    "name": "freementls/power_sweeper",
+    "description": "Normalize and clean Power Apps .msapp files via ordered hop pipelines",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "symfony/yaml": "^7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "PowerSweeper\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PowerSweeper\\Tests\\": "tests/"
+        }
+    }
+}

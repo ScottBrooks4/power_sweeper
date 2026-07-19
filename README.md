@@ -1,0 +1,55 @@
+# Power Sweeper
+
+Normalize and clean Power Apps canvas `.msapp` files with an ordered **hop** pipeline.
+
+Drop an app, choose operations (or load a profile preset), reorder the sequence, run, then download the cleaned `.msapp` and a change report.
+
+## Local path
+
+Canonical install: **`/srv/http/power_sweeper`** (same layout as sweeper/convert under `/srv/http`).
+
+## Quick start
+
+```bash
+cd /srv/http/power_sweeper
+composer install
+php -S localhost:8080 router.php
+```
+
+Open [http://localhost:8080](http://localhost:8080).
+
+With Apache serving `/srv/http` (like convert/sweeper), use [http://localhost/power_sweeper/](http://localhost/power_sweeper/) — `.htaccess` routes `/`, `/assets/*`, and `/api/*`.
+## How it works
+
+1. Upload an `.msapp` (ZIP archive of canvas sources).
+2. Build a hop sequence — or pick a **profile** to fill one.
+3. Power Sweeper unpacks the archive, edits `Src/**/*.pa.yaml` (and control JSON when present), repacks, and returns the file plus a report.
+
+Order matters: the same hops in a different sequence can produce different results.
+
+## Built-in hops
+
+| Hop | Purpose |
+|-----|---------|
+| `normalize_containers` | Clear default drop shadow, border, radius, and padding on containers |
+| `accessibility_labels` | Fill missing `AccessibleLabel` from Text / Tooltip / name |
+| `align_near_miss` | Snap sibling X/Y/Width/Height values off by a few pixels |
+| `strip_default_fill` | Clear opaque white container fills |
+| `normalize_classic_button_chrome` | Clear Hover/Pressed fills when Fill is already transparent |
+| `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
+
+## Profiles
+
+PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`.
+
+## Tests
+
+```bash
+php tests/run_tests.php
+```
+
+## Notes
+
+- Open the cleaned `.msapp` in Power Apps Studio (**File → Open → Browse**) and save once after import.
+- Only hop-owned properties are changed; media, connections, and unrelated metadata are left alone.
+- Prefer editing apps you can re-save in Studio; treat this as a companion cleanup tool, not a full source-control substitute.

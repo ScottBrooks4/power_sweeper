@@ -1,0 +1,57 @@
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - NewRequest:
+        Control: GroupContainer@1.0.0
+        Variant: AutoLayout
+        Properties:
+          DropShadow: =DropShadow.Regular
+          BorderThickness: =2
+          BorderRadius: =10
+          PaddingTop: =16
+          PaddingRight: =16
+          PaddingBottom: =16
+          PaddingLeft: =16
+          Fill: =RGBA(255, 255, 255, 1)
+          X: =40
+          Y: =100
+          Width: =400
+          Height: =300
+        Children:
+          - NewRequestTitle:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="New Request"
+                X: =20
+                Y: =20
+                Width: =200
+                Height: =40
+          - NewRequestTitle2:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Nearby"
+                X: =22
+                Y: =22
+                Width: =198
+                Height: =40
+          - NewRequestButton:
+              Control: Classic/Button@2.0.0
+              Properties:
+                Text: ="Start"
+                Fill: =RGBA(0, 0, 0, 0)
+                HoverFill: =RGBA(255, 255, 255, 1)
+                PressedFill: =RGBA(255, 255, 255, 1)
+                X: =20
+                Y: =80
+                Width: =120
+                Height: =40
+          - LogoImage:
+              Control: Image@2.0.0
+              Properties:
+                Text: ="unused"
+                X: =20
+                Y: =140
+                Width: =45
+                Height: =45
