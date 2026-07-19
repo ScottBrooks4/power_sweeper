@@ -1,0 +1,9 @@
+/vendor/
+/bin/composer
+/storage/tmp/*
+/storage/out/*
+!/storage/tmp/.gitkeep
+!/storage/out/.gitkeep
+composer.phar
+.DS_Store
+*.log
