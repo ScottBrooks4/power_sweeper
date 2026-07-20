@@ -7,14 +7,16 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 use PowerSweeper\HopRegistry;
 use PowerSweeper\Pipeline;
 use PowerSweeper\ProfileLoader;
-
-header('Content-Type: application/json; charset=utf-8');
+use PowerSweeper\ZipTool;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    header('Content-Type: application/json; charset=utf-8');
     $registry = new HopRegistry();
     $profiles = (new ProfileLoader(POWER_SWEEPER_PROFILES))->all();
     echo json_encode([
         'ok' => true,
+        'ziptool' => ZipTool::REV,
+        'zip_archive' => ZipTool::hasZipArchive(),
         'hops' => $registry->catalog(),
         'profiles' => $profiles,
     ], JSON_UNESCAPED_SLASHES);
@@ -22,9 +24,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
     http_response_code(405);
     echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
     exit;
+}
+
+$wantsStream = isset($_POST['stream']) || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'ndjson');
+
+/**
+ * @param array<string, mixed> $event
+ */
+function ps_emit(array $event, bool $stream): void
+{
+    if (!$stream) {
+        return;
+    }
+    echo json_encode($event, JSON_UNESCAPED_SLASHES) . "\n";
+    if (function_exists('ob_flush')) {
+        @ob_flush();
+    }
+    flush();
+}
+
+if ($wantsStream) {
+    while (ob_get_level() > 0) {
+        ob_end_flush();
+    }
+    @ini_set('output_buffering', 'off');
+    @ini_set('zlib.output_compression', '0');
+    header('Content-Type: application/x-ndjson; charset=utf-8');
+    header('Cache-Control: no-cache, no-store');
+    header('X-Accel-Buffering: no');
+} else {
+    header('Content-Type: application/json; charset=utf-8');
 }
 
 try {
@@ -76,8 +109,44 @@ try {
         }
     }
 
+    ps_emit([
+        'type' => 'phase',
+        'phase' => 'upload',
+        'message' => 'Starting sweep…',
+    ], $wantsStream);
+
+    // Throttle change events so LiteSpeed/browsers stay responsive without flooding.
+    $lastFlush = microtime(true);
+    $pendingChange = null;
+    $flushChange = static function (bool $force = false) use (&$lastFlush, &$pendingChange, $wantsStream): void {
+        if ($pendingChange === null) {
+            return;
+        }
+        $now = microtime(true);
+        if (!$force && ($now - $lastFlush) < 0.05) {
+            return;
+        }
+        ps_emit($pendingChange, $wantsStream);
+        $pendingChange = null;
+        $lastFlush = $now;
+    };
+
     $pipeline = new Pipeline();
-    $result = $pipeline->run($tmpInput, $normalized, $tmpOutput);
+    $result = $pipeline->run(
+        $tmpInput,
+        $normalized,
+        $tmpOutput,
+        static function (array $event) use ($wantsStream, &$pendingChange, $flushChange): void {
+            if (($event['type'] ?? '') === 'change') {
+                $pendingChange = $event;
+                $flushChange(false);
+                return;
+            }
+            $flushChange(true);
+            ps_emit($event, $wantsStream);
+        }
+    );
+    $flushChange(true);
     @unlink($tmpInput);
 
     $downloadName = preg_replace('/\.msapp$/i', '', $originalName) . '.cleaned.msapp';
@@ -92,16 +161,36 @@ try {
         json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
     );
 
-    echo json_encode([
+    $done = [
+        'type' => 'done',
         'ok' => true,
         'download_token' => $token,
         'filename' => $downloadName,
         'report' => $result['report'],
-    ], JSON_UNESCAPED_SLASHES);
+    ];
+
+    if ($wantsStream) {
+        ps_emit($done, true);
+    } else {
+        echo json_encode([
+            'ok' => true,
+            'download_token' => $token,
+            'filename' => $downloadName,
+            'report' => $result['report'],
+        ], JSON_UNESCAPED_SLASHES);
+    }
 } catch (Throwable $e) {
-    http_response_code(400);
-    echo json_encode([
-        'ok' => false,
-        'error' => $e->getMessage(),
-    ], JSON_UNESCAPED_SLASHES);
+    if ($wantsStream) {
+        ps_emit([
+            'type' => 'error',
+            'ok' => false,
+            'error' => $e->getMessage(),
+        ], true);
+    } else {
+        http_response_code(400);
+        echo json_encode([
+            'ok' => false,
+            'error' => $e->getMessage(),
+        ], JSON_UNESCAPED_SLASHES);
+    }
 }

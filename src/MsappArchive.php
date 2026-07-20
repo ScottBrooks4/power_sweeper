@@ -6,7 +6,6 @@ namespace PowerSweeper;
 
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use ZipArchive;
 
 final class MsappArchive
 {
@@ -40,18 +39,7 @@ final class MsappArchive
             throw new \RuntimeException('msapp file not found: ' . $this->msappPath);
         }
 
-        mkdir($this->extractDir, 0777, true);
-        $zip = new ZipArchive();
-        $opened = $zip->open($this->msappPath);
-        if ($opened !== true) {
-            throw new \RuntimeException('Unable to open .msapp as ZIP (code ' . $opened . ')');
-        }
-        if (!$zip->extractTo($this->extractDir)) {
-            $zip->close();
-            throw new \RuntimeException('Failed to extract .msapp');
-        }
-        $zip->close();
-
+        ZipTool::extract($this->msappPath, $this->extractDir);
         $this->discoverDocuments();
     }
 
@@ -69,34 +57,7 @@ final class MsappArchive
     public function pack(string $outputPath): void
     {
         $this->saveDocuments();
-
-        if (is_file($outputPath)) {
-            unlink($outputPath);
-        }
-
-        $zip = new ZipArchive();
-        if ($zip->open($outputPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            throw new \RuntimeException('Unable to create output .msapp');
-        }
-
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($this->extractDir, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::SELF_FIRST
-        );
-
-        foreach ($iterator as $file) {
-            /** @var \SplFileInfo $file */
-            $abs = $file->getPathname();
-            $rel = substr($abs, strlen($this->extractDir) + 1);
-            $rel = str_replace('\\', '/', $rel);
-            if ($file->isDir()) {
-                $zip->addEmptyDir($rel);
-            } else {
-                $zip->addFile($abs, $rel);
-            }
-        }
-
-        $zip->close();
+        ZipTool::createFromDirectory($this->extractDir, $outputPath);
     }
 
     public function cleanup(): void

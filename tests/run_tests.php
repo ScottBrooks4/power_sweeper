@@ -14,6 +14,7 @@ use PowerSweeper\Hops\TooltipFromLabelHop;
 use PowerSweeper\MsappArchive;
 use PowerSweeper\Pipeline;
 use PowerSweeper\Report;
+use PowerSweeper\ZipTool;
 
 $failed = 0;
 
@@ -119,14 +120,12 @@ foreach ($doc->controls() as $c) {
 // --- integration: zip fixture -> pipeline -> zip ---
 $fixtureYaml = file_get_contents(__DIR__ . '/fixtures/screen.pa.yaml');
 $tmpDir = sys_get_temp_dir() . '/ps_int_' . bin2hex(random_bytes(4));
-mkdir($tmpDir . '/Src', 0777, true);
-file_put_contents($tmpDir . '/Src/Screen1.pa.yaml', $fixtureYaml);
+$stageDir = $tmpDir . '/stage';
+mkdir($stageDir . '/Src', 0777, true);
+file_put_contents($stageDir . '/Src/Screen1.pa.yaml', $fixtureYaml);
 $inMsapp = $tmpDir . '/in.msapp';
 $outMsapp = $tmpDir . '/out.msapp';
-$zip = new ZipArchive();
-$zip->open($inMsapp, ZipArchive::CREATE);
-$zip->addFile($tmpDir . '/Src/Screen1.pa.yaml', 'Src/Screen1.pa.yaml');
-$zip->close();
+ZipTool::createFromDirectory($stageDir, $inMsapp);
 
 $result = (new Pipeline())->run($inMsapp, [
     ['id' => 'normalize_containers'],
@@ -138,17 +137,15 @@ $result = (new Pipeline())->run($inMsapp, [
 assert_true(is_file($outMsapp), 'output msapp created');
 assert_true(($result['report']['total'] ?? 0) > 0, 'integration report has changes');
 
-$verify = new ZipArchive();
-assert_true($verify->open($outMsapp) === true, 'output opens as zip');
-$yamlOut = $verify->getFromName('Src/Screen1.pa.yaml');
-$verify->close();
+$yamlOut = ZipTool::readEntry($outMsapp, 'Src/Screen1.pa.yaml');
 assert_true(is_string($yamlOut) && str_contains($yamlOut, 'DropShadow.None'), 'packed YAML contains normalized DropShadow');
 
 // cleanup tmp
 @unlink($inMsapp);
 @unlink($outMsapp);
-@unlink($tmpDir . '/Src/Screen1.pa.yaml');
-@rmdir($tmpDir . '/Src');
+@unlink($stageDir . '/Src/Screen1.pa.yaml');
+@rmdir($stageDir . '/Src');
+@rmdir($stageDir);
 @rmdir($tmpDir);
 
 echo "\n";

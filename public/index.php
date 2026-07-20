@@ -90,6 +90,13 @@ $basePath = $basePath === '' ? '' : $basePath;
     <section class="actions">
       <button type="button" class="primary" id="runBtn" disabled>Run sweeper</button>
       <p class="status" id="status" role="status"></p>
+      <div class="run-progress hidden" id="runProgress" aria-live="polite" aria-atomic="true">
+        <div class="progress-meta">
+          <span class="progress-phase" id="progressPhase">Starting…</span>
+          <span class="progress-count" id="progressCount"></span>
+        </div>
+        <p class="progress-last" id="progressLast"></p>
+      </div>
     </section>
 
     <section class="panel result hidden" id="resultPanel">

@@ -9,15 +9,28 @@ final class Report
     /** @var list<array{hop:string,control:string,property:string,from:string,to:string}> */
     private array $entries = [];
 
+    /** @var null|callable(array{hop:string,control:string,property:string,from:string,to:string}, int):void */
+    private $onChange;
+
+    /** @param null|callable(array{hop:string,control:string,property:string,from:string,to:string}, int):void $onChange */
+    public function __construct(?callable $onChange = null)
+    {
+        $this->onChange = $onChange;
+    }
+
     public function add(string $hop, string $control, string $property, string $from, string $to): void
     {
-        $this->entries[] = [
+        $entry = [
             'hop' => $hop,
             'control' => $control,
             'property' => $property,
             'from' => $from,
             'to' => $to,
         ];
+        $this->entries[] = $entry;
+        if ($this->onChange !== null) {
+            ($this->onChange)($entry, $this->count());
+        }
     }
 
     /** @return list<array{hop:string,control:string,property:string,from:string,to:string}> */

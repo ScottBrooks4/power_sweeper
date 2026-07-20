@@ -14,6 +14,10 @@
   const clearSequence = document.getElementById('clearSequence');
   const runBtn = document.getElementById('runBtn');
   const status = document.getElementById('status');
+  const runProgress = document.getElementById('runProgress');
+  const progressPhase = document.getElementById('progressPhase');
+  const progressCount = document.getElementById('progressCount');
+  const progressLast = document.getElementById('progressLast');
   const resultPanel = document.getElementById('resultPanel');
   const reportSummary = document.getElementById('reportSummary');
   const reportTable = document.querySelector('#reportTable tbody');
@@ -175,48 +179,138 @@
     loadProfileHops(hops);
   });
 
+  function showProgress(show) {
+    runProgress.classList.toggle('hidden', !show);
+  }
+
+  function formatChangeLine(ev) {
+    const hop = hopMeta[ev.hop]?.label || ev.hop || 'change';
+    const control = ev.control || '?';
+    const property = ev.property || '';
+    const to = ev.to === undefined || ev.to === null || ev.to === '' ? '(empty)' : String(ev.to);
+    return `${hop}: ${control}.${property} → ${to}`;
+  }
+
+  function applyResult(data) {
+    const total = data.report?.total ?? 0;
+    const byHop = data.report?.by_hop || {};
+    const parts = Object.entries(byHop).map(([k, v]) => `${k}: ${v}`);
+    reportSummary.textContent = `${total} change${total === 1 ? '' : 's'}` + (parts.length ? ` — ${parts.join(' · ')}` : '');
+
+    reportTable.innerHTML = '';
+    (data.report?.entries || []).forEach((row) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(row.hop)}</td>
+        <td>${escapeHtml(row.control)}</td>
+        <td>${escapeHtml(row.property)}</td>
+        <td>${escapeHtml(row.from)}</td>
+        <td>${escapeHtml(row.to)}</td>
+      `;
+      reportTable.appendChild(tr);
+    });
+
+    downloadLink.href = `${cfg.apiDownload}?token=${encodeURIComponent(data.download_token)}`;
+    downloadLink.download = data.filename || 'cleaned.msapp';
+    resultPanel.classList.remove('hidden');
+    status.textContent = 'Done.';
+    progressPhase.textContent = 'Finished';
+    progressCount.textContent = `${total} change${total === 1 ? '' : 's'}`;
+    resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function readNdjsonStream(res, onEvent) {
+    if (!res.body || typeof res.body.getReader !== 'function') {
+      const data = await res.json();
+      onEvent(data.type ? data : { type: data.ok ? 'done' : 'error', ...data });
+      return;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        onEvent(JSON.parse(trimmed));
+      }
+    }
+
+    const tail = buffer.trim();
+    if (tail) {
+      onEvent(JSON.parse(tail));
+    }
+  }
+
   runBtn.addEventListener('click', async () => {
     if (!file || !sequence.length) return;
-    status.textContent = 'Running…';
+    status.textContent = '';
     resultPanel.classList.add('hidden');
     runBtn.disabled = true;
+    showProgress(true);
+    progressPhase.textContent = 'Starting…';
+    progressCount.textContent = '';
+    progressLast.textContent = 'Waiting for first change…';
 
     const body = new FormData();
     body.append('msapp', file);
     body.append('hops', JSON.stringify(sequence.map(({ id, options }) => ({ id, options }))));
+    body.append('stream', '1');
 
     try {
-      const res = await fetch(cfg.apiRun, { method: 'POST', body });
-      const data = await res.json();
-      if (!data.ok) {
-        throw new Error(data.error || 'Run failed');
-      }
-
-      const total = data.report?.total ?? 0;
-      const byHop = data.report?.by_hop || {};
-      const parts = Object.entries(byHop).map(([k, v]) => `${k}: ${v}`);
-      reportSummary.textContent = `${total} change${total === 1 ? '' : 's'}` + (parts.length ? ` — ${parts.join(' · ')}` : '');
-
-      reportTable.innerHTML = '';
-      (data.report?.entries || []).forEach((row) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${escapeHtml(row.hop)}</td>
-          <td>${escapeHtml(row.control)}</td>
-          <td>${escapeHtml(row.property)}</td>
-          <td>${escapeHtml(row.from)}</td>
-          <td>${escapeHtml(row.to)}</td>
-        `;
-        reportTable.appendChild(tr);
+      const res = await fetch(cfg.apiRun, {
+        method: 'POST',
+        body,
+        headers: { Accept: 'application/x-ndjson, application/json' },
       });
 
-      downloadLink.href = `${cfg.apiDownload}?token=${encodeURIComponent(data.download_token)}`;
-      downloadLink.download = data.filename || 'cleaned.msapp';
-      resultPanel.classList.remove('hidden');
-      status.textContent = 'Done.';
-      resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const contentType = res.headers.get('content-type') || '';
+      let finished = null;
+      let failed = null;
+
+      if (contentType.includes('ndjson')) {
+        await readNdjsonStream(res, (ev) => {
+          if (ev.type === 'phase') {
+            progressPhase.textContent = ev.message || ev.label || ev.phase || 'Working…';
+            if (typeof ev.count === 'number') {
+              progressCount.textContent = `${ev.count} change${ev.count === 1 ? '' : 's'}`;
+            }
+          } else if (ev.type === 'change') {
+            progressCount.textContent = `${ev.count} change${ev.count === 1 ? '' : 's'}`;
+            progressLast.textContent = formatChangeLine(ev);
+          } else if (ev.type === 'done') {
+            finished = ev;
+          } else if (ev.type === 'error') {
+            failed = ev;
+          }
+        });
+      } else {
+        const data = await res.json();
+        if (!data.ok) {
+          failed = data;
+        } else {
+          finished = { type: 'done', ...data };
+        }
+      }
+
+      if (failed) {
+        throw new Error(failed.error || 'Run failed');
+      }
+      if (!finished?.ok) {
+        throw new Error('Run failed');
+      }
+      applyResult(finished);
     } catch (err) {
       status.textContent = err.message || String(err);
+      progressPhase.textContent = 'Failed';
+      progressLast.textContent = err.message || String(err);
     } finally {
       updateRunEnabled();
     }
