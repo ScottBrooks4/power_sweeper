@@ -133,6 +133,92 @@ final class ControlNode
         return str_contains($t, 'button');
     }
 
+    public function isScreen(): bool
+    {
+        $t = strtolower($this->type);
+        return str_starts_with($t, 'screen') || $t === 'screen';
+    }
+
+    public function isApp(): bool
+    {
+        $t = strtolower($this->type);
+        return str_starts_with($t, 'app') || strtolower($this->name) === 'app';
+    }
+
+    public function isToggle(): bool
+    {
+        $t = strtolower($this->type);
+        return str_contains($t, 'toggle');
+    }
+
+    /** @return list<string> */
+    public function propertyNames(): array
+    {
+        if ($this->format === 'yaml') {
+            $props = $this->node['Properties'] ?? [];
+            return is_array($props) ? array_map('strval', array_keys($props)) : [];
+        }
+
+        $names = [];
+        if (isset($this->node['Rules']) && is_array($this->node['Rules'])) {
+            foreach ($this->node['Rules'] as $rule) {
+                if (is_array($rule) && isset($rule['Property'])) {
+                    $names[] = (string) $rule['Property'];
+                }
+            }
+        }
+        return array_values(array_unique($names));
+    }
+
+    /**
+     * Append a Power Fx statement to a chaining property (OnStart, OnVisible, OnCheck, …).
+     */
+    public function appendStatement(string $property, string $statement, string $chain = ';'): void
+    {
+        $statement = trim($statement);
+        $statement = ltrim($statement, '=');
+        $existing = $this->getProperty($property);
+        if ($existing === null || trim($existing) === '' || trim($existing) === '=') {
+            $to = $this->format === 'yaml' ? '=' . $statement : $statement;
+            $this->setProperty($property, $to);
+            return;
+        }
+
+        $body = ltrim(trim($existing), '=');
+        $body = rtrim($body);
+        // Avoid duplicating the same statement
+        if (str_contains($body, $statement)) {
+            return;
+        }
+        if (!str_ends_with($body, $chain) && !str_ends_with($body, $chain . $chain)) {
+            $body .= $chain;
+        }
+        $body .= ' ' . $statement;
+        $this->setProperty($property, $this->format === 'yaml' ? '=' . $body : $body);
+    }
+
+    /**
+     * Add a YAML child control under this node (no-op for JSON format).
+     *
+     * @param array<string, mixed> $body
+     */
+    public function addYamlChild(string $name, array $body): void
+    {
+        if ($this->format !== 'yaml') {
+            return;
+        }
+        if (!isset($this->node['Children']) || !is_array($this->node['Children'])) {
+            $this->node['Children'] = [];
+        }
+        // Avoid duplicate names
+        foreach ($this->node['Children'] as $item) {
+            if (is_array($item) && array_key_exists($name, $item)) {
+                return;
+            }
+        }
+        $this->node['Children'][] = [$name => $body];
+    }
+
     private function stripEquals(string $value): string
     {
         return str_starts_with($value, '=') ? substr($value, 1) : $value;

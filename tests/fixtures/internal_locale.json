@@ -1,0 +1,38 @@
+{
+  "TopParent": {
+    "Name": "Screen1",
+    "Template": {
+      "Name": "screen"
+    },
+    "Rules": [
+      {
+        "Property": "Fill",
+        "Category": "Design",
+        "InvariantScript": "RGBA(255; 255; 255; 1)",
+        "RuleProviderType": "Unknown"
+      }
+    ],
+    "Children": [
+      {
+        "Name": "InternalLabel",
+        "Template": {
+          "Name": "label"
+        },
+        "Rules": [
+          {
+            "Property": "X",
+            "Category": "Design",
+            "InvariantScript": "If(App.Width > 800; 40,5; 20)",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Text",
+            "Category": "Data",
+            "InvariantScript": "\"Betrag \" & Text(12.345,67; \"0,00\")",
+            "RuleProviderType": "Unknown"
+          }
+        ]
+      }
+    ]
+  }
+}

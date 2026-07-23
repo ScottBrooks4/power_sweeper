@@ -37,10 +37,20 @@ Order matters: the same hops in a different sequence can produce different resul
 | `strip_default_fill` | Clear opaque white container fills |
 | `normalize_classic_button_chrome` | Clear Hover/Pressed fills when Fill is already transparent |
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
+| `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` the formula bar may not expose |
+| `enable_dark_mode` | Ensure `gblDarkMode`, add or reuse a dark-mode toggle, and wrap literal fills/text/borders for accessible dark contrast |
 
 ## Profiles
 
-PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`.
+PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `dark_mode`.
+
+### Locale unwhack
+
+When an app is edited under a comma-decimal locale (German, French, …), Studio can persist locale separators into formulas — including classic JSON rules you cannot open in the formula bar. The `unwhack_locale` profile converts those back to invariant Power Fx (`.` decimal, `,` list separator, `;` chaining) across `Src/**/*.pa.yaml` and control JSON `InvariantScript`.
+
+### Dark mode
+
+The `dark_mode` profile initializes `gblDarkMode` on `App.OnStart`, reuses a settings/theme toggle when one exists (or injects `tglPowerSweeperDarkMode` on an intro/home screen), and rewrites literal color properties to `If(gblDarkMode, <dark>, <light>)` with contrast-aware dark mappings. Open the cleaned `.msapp` in Studio and save once, then verify the toggle and contrast.
 
 ## Tests
 

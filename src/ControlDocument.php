@@ -54,8 +54,8 @@ final class ControlDocument
             if (!is_array($data)) {
                 return null;
             }
-            // Only keep JSON that looks like control trees
-            if (!self::looksLikeControlJson($data)) {
+            // Control trees, or any JSON carrying InvariantScript (internal / classic rules)
+            if (!self::looksLikeControlJson($data) && !self::containsInvariantScript($data)) {
                 return null;
             }
             return new self($relativePath, 'json', $data);
@@ -84,6 +84,33 @@ final class ControlDocument
         );
     }
 
+    /** Rebuild the flat control index after structural edits (e.g. injected children). */
+    public function reindex(): void
+    {
+        $this->rebuildControls();
+    }
+
+    /**
+     * Walk every formula-like string in this document and rewrite via $mapper.
+     * Mapper receives (formula, pathLabel) and returns the replacement (or same string).
+     *
+     * @param callable(string, string): string $mapper
+     * @return int number of formulas changed
+     */
+    public function transformFormulas(callable $mapper): int
+    {
+        $changed = 0;
+        if ($this->format === 'yaml') {
+            $this->transformYamlFormulas($this->data, $this->relativePath, $mapper, $changed);
+        } else {
+            $this->transformJsonFormulas($this->data, $this->relativePath, $mapper, $changed);
+        }
+        if ($changed > 0) {
+            $this->rebuildControls();
+        }
+        return $changed;
+    }
+
     private function rebuildControls(): void
     {
         $this->controls = [];
@@ -92,6 +119,106 @@ final class ControlDocument
             return;
         }
         $this->walkJson($this->data, $this->relativePath);
+    }
+
+    /**
+     * @param array<mixed> $data
+     * @param callable(string, string): string $mapper
+     */
+    private function transformYamlFormulas(array &$data, string $path, callable $mapper, int &$changed): void
+    {
+        foreach ($data as $key => &$value) {
+            if (is_string($value) && self::looksLikeFormulaString($value)) {
+                $label = $path . '#' . (string) $key;
+                $next = $mapper($value, $label);
+                if ($next !== $value) {
+                    $value = $next;
+                    $changed++;
+                }
+                continue;
+            }
+            if (!is_array($value)) {
+                continue;
+            }
+            $childPath = $path;
+            if (is_string($key)) {
+                $childPath .= '/' . $key;
+            }
+            // Properties map: every value may be a formula
+            if ($key === 'Properties' && $this->isAssoc($value)) {
+                foreach ($value as $prop => &$propVal) {
+                    if (is_string($propVal)) {
+                        $label = $childPath . '.' . $prop;
+                        $next = $mapper($propVal, $label);
+                        if ($next !== $propVal) {
+                            $propVal = $next;
+                            $changed++;
+                        }
+                    } elseif (is_array($propVal)) {
+                        $this->transformYamlFormulas($propVal, $childPath . '.' . $prop, $mapper, $changed);
+                    }
+                }
+                unset($propVal);
+                continue;
+            }
+            $this->transformYamlFormulas($value, $childPath, $mapper, $changed);
+        }
+        unset($value);
+    }
+
+    /**
+     * @param array<mixed> $data
+     * @param callable(string, string): string $mapper
+     */
+    private function transformJsonFormulas(array &$data, string $path, callable $mapper, int &$changed): void
+    {
+        foreach ($data as $key => &$value) {
+            if ($key === 'InvariantScript' && is_string($value)) {
+                $label = $path . '.InvariantScript';
+                $next = $mapper($value, $label);
+                if ($next !== $value) {
+                    $value = $next;
+                    $changed++;
+                }
+                continue;
+            }
+            if (is_string($value) && self::looksLikeFormulaString($value)) {
+                // Catch other formula-bearing fields without touching pure metadata
+                if (in_array((string) $key, ['Value', 'Script', 'Expression', 'Formula'], true)) {
+                    $label = $path . '.' . (string) $key;
+                    $next = $mapper($value, $label);
+                    if ($next !== $value) {
+                        $value = $next;
+                        $changed++;
+                    }
+                }
+                continue;
+            }
+            if (is_array($value)) {
+                $childPath = is_string($key) ? $path . '/' . $key : $path;
+                $this->transformJsonFormulas($value, $childPath, $mapper, $changed);
+            }
+        }
+        unset($value);
+    }
+
+    private static function looksLikeFormulaString(string $value): bool
+    {
+        $v = trim($value);
+        if ($v === '') {
+            return false;
+        }
+        if (str_starts_with($v, '=')) {
+            return true;
+        }
+        // InvariantScript often omits leading =
+        if (preg_match('/^(RGBA?|If|Switch|With|Set|UpdateContext|Navigate|LookUp|Filter|ForAll|Concurrent)\s*\(/i', $v)) {
+            return true;
+        }
+        if (str_contains($v, ';;') || preg_match('/\bRGBA?\s*\([^)]*;/', $v)) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -263,6 +390,20 @@ final class ControlDocument
         }
         if (isset($data['Name']) && (isset($data['Rules']) || isset($data['Children']) || isset($data['Template']))) {
             return true;
+        }
+        return false;
+    }
+
+    /** @param array<mixed> $data */
+    private static function containsInvariantScript(array $data): bool
+    {
+        foreach ($data as $key => $value) {
+            if ($key === 'InvariantScript' && is_string($value)) {
+                return true;
+            }
+            if (is_array($value) && self::containsInvariantScript($value)) {
+                return true;
+            }
         }
         return false;
     }

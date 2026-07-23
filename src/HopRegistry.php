@@ -6,11 +6,13 @@ namespace PowerSweeper;
 
 use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
+use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\HopInterface;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
+use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
 
 final class HopRegistry
 {
@@ -26,6 +28,8 @@ final class HopRegistry
             StripDefaultFillHop::class,
             NormalizeClassicButtonChromeHop::class,
             TooltipFromLabelHop::class,
+            UnwhackLocaleFormulasHop::class,
+            EnableDarkModeHop::class,
         ] as $class) {
             /** @var class-string<HopInterface> $class */
             $this->hops[$class::id()] = $class;
