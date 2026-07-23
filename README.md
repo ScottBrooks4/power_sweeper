@@ -39,10 +39,11 @@ Order matters: the same hops in a different sequence can produce different resul
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
 | `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` the formula bar may not expose |
 | `enable_dark_mode` | Ensure `gblDarkMode`, add or reuse a dark-mode toggle, and wrap literal fills/text/borders for accessible dark contrast |
+| `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
 
 ## Profiles
 
-PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `dark_mode`.
+PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `dark_mode`, `sharepoint_correlate`.
 
 ### Locale unwhack
 
@@ -51,6 +52,31 @@ When an app is edited under a comma-decimal locale (German, French, …), Studio
 ### Dark mode
 
 The `dark_mode` profile initializes `gblDarkMode` on `App.OnStart`, reuses a settings/theme toggle when one exists (or injects `tglPowerSweeperDarkMode` on an intro/home screen), and rewrites literal color properties to `If(gblDarkMode, <dark>, <light>)` with contrast-aware dark mappings. Open the cleaned `.msapp` in Studio and save once, then verify the toggle and contrast.
+
+### SharePoint correlate
+
+Upload an optional SharePoint schema JSON (UI field or hop option `schema` / `schema_file`) shaped like:
+
+```json
+{
+  "lists": [
+    {
+      "name": "Requests",
+      "siteUrl": "https://contoso.sharepoint.com/sites/App",
+      "columns": ["Title", "Status", "RequestNumber"]
+    }
+  ]
+}
+```
+
+The `sharepoint_correlate` profile then:
+
+1. Reads `References/DataSources.json`, `DataSources/*`, `Connections/*`, and `pkgs/TableDefinitions/*` from the `.msapp`
+2. Flags bad/empty SharePoint connections and lists/columns missing vs the schema
+3. Fuzzy-matches typos (`Reqeusts` → `Requests`, `Statu` → `Status`) using patterns from the schema **or** the app’s own table definitions
+4. Repairs datasource metadata and formula references when `repair` is true (default), with every finding/fix in the sweep report
+
+Hop options: `repair` (bool), `max_distance` (int, default 2), `repair_site_url` (bool, default false), `lists` / `schema` / `schema_file`.
 
 ## Tests
 

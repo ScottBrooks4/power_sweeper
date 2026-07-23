@@ -6,6 +6,7 @@ namespace PowerSweeper;
 
 use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
+use PowerSweeper\Hops\CorrelateSharePointHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\HopInterface;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
@@ -30,6 +31,7 @@ final class HopRegistry
             TooltipFromLabelHop::class,
             UnwhackLocaleFormulasHop::class,
             EnableDarkModeHop::class,
+            CorrelateSharePointHop::class,
         ] as $class) {
             /** @var class-string<HopInterface> $class */
             $this->hops[$class::id()] = $class;

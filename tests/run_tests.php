@@ -6,9 +6,11 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
+use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaLocaleNormalizer;
 use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
+use PowerSweeper\Hops\CorrelateSharePointHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
@@ -17,6 +19,8 @@ use PowerSweeper\Hops\TooltipFromLabelHop;
 use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
 use PowerSweeper\Pipeline;
 use PowerSweeper\Report;
+use PowerSweeper\SharePoint\SharePointCatalog;
+use PowerSweeper\StringSimilarity;
 use PowerSweeper\ZipTool;
 
 $failed = 0;
@@ -200,6 +204,59 @@ $white = ColorValue::parse('=RGBA(255, 255, 255, 1)');
 assert_true($white !== null, 'parse white');
 $darkBg = ColorValue::toDark($white, 'background');
 assert_true($darkBg['r'] < 40 && $darkBg['g'] < 40 && $darkBg['b'] < 40, 'white maps to dark background');
+
+// --- SharePoint similarity / rewriter ---
+$best = StringSimilarity::bestMatch('Reqeusts', ['Requests', 'Employees'], 2);
+assert_true($best !== null && $best['match'] === 'Requests', 'fuzzy list typo match');
+$rewritten = FormulaIdentifierRewriter::rename(
+    '=Filter(Reqeusts, Statu = "Open")',
+    ['Reqeusts' => 'Requests', 'Statu' => 'Status']
+);
+assert_true(str_contains($rewritten, 'Filter(Requests,') && str_contains($rewritten, 'Status ='), 'formula identifier rewrite');
+
+// --- SharePoint correlate hop ---
+$spTmp = sys_get_temp_dir() . '/ps_sp_' . bin2hex(random_bytes(4));
+$spStage = $spTmp . '/stage';
+mkdir($spStage . '/Src', 0777, true);
+mkdir($spStage . '/References', 0777, true);
+file_put_contents($spStage . '/Src/Screen1.pa.yaml', file_get_contents(__DIR__ . '/fixtures/sharepoint_screen.pa.yaml'));
+file_put_contents($spStage . '/References/DataSources.json', file_get_contents(__DIR__ . '/fixtures/sharepoint_datasources.json'));
+$spIn = $spTmp . '/in.msapp';
+$spOut = $spTmp . '/out.msapp';
+ZipTool::createFromDirectory($spStage, $spIn);
+
+$spResult = (new Pipeline())->run($spIn, [
+    [
+        'id' => 'correlate_sharepoint',
+        'options' => [
+            'repair' => true,
+            'schema_file' => __DIR__ . '/fixtures/sharepoint_schema.json',
+        ],
+    ],
+], $spOut);
+
+assert_true(is_file($spOut), 'sharepoint output msapp created');
+assert_true(($spResult['report']['total'] ?? 0) > 0, 'sharepoint report has findings/fixes');
+$spDs = ZipTool::readEntry($spOut, 'References/DataSources.json');
+assert_true(is_string($spDs) && str_contains($spDs, '"Name": "Requests"'), 'list typo Reqeusts repaired in datasources');
+assert_true(is_string($spDs) && str_contains($spDs, '"Status"'), 'column typo Statu repaired in mapping');
+$spYaml = ZipTool::readEntry($spOut, 'Src/Screen1.pa.yaml');
+assert_true(is_string($spYaml) && str_contains($spYaml, 'Filter(Requests,'), 'formula list typo repaired');
+assert_true(is_string($spYaml) && str_contains($spYaml, 'Status ='), 'formula column typo repaired');
+$spReportJson = json_encode($spResult['report']);
+assert_true(is_string($spReportJson) && str_contains($spReportJson, 'bad connection'), 'empty SharePoint connection reported');
+
+$catalog = SharePointCatalog::loadFromExtractDir($spStage);
+assert_true(count($catalog->sharePointListNames()) >= 1, 'catalog loads sharepoint lists from fixture dir');
+
+@unlink($spIn);
+@unlink($spOut);
+@unlink($spStage . '/Src/Screen1.pa.yaml');
+@unlink($spStage . '/References/DataSources.json');
+@rmdir($spStage . '/Src');
+@rmdir($spStage . '/References');
+@rmdir($spStage);
+@rmdir($spTmp);
 
 // --- integration: zip fixture -> pipeline -> zip ---
 $fixtureYaml = file_get_contents(__DIR__ . '/fixtures/screen.pa.yaml');

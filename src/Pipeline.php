@@ -54,6 +54,8 @@ final class Pipeline
                 if (!is_array($options)) {
                     $options = [];
                 }
+                // Let hops that need Connections/DataSources read the unpacked tree.
+                $options['_extract_dir'] = $archive->extractDir();
                 $hop = $this->registry->make($id);
                 $emit([
                     'type' => 'phase',

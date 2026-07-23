@@ -47,6 +47,15 @@ $basePath = $basePath === '' ? '' : $basePath;
       </div>
     </section>
 
+    <section class="panel schema-panel">
+      <div class="row between">
+        <h2>SharePoint schema</h2>
+        <button type="button" class="ghost" id="schemaBrowseBtn">Choose JSON</button>
+      </div>
+      <input type="file" id="schemaInput" accept=".json,application/json" hidden>
+      <p class="hint" id="schemaLabel">Optional. Used by <code>correlate_sharepoint</code> to validate lists/columns and repair typos against your real SharePoint lists.</p>
+    </section>
+
     <section class="panel">
       <div class="row between">
         <h2>Profile</h2>

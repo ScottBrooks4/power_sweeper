@@ -101,6 +101,29 @@ try {
     $token = bin2hex(random_bytes(16));
     $tmpInput = POWER_SWEEPER_STORAGE . '/tmp/' . $token . '_in.msapp';
     $tmpOutput = POWER_SWEEPER_STORAGE . '/out/' . $token . '.msapp';
+    $schemaPath = null;
+
+    // Optional SharePoint list schema JSON for correlate_sharepoint hop
+    if (isset($_FILES['sharepoint_schema']) && is_array($_FILES['sharepoint_schema'])) {
+        $schemaFile = $_FILES['sharepoint_schema'];
+        if (($schemaFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $schemaName = strtolower((string) ($schemaFile['name'] ?? ''));
+            if (!str_ends_with($schemaName, '.json')) {
+                throw new RuntimeException('SharePoint schema must be a .json file');
+            }
+            $schemaPath = POWER_SWEEPER_STORAGE . '/tmp/' . $token . '_sharepoint_schema.json';
+            if (!move_uploaded_file((string) $schemaFile['tmp_name'], $schemaPath)) {
+                if (!rename((string) $schemaFile['tmp_name'], $schemaPath) && !copy((string) $schemaFile['tmp_name'], $schemaPath)) {
+                    throw new RuntimeException('Could not store SharePoint schema upload');
+                }
+            }
+            foreach ($normalized as $i => $step) {
+                if (($step['id'] ?? '') === 'correlate_sharepoint') {
+                    $normalized[$i]['options']['schema_file'] = $schemaPath;
+                }
+            }
+        }
+    }
 
     if (!move_uploaded_file((string) $file['tmp_name'], $tmpInput)) {
         // CLI / non-upload fallback
@@ -148,6 +171,9 @@ try {
     );
     $flushChange(true);
     @unlink($tmpInput);
+    if (is_string($schemaPath) && is_file($schemaPath)) {
+        @unlink($schemaPath);
+    }
 
     $downloadName = preg_replace('/\.msapp$/i', '', $originalName) . '.cleaned.msapp';
     $meta = [

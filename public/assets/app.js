@@ -6,6 +6,9 @@
   const fileInput = document.getElementById('fileInput');
   const browseBtn = document.getElementById('browseBtn');
   const fileLabel = document.getElementById('fileLabel');
+  const schemaInput = document.getElementById('schemaInput');
+  const schemaBrowseBtn = document.getElementById('schemaBrowseBtn');
+  const schemaLabel = document.getElementById('schemaLabel');
   const profileSelect = document.getElementById('profileSelect');
   const profileHint = document.getElementById('profileHint');
   const palette = document.getElementById('palette');
@@ -24,6 +27,7 @@
   const downloadLink = document.getElementById('downloadLink');
 
   let file = null;
+  let schemaFile = null;
   /** @type {{id:string,options:object,uid:string}[]} */
   let sequence = [];
   let dragUid = null;
@@ -133,6 +137,24 @@
     }
   });
   fileInput.addEventListener('change', () => setFile(fileInput.files?.[0]));
+
+  function setSchemaFile(f) {
+    if (!f) {
+      schemaFile = null;
+      schemaLabel.innerHTML = 'Optional. Used by <code>correlate_sharepoint</code> to validate lists/columns and repair typos against your real SharePoint lists.';
+      return;
+    }
+    if (!f.name.toLowerCase().endsWith('.json')) {
+      status.textContent = 'SharePoint schema must be a .json file.';
+      return;
+    }
+    schemaFile = f;
+    schemaLabel.textContent = `Schema: ${f.name}`;
+    status.textContent = '';
+  }
+
+  schemaBrowseBtn?.addEventListener('click', () => schemaInput?.click());
+  schemaInput?.addEventListener('change', () => setSchemaFile(schemaInput.files?.[0]));
 
   ['dragenter', 'dragover'].forEach((evt) => {
     dropZone.addEventListener(evt, (e) => {
@@ -263,6 +285,9 @@
     body.append('msapp', file);
     body.append('hops', JSON.stringify(sequence.map(({ id, options }) => ({ id, options }))));
     body.append('stream', '1');
+    if (schemaFile) {
+      body.append('sharepoint_schema', schemaFile);
+    }
 
     try {
       const res = await fetch(cfg.apiRun, {
