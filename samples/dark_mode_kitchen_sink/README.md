@@ -15,7 +15,7 @@ Exhaustive light-theme sample for testing Power Sweeper’s `enable_dark_mode` h
 | Lists | dropdown/combo chevrons + selection, gallery item/selected/hover/pressed fills |
 | Shadows | `DropShadow.None` / `Light` / `Regular` / `Semibold` / `Bold` (enums kept; color chrome still themes) |
 | Color forms | `RGBA(...)`, `Color.White` / `Color.Black` / `Color.Transparent`, `ColorValue("#…")` |
-| Skips | transparent fills stay transparent (not wrapped) |
+| Skips | transparent fills stay transparent (not themed) |
 
 ## Build the `.msapp`
 
@@ -42,7 +42,8 @@ Outputs:
 3. Choose profile **dark_mode** (or hop `enable_dark_mode`)
 4. Run → download cleaned app
 5. Open in Power Apps Studio (**File → Open → Browse**), save once
-6. On `HomeScreen`, use **Dark mode** toggle and confirm surfaces/text/borders flip
+6. On `HomeScreen`, use **Dark mode** toggle and confirm surfaces/text/borders flip  
+7. Edit theme colors in **App.OnStart** (`gblThemeLight` / `gblThemeDark` tokens) — controls reference `gblTheme.*`, not hard-coded RGBAs
 
 ## Source layout
 

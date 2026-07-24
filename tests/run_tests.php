@@ -180,26 +180,60 @@ assert_true($report->count() > 0, 'dark mode reported changes');
 $doc->reindex();
 $hasToggle = false;
 $onStartOk = false;
+$paletteOk = false;
 $screenFillThemed = false;
 $titleColorThemed = false;
+$toggleSwapsTheme = false;
 foreach ($doc->controls() as $c) {
     if ($c->name === 'App') {
-        $onStartOk = str_contains((string) $c->getProperty('OnStart'), 'gblDarkMode');
+        $onStart = (string) $c->getProperty('OnStart');
+        $onStartOk = str_contains($onStart, 'gblDarkMode');
+        $paletteOk = str_contains($onStart, 'gblThemeLight')
+            && str_contains($onStart, 'gblThemeDark')
+            && str_contains($onStart, 'gblTheme')
+            && str_contains($onStart, 'ps-theme:start');
     }
     if ($c->name === 'tglPowerSweeperDarkMode') {
         $hasToggle = true;
+        $toggleSwapsTheme = str_contains((string) $c->getProperty('OnCheck'), 'gblThemeDark')
+            && str_contains((string) $c->getProperty('OnUncheck'), 'gblThemeLight');
     }
     if ($c->name === 'Screen1') {
-        $screenFillThemed = str_contains((string) $c->getProperty('Fill'), 'gblDarkMode');
+        $screenFillThemed = str_contains((string) $c->getProperty('Fill'), 'gblTheme.');
     }
     if ($c->name === 'Title') {
-        $titleColorThemed = str_contains((string) $c->getProperty('Color'), 'gblDarkMode');
+        $titleColorThemed = str_contains((string) $c->getProperty('Color'), 'gblTheme.');
     }
 }
 assert_true($onStartOk, 'App.OnStart initializes gblDarkMode');
+assert_true($paletteOk, 'App.OnStart defines editable gblThemeLight/Dark palette');
 assert_true($hasToggle, 'dark mode toggle injected');
-assert_true($screenFillThemed, 'screen Fill wrapped for dark mode');
-assert_true($titleColorThemed, 'label Color wrapped for dark mode');
+assert_true($toggleSwapsTheme, 'toggle swaps gblTheme between light/dark palettes');
+assert_true($screenFillThemed, 'screen Fill uses gblTheme token');
+assert_true($titleColorThemed, 'label Color uses gblTheme token');
+
+// Brand override via theme_defaults option (central palette only)
+$overrideDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
+$dmOverrideReport = new Report();
+(new EnableDarkModeHop())->apply([$overrideDoc], $dmOverrideReport, [
+    'theme_defaults' => [
+        'Accent' => [
+            'light' => ['r' => 220, 'g' => 38, 'b' => 38, 'a' => 1.0],
+            'dark' => ['r' => 248, 'g' => 113, 'b' => 113, 'a' => 1.0],
+        ],
+    ],
+]);
+$overrideOnStart = '';
+foreach ($overrideDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $overrideOnStart = (string) ($c->getProperty('OnStart') ?? '');
+    }
+}
+assert_true(
+    str_contains($overrideOnStart, 'Accent: RGBA(220, 38, 38, 1)')
+        && str_contains($overrideOnStart, 'Accent: RGBA(248, 113, 113, 1)'),
+    'theme_defaults option edits Accent in central palette'
+);
 
 $white = ColorValue::parse('=RGBA(255, 255, 255, 1)');
 assert_true($white !== null, 'parse white');
@@ -352,17 +386,18 @@ $kmsControls = ZipTool::readEntry($kmsOut, 'Src/ControlsScreen.pa.yaml');
 $kmsApp = ZipTool::readEntry($kmsOut, 'Src/App.pa.yaml');
 assert_true(is_string($kmsHome) && str_contains($kmsHome, 'tglPowerSweeperDarkMode'), 'kitchen sink home gets dark toggle');
 assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblDarkMode'), 'kitchen sink App.OnStart sets gblDarkMode');
-assert_true(is_string($kmsHome) && str_contains($kmsHome, 'If(gblDarkMode'), 'kitchen sink home colors wrapped');
-assert_true(is_string($kmsControls) && str_contains($kmsControls, 'If(gblDarkMode'), 'kitchen sink controls colors wrapped');
+assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblThemeLight') && str_contains((string) $kmsApp, 'gblThemeDark'), 'kitchen sink App.OnStart has editable palettes');
+assert_true(is_string($kmsHome) && str_contains($kmsHome, 'gblTheme.'), 'kitchen sink home colors use gblTheme tokens');
+assert_true(is_string($kmsControls) && str_contains($kmsControls, 'gblTheme.'), 'kitchen sink controls colors use gblTheme tokens');
 assert_true(
     is_string($kmsControls)
-    && preg_match("/SelectedFill:\\s*'?=If\\(gblDarkMode,/m", $kmsControls) === 1,
-    'gallery SelectedFill themed'
+    && preg_match("/SelectedFill:\\s*'?=gblTheme\\./m", $kmsControls) === 1,
+    'gallery SelectedFill uses theme token'
 );
 assert_true(
     is_string($kmsControls)
-    && preg_match("/RailFill:\\s*'?=If\\(gblDarkMode,/m", $kmsControls) === 1,
-    'slider RailFill themed'
+    && preg_match("/RailFill:\\s*'?=gblTheme\\./m", $kmsControls) === 1,
+    'slider RailFill uses theme token'
 );
 @unlink($kmsOut);
 

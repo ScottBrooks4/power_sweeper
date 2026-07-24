@@ -38,7 +38,7 @@ Order matters: the same hops in a different sequence can produce different resul
 | `normalize_classic_button_chrome` | Clear Hover/Pressed fills when Fill is already transparent |
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
 | `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` the formula bar may not expose |
-| `enable_dark_mode` | Ensure `gblDarkMode`, add or reuse a dark-mode toggle, and wrap literal fills/text/borders for accessible dark contrast |
+| `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` palettes, add or reuse a dark-mode toggle, and point literal colors at `gblTheme.*` tokens |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
 
 ## Profiles
@@ -51,7 +51,20 @@ When an app is edited under a comma-decimal locale (German, French, …), Studio
 
 ### Dark mode
 
-The `dark_mode` profile initializes `gblDarkMode` on `App.OnStart`, reuses a settings/theme toggle when one exists (or injects `tglPowerSweeperDarkMode` on an intro/home screen), and rewrites literal color properties to `If(gblDarkMode, <dark>, <light>)` with contrast-aware dark mappings. Open the cleaned `.msapp` in Studio and save once, then verify the toggle and contrast.
+The `dark_mode` profile builds an **editable central palette** instead of hard-coding `If(gblDarkMode, …)` / RGBA on every control:
+
+1. `App.OnStart` gets `gblThemeLight` / `gblThemeDark` records (tokens like `Page`, `Surface`, `Text`, `Accent`, …) and `Set(gblTheme, gblThemeLight)`
+2. Toggle sets `gblDarkMode` and swaps `gblTheme` between the two palettes
+3. Literal fills/text/borders become `gblTheme.Surface`, `gblTheme.Text`, etc.
+
+**Where to edit colors**
+
+| Who | Where |
+|-----|--------|
+| App maker (after clean) | `App.OnStart` → `gblThemeLight` / `gblThemeDark` only |
+| Operator / brand defaults | [`config/theme_defaults.php`](config/theme_defaults.php) or hop `theme_defaults` / `theme_defaults_file` options |
+
+Open the cleaned `.msapp` in Studio, save once, then use the toggle.
 
 ### SharePoint correlate
 
