@@ -78,6 +78,17 @@ The `sharepoint_correlate` profile then:
 
 Hop options: `repair` (bool), `max_distance` (int, default 2), `repair_site_url` (bool, default false), `lists` / `schema` / `schema_file`.
 
+### Dark mode kitchen-sink sample
+
+An exhaustive light-theme sample lives in [`samples/dark_mode_kitchen_sink/`](samples/dark_mode_kitchen_sink/) — screens, labels, buttons (hover/pressed/disabled), inputs, toggle/checkbox/slider/radio, dropdown/combo, gallery item surfaces, shadows, and `RGBA` / `Color.*` / `ColorValue("#…")` forms.
+
+```bash
+php samples/dark_mode_kitchen_sink/build.php              # light .msapp
+php samples/dark_mode_kitchen_sink/build.php --with-dark-mode  # + themed .msapp + report
+```
+
+Drop `samples/dark_mode_kitchen_sink/dark_mode_kitchen_sink.msapp` into Power Sweeper with the **dark_mode** profile to exercise the full toggle rewrite path.
+
 ## Tests
 
 ```bash

@@ -46,6 +46,38 @@ final class EnableDarkModeHop implements HopInterface
         'RailFill',
         'RailHoverFill',
         'HandleFill',
+        // Toggle / checkbox / choice
+        'TrueFill',
+        'FalseFill',
+        'TrueHoverFill',
+        'FalseHoverFill',
+        'CheckmarkFill',
+        'CheckboxBackgroundFill',
+        'CheckboxBorderColor',
+        // Gallery / list item surfaces
+        'TemplateFill',
+        'ItemColor',
+        'ItemFill',
+        'ItemBorderColor',
+        'SelectedFill',
+        'SelectedColor',
+        'SelectedBorderColor',
+        'PressedItemFill',
+        'HoverItemFill',
+        'DisabledItemFill',
+        'HighlightColor',
+        // Misc chrome
+        'TintColor',
+        'IndicatorFill',
+        'TrackFill',
+        'ProgressColor',
+        'BarColor',
+        'ActiveFill',
+        'InactiveFill',
+        'ValueFill',
+        'RadioBackgroundFill',
+        'RadioBorderColor',
+        'LoadingSpinnerColor',
     ];
 
     public static function id(): string

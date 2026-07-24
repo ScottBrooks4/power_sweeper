@@ -10,7 +10,6 @@ use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaLocaleNormalizer;
 use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
-use PowerSweeper\Hops\CorrelateSharePointHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
@@ -257,6 +256,35 @@ assert_true(count($catalog->sharePointListNames()) >= 1, 'catalog loads sharepoi
 @rmdir($spStage . '/References');
 @rmdir($spStage);
 @rmdir($spTmp);
+
+// --- dark mode kitchen sink sample ---
+$kmsPath = dirname(__DIR__) . '/samples/dark_mode_kitchen_sink/dark_mode_kitchen_sink.msapp';
+if (!is_file($kmsPath)) {
+    // Build on the fly if sample archive missing
+    passthru('php ' . escapeshellarg(dirname(__DIR__) . '/samples/dark_mode_kitchen_sink/build.php'), $buildCode);
+    assert_true($buildCode === 0 && is_file($kmsPath), 'kitchen sink sample builds');
+}
+$kmsOut = sys_get_temp_dir() . '/ps_kms_out_' . bin2hex(random_bytes(4)) . '.msapp';
+$kmsResult = (new Pipeline())->run($kmsPath, [['id' => 'enable_dark_mode']], $kmsOut);
+assert_true(($kmsResult['report']['total'] ?? 0) >= 100, 'kitchen sink produces many dark-mode changes');
+$kmsHome = ZipTool::readEntry($kmsOut, 'Src/HomeScreen.pa.yaml');
+$kmsControls = ZipTool::readEntry($kmsOut, 'Src/ControlsScreen.pa.yaml');
+$kmsApp = ZipTool::readEntry($kmsOut, 'Src/App.pa.yaml');
+assert_true(is_string($kmsHome) && str_contains($kmsHome, 'tglPowerSweeperDarkMode'), 'kitchen sink home gets dark toggle');
+assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblDarkMode'), 'kitchen sink App.OnStart sets gblDarkMode');
+assert_true(is_string($kmsHome) && str_contains($kmsHome, 'If(gblDarkMode'), 'kitchen sink home colors wrapped');
+assert_true(is_string($kmsControls) && str_contains($kmsControls, 'If(gblDarkMode'), 'kitchen sink controls colors wrapped');
+assert_true(
+    is_string($kmsControls)
+    && preg_match("/SelectedFill:\\s*'?=If\\(gblDarkMode,/m", $kmsControls) === 1,
+    'gallery SelectedFill themed'
+);
+assert_true(
+    is_string($kmsControls)
+    && preg_match("/RailFill:\\s*'?=If\\(gblDarkMode,/m", $kmsControls) === 1,
+    'slider RailFill themed'
+);
+@unlink($kmsOut);
 
 // --- integration: zip fixture -> pipeline -> zip ---
 $fixtureYaml = file_get_contents(__DIR__ . '/fixtures/screen.pa.yaml');
