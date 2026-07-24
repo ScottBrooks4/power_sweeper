@@ -257,6 +257,23 @@ assert_true(count($catalog->sharePointListNames()) >= 1, 'catalog loads sharepoi
 @rmdir($spStage);
 @rmdir($spTmp);
 
+// --- German locale corruption sample (thousands of errors) ---
+$localePath = dirname(__DIR__) . '/samples/locale_german_corrupt/locale_german_corrupt.msapp';
+if (!is_file($localePath)) {
+    passthru('php ' . escapeshellarg(dirname(__DIR__) . '/samples/locale_german_corrupt/build.php'), $localeBuild);
+    assert_true(($localeBuild === 0) && is_file($localePath), 'locale corrupt sample builds');
+}
+$localeOut = sys_get_temp_dir() . '/ps_locale_out_' . bin2hex(random_bytes(4)) . '.msapp';
+$localeResult = (new Pipeline())->run($localePath, [['id' => 'unwhack_locale_formulas']], $localeOut);
+$localeTotal = (int) ($localeResult['report']['total'] ?? 0);
+assert_true($localeTotal >= 1000, 'locale sample repairs thousands of formulas (got ' . $localeTotal . ')');
+$localeApp = ZipTool::readEntry($localeOut, 'Src/App.pa.yaml');
+$localeJson = ZipTool::readEntry($localeOut, 'Controls/Screen1.json');
+assert_true(is_string($localeApp) && str_contains($localeApp, '12.5') && !str_contains($localeApp, ';;'), 'App.OnStart unwhacked');
+assert_true(is_string($localeJson) && !preg_match('/RGBA\(\d+;\s*\d+/', $localeJson), 'internal JSON InvariantScript unwhacked');
+assert_true(is_string($localeJson) && preg_match('/RGBA\(\d+,\s*\d+,\s*\d+/', $localeJson) === 1, 'internal JSON has invariant RGBA commas');
+@unlink($localeOut);
+
 // --- dark mode kitchen sink sample ---
 $kmsPath = dirname(__DIR__) . '/samples/dark_mode_kitchen_sink/dark_mode_kitchen_sink.msapp';
 if (!is_file($kmsPath)) {

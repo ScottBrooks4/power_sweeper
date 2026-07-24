@@ -89,6 +89,17 @@ php samples/dark_mode_kitchen_sink/build.php --with-dark-mode  # + themed .msapp
 
 Drop `samples/dark_mode_kitchen_sink/dark_mode_kitchen_sink.msapp` into Power Sweeper with the **dark_mode** profile to exercise the full toggle rewrite path.
 
+### German locale corruption sample
+
+Stress test for **`unwhack_locale`**: ~15k formulas with German separators baked into YAML **and** internal `InvariantScript` (`samples/locale_german_corrupt/`).
+
+```bash
+php samples/locale_german_corrupt/build.php                 # corrupt .msapp
+php samples/locale_german_corrupt/build.php --with-unwhack  # + fixed .msapp + report summary
+```
+
+Drop `locale_german_corrupt.msapp` → profile **unwhack_locale** → expect thousands of formula repairs (default build reports **14801** changes).
+
 ## Tests
 
 ```bash

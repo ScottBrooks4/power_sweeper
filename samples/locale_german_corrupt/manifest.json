@@ -1,0 +1,14 @@
+{
+    "screens": 20,
+    "controls_per_screen": 40,
+    "approx_corrupted_formulas": 14801,
+    "corruption": {
+        "decimal": "comma (de-DE)",
+        "list_separator": "semicolon",
+        "chaining": "double-semicolon",
+        "surfaces": [
+            "Src/*.pa.yaml",
+            "Controls/*.json InvariantScript"
+        ]
+    }
+}
