@@ -1,0 +1,58 @@
+{
+  "TopParent": {
+    "Name": "VASCTemplateControlScreen",
+    "Template": { "Name": "screen" },
+    "Rules": [
+      {
+        "Property": "Size",
+        "Category": "Design",
+        "InvariantScript": "Parent.Width * 0,85",
+        "RuleProviderType": "Unknown"
+      },
+      {
+        "Property": "Orientation",
+        "Category": "Design",
+        "InvariantScript": "If(App.Width > 768; 1; 0)",
+        "RuleProviderType": "Unknown"
+      }
+    ],
+    "Children": [
+      {
+        "Name": "Button1_3",
+        "Template": { "Name": "button" },
+        "Rules": [
+          {
+            "Property": "OnSelect",
+            "Category": "Behavior",
+            "InvariantScript": "Set(gblJson; ParseJSON(gblPayload));; Set(gblAmt; Value(Text(gblJson.Amount); \"en-US\"));; Notify(\"ok\"; NotificationType.Information)",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Size",
+            "Category": "Design",
+            "InvariantScript": "12,5",
+            "RuleProviderType": "Unknown"
+          }
+        ]
+      },
+      {
+        "Name": "OneTimeVisit",
+        "Template": { "Name": "checkbox" },
+        "Rules": [
+          {
+            "Property": "Checked",
+            "Category": "Data",
+            "InvariantScript": "If(ThisItem.OneTime; true; false)",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Default",
+            "Category": "Data",
+            "InvariantScript": "1",
+            "RuleProviderType": "Unknown"
+          }
+        ]
+      }
+    ]
+  }
+}

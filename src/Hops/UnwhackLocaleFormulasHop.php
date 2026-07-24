@@ -29,7 +29,7 @@ final class UnwhackLocaleFormulasHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Fix comma-decimal / semicolon list-separator corruption (e.g. after switching the app language to German) in YAML and internal InvariantScript the editor cannot always reach.';
+        return 'Fix locale separator corruption (German comma-decimals, ; list separators, ;; chaining) that causes App checker errors like Expected operator, Invalid number of arguments on Size/Orientation, ParseJSON issues, and broken If/Checked formulas — including internal InvariantScript.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void

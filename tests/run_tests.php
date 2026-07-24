@@ -11,8 +11,10 @@ use PowerSweeper\FormulaLocaleNormalizer;
 use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
+use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
+use PowerSweeper\Hops\RepairCheckedBooleansHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
 use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
@@ -256,6 +258,67 @@ assert_true(count($catalog->sharePointListNames()) >= 1, 'catalog loads sharepoi
 @rmdir($spStage . '/References');
 @rmdir($spStage);
 @rmdir($spTmp);
+
+// --- VCR-like Studio errors (Size / Orientation / ParseJSON / Checked / focus) ---
+$vcrYaml = ControlDocument::fromFile(__DIR__ . '/fixtures/vcr_locale_errors.pa.yaml', 'Src/VCR.pa.yaml');
+$vcrJson = ControlDocument::fromFile(__DIR__ . '/fixtures/vcr_locale_errors.json', 'Controls/VASC.json');
+assert_true($vcrYaml !== null && $vcrJson !== null, 'VCR locale fixtures load');
+$vcrReport = new Report();
+(new UnwhackLocaleFormulasHop())->apply([$vcrYaml, $vcrJson], $vcrReport);
+(new RepairCheckedBooleansHop())->apply([$vcrYaml, $vcrJson], $vcrReport);
+(new EnsureFocusVisibleHop())->apply([$vcrYaml], $vcrReport);
+assert_true($vcrReport->count() > 10, 'VCR repair reports multiple fixes');
+
+$vcrSizeOk = false;
+$vcrOrientOk = false;
+$vcrCheckedOk = false;
+$vcrFocusOk = false;
+$vcrJsonSizeOk = false;
+foreach ($vcrYaml->controls() as $c) {
+    if ($c->name === 'VCRHomePage') {
+        $size = (string) $c->getProperty('Size');
+        $orient = (string) $c->getProperty('Orientation');
+        $vcrSizeOk = str_contains($size, '0.5') && !str_contains($size, '0,5');
+        $vcrOrientOk = str_contains($orient, ',') && !str_contains($orient, ';') && str_contains($orient, '1.5');
+    }
+    if ($c->name === 'VIPCheckbox') {
+        $def = (string) $c->getProperty('Default');
+        $vcrCheckedOk = $def === '=true' || str_ends_with($def, 'true');
+    }
+    if ($c->name === 'NewRequestButton') {
+        $ft = (string) $c->getProperty('FocusedBorderThickness');
+        $vcrFocusOk = str_contains($ft, '2');
+    }
+}
+foreach ($vcrJson->controls() as $c) {
+    if ($c->name === 'VASCTemplateControlScreen' || $c->name === 'Button1_3') {
+        $sz = (string) ($c->getProperty('Size') ?? '');
+        if (str_contains($sz, '0.85') || $sz === '12.5') {
+            $vcrJsonSizeOk = true;
+        }
+    }
+    if ($c->name === 'OneTimeVisit') {
+        $d = (string) ($c->getProperty('Default') ?? '');
+        if ($d === 'true') {
+            $vcrCheckedOk = true;
+        }
+    }
+}
+assert_true($vcrSizeOk, 'VCR screen Size decimal unwhacked (fixes received-2-expected-1 class)');
+assert_true($vcrOrientOk, 'VCR Orientation separators unwhacked');
+assert_true($vcrCheckedOk, 'VCR Checked/Default booleans repaired');
+assert_true($vcrFocusOk, 'VCR interactive focus ring applied');
+assert_true($vcrJsonSizeOk, 'VCR internal JSON Size unwhacked');
+
+$parseProbe = FormulaLocaleNormalizer::toInvariant(
+    '=Set(gblJson; ParseJSON(gblPayload));; Set(x; Value(Text(gblJson.Amount); "en-US"))'
+);
+assert_true(
+    str_contains($parseProbe, 'ParseJSON(gblPayload)')
+    && str_contains($parseProbe, 'Value(Text(gblJson.Amount), "en-US")')
+    && !str_contains($parseProbe, ';;'),
+    'ParseJSON / nested Value separators unwhacked'
+);
 
 // --- German locale corruption sample (thousands of errors) ---
 $localePath = dirname(__DIR__) . '/samples/locale_german_corrupt/locale_german_corrupt.msapp';

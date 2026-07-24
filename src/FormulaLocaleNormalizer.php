@@ -14,8 +14,12 @@ namespace PowerSweeper;
  * Locale authoring display (comma-decimal languages):
  *   decimal ",", list ";", chaining ";;"
  *
- * Studio bugs / mixed-locale edits can bake the locale form into YAML or
- * InvariantScript, including in places the formula bar cannot reach.
+ * Studio symptoms this targets (seen in App checker after language/region switches):
+ *   - Expected operator
+ *   - Invalid number of arguments (e.g. Size / Orientation received 2, expected 1)
+ *   - ParseJSON / If / LookUp argument errors
+ *   - '.' operator cannot be used in this context (cascade from bad separators)
+ *   - Expecting a true or false value (broken If/Checked formulas)
  */
 final class FormulaLocaleNormalizer
 {
@@ -29,19 +33,23 @@ final class FormulaLocaleNormalizer
             return false;
         }
 
-        // Strong signals outside of strings
         $masked = self::maskProtected($s);
         if (str_contains($masked, ';;')) {
             return true;
         }
 
         // Function / record args separated with ; instead of ,
-        // e.g. RGBA(255; 255; 255; 1) or If(a; b; c)
+        // e.g. RGBA(255; 255; 255; 1), If(a; b; c), ParseJSON(x; y), LookUp(t; c; f)
         if (preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $masked)) {
             return true;
         }
 
-        // Decimal comma numbers: 12,5 or 12.345,67
+        // Record / table field separators: { Name: "x"; Amount: 1 }
+        if (preg_match('/\{[^}"\']*;/', $masked)) {
+            return true;
+        }
+
+        // Decimal comma numbers: 12,5 or 12.345,67 or Parent.Width * 0,5
         if (preg_match('/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/', $masked)) {
             return true;
         }
@@ -54,7 +62,6 @@ final class FormulaLocaleNormalizer
 
     /**
      * Convert locale (comma-decimal) formula text to invariant form.
-     * Returns the original string when no conversion is warranted (unless $force).
      */
     public static function toInvariant(string $formula, bool $force = false): string
     {
@@ -62,7 +69,6 @@ final class FormulaLocaleNormalizer
             return $formula;
         }
 
-        // Preserve a single leading "=" when present (YAML formulas).
         $prefix = '';
         if (str_starts_with($formula, '=')) {
             $prefix = '=';
@@ -71,18 +77,15 @@ final class FormulaLocaleNormalizer
             $body = $formula;
         }
 
-        // Never rewrite unless locale corruption signals are present.
-        // ($force is reserved for callers that already pre-filtered; still require a signal.)
         if (!self::looksLocaleCorrupted($formula) && !$force) {
             return $formula;
         }
         if ($force && !self::looksLocaleCorrupted($formula)) {
-            // Force only proceeds when there is at least a semicolon list-separator pattern
-            // or a decimal comma outside strings — never rewrite clean invariant chaining.
             $masked = self::maskProtected($body);
             $hasSignal = str_contains($masked, ';;')
                 || preg_match('/(?<![A-Za-z_.])\d+,\d+/', $masked)
-                || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $masked);
+                || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $masked)
+                || preg_match('/\{[^}"\']*;/', $masked);
             if (!$hasSignal) {
                 return $formula;
             }
@@ -118,8 +121,7 @@ final class FormulaLocaleNormalizer
         // 3) Restore chaining as ;
         $code = str_replace("\x00CHAIN\x00", ';', $code);
 
-        // 4) Normalize decimal / thousands commas in numeric literals
-        // German-style thousands + decimal: 12.345,67 → 12345.67
+        // 4) German-style thousands + decimal: 12.345,67 → 12345.67
         $code = preg_replace_callback(
             '/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/',
             static function (array $m): string {
@@ -130,23 +132,19 @@ final class FormulaLocaleNormalizer
             $code
         ) ?? $code;
 
-        // Plain decimal comma: 12,5 → 12.5 (avoid matching already-fixed or identifiers)
+        // Plain decimal comma: 12,5 / 0,5 → 12.5 / 0.5
         $code = preg_replace_callback(
             '/(?<![A-Za-z_.])\d+,\d+(?!\d)/',
             static fn(array $m): string => str_replace(',', '.', $m[0]),
             $code
         ) ?? $code;
 
-        // Collapse accidental double commas from known Studio bugs (,, → ,)
-        // but keep ,, inside blank-looking patterns like { a: , , b: 1 } rare — only ,,
+        // Studio double-comma bug
         $code = preg_replace('/,(?=\s*,)/', '', $code) ?? $code;
 
         return $code;
     }
 
-    /**
-     * Replace string/comment contents with spaces (same length) for detection.
-     */
     private static function maskProtected(string $s): string
     {
         $parts = self::splitProtected($s);
@@ -158,8 +156,6 @@ final class FormulaLocaleNormalizer
     }
 
     /**
-     * Split into [type, text] where type is code|string|comment.
-     *
      * @return list<array{0:string,1:string}>
      */
     private static function splitProtected(string $s): array
@@ -176,7 +172,6 @@ final class FormulaLocaleNormalizer
         };
 
         while ($i < $len) {
-            // Line comment
             if ($s[$i] === '/' && ($s[$i + 1] ?? '') === '/') {
                 $flush('code', $buf);
                 $j = $i;
@@ -188,7 +183,6 @@ final class FormulaLocaleNormalizer
                 continue;
             }
 
-            // Block comment
             if ($s[$i] === '/' && ($s[$i + 1] ?? '') === '*') {
                 $flush('code', $buf);
                 $j = strpos($s, '*/', $i + 2);
@@ -201,13 +195,11 @@ final class FormulaLocaleNormalizer
                 continue;
             }
 
-            // Double-quoted string
             if ($s[$i] === '"') {
                 $flush('code', $buf);
                 $j = $i + 1;
                 while ($j < $len) {
                     if ($s[$j] === '"') {
-                        // "" escape in Power Fx
                         if (($s[$j + 1] ?? '') === '"') {
                             $j += 2;
                             continue;

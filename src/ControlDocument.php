@@ -212,10 +212,13 @@ final class ControlDocument
             return true;
         }
         // InvariantScript often omits leading =
-        if (preg_match('/^(RGBA?|If|Switch|With|Set|UpdateContext|Navigate|LookUp|Filter|ForAll|Concurrent)\s*\(/i', $v)) {
+        if (preg_match('/^(RGBA?|If|Switch|With|Set|UpdateContext|Navigate|LookUp|Filter|ForAll|Concurrent|ParseJSON|ClearCollect|Collect|Patch|Remove|UpdateIf)\s*\(/i', $v)) {
             return true;
         }
-        if (str_contains($v, ';;') || preg_match('/\bRGBA?\s*\([^)]*;/', $v)) {
+        if (str_contains($v, ';;') || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)]*;/', $v)) {
+            return true;
+        }
+        if (preg_match('/(?<![A-Za-z_.])\d+,\d+/', $v)) {
             return true;
         }
         return false;

@@ -1,7 +1,7 @@
 {
     "screens": 20,
     "controls_per_screen": 40,
-    "approx_corrupted_formulas": 14801,
+    "approx_corrupted_formulas": 17681,
     "corruption": {
         "decimal": "comma (de-DE)",
         "list_separator": "semicolon",

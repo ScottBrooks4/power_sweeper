@@ -1,0 +1,40 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: |-
+      =Set(gblPayload; "{""Amount"":12,5}");; Set(gblReady; true)
+VCRHomePage:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255; 255; 255; 1)
+    Size: =Parent.Width * 0,5
+    Orientation: =If(App.Width > 800; 1,5; 0,5)
+  Children:
+    - NewRequestButton:
+        Control: Classic/Button@2.0.0
+        Properties:
+          Text: ="New Request"
+          Fill: =RGBA(37; 99; 235; 1)
+          Color: =RGBA(255; 255; 255; 1)
+          Size: =Parent.Width * 0,25
+          OnSelect: |-
+            =Set(gblMode; "new");; Navigate(VCRForm; ScreenTransition.Fade)
+    - VIPCheckbox:
+        Control: Classic/CheckBox@2.0.0
+        Properties:
+          Text: ="VIP"
+          Checked: =If(LookUp(Requests; ID = 1; VIP); true; false)
+          Default: =1
+    - ConfidentialToggle:
+        Control: Classic/Toggle@2.1.0
+        Properties:
+          Text: ="Confidential"
+          Default: ="true"
+          Checked: =0
+    - HeaderHtml:
+        Control: HtmlViewer@2.0.0
+        Properties:
+          HtmlText: |-
+            ="<div>" & Text(ParseJSON(gblPayload).Amount; "0,00") & "</div>"
+          Fill: =RGBA(248; 250; 252; 1)
+          DisabledFill: =RGBA(226; 232; 240; 1)

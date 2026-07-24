@@ -63,6 +63,9 @@ function corruptionTemplates(int $i, string $controlName): array
         'Y' => sprintf('=%d,%d', $y, ($i % 5) + 1),
         'Width' => sprintf('=%d,%d', $w, ($i % 3) + 1),
         'Height' => sprintf('=%d,%d', 36, ($i % 4) + 1),
+        // Classic App checker: Invalid number of arguments on Size / Orientation
+        'Size' => sprintf('=Parent.Width * 0,%d', ($i % 5) + 1),
+        'Orientation' => sprintf('=If(App.Width > 800; %d,%d; %d,%d)', $n1, $n2, $n1 + 1, $n2),
         'OnSelect' => sprintf(
             '=Set(var_%s; %d,%d);; Notify("Gespeichert %s"; NotificationType.Success);; Navigate(Screen1; ScreenTransition.Fade)',
             $controlName,
@@ -77,6 +80,12 @@ function corruptionTemplates(int $i, string $controlName): array
             $controlName,
             $amt
         ),
+        // ParseJSON / '.' cascade errors after bad separators
+        'Tooltip' => sprintf(
+            '=Text(ParseJSON(gblPayload).Amount; "0,00") & " / " & If(%d,%d > 5; "hoch"; "niedrig")',
+            $n1,
+            $n2
+        ),
         'Text' => sprintf(
             '="Betrag: " & Text(%s; "0,00") & " / " & If(%d,%d > 5; "hoch"; "niedrig")',
             $amt,
@@ -84,10 +93,18 @@ function corruptionTemplates(int $i, string $controlName): array
             $n2
         ),
         'Default' => sprintf('=Text(%s; "0,00")', $amt),
+        // Expecting true/false on Checked
+        'Checked' => sprintf('=If(LookUp(Requests; ID = %d; VIP); true; false)', ($i % 200) + 1),
         'Visible' => sprintf('=If(gblReady; %d,%d > 0; false)', $n1, $n2),
         'DisplayMode' => sprintf(
             '=If(LookUp(Requests; ID = %d; Status) = "Open"; DisplayMode.Edit; DisplayMode.View)',
             ($i % 200) + 1
+        ),
+        'HtmlText' => sprintf(
+            '="<div style=\'font-size:" & Text(%d,%d; "0,0") & "px\'>" & Text(%s; "0,00") & "</div>"',
+            $n1,
+            $n2,
+            $amt
         ),
     ];
 }
@@ -144,11 +161,11 @@ for ($s = 1; $s <= $opts['screens']; $s++) {
 
         $templates = corruptionTemplates($c + $s * 17, $controlName);
         $props = match ($kind) {
-            0 => ['Fill', 'Color', 'BorderColor', 'X', 'Y', 'Width', 'Height', 'Text', 'Visible'],
-            1 => ['Fill', 'Color', 'BorderColor', 'HoverFill', 'PressedFill', 'X', 'Y', 'Width', 'Height', 'OnSelect', 'Text'],
-            2 => ['Fill', 'Color', 'BorderColor', 'HoverFill', 'X', 'Y', 'Width', 'Height', 'OnChange', 'Default'],
-            3 => ['Fill', 'Color', 'BorderColor', 'X', 'Y', 'Width', 'Height', 'OnSelect'],
-            default => ['Fill', 'BorderColor', 'X', 'Y', 'Width', 'Height', 'OnSelect', 'Visible'],
+            0 => ['Fill', 'Color', 'BorderColor', 'X', 'Y', 'Width', 'Height', 'Size', 'Text', 'Visible', 'Tooltip'],
+            1 => ['Fill', 'Color', 'BorderColor', 'HoverFill', 'PressedFill', 'X', 'Y', 'Width', 'Height', 'Size', 'Orientation', 'OnSelect', 'Text'],
+            2 => ['Fill', 'Color', 'BorderColor', 'HoverFill', 'X', 'Y', 'Width', 'Height', 'OnChange', 'Default', 'Checked'],
+            3 => ['Fill', 'Color', 'BorderColor', 'X', 'Y', 'Width', 'Height', 'Size', 'OnSelect', 'HtmlText'],
+            default => ['Fill', 'BorderColor', 'X', 'Y', 'Width', 'Height', 'Size', 'Orientation', 'OnSelect', 'Visible'],
         };
 
         $yaml .= "    - {$controlName}:\n";

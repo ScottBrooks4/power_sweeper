@@ -8,9 +8,11 @@ use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
 use PowerSweeper\Hops\CorrelateSharePointHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
+use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\HopInterface;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
+use PowerSweeper\Hops\RepairCheckedBooleansHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
 use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
@@ -30,6 +32,8 @@ final class HopRegistry
             NormalizeClassicButtonChromeHop::class,
             TooltipFromLabelHop::class,
             UnwhackLocaleFormulasHop::class,
+            RepairCheckedBooleansHop::class,
+            EnsureFocusVisibleHop::class,
             EnableDarkModeHop::class,
             CorrelateSharePointHop::class,
         ] as $class) {

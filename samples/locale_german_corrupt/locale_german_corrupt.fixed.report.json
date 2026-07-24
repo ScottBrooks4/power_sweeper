@@ -1,7 +1,7 @@
 {
-    "total": 14801,
+    "total": 17681,
     "by_hop": {
-        "unwhack_locale_formulas": 14801
+        "unwhack_locale_formulas": 17681
     },
     "sample_entries": [
         {
@@ -80,6 +80,20 @@
             "property": "formula",
             "from": "=36,4",
             "to": "=36.4"
+        },
+        {
+            "hop": "unwhack_locale_formulas",
+            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C1/Properties.Size",
+            "property": "formula",
+            "from": "=Parent.Width * 0,5",
+            "to": "=Parent.Width * 0.5"
+        },
+        {
+            "hop": "unwhack_locale_formulas",
+            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C1/Properties.Orientation",
+            "property": "formula",
+            "from": "=If(App.Width > 800; 69,6; 70,6)",
+            "to": "=If(App.Width > 800, 69.6, 70.6)"
         },
         {
             "hop": "unwhack_locale_formulas",
@@ -167,6 +181,13 @@
         },
         {
             "hop": "unwhack_locale_formulas",
+            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C2/Properties.Checked",
+            "property": "formula",
+            "from": "=If(LookUp(Requests; ID = 41; VIP); true; false)",
+            "to": "=If(LookUp(Requests, ID = 41, VIP), true, false)"
+        },
+        {
+            "hop": "unwhack_locale_formulas",
             "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C3/Properties.Fill",
             "property": "formula",
             "from": "=RGBA(239; 243; 247; 1)",
@@ -216,10 +237,24 @@
         },
         {
             "hop": "unwhack_locale_formulas",
+            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C3/Properties.Size",
+            "property": "formula",
+            "from": "=Parent.Width * 0,2",
+            "to": "=Parent.Width * 0.2"
+        },
+        {
+            "hop": "unwhack_locale_formulas",
             "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C3/Properties.OnSelect",
             "property": "formula",
             "from": "=Set(var_Ctl_S14_C3; 71,8);; Notify(\"Gespeichert Ctl_S14_C3\"; NotificationType.Success);; Navigate(Screen1; ScreenTransition.Fade)",
             "to": "=Set(var_Ctl_S14_C3, 71.8); Notify(\"Gespeichert Ctl_S14_C3\", NotificationType.Success); Navigate(Screen1, ScreenTransition.Fade)"
+        },
+        {
+            "hop": "unwhack_locale_formulas",
+            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C3/Properties.HtmlText",
+            "property": "formula",
+            "from": "=\"<div style='font-size:\" & Text(71,8; \"0,0\") & \"px'>\" & Text(1.783,25; \"0,00\") & \"</div>\"",
+            "to": "=\"<div style='font-size:\" & Text(71.8, \"0,0\") & \"px'>\" & Text(1783.25, \"0,00\") & \"</div>\""
         },
         {
             "hop": "unwhack_locale_formulas",
@@ -248,41 +283,6 @@
             "property": "formula",
             "from": "=42,3",
             "to": "=42.3"
-        },
-        {
-            "hop": "unwhack_locale_formulas",
-            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C4/Properties.Width",
-            "property": "formula",
-            "from": "=122,3",
-            "to": "=122.3"
-        },
-        {
-            "hop": "unwhack_locale_formulas",
-            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C4/Properties.Height",
-            "property": "formula",
-            "from": "=36,3",
-            "to": "=36.3"
-        },
-        {
-            "hop": "unwhack_locale_formulas",
-            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C4/Properties.OnSelect",
-            "property": "formula",
-            "from": "=Set(var_Ctl_S14_C4; 72,9);; Notify(\"Gespeichert Ctl_S14_C4\"; NotificationType.Success);; Navigate(Screen1; ScreenTransition.Fade)",
-            "to": "=Set(var_Ctl_S14_C4, 72.9); Notify(\"Gespeichert Ctl_S14_C4\", NotificationType.Success); Navigate(Screen1, ScreenTransition.Fade)"
-        },
-        {
-            "hop": "unwhack_locale_formulas",
-            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C4/Properties.Visible",
-            "property": "formula",
-            "from": "=If(gblReady; 72,9 > 0; false)",
-            "to": "=If(gblReady, 72.9 > 0, false)"
-        },
-        {
-            "hop": "unwhack_locale_formulas",
-            "control": "Src/Screen14.pa.yaml/Screen14/Children/Ctl_S14_C5/Properties.Fill",
-            "property": "formula",
-            "from": "=RGBA(237; 241; 245; 1)",
-            "to": "=RGBA(237, 241, 245, 1)"
         }
     ]
 }

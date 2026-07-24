@@ -19,7 +19,7 @@ Surfaces:
 - `Src/*.pa.yaml` — visible control formulas  
 - `Controls/*.json` — internal `InvariantScript` twins (editor-hard-to-reach)
 
-Default size: **20 screens × 40 controls** ≈ **15k+ corrupted formulas** (YAML + JSON).
+Default size: **20 screens × 40 controls** ≈ **17k+ corrupted formulas** (YAML + JSON), including Size/Orientation/ParseJSON/Checked patterns from real App checker failures.
 
 ## Build
 
@@ -44,9 +44,16 @@ Outputs:
 ## Test in the UI
 
 1. Drop `locale_german_corrupt.msapp` into Power Sweeper  
-2. Choose profile **`unwhack_locale`**  
+2. Choose profile **`unwhack_locale`** (locale only) or **`repair_studio_errors`** (locale + Checked booleans + focus/a11y)  
 3. Run → review the change report (thousands of formula fixes)  
 4. Open the cleaned `.msapp` in Studio (**File → Open → Browse**) and save once  
+
+Patterns included to mirror real App checker failures (e.g. CDLS VCR):
+
+- `Size` / `Orientation` with `0,5` decimals and `;` in `If` (Invalid number of arguments / Expected operator)  
+- `ParseJSON(...); ...` and nested `Value(Text(...); ...)`  
+- `Checked` / VIP-style `If(LookUp(...); true; false)`  
+- `HtmlText` with locale-broken `Text(..., "0,00")`  
 
 ## Notes
 

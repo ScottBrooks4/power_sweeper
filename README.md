@@ -98,7 +98,19 @@ php samples/locale_german_corrupt/build.php                 # corrupt .msapp
 php samples/locale_german_corrupt/build.php --with-unwhack  # + fixed .msapp + report summary
 ```
 
-Drop `locale_german_corrupt.msapp` → profile **unwhack_locale** → expect thousands of formula repairs (default build reports **14801** changes).
+Drop `locale_german_corrupt.msapp` → profile **unwhack_locale** → expect thousands of formula repairs (default build reports **17681** changes, including Size/Orientation/ParseJSON/Checked patterns).
+
+### Repair Studio errors (VCR-class apps)
+
+Profile **`repair_studio_errors`** is the pass to use on apps like CDLS VCR after a language/region switch. It runs:
+
+1. `unwhack_locale_formulas` — Expected operator, Invalid number of arguments (Size/Orientation), ParseJSON / If / LookUp separator damage, including internal JSON  
+2. `repair_checked_booleans` — “Expecting a true or false value” on checkbox/toggle `Checked`/`Default` (`1`/`0`/`"true"`)  
+3. `accessibility_labels` — missing AccessibleLabel  
+4. `ensure_focus_visible` — App checker “Focus isn’t showing”  
+5. `tooltip_from_label` — empty tooltips  
+
+**Not auto-fixed** (different App checker categories): SharePoint **delegation** warnings, **unused variables/media**, missing Power Automate **Run** targets when the flow isn’t in the app.
 
 ## Tests
 
