@@ -43,7 +43,9 @@ Order matters: the same hops in a different sequence can produce different resul
 
 ## Profiles
 
-PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `dark_mode`, `sharepoint_correlate`.
+PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `repair_studio_errors`, `dark_mode`, `repair_and_dark_mode`, `sharepoint_correlate`.
+
+For apps like **CDLS VCR** / **VCDS THCEE** (locale formula errors + dark theme), use profile **`repair_and_dark_mode`**: repair first, then inject central `gblTheme*` palettes in one run.
 
 ### Locale unwhack
 
