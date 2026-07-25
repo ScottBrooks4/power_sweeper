@@ -428,6 +428,22 @@ $yamlOut = ZipTool::readEntry($outMsapp, 'Src/Screen1.pa.yaml');
 assert_true(is_string($yamlOut) && str_contains($yamlOut, 'DropShadow.None'), 'packed YAML contains normalized DropShadow');
 $jsonOut = ZipTool::readEntry($outMsapp, 'Controls/Screen1.json');
 assert_true(is_string($jsonOut) && str_contains($jsonOut, '40.5'), 'packed JSON has unwhacked internal formula');
+$packNames = [];
+$packZip = new ZipArchive();
+assert_true($packZip->open($outMsapp) === true, 'packed msapp opens');
+for ($i = 0; $i < $packZip->numFiles; $i++) {
+    $packNames[] = (string) $packZip->getNameIndex($i);
+}
+$packZip->close();
+$hasBs = false;
+foreach ($packNames as $n) {
+    if (str_contains($n, '\\')) {
+        $hasBs = true;
+        break;
+    }
+}
+assert_true($hasBs, 'packed .msapp uses Windows backslash entry names for Studio import');
+assert_true(in_array('Src\\Screen1.pa.yaml', $packNames, true) || in_array('Controls\\Screen1.json', $packNames, true), 'packed entries include Src\\ or Controls\\ paths');
 
 // cleanup tmp
 @unlink($inMsapp);

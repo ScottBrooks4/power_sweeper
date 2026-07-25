@@ -10,16 +10,17 @@ use RecursiveIteratorIterator;
 use ZipArchive;
 
 /**
- * ZIP helpers that prefer ext-zip (ZipArchive) and fall back to PharData
- * when the zip extension is missing (common on some shared hosts).
+ * ZIP helpers that prefer ext-zip (ZipArchive) and fall back to a pure-PHP
+ * writer / PharData when the zip extension is missing.
  *
- * .msapp archives often contain Windows-style entry names (backslashes).
- * Those are normalized to forward-slash paths on extract/pack.
+ * Power Apps Studio expects Windows-style backslash entry names inside .msapp
+ * packages (e.g. Src\App.pa.yaml). We normalize to forward slashes on disk when
+ * extracting, then write backslash names when packing.
  */
 final class ZipTool
 {
     /** Bump when deploy-critical zip behavior changes (shown in errors). */
-    public const REV = '2026-07-19c';
+    public const REV = '2026-07-25a';
 
     public static function hasZipArchive(): bool
     {
@@ -78,20 +79,32 @@ final class ZipTool
         $sourceDir = rtrim($sourceDir, '/\\');
         self::normalizeBackslashTree($sourceDir);
         $files = self::listFiles($sourceDir);
+        $useMsappNames = self::wantsMsappEntryNames($archivePath);
+
+        /** @var array<string, string> $entries abs => archive entry name */
+        $entries = [];
+        foreach ($files as $abs => $rel) {
+            $entries[$abs] = $useMsappNames ? self::packEntryName($rel) : self::fsEntryName($rel);
+        }
 
         if (self::hasZipArchive()) {
             $zip = new ZipArchive();
             if ($zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
                 throw new \RuntimeException('Unable to create archive');
             }
-            foreach ($files as $abs => $rel) {
-                $zip->addFile($abs, self::zipEntryName($rel));
+            foreach ($entries as $abs => $entry) {
+                $zip->addFile($abs, $entry);
             }
             $zip->close();
             return;
         }
 
-        // PharData infers format from extension; build via .zip then rename.
+        // PharData rejects backslashes; for .msapp use a pure-PHP ZIP writer.
+        if ($useMsappNames) {
+            self::writeZipArchive($entries, $archivePath);
+            return;
+        }
+
         $tmpZip = $archivePath . '.ziptool.tmp.zip';
         if (is_file($tmpZip)) {
             unlink($tmpZip);
@@ -99,13 +112,11 @@ final class ZipTool
 
         try {
             $phar = new PharData($tmpZip);
-            foreach ($files as $abs => $rel) {
-                $entry = self::zipEntryName($rel);
+            foreach ($entries as $abs => $entry) {
                 $data = file_get_contents($abs);
                 if ($data === false) {
-                    throw new \RuntimeException('Unable to read file for archive: ' . $rel);
+                    throw new \RuntimeException('Unable to read file for archive: ' . $entry);
                 }
-                // Prefer offset assignment — avoids addFile using a backslash source path as the entry name.
                 $phar[$entry] = $data;
             }
             unset($phar);
@@ -129,7 +140,8 @@ final class ZipTool
 
     public static function readEntry(string $archivePath, string $entryName): ?string
     {
-        $want = self::zipEntryName($entryName);
+        $forward = self::fsEntryName($entryName);
+        $backslash = self::packEntryName($entryName);
 
         if (self::hasZipArchive()) {
             $zip = new ZipArchive();
@@ -137,9 +149,9 @@ final class ZipTool
                 return null;
             }
             try {
-                $data = $zip->getFromName($want);
+                $data = $zip->getFromName($forward);
                 if ($data === false) {
-                    $data = $zip->getFromName(str_replace('/', '\\', $want));
+                    $data = $zip->getFromName($backslash);
                 }
                 return $data === false ? null : $data;
             } finally {
@@ -151,7 +163,7 @@ final class ZipTool
         mkdir($tmp, 0777, true);
         try {
             self::extract($archivePath, $tmp);
-            $path = $tmp . '/' . $want;
+            $path = $tmp . '/' . $forward;
             if (!is_file($path)) {
                 return null;
             }
@@ -162,15 +174,137 @@ final class ZipTool
         }
     }
 
-    private static function zipEntryName(string $name): string
+    private static function wantsMsappEntryNames(string $archivePath): bool
+    {
+        $base = strtolower(basename($archivePath));
+        return str_ends_with($base, '.msapp') || str_ends_with($base, '.msapp.zip');
+    }
+
+    /** Forward-slash path for on-disk / generic ZIP use. */
+    private static function fsEntryName(string $name): string
     {
         $name = str_replace('\\', '/', $name);
         $name = str_replace("\0", '', $name);
         $name = ltrim($name, '/');
-        if ($name === '' || str_contains($name, '..') || str_contains($name, '\\')) {
+        if ($name === '' || str_contains($name, '..')) {
             throw new \RuntimeException('Invalid archive entry name (ZipTool ' . self::REV . '): ' . $name);
         }
         return $name;
+    }
+
+    /**
+     * Windows-style entry name for Studio-compatible .msapp packages.
+     * Root files (Header.json, Properties.json) stay without separators.
+     */
+    private static function packEntryName(string $name): string
+    {
+        $name = self::fsEntryName($name);
+        return str_replace('/', '\\', $name);
+    }
+
+    /**
+     * Minimal ZIP writer that allows backslash entry names (PharData cannot).
+     *
+     * @param array<string, string> $entries absolute path => archive entry name
+     */
+    private static function writeZipArchive(array $entries, string $archivePath): void
+    {
+        $fh = fopen($archivePath, 'wb');
+        if ($fh === false) {
+            throw new \RuntimeException('Unable to create archive file');
+        }
+
+        $central = '';
+        $offset = 0;
+        $count = 0;
+
+        try {
+            foreach ($entries as $abs => $name) {
+                $data = file_get_contents($abs);
+                if ($data === false) {
+                    throw new \RuntimeException('Unable to read file for archive: ' . $name);
+                }
+                $nameBytes = $name;
+                $nameLen = strlen($nameBytes);
+                if ($nameLen > 0xFFFF) {
+                    throw new \RuntimeException('Archive entry name too long: ' . $name);
+                }
+
+                $crc = crc32($data);
+                $uncomp = strlen($data);
+                $deflated = gzdeflate($data, 6);
+                if ($deflated !== false && strlen($deflated) < $uncomp) {
+                    $payload = $deflated;
+                    $method = 8;
+                    $comp = strlen($deflated);
+                } else {
+                    $payload = $data;
+                    $method = 0;
+                    $comp = $uncomp;
+                }
+
+                $local = pack(
+                    'VvvvvvVVVvv',
+                    0x04034b50, // local file header signature
+                    20,         // version needed
+                    0,          // flags
+                    $method,
+                    0,          // time
+                    0,          // date
+                    $crc,
+                    $comp,
+                    $uncomp,
+                    $nameLen,
+                    0           // extra len
+                );
+                $local .= $nameBytes;
+
+                fwrite($fh, $local);
+                fwrite($fh, $payload);
+
+                $central .= pack(
+                    'VvvvvvvVVVvvvvvVV',
+                    0x02014b50, // central directory header
+                    20,         // version made by
+                    20,         // version needed
+                    0,          // flags
+                    $method,
+                    0,          // time
+                    0,          // date
+                    $crc,
+                    $comp,
+                    $uncomp,
+                    $nameLen,
+                    0,          // extra
+                    0,          // comment
+                    0,          // disk start
+                    0,          // int attr
+                    0,          // ext attr
+                    $offset
+                );
+                $central .= $nameBytes;
+
+                $offset += strlen($local) + $comp;
+                $count++;
+            }
+
+            $centralOffset = $offset;
+            $centralSize = strlen($central);
+            fwrite($fh, $central);
+            fwrite($fh, pack(
+                'VvvvvVVv',
+                0x06054b50, // end of central directory
+                0,          // disk number
+                0,          // start disk
+                $count,
+                $count,
+                $centralSize,
+                $centralOffset,
+                0           // comment length
+            ));
+        } finally {
+            fclose($fh);
+        }
     }
 
     /**

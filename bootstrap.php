@@ -27,9 +27,13 @@ function ps_ini_bytes(string $val): int
     };
 }
 
-if (!is_dir(POWER_SWEEPER_STORAGE . '/tmp')) {
-    mkdir(POWER_SWEEPER_STORAGE . '/tmp', 0777, true);
-}
-if (!is_dir(POWER_SWEEPER_STORAGE . '/out')) {
-    mkdir(POWER_SWEEPER_STORAGE . '/out', 0777, true);
+foreach (['tmp', 'out'] as $sub) {
+    $dir = POWER_SWEEPER_STORAGE . '/' . $sub;
+    if (!is_dir($dir)) {
+        mkdir($dir, 0777, true);
+    }
+    // Best-effort: Apache (http) must write here. Prefer scripts/fix_permissions.sh (1777).
+    if (!is_writable($dir)) {
+        @chmod($dir, 0777);
+    }
 }

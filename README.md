@@ -27,6 +27,13 @@ Real apps (VCR / VCDS) often exceed PHP’s default **2M** upload cap. This repo
 1. Confirm limits: open `/power_sweeper/api/run.php` — check `upload_limits`
 2. Restart Apache / php-fpm after pulling
 3. Or set in `/etc/php/*/apache2/php.ini` (or fpm pool): `upload_max_filesize=256M` and `post_max_size=256M`
+
+If storage is not writable by Apache (`http`), run:
+
+```bash
+sh scripts/fix_permissions.sh
+```
+
 ## How it works
 
 1. Upload an `.msapp` (ZIP archive of canvas sources).
@@ -106,27 +113,21 @@ The `sharepoint_correlate` profile then:
 
 Hop options: `repair` (bool), `max_distance` (int, default 2), `repair_site_url` (bool, default false), `lists` / `schema` / `schema_file`.
 
-### Dark mode kitchen-sink sample
+### Samples (local only — not published to GitHub)
 
-An exhaustive light-theme sample lives in [`samples/dark_mode_kitchen_sink/`](samples/dark_mode_kitchen_sink/) — screens, labels, buttons (hover/pressed/disabled), inputs, toggle/checkbox/slider/radio, dropdown/combo, gallery item surfaces, shadows, and `RGBA` / `Color.*` / `ColorValue("#…")` forms.
-
-```bash
-php samples/dark_mode_kitchen_sink/build.php              # light .msapp
-php samples/dark_mode_kitchen_sink/build.php --with-dark-mode  # + themed .msapp + report
-```
-
-Drop `samples/dark_mode_kitchen_sink/dark_mode_kitchen_sink.msapp` into Power Sweeper with the **dark_mode** profile to exercise the full toggle rewrite path.
-
-### German locale corruption sample
-
-Stress test for **`unwhack_locale`**: ~15k formulas with German separators baked into YAML **and** internal `InvariantScript` (`samples/locale_german_corrupt/`).
+`.msapp` packages under `samples/` and `import/` are **gitignored**. Rebuild synthetic fixtures locally when needed:
 
 ```bash
-php samples/locale_german_corrupt/build.php                 # corrupt .msapp
-php samples/locale_german_corrupt/build.php --with-unwhack  # + fixed .msapp + report summary
+php samples/dark_mode_kitchen_sink/build.php --with-dark-mode
+php samples/locale_german_corrupt/build.php --with-unwhack
 ```
 
-Drop `locale_german_corrupt.msapp` → profile **unwhack_locale** → expect thousands of formula repairs (default build reports **17681** changes, including Size/Orientation/ParseJSON/Checked patterns).
+Cleaned customer apps for Studio import (ASCII names, Studio-compatible Windows zip paths):
+
+- `~/Downloads/power_sweeper_import/`
+- `/srv/http/power_sweeper/import/`
+
+Import with **make.powerapps.com → Apps → Import app → From file (.msapp)** and pick a **local** file (avoids remote download/network blocks). Then **Save** once into your environment.
 
 ### Repair Studio errors (VCR-class apps)
 
@@ -148,6 +149,7 @@ php tests/run_tests.php
 
 ## Notes
 
-- Open the cleaned `.msapp` in Power Apps Studio (**File → Open → Browse**) and save once after import.
+- Import cleaned apps via **Apps → Import app → From file (.msapp)** (local file picker), then **Save** once. Prefer `~/Downloads/power_sweeper_import/` copies (ASCII filenames).
+- Packed `.msapp` files use Windows-style `\` zip entry names so Studio can open them.
 - Only hop-owned properties are changed; media, connections, and unrelated metadata are left alone.
 - Prefer editing apps you can re-save in Studio; treat this as a companion cleanup tool, not a full source-control substitute.

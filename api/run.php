@@ -181,6 +181,14 @@ try {
     $tmpOutput = POWER_SWEEPER_STORAGE . '/out/' . $token . '.msapp';
     $schemaPath = null;
 
+    $storageTmp = POWER_SWEEPER_STORAGE . '/tmp';
+    $storageOut = POWER_SWEEPER_STORAGE . '/out';
+    if (!is_writable($storageTmp) || !is_writable($storageOut)) {
+        throw new RuntimeException(
+            'Storage is not writable by the web server (tmp/out). Run: sh scripts/fix_permissions.sh'
+        );
+    }
+
     // Optional SharePoint list schema JSON for correlate_sharepoint hop
     if (isset($_FILES['sharepoint_schema']) && is_array($_FILES['sharepoint_schema'])) {
         $schemaFile = $_FILES['sharepoint_schema'];
@@ -206,7 +214,9 @@ try {
     if (!move_uploaded_file((string) $file['tmp_name'], $tmpInput)) {
         // CLI / non-upload fallback
         if (!rename((string) $file['tmp_name'], $tmpInput) && !copy((string) $file['tmp_name'], $tmpInput)) {
-            throw new RuntimeException('Could not store uploaded file');
+            throw new RuntimeException(
+                'Could not store uploaded file into storage/tmp (check permissions; run scripts/fix_permissions.sh)'
+            );
         }
     }
 
