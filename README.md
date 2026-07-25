@@ -43,9 +43,14 @@ Order matters: the same hops in a different sequence can produce different resul
 
 ## Profiles
 
-PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `repair_studio_errors`, `dark_mode`, `repair_and_dark_mode`, `sharepoint_correlate`.
+PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `repair_studio_errors`, `dark_mode`, `sharepoint_correlate`.
 
-For apps like **CDLS VCR** / **VCDS THCEE** (locale formula errors + dark theme), use profile **`repair_and_dark_mode`**: repair first, then inject central `gblTheme*` palettes in one run.
+For apps like **CDLS VCR** / **VCDS THCEE**, run **two separate passes** (do not combine into one profile):
+
+1. Profile **`repair_studio_errors`** → download → open/save in Studio if you want to verify checker cleanup  
+2. Profile **`dark_mode`** on that cleaned `.msapp` → download → open/save in Studio, use the Dark mode toggle  
+
+Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the result. You can also build a custom hop sequence by adding hops from both profiles yourself — order should still be repair hops first, then `enable_dark_mode`.
 
 ### Locale unwhack
 
