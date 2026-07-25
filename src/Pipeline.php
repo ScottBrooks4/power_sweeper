@@ -54,8 +54,9 @@ final class Pipeline
                 if (!is_array($options)) {
                     $options = [];
                 }
-                // Let hops that need Connections/DataSources read the unpacked tree.
+                // Let hops that need Connections/DataSources or pack options see the archive.
                 $options['_extract_dir'] = $archive->extractDir();
+                $options['_msapp_archive'] = $archive;
                 $hop = $this->registry->make($id);
                 $emit([
                     'type' => 'phase',

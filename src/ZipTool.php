@@ -13,21 +13,95 @@ use ZipArchive;
  * ZIP helpers that prefer ext-zip (ZipArchive) and fall back to a pure-PHP
  * writer / PharData when the zip extension is missing.
  *
- * Power Apps Studio expects Windows-style backslash entry names inside .msapp
- * packages (e.g. Src\App.pa.yaml). We normalize to forward slashes on disk when
- * extracting, then write backslash names when packing.
+ * On disk we always use forward slashes. Inside .msapp packages, entry path
+ * separators are preserved from the source archive by default (almost always
+ * Windows `\`, since Power Apps is a Windows product). Use the
+ * `set_zip_path_style` hop / `posix_zip_paths` profile to force POSIX `/`.
  */
 final class ZipTool
 {
     /** Bump when deploy-critical zip behavior changes (shown in errors). */
-    public const REV = '2026-07-25a';
+    public const REV = '2026-07-25b';
+
+    public const STYLE_WINDOWS = 'windows';
+    public const STYLE_POSIX = 'posix';
 
     public static function hasZipArchive(): bool
     {
         return class_exists(ZipArchive::class);
     }
 
-    public static function extract(string $archivePath, string $destinationDir): void
+    /**
+     * Detect zip entry path style from an existing archive.
+     * Defaults to windows when no nested paths (or mixed with any `\`).
+     */
+    public static function detectEntryStyle(string $archivePath): string
+    {
+        if (!is_file($archivePath)) {
+            return self::STYLE_WINDOWS;
+        }
+
+        $sawBackslash = false;
+        $sawForward = false;
+
+        if (self::hasZipArchive()) {
+            $zip = new ZipArchive();
+            if ($zip->open($archivePath) !== true) {
+                return self::STYLE_WINDOWS;
+            }
+            try {
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $name = $zip->getNameIndex($i);
+                    if ($name === false) {
+                        continue;
+                    }
+                    if (str_contains($name, '\\')) {
+                        $sawBackslash = true;
+                    } elseif (str_contains($name, '/')) {
+                        $sawForward = true;
+                    }
+                }
+            } finally {
+                $zip->close();
+            }
+        } else {
+            // Best-effort via PharData staging for non-.zip names.
+            try {
+                self::withPharZip($archivePath, static function (PharData $phar, string $pharZipPath) use (&$sawBackslash, &$sawForward): void {
+                    $prefix = 'phar://' . $pharZipPath . '/';
+                    foreach (new RecursiveIteratorIterator($phar) as $file) {
+                        /** @var \SplFileInfo $file */
+                        $pathname = $file->getPathname();
+                        if (!str_starts_with($pathname, $prefix)) {
+                            continue;
+                        }
+                        $name = substr($pathname, strlen($prefix));
+                        if (str_contains($name, '\\')) {
+                            $sawBackslash = true;
+                        } elseif (str_contains($name, '/')) {
+                            $sawForward = true;
+                        }
+                    }
+                });
+            } catch (\Throwable) {
+                return self::STYLE_WINDOWS;
+            }
+        }
+
+        if ($sawBackslash) {
+            return self::STYLE_WINDOWS;
+        }
+        if ($sawForward) {
+            return self::STYLE_POSIX;
+        }
+        // Root-only files (Header.json, …): Power Apps convention is Windows.
+        return self::STYLE_WINDOWS;
+    }
+
+    /**
+     * @return self::STYLE_* detected style from the source archive
+     */
+    public static function extract(string $archivePath, string $destinationDir): string
     {
         if (!is_file($archivePath)) {
             throw new \RuntimeException('Archive not found: ' . $archivePath);
@@ -35,6 +109,8 @@ final class ZipTool
         if (!is_dir($destinationDir) && !mkdir($destinationDir, 0777, true) && !is_dir($destinationDir)) {
             throw new \RuntimeException('Unable to create extract directory');
         }
+
+        $style = self::detectEntryStyle($archivePath);
 
         if (self::hasZipArchive()) {
             $zip = new ZipArchive();
@@ -56,7 +132,7 @@ final class ZipTool
                 $zip->close();
             }
             self::normalizeBackslashTree($destinationDir);
-            return;
+            return $style;
         }
 
         // PharData: extractTo then rewrite any literal "foo\bar" filenames to foo/bar.
@@ -64,9 +140,13 @@ final class ZipTool
             $phar->extractTo($destinationDir, null, true);
         });
         self::normalizeBackslashTree($destinationDir);
+        return $style;
     }
 
-    public static function createFromDirectory(string $sourceDir, string $archivePath): void
+    /**
+     * @param self::STYLE_*|null $entryStyle null = windows for .msapp, posix otherwise
+     */
+    public static function createFromDirectory(string $sourceDir, string $archivePath, ?string $entryStyle = null): void
     {
         if (!is_dir($sourceDir)) {
             throw new \RuntimeException('Source directory not found: ' . $sourceDir);
@@ -79,12 +159,17 @@ final class ZipTool
         $sourceDir = rtrim($sourceDir, '/\\');
         self::normalizeBackslashTree($sourceDir);
         $files = self::listFiles($sourceDir);
-        $useMsappNames = self::wantsMsappEntryNames($archivePath);
+
+        if ($entryStyle === null) {
+            $entryStyle = self::wantsMsappEntryNames($archivePath) ? self::STYLE_WINDOWS : self::STYLE_POSIX;
+        }
+        $entryStyle = self::normalizeStyle($entryStyle);
+        $useWindows = $entryStyle === self::STYLE_WINDOWS;
 
         /** @var array<string, string> $entries abs => archive entry name */
         $entries = [];
         foreach ($files as $abs => $rel) {
-            $entries[$abs] = $useMsappNames ? self::packEntryName($rel) : self::fsEntryName($rel);
+            $entries[$abs] = $useWindows ? self::packEntryName($rel) : self::fsEntryName($rel);
         }
 
         if (self::hasZipArchive()) {
@@ -99,8 +184,8 @@ final class ZipTool
             return;
         }
 
-        // PharData rejects backslashes; for .msapp use a pure-PHP ZIP writer.
-        if ($useMsappNames) {
+        // PharData rejects backslashes; for Windows-style .msapp use a pure-PHP ZIP writer.
+        if ($useWindows) {
             self::writeZipArchive($entries, $archivePath);
             return;
         }
@@ -136,6 +221,19 @@ final class ZipTool
                 $e
             );
         }
+    }
+
+    /** @return self::STYLE_* */
+    public static function normalizeStyle(string $style): string
+    {
+        $style = strtolower(trim($style));
+        return match ($style) {
+            self::STYLE_POSIX, 'linux', 'forward', 'slash', '/' => self::STYLE_POSIX,
+            self::STYLE_WINDOWS, 'win', 'backslash', '\\' => self::STYLE_WINDOWS,
+            default => throw new \InvalidArgumentException(
+                'Unknown zip path style "' . $style . '" (use windows or posix)'
+            ),
+        };
     }
 
     public static function readEntry(string $archivePath, string $entryName): ?string

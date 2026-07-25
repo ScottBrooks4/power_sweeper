@@ -13,6 +13,7 @@ use PowerSweeper\Hops\HopInterface;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
+use PowerSweeper\Hops\SetZipPathStyleHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
 use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
@@ -36,6 +37,7 @@ final class HopRegistry
             EnsureFocusVisibleHop::class,
             EnableDarkModeHop::class,
             CorrelateSharePointHop::class,
+            SetZipPathStyleHop::class,
         ] as $class) {
             /** @var class-string<HopInterface> $class */
             $this->hops[$class::id()] = $class;

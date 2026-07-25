@@ -445,6 +445,40 @@ foreach ($packNames as $n) {
 assert_true($hasBs, 'packed .msapp uses Windows backslash entry names for Studio import');
 assert_true(in_array('Src\\Screen1.pa.yaml', $packNames, true) || in_array('Controls\\Screen1.json', $packNames, true), 'packed entries include Src\\ or Controls\\ paths');
 
+// --- zip path style: preserve source, optional posix hop ---
+$styleDir = sys_get_temp_dir() . '/ps_style_' . bin2hex(random_bytes(3));
+mkdir($styleDir . '/win/Src', 0777, true);
+mkdir($styleDir . '/posix/Src', 0777, true);
+file_put_contents($styleDir . '/win/Src/A.pa.yaml', "Screen:\n  Properties:\n    X: =1\n");
+file_put_contents($styleDir . '/posix/Src/A.pa.yaml', "Screen:\n  Properties:\n    X: =1\n");
+ZipTool::createFromDirectory($styleDir . '/win', $styleDir . '/win.msapp', ZipTool::STYLE_WINDOWS);
+ZipTool::createFromDirectory($styleDir . '/posix', $styleDir . '/posix.msapp', ZipTool::STYLE_POSIX);
+assert_true(ZipTool::detectEntryStyle($styleDir . '/win.msapp') === ZipTool::STYLE_WINDOWS, 'detect windows zip style');
+assert_true(ZipTool::detectEntryStyle($styleDir . '/posix.msapp') === ZipTool::STYLE_POSIX, 'detect posix zip style');
+
+$preserved = $styleDir . '/preserved.msapp';
+(new Pipeline())->run($styleDir . '/win.msapp', [['id' => 'normalize_containers']], $preserved);
+assert_true(ZipTool::detectEntryStyle($preserved) === ZipTool::STYLE_WINDOWS, 'pipeline preserves windows zip style');
+
+$forcedPosix = $styleDir . '/forced_posix.msapp';
+$posixResult = (new Pipeline())->run($styleDir . '/win.msapp', [
+    ['id' => 'set_zip_path_style', 'options' => ['style' => 'posix']],
+], $forcedPosix);
+assert_true(ZipTool::detectEntryStyle($forcedPosix) === ZipTool::STYLE_POSIX, 'posix_zip_paths hop forces forward slashes');
+assert_true(($posixResult['report']['total'] ?? 0) >= 1, 'zip path style hop reports a change');
+
+@unlink($styleDir . '/win/Src/A.pa.yaml');
+@rmdir($styleDir . '/win/Src');
+@rmdir($styleDir . '/win');
+@unlink($styleDir . '/posix/Src/A.pa.yaml');
+@rmdir($styleDir . '/posix/Src');
+@rmdir($styleDir . '/posix');
+@unlink($styleDir . '/win.msapp');
+@unlink($styleDir . '/posix.msapp');
+@unlink($preserved);
+@unlink($forcedPosix);
+@rmdir($styleDir);
+
 // cleanup tmp
 @unlink($inMsapp);
 @unlink($outMsapp);

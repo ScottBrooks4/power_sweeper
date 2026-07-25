@@ -55,10 +55,11 @@ Order matters: the same hops in a different sequence can produce different resul
 | `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` the formula bar may not expose |
 | `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` palettes, add or reuse a dark-mode toggle, and point literal colors at `gblTheme.*` tokens |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
+| `set_zip_path_style` | Force zip entry separators to `windows` (`\\`) or `posix` (`/`). Default is to **preserve** the source style (almost always Windows) |
 
 ## Profiles
 
-PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `repair_studio_errors`, `dark_mode`, `sharepoint_correlate`.
+PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `repair_studio_errors`, `dark_mode`, `sharepoint_correlate`, `posix_zip_paths`, `windows_zip_paths`.
 
 For apps like **CDLS VCR** / **VCDS THCEE**, run **two separate passes** (do not combine into one profile):
 
@@ -150,6 +151,6 @@ php tests/run_tests.php
 ## Notes
 
 - Import cleaned apps via **Apps → Import app → From file (.msapp)** (local file picker), then **Save** once. Prefer `~/Downloads/power_sweeper_import/` copies (ASCII filenames).
-- Packed `.msapp` files use Windows-style `\` zip entry names so Studio can open them.
+- Packed `.msapp` files **preserve** the source zip path style (almost always Windows `\\`). Use profile **`posix_zip_paths`** (or hop `set_zip_path_style`) only if you intentionally want forward slashes.
 - Only hop-owned properties are changed; media, connections, and unrelated metadata are left alone.
 - Prefer editing apps you can re-save in Studio; treat this as a companion cleanup tool, not a full source-control substitute.
