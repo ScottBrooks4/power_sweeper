@@ -19,6 +19,14 @@ php -S localhost:8080 router.php
 Open [http://localhost:8080](http://localhost:8080).
 
 With Apache serving `/srv/http` (like convert/sweeper), use [http://localhost/power_sweeper/](http://localhost/power_sweeper/) — `.htaccess` routes `/`, `/assets/*`, and `/api/*`.
+
+### Large `.msapp` uploads
+
+Real apps (VCR / VCDS) often exceed PHP’s default **2M** upload cap. This repo sets **256M** via [`.htaccess`](.htaccess) (mod_php) and [`.user.ini`](.user.ini) (php-fpm). If you still see `Upload failed with error code 1` or `Missing msapp upload`:
+
+1. Confirm limits: open `/power_sweeper/api/run.php` — check `upload_limits`
+2. Restart Apache / php-fpm after pulling
+3. Or set in `/etc/php/*/apache2/php.ini` (or fpm pool): `upload_max_filesize=256M` and `post_max_size=256M`
 ## How it works
 
 1. Upload an `.msapp` (ZIP archive of canvas sources).

@@ -6,6 +6,9 @@
   const fileInput = document.getElementById('fileInput');
   const browseBtn = document.getElementById('browseBtn');
   const fileLabel = document.getElementById('fileLabel');
+  const schemaInput = document.getElementById('schemaInput');
+  const schemaBrowseBtn = document.getElementById('schemaBrowseBtn');
+  const schemaLabel = document.getElementById('schemaLabel');
   const profileSelect = document.getElementById('profileSelect');
   const profileHint = document.getElementById('profileHint');
   const palette = document.getElementById('palette');
@@ -24,6 +27,7 @@
   const downloadLink = document.getElementById('downloadLink');
 
   let file = null;
+  let schemaFile = null;
   /** @type {{id:string,options:object,uid:string}[]} */
   let sequence = [];
   let dragUid = null;
@@ -34,6 +38,23 @@
 
   function updateRunEnabled() {
     runBtn.disabled = !(file && sequence.length);
+  }
+
+  function humanBytes(n) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function warnIfOverUploadLimit(selected) {
+    const limits = cfg.upload_limits || {};
+    const max = Number(limits.upload_max_filesize_bytes || 0);
+    const post = Number(limits.post_max_size_bytes || 0);
+    const cap = Math.min(max || Infinity, post || Infinity);
+    if (!selected || !Number.isFinite(cap) || cap === Infinity) return;
+    if (selected.size > cap) {
+      status.textContent = `This file is ${humanBytes(selected.size)} but PHP only allows ${humanBytes(cap)} (upload_max_filesize=${limits.upload_max_filesize}, post_max_size=${limits.post_max_size}). Raise those limits (.htaccess / .user.ini / php.ini) and reload.`;
+    }
   }
 
   function renderSequence() {
@@ -118,6 +139,7 @@
     fileLabel.textContent = f.name;
     dropZone.classList.add('has-file');
     status.textContent = '';
+    warnIfOverUploadLimit(f);
     updateRunEnabled();
   }
 
@@ -133,6 +155,24 @@
     }
   });
   fileInput.addEventListener('change', () => setFile(fileInput.files?.[0]));
+
+  function setSchemaFile(f) {
+    if (!f) {
+      schemaFile = null;
+      schemaLabel.innerHTML = 'Optional. Used by <code>correlate_sharepoint</code> to validate lists/columns and repair typos against your real SharePoint lists.';
+      return;
+    }
+    if (!f.name.toLowerCase().endsWith('.json')) {
+      status.textContent = 'SharePoint schema must be a .json file.';
+      return;
+    }
+    schemaFile = f;
+    schemaLabel.textContent = `Schema: ${f.name}`;
+    status.textContent = '';
+  }
+
+  schemaBrowseBtn?.addEventListener('click', () => schemaInput?.click());
+  schemaInput?.addEventListener('change', () => setSchemaFile(schemaInput.files?.[0]));
 
   ['dragenter', 'dragover'].forEach((evt) => {
     dropZone.addEventListener(evt, (e) => {
@@ -263,6 +303,9 @@
     body.append('msapp', file);
     body.append('hops', JSON.stringify(sequence.map(({ id, options }) => ({ id, options }))));
     body.append('stream', '1');
+    if (schemaFile) {
+      body.append('sharepoint_schema', schemaFile);
+    }
 
     try {
       const res = await fetch(cfg.apiRun, {

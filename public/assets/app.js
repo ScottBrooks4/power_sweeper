@@ -40,6 +40,23 @@
     runBtn.disabled = !(file && sequence.length);
   }
 
+  function humanBytes(n) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function warnIfOverUploadLimit(selected) {
+    const limits = cfg.upload_limits || {};
+    const max = Number(limits.upload_max_filesize_bytes || 0);
+    const post = Number(limits.post_max_size_bytes || 0);
+    const cap = Math.min(max || Infinity, post || Infinity);
+    if (!selected || !Number.isFinite(cap) || cap === Infinity) return;
+    if (selected.size > cap) {
+      status.textContent = `This file is ${humanBytes(selected.size)} but PHP only allows ${humanBytes(cap)} (upload_max_filesize=${limits.upload_max_filesize}, post_max_size=${limits.post_max_size}). Raise those limits (.htaccess / .user.ini / php.ini) and reload.`;
+    }
+  }
+
   function renderSequence() {
     sequenceEl.innerHTML = '';
     emptySeq.classList.toggle('hidden', sequence.length > 0);
@@ -122,6 +139,7 @@
     fileLabel.textContent = f.name;
     dropZone.classList.add('has-file');
     status.textContent = '';
+    warnIfOverUploadLimit(f);
     updateRunEnabled();
   }
 

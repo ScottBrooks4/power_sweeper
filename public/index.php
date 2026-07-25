@@ -136,7 +136,13 @@ $basePath = $basePath === '' ? '' : $basePath;
       hops: <?= json_encode($hops, JSON_UNESCAPED_SLASHES) ?>,
       profiles: <?= json_encode($profiles, JSON_UNESCAPED_SLASHES) ?>,
       apiRun: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/run.php', JSON_UNESCAPED_SLASHES) ?>,
-      apiDownload: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/download.php', JSON_UNESCAPED_SLASHES) ?>
+      apiDownload: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/download.php', JSON_UNESCAPED_SLASHES) ?>,
+      upload_limits: {
+        upload_max_filesize: <?= json_encode((string) ini_get('upload_max_filesize'), JSON_UNESCAPED_SLASHES) ?>,
+        post_max_size: <?= json_encode((string) ini_get('post_max_size'), JSON_UNESCAPED_SLASHES) ?>,
+        upload_max_filesize_bytes: <?= (int) ps_ini_bytes((string) ini_get('upload_max_filesize')) ?>,
+        post_max_size_bytes: <?= (int) ps_ini_bytes((string) ini_get('post_max_size')) ?>
+      }
     };
   </script>
   <script src="assets/app.js"></script>
