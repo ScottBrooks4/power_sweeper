@@ -21,7 +21,7 @@ use ZipArchive;
 final class ZipTool
 {
     /** Bump when deploy-critical zip behavior changes (shown in errors). */
-    public const REV = '2026-07-25b';
+    public const REV = '2026-07-27a';
 
     public const STYLE_WINDOWS = 'windows';
     public const STYLE_POSIX = 'posix';
@@ -144,10 +144,68 @@ final class ZipTool
     }
 
     /**
-     * @param self::STYLE_*|null $entryStyle null = windows for .msapp, posix otherwise
+     * List entry names in archive order (as stored). Skips directory markers.
+     *
+     * @return list<string>
      */
-    public static function createFromDirectory(string $sourceDir, string $archivePath, ?string $entryStyle = null): void
+    public static function listEntryNames(string $archivePath): array
     {
+        if (!is_file($archivePath)) {
+            return [];
+        }
+
+        $names = [];
+        if (self::hasZipArchive()) {
+            $zip = new ZipArchive();
+            if ($zip->open($archivePath) !== true) {
+                return [];
+            }
+            try {
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $name = $zip->getNameIndex($i);
+                    if ($name === false || str_ends_with($name, '/') || str_ends_with($name, '\\')) {
+                        continue;
+                    }
+                    $names[] = $name;
+                }
+            } finally {
+                $zip->close();
+            }
+            return $names;
+        }
+
+        try {
+            self::withPharZip($archivePath, static function (PharData $phar, string $pharZipPath) use (&$names): void {
+                $prefix = 'phar://' . $pharZipPath . '/';
+                foreach (new RecursiveIteratorIterator($phar) as $file) {
+                    /** @var \SplFileInfo $file */
+                    if (!$file->isFile()) {
+                        continue;
+                    }
+                    $pathname = $file->getPathname();
+                    if (!str_starts_with($pathname, $prefix)) {
+                        continue;
+                    }
+                    $names[] = substr($pathname, strlen($prefix));
+                }
+            });
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $names;
+    }
+
+    /**
+     * @param self::STYLE_*|null $entryStyle null = windows for .msapp, posix otherwise
+     * @param list<string>|null $entryOrder preferred archive entry order (source names or / paths)
+     */
+    public static function createFromDirectory(
+        string $sourceDir,
+        string $archivePath,
+        ?string $entryStyle = null,
+        ?array $entryOrder = null
+    ): void {
         if (!is_dir($sourceDir)) {
             throw new \RuntimeException('Source directory not found: ' . $sourceDir);
         }
@@ -171,6 +229,16 @@ final class ZipTool
         foreach ($files as $abs => $rel) {
             $entries[$abs] = $useWindows ? self::packEntryName($rel) : self::fsEntryName($rel);
         }
+        $entries = self::orderEntries($entries, $entryOrder);
+
+        // Studio-exported .msapp files use DOS/Windows ZIP metadata (create_system=0,
+        // version 20, flags 0). PHP ZipArchive on Linux stamps Unix (create_system=3),
+        // which has been observed to fail Studio open with ErrOpeningDocument_UnknownError.
+        // Always use the DOS-compatible writer for Windows-style packages.
+        if ($useWindows) {
+            self::writeZipArchive($entries, $archivePath);
+            return;
+        }
 
         if (self::hasZipArchive()) {
             $zip = new ZipArchive();
@@ -181,12 +249,6 @@ final class ZipTool
                 $zip->addFile($abs, $entry);
             }
             $zip->close();
-            return;
-        }
-
-        // PharData rejects backslashes; for Windows-style .msapp use a pure-PHP ZIP writer.
-        if ($useWindows) {
-            self::writeZipArchive($entries, $archivePath);
             return;
         }
 
@@ -221,6 +283,51 @@ final class ZipTool
                 $e
             );
         }
+    }
+
+    /**
+     * @param array<string, string> $entries abs => archive entry name
+     * @param list<string>|null $entryOrder
+     * @return array<string, string>
+     */
+    private static function orderEntries(array $entries, ?array $entryOrder): array
+    {
+        /** @var array<string, string> $byNorm normalized forward path => abs */
+        $byNorm = [];
+        foreach ($entries as $abs => $name) {
+            $byNorm[str_replace('\\', '/', $name)] = $abs;
+        }
+
+        // Studio packages put these first; some broken cleans listed Assets first.
+        $preferred = ['Header.json', 'Properties.json'];
+        if (is_array($entryOrder)) {
+            foreach ($entryOrder as $raw) {
+                $norm = ltrim(str_replace('\\', '/', (string) $raw), '/');
+                if ($norm !== '' && !in_array($norm, $preferred, true)) {
+                    $preferred[] = $norm;
+                }
+            }
+        }
+
+        $ordered = [];
+        $used = [];
+        foreach ($preferred as $norm) {
+            if (!isset($byNorm[$norm])) {
+                continue;
+            }
+            $abs = $byNorm[$norm];
+            if (isset($used[$abs])) {
+                continue;
+            }
+            $ordered[$abs] = $entries[$abs];
+            $used[$abs] = true;
+        }
+        foreach ($entries as $abs => $name) {
+            if (!isset($used[$abs])) {
+                $ordered[$abs] = $name;
+            }
+        }
+        return $ordered;
     }
 
     /** @return self::STYLE_* */

@@ -14,6 +14,9 @@ final class MsappArchive
     /** @var string ZipTool::STYLE_* preserved from source (or overridden by hop) */
     private string $entryStyle = ZipTool::STYLE_WINDOWS;
 
+    /** @var list<string> Source archive entry names in original order */
+    private array $entryOrder = [];
+
     /** @var list<ControlDocument> */
     private array $documents = [];
 
@@ -54,6 +57,7 @@ final class MsappArchive
             throw new \RuntimeException('msapp file not found: ' . $this->msappPath);
         }
 
+        $this->entryOrder = ZipTool::listEntryNames($this->msappPath);
         $this->entryStyle = ZipTool::extract($this->msappPath, $this->extractDir);
         $this->discoverDocuments();
     }
@@ -75,7 +79,7 @@ final class MsappArchive
     public function pack(string $outputPath): void
     {
         $this->saveDocuments();
-        ZipTool::createFromDirectory($this->extractDir, $outputPath, $this->entryStyle);
+        ZipTool::createFromDirectory($this->extractDir, $outputPath, $this->entryStyle, $this->entryOrder);
     }
 
     public function cleanup(): void

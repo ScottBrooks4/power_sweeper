@@ -446,6 +446,36 @@ foreach ($packNames as $n) {
 assert_true($hasBs, 'packed .msapp uses Windows backslash entry names for Studio import');
 assert_true(in_array('Src\\Screen1.pa.yaml', $packNames, true) || in_array('Controls\\Screen1.json', $packNames, true), 'packed entries include Src\\ or Controls\\ paths');
 
+// DOS/Windows zip metadata (create_system=0) — Unix stamps break Studio open
+$packInfo = new ZipArchive();
+assert_true($packInfo->open($outMsapp) === true, 'reopen packed msapp for metadata check');
+$metaOk = true;
+for ($i = 0; $i < $packInfo->numFiles; $i++) {
+    $stat = $packInfo->statIndex($i);
+    if (!is_array($stat)) {
+        continue;
+    }
+    // ZipArchive::statIndex does not expose create_system; use Python-less check via raw if needed.
+}
+$packInfo->close();
+// Probe with ZipTool round-trip detect + a direct binary sniff of central-dir host OS byte.
+$rawPack = file_get_contents($outMsapp);
+assert_true(is_string($rawPack) && $rawPack !== '', 'packed msapp readable for DOS metadata sniff');
+// Central directory header signature 0x02014b50; byte at +5 is host OS (0=DOS, 3=Unix)
+$dosHosts = 0;
+$unixHosts = 0;
+$offset = 0;
+while (($pos = strpos($rawPack, "PK\x01\x02", $offset)) !== false) {
+    $host = ord($rawPack[$pos + 5]);
+    if ($host === 0) {
+        $dosHosts++;
+    } elseif ($host === 3) {
+        $unixHosts++;
+    }
+    $offset = $pos + 4;
+}
+assert_true($dosHosts > 0 && $unixHosts === 0, 'packed .msapp uses DOS/Windows zip host (not Unix) for Studio import');
+
 // --- Power Apps YAML dump (Studio import shape) ---
 $paYaml = PowerAppsYaml::dump([
     'Screens' => [
