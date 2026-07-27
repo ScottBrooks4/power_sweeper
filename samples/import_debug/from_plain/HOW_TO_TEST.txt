@@ -1,0 +1,32 @@
+From-plain bisect (CDLS VCR) — do NOT use old linuxed .cleaned packs
+====================================================================
+
+Source: CDLS (L) VCR App (4).msapp (imports OK on your DND Windows Studio)
+
+Test in order. Stop at the first failure and report which letter failed
+plus the Session ID.
+
+Serialize / pack probes (no real “repair” logic):
+  A_rezip_only.msapp                 — DOS rezip only (should work; same as before)
+  B_json_roundtrip_one_control.msapp — re-encode one Controls/*.json (StudioJson)
+  C_yaml_roundtrip_one_screen.msapp  — re-encode one small .pa.yaml (PowerAppsYaml)
+  D_json_roundtrip_all_controls.msapp— re-encode all Controls/Components JSON
+  E_yaml_roundtrip_all_src.msapp     — re-encode all Src/*.pa.yaml
+  F_raw_splice_onstart_comment.msapp — raw text splice only (no YAML/JSON dump)
+
+Real hops from the same plain app:
+  G_unwhack_only.msapp
+  H_dark_only.msapp
+  I_repair_studio_errors.msapp
+  J_repair_then_dark.msapp
+
+Local path after git pull (home) then copy to work PC:
+  …/power_sweeper/samples/import_debug/from_plain/
+
+On DND Windows, prefer a local folder e.g.:
+  Q:\import_debug\from_plain\
+
+Notes:
+  - A working + B/C/D/E failing isolates serialize format.
+  - A–E working + G/H failing isolates hop logic.
+  - F working means raw edits are safe even if dumpers still struggle.
