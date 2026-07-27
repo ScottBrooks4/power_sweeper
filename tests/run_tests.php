@@ -501,6 +501,14 @@ assert_true(str_contains($paYaml, 'Y: =10') && !str_contains($paYaml, "'Y':"), '
 assert_true(str_contains($paYaml, "Font: =Font.'Open Sans'"), 'PowerAppsYaml keeps Font.\'…\' unquoted as formula');
 assert_true(str_contains($paYaml, '- Box:'), 'PowerAppsYaml uses inline Children list items');
 assert_true(!str_contains($paYaml, "Fill: '="), 'PowerAppsYaml does not emit Fill: \'=…\'');
+$paYamlScreens = PowerAppsYaml::dump([
+    'Screens' => [
+        'VCR Home Page' => ['Properties' => ['Fill' => '=RGBA(1, 1, 1, 1)']],
+        'VCR / VCN Form' => ['Properties' => ['Fill' => '=RGBA(2, 2, 2, 1)']],
+    ],
+]);
+assert_true(str_contains($paYamlScreens, 'VCR Home Page:') && !str_contains($paYamlScreens, "'VCR Home Page':"), 'PowerAppsYaml leaves spaced screen names unquoted');
+assert_true(str_contains($paYamlScreens, 'VCR / VCN Form:') && !str_contains($paYamlScreens, "'VCR / VCN Form':"), 'PowerAppsYaml leaves slashed screen names unquoted');
 
 // Dirty tracking: empty hop sequence must not rewrite YAML
 $dirtyDir = sys_get_temp_dir() . '/ps_dirty_' . bin2hex(random_bytes(3));

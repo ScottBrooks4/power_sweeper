@@ -1,15 +1,15 @@
 Power Sweeper — import debug (Studio "unknown error")
 =====================================================
 
-Root causes (both seen on failing cleans)
------------------------------------------
-1) YAML shape: Symfony dump quoted Power Fx (`Fill: '=…'`) and broke Children
-   lists (`-\n  Name:` / flow `{ Control: … }` maps).
-2) ZIP packaging: PHP ZipArchive on Linux stamped Unix metadata
-   (create_system=3). Studio-exported apps use DOS/Windows (create_system=0),
-   Header.json + Properties.json first. Unix stamps → ErrOpeningDocument_UnknownError.
+Root causes (seen on failing cleans)
+------------------------------------
+1) YAML shape: Symfony dump quoted Power Fx (`Fill: '=…'`) and broke Children lists.
+2) ZIP packaging: PHP ZipArchive on Linux stamped Unix metadata (create_system=3).
+   Studio wants DOS/Windows (create_system=0), Header.json + Properties.json first.
+3) JSON shape: PHP json_encode pretty-print used LF + 4 spaces; Studio exports
+   CRLF + 2 spaces. Wrong JSON formatting → ErrOpeningDocument_UnknownError.
 
-Current Power Sweeper packs with a DOS-compatible writer + source entry order.
+Current Power Sweeper: DOS zip writer, PowerAppsYaml, StudioJson (CRLF/2-space).
 
 What to try (in order)
 ----------------------

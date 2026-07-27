@@ -31,7 +31,7 @@ final class PowerAppsYaml
         );
 
         $yaml = self::collapseSequenceMaps($yaml);
-        $yaml = self::unquoteAmbiguousKeys($yaml);
+        $yaml = self::unquoteKeys($yaml);
         $yaml = self::unquotePowerFxScalars($yaml);
 
         if ($headerComment !== '') {
@@ -80,11 +80,51 @@ final class PowerAppsYaml
     }
 
     /**
-     * Unquote keys Symfony quotes for YAML 1.1 booleans / sexagesimal (Y, N, Yes, No, On, Off, …).
+     * Studio leaves screen/control names bare even with spaces/slashes
+     * (`VCR Home Page:`, `VCR / VCN Form:`). Symfony quotes them.
      */
-    private static function unquoteAmbiguousKeys(string $yaml): string
+    private static function unquoteKeys(string $yaml): string
     {
-        return preg_replace("/^(\\s*)'([A-Za-z][A-Za-z0-9_]*)':/m", '$1$2:', $yaml) ?? $yaml;
+        $unquote = static function (string $key): ?string {
+            $key = str_replace("''", "'", $key);
+            // Keep quoting only when a bare key would be ambiguous/broken.
+            if ($key === '' || str_contains($key, "'") || str_contains($key, "\n") || str_contains($key, ':')) {
+                return null;
+            }
+            return $key;
+        };
+
+        // Block map keys: 'Name With Spaces':
+        $yaml = preg_replace_callback(
+            "/^(\\s*)'((?:[^']|'')+)':/m",
+            static function (array $m) use ($unquote): string {
+                $key = $unquote($m[2]);
+                return $key === null ? $m[0] : $m[1] . $key . ':';
+            },
+            $yaml
+        ) ?? $yaml;
+
+        // Sequence entries: - 'Control Name':
+        $yaml = preg_replace_callback(
+            "/^(\\s*-\\s*)'((?:[^']|'')+)':/m",
+            static function (array $m) use ($unquote): string {
+                $key = $unquote($m[2]);
+                return $key === null ? $m[0] : $m[1] . $key . ':';
+            },
+            $yaml
+        ) ?? $yaml;
+
+        // Flow-map keys: ,'Y': or { 'Y':
+        $yaml = preg_replace_callback(
+            "/([\\s,{])'((?:[^']|'')+)':/",
+            static function (array $m) use ($unquote): string {
+                $key = $unquote($m[2]);
+                return $key === null ? $m[0] : $m[1] . $key . ':';
+            },
+            $yaml
+        ) ?? $yaml;
+
+        return $yaml;
     }
 
     /**
