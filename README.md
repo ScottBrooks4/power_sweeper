@@ -63,7 +63,7 @@ Order matters: the same hops in a different sequence can produce different resul
 | `normalize_classic_button_chrome` | Clear Hover/Pressed fills when Fill is already transparent |
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
 | `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` the formula bar may not expose |
-| `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` named-formula palettes in App.Formulas, wire Settings Theme Light/Dark (or inject a toggle), and point literal colors at `gblTheme.*` tokens |
+| `enable_dark_mode` | Inject static `gblThemeLight` / `gblThemeDark` named-formula palettes in App.Formulas, wire Settings Theme Light/Dark (or inject a toggle), and point literal colors at `If(gblDarkMode, gblThemeDark.Token, gblThemeLight.Token)` |
 | `analyze_app_checker` | Read embedded `AppCheckerResult.sarif`, summarize formula errors, and repair known patterns (locale separators, empty layout formulas, boolean Checked) |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
 | `set_zip_path_style` | Force zip entry separators to `windows` (`\\`) or `posix` (`/`). Default is to **preserve** the source style (almost always Windows) |
