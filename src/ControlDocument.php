@@ -15,6 +15,10 @@ final class ControlDocument
 
     private string $yamlHeader = '';
 
+    private string $jsonNewline = "\r\n";
+
+    private int $jsonIndent = 2;
+
     /**
      * @param array<mixed> $data
      */
@@ -23,9 +27,13 @@ final class ControlDocument
         public readonly string $format,
         private array $data,
         string $yamlHeader = '',
+        string $jsonNewline = "\r\n",
+        int $jsonIndent = 2,
     ) {
         $this->mutations = new MutationTracker();
         $this->yamlHeader = $yamlHeader;
+        $this->jsonNewline = $jsonNewline;
+        $this->jsonIndent = $jsonIndent;
         $this->rebuildControls();
     }
 
@@ -65,7 +73,15 @@ final class ControlDocument
             if (!self::looksLikeControlJson($data) && !self::containsInvariantScript($data)) {
                 return null;
             }
-            return new self($relativePath, 'json', $data);
+            $style = StudioJson::detectStyle($raw);
+            // If the file was previously rewritten with PHP defaults, prefer Studio export style.
+            $newline = $style['newline'];
+            $indent = $style['indent'];
+            if ($newline === "\n" && $indent === 4) {
+                $newline = "\r\n";
+                $indent = 2;
+            }
+            return new self($relativePath, 'json', $data, '', $newline, $indent);
         }
 
         return null;
@@ -100,7 +116,7 @@ final class ControlDocument
 
         file_put_contents(
             $absolutePath,
-            json_encode($this->data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n"
+            StudioJson::encode($this->data, $this->jsonNewline, $this->jsonIndent)
         );
     }
 

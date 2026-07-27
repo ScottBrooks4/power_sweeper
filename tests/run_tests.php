@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
 use PowerSweeper\PowerAppsYaml;
+use PowerSweeper\StudioJson;
 use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaLocaleNormalizer;
 use PowerSweeper\Hops\AccessibilityLabelsHop;
@@ -513,6 +514,13 @@ ZipTool::createFromDirectory($dirtyDir, $dirtyIn, ZipTool::STYLE_WINDOWS);
 (new Pipeline())->run($dirtyIn, [], $dirtyOut);
 $after = ZipTool::readEntry($dirtyOut, 'Src/Home.pa.yaml');
 assert_true($after === $origYaml, 'empty pipeline preserves original YAML bytes (dirty tracking)');
+
+// Studio JSON style (CRLF + 2-space)
+$studioJson = StudioJson::encode(['TopParent' => ['Name' => 'Screen1', 'Rules' => []]], "\r\n", 2);
+assert_true(str_starts_with($studioJson, "{\r\n  \""), 'StudioJson uses CRLF and 2-space indent');
+assert_true(!str_contains($studioJson, "{\n    \""), 'StudioJson does not use PHP default LF/4-space');
+$style = StudioJson::detectStyle("{\r\n  \"A\": 1\r\n}\r\n");
+assert_true($style['newline'] === "\r\n" && $style['indent'] === 2, 'StudioJson detects Studio export style');
 
 // --- zip path style: preserve source, optional posix hop ---
 $styleDir = sys_get_temp_dir() . '/ps_style_' . bin2hex(random_bytes(3));
