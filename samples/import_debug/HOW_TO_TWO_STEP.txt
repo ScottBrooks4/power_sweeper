@@ -1,0 +1,31 @@
+CDLS VCR — two-step Power Sweeper outputs (from plain source)
+=============================================================
+
+Source (imports OK in Studio):
+  CDLS (L) VCR App (4).msapp
+
+Rebuild:
+  php samples/import_debug/build_two_step.php
+
+Deliverables (copy to DND Windows, e.g. Q:\import_debug\):
+
+  1) CDLS_L_VCR_step1_repair.msapp
+     Profile: repair_studio_errors
+     - Reads embedded AppCheckerResult.sarif when present
+     - Locale formula unwhack, boolean Checked repair, a11y labels, focus rings, tooltips
+     - Does NOT apply dark mode
+
+  2) CDLS_L_VCR_step2_dark_mode.msapp
+     Profile: dark_mode (from the same plain source — not combined with repair)
+     - App.Formulas: static gblThemeLight / gblThemeDark palettes
+     - Controls: If(Coalesce(gblDarkMode,false), gblThemeDark.Token, gblThemeLight.Token)
+     - Settings → Theme radio: Light / Dark
+     - Does NOT run the repair pass
+
+Recommended workflow in Studio
+------------------------------
+  A) Test repair only: open step1 → check App Checker → save if good.
+  B) Test dark only: open step2 → Settings → Theme → Dark → check contrast.
+  C) Production: open step1 → save → run dark_mode in Power Sweeper on that saved .msapp.
+
+Do NOT use old linuxed .cleaned packs for import bisect — use from_plain/ or these step files.
