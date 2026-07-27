@@ -140,6 +140,19 @@ assert_true(!str_contains($inv, ';;'), 'no leftover double-semicolon');
 $safe = '=Set(x, 1); Set(y, 2)';
 assert_true($safe === FormulaLocaleNormalizer::toInvariant($safe), 'leaves invariant chaining alone');
 assert_true(!FormulaLocaleNormalizer::looksLocaleCorrupted($safe), 'invariant not flagged');
+$rgbaTransparent = '=RGBA(0,0,0,0)';
+assert_true(
+    FormulaLocaleNormalizer::toInvariant($rgbaTransparent) === $rgbaTransparent,
+    'invariant RGBA list commas preserved'
+);
+assert_true(
+    FormulaLocaleNormalizer::toInvariant('=RGBA(0.0,0.0)') === '=RGBA(0, 0, 0, 0)',
+    'prior buggy RGBA(0.0,0.0) repaired'
+);
+assert_true(
+    str_contains(FormulaLocaleNormalizer::toInvariant('=RGBA(240, 240, 240, 0,2)'), '0.2'),
+    'locale RGBA alpha comma fixed inside color mask'
+);
 
 // --- unwhack locale on YAML ---
 $doc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/Screen1.pa.yaml');
