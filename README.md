@@ -63,7 +63,8 @@ Order matters: the same hops in a different sequence can produce different resul
 | `normalize_classic_button_chrome` | Clear Hover/Pressed fills when Fill is already transparent |
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
 | `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` the formula bar may not expose |
-| `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` palettes, add or reuse a dark-mode toggle, and point literal colors at `gblTheme.*` tokens |
+| `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` named-formula palettes in App.Formulas, wire Settings Theme Light/Dark (or inject a toggle), and point literal colors at `gblTheme.*` tokens |
+| `analyze_app_checker` | Read embedded `AppCheckerResult.sarif`, summarize formula errors, and repair known patterns (locale separators, empty layout formulas, boolean Checked) |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
 | `set_zip_path_style` | Force zip entry separators to `windows` (`\\`) or `posix` (`/`). Default is to **preserve** the source style (almost always Windows) |
 
@@ -74,9 +75,11 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 For apps like **CDLS VCR** / **VCDS THCEE**, run **two separate passes** (do not combine into one profile):
 
 1. Profile **`repair_studio_errors`** → download → open/save in Studio if you want to verify checker cleanup  
-2. Profile **`dark_mode`** on that cleaned `.msapp` → download → open/save in Studio, use the Dark mode toggle  
+2. Profile **`dark_mode`** on that cleaned `.msapp` → download → open/save in Studio, use **Settings → Theme → Dark** (or the Dark mode toggle if no Theme radio exists)
 
 Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the result. You can also build a custom hop sequence by adding hops from both profiles yourself — order should still be repair hops first, then `enable_dark_mode`.
+
+Dark mode alone does **not** fix locale/formula corruption; run repair first when App checker is noisy. Theme palettes live in **App.Formulas** (named formulas) so App Checker does not flood with `ErrInvalidName` on every `gblTheme.*` reference.
 
 ### Locale unwhack
 
@@ -86,18 +89,20 @@ When an app is edited under a comma-decimal locale (German, French, …), Studio
 
 The `dark_mode` profile builds an **editable central palette** instead of hard-coding `If(gblDarkMode, …)` / RGBA on every control:
 
-1. `App.OnStart` gets `gblThemeLight` / `gblThemeDark` records (tokens like `Page`, `Surface`, `Text`, `Accent`, …) and `Set(gblTheme, gblThemeLight)`
-2. Toggle sets `gblDarkMode` and swaps `gblTheme` between the two palettes
-3. Literal fills/text/borders become `gblTheme.Surface`, `gblTheme.Text`, etc.
+1. `App.Formulas` gets named formulas `gblThemeLight` / `gblThemeDark` (tokens like `Page`, `Surface`, `Text`, `Accent`, …) and `gblTheme = If(Coalesce(gblDarkMode, false), gblThemeDark, gblThemeLight)`
+2. `App.OnStart` only initializes `Set(gblDarkMode, false)`
+3. Settings **Theme** radio is wired to `["Light","Dark"]` when present; otherwise a Dark mode toggle is injected
+4. Theme control only flips `gblDarkMode` — `gblTheme` follows via the named formula
+5. Literal fills/text/borders become `gblTheme.Surface`, `gblTheme.Text`, etc.
 
 **Where to edit colors**
 
 | Who | Where |
 |-----|--------|
-| App maker (after clean) | `App.OnStart` → `gblThemeLight` / `gblThemeDark` only |
+| App maker (after clean) | `App.Formulas` → `gblThemeLight` / `gblThemeDark` only |
 | Operator / brand defaults | [`config/theme_defaults.php`](config/theme_defaults.php) or hop `theme_defaults` / `theme_defaults_file` options |
 
-Open the cleaned `.msapp` in Studio, save once, then use the toggle.
+Open the cleaned `.msapp` in Studio, save once, then use Settings → Theme (or the toggle).
 
 ### SharePoint correlate
 

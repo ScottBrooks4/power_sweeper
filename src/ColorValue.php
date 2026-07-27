@@ -36,6 +36,25 @@ final class ColorValue
             'black' => [0, 0, 0, 1.0],
             'color.transparent' => [0, 0, 0, 0.0],
             'transparent' => [0, 0, 0, 0.0],
+            'color.blue' => [0, 120, 212, 1.0],
+            'color.red' => [232, 17, 35, 1.0],
+            'color.green' => [16, 124, 16, 1.0],
+            'color.orange' => [247, 99, 12, 1.0],
+            'color.yellow' => [255, 185, 0, 1.0],
+            'color.purple' => [136, 23, 152, 1.0],
+            'color.gray' => [128, 128, 128, 1.0],
+            'color.grey' => [128, 128, 128, 1.0],
+            'color.lightgray' => [211, 211, 211, 1.0],
+            'color.lightgrey' => [211, 211, 211, 1.0],
+            'color.darkgray' => [169, 169, 169, 1.0],
+            'color.darkgrey' => [169, 169, 169, 1.0],
+            'color.lightgreen' => [144, 238, 144, 1.0],
+            'color.lightblue' => [173, 216, 230, 1.0],
+            'color.lightyellow' => [255, 255, 224, 1.0],
+            'color.gold' => [255, 215, 0, 1.0],
+            'color.brown' => [165, 42, 42, 1.0],
+            'color.cyan' => [0, 255, 255, 1.0],
+            'color.magenta' => [255, 0, 255, 1.0],
         ];
         if (isset($named[$lower])) {
             [$r, $g, $b, $a] = $named[$lower];
@@ -275,8 +294,36 @@ final class ColorValue
             'Handle' => ['r' => 240, 'g' => 240, 'b' => 240, 'a' => 1.0],
             'Rail' => ['r' => 70, 'g' => 70, 'b' => 70, 'a' => 1.0],
             'Selection' => ['r' => 30, 'g' => 64, 'b' => 175, 'a' => 1.0],
+            'Accent' => ['r' => 96, 'g' => 165, 'b' => 250, 'a' => 1.0],
+            'AccentHover' => ['r' => 59, 'g' => 130, 'b' => 246, 'a' => 1.0],
+            'AccentPressed' => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
+            'Danger' => ['r' => 248, 'g' => 113, 'b' => 113, 'a' => 1.0],
+            'DangerHover' => ['r' => 239, 'g' => 68, 'b' => 68, 'a' => 1.0],
+            'DangerPressed' => ['r' => 220, 'g' => 38, 'b' => 38, 'a' => 1.0],
+            'DangerText' => ['r' => 254, 'g' => 202, 'b' => 202, 'a' => 1.0],
+            'Warning' => ['r' => 251, 'g' => 191, 'b' => 36, 'a' => 1.0],
+            'WarningHover' => ['r' => 245, 'g' => 158, 'b' => 11, 'a' => 1.0],
+            'WarningPressed' => ['r' => 217, 'g' => 119, 'b' => 6, 'a' => 1.0],
+            'WarningText' => ['r' => 254, 'g' => 243, 'b' => 199, 'a' => 1.0],
+            'Success' => ['r' => 74, 'g' => 222, 'b' => 128, 'a' => 1.0],
+            'SuccessHover' => ['r' => 34, 'g' => 197, 'b' => 94, 'a' => 1.0],
+            'SuccessPressed' => ['r' => 22, 'g' => 163, 'b' => 74, 'a' => 1.0],
+            'SuccessText' => ['r' => 187, 'g' => 247, 'b' => 208, 'a' => 1.0],
             default => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
         };
+    }
+
+    /** Whether defaultDarkForToken has a curated value (not the Accent fallback). */
+    public static function hasNamedDarkDefault(string $token): bool
+    {
+        return in_array($token, [
+            'Page', 'Surface', 'SurfaceMuted', 'SurfaceAlt', 'SurfaceInverse',
+            'Text', 'TextMuted', 'TextOnAccent', 'Border', 'BorderStrong', 'Focus',
+            'Disabled', 'Handle', 'Rail', 'Selection', 'Accent', 'AccentHover', 'AccentPressed',
+            'Danger', 'DangerHover', 'DangerPressed', 'DangerText',
+            'Warning', 'WarningHover', 'WarningPressed', 'WarningText',
+            'Success', 'SuccessHover', 'SuccessPressed', 'SuccessText',
+        ], true);
     }
 
     /**

@@ -33,3 +33,9 @@ Notes:
   - Rebuild after code changes: php samples/import_debug/from_plain/build.php
   - Known past break: PHP json_decode(..., true) turned Studio `{}` into `[]`
     (e.g. OverridableProperties). Fixed via object-mode JSON trees + StudioJson.
+
+Notes on H/J (dark mode) after 2026-07-27 fix:
+  - Theme palettes live in App.Formulas as named formulas (not OnStart Set records)
+    so App Checker should stay near the ~150 formula-error baseline instead of ~2400 ErrInvalidName.
+  - Settings → Theme radio is wired to Light/Dark (TopbarHeader ThemeRadio).
+  - Prefer I then H/J as two steps: repair_studio_errors, then dark_mode.

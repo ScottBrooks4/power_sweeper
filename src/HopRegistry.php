@@ -6,6 +6,7 @@ namespace PowerSweeper;
 
 use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
+use PowerSweeper\Hops\AnalyzeAppCheckerHop;
 use PowerSweeper\Hops\CorrelateSharePointHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
@@ -35,6 +36,7 @@ final class HopRegistry
             UnwhackLocaleFormulasHop::class,
             RepairCheckedBooleansHop::class,
             EnsureFocusVisibleHop::class,
+            AnalyzeAppCheckerHop::class,
             EnableDarkModeHop::class,
             CorrelateSharePointHop::class,
             SetZipPathStyleHop::class,

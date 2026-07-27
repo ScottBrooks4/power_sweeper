@@ -8,10 +8,14 @@ declare(strict_types=1);
  *
  * Does NOT rewrite SharePoint delegation warnings or remove unused media — those are
  * different App checker categories.
+ *
+ * When AppCheckerResult.sarif is present inside the .msapp, analyze_app_checker
+ * summarizes findings and applies targeted repairs first.
  */
 return [
-    'description' => 'Repair Studio formula errors from locale corruption (Size/Orientation/ParseJSON/Checked), then accessibility labels, focus rings, and tooltips.',
+    'description' => 'Detect App Checker findings (SARIF), repair locale/formula errors (Size/Orientation/ParseJSON/Checked), clear empty layout formulas, then accessibility labels, focus rings, and tooltips.',
     'hops' => [
+        ['id' => 'analyze_app_checker', 'options' => []],
         ['id' => 'unwhack_locale_formulas', 'options' => []],
         ['id' => 'repair_checked_booleans', 'options' => []],
         ['id' => 'accessibility_labels', 'options' => []],

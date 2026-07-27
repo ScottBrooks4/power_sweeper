@@ -12,6 +12,7 @@ use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaLocaleNormalizer;
 use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
+use PowerSweeper\Hops\AnalyzeAppCheckerHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
@@ -185,20 +186,22 @@ $onStartOk = false;
 $paletteOk = false;
 $screenFillThemed = false;
 $titleColorThemed = false;
-$toggleSwapsTheme = false;
+$toggleSetsDarkMode = false;
 foreach ($doc->controls() as $c) {
     if ($c->name === 'App') {
         $onStart = (string) $c->getProperty('OnStart');
+        $formulas = (string) $c->getProperty('Formulas');
         $onStartOk = str_contains($onStart, 'gblDarkMode');
-        $paletteOk = str_contains($onStart, 'gblThemeLight')
-            && str_contains($onStart, 'gblThemeDark')
-            && str_contains($onStart, 'gblTheme')
-            && str_contains($onStart, 'ps-theme:start');
+        $paletteOk = str_contains($formulas, 'gblThemeLight')
+            && str_contains($formulas, 'gblThemeDark')
+            && str_contains($formulas, 'gblTheme')
+            && str_contains($formulas, 'ps-theme:start')
+            && str_contains($formulas, 'Coalesce(gblDarkMode');
     }
     if ($c->name === 'tglPowerSweeperDarkMode') {
         $hasToggle = true;
-        $toggleSwapsTheme = str_contains((string) $c->getProperty('OnCheck'), 'gblThemeDark')
-            && str_contains((string) $c->getProperty('OnUncheck'), 'gblThemeLight');
+        $toggleSetsDarkMode = str_contains((string) $c->getProperty('OnCheck'), 'Set(gblDarkMode, true)')
+            && str_contains((string) $c->getProperty('OnUncheck'), 'Set(gblDarkMode, false)');
     }
     if ($c->name === 'Screen1') {
         $screenFillThemed = str_contains((string) $c->getProperty('Fill'), 'gblTheme.');
@@ -208,11 +211,44 @@ foreach ($doc->controls() as $c) {
     }
 }
 assert_true($onStartOk, 'App.OnStart initializes gblDarkMode');
-assert_true($paletteOk, 'App.OnStart defines editable gblThemeLight/Dark palette');
-assert_true($hasToggle, 'dark mode toggle injected');
-assert_true($toggleSwapsTheme, 'toggle swaps gblTheme between light/dark palettes');
+assert_true($paletteOk, 'App.Formulas defines editable gblThemeLight/Dark named-formula palette');
+assert_true($hasToggle, 'dark mode toggle injected when no Theme radio');
+assert_true($toggleSetsDarkMode, 'toggle sets gblDarkMode (theme follows via named formula)');
 assert_true($screenFillThemed, 'screen Fill uses gblTheme token');
 assert_true($titleColorThemed, 'label Color uses gblTheme token');
+
+// Settings ThemeRadio gets Light/Dark wired (CDLS pattern)
+$settingsDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_settings.pa.yaml', 'Src/Home.pa.yaml');
+assert_true($settingsDoc !== null, 'dark mode settings fixture loads');
+$settingsReport = new Report();
+(new EnableDarkModeHop())->apply([$settingsDoc], $settingsReport);
+$settingsDoc->reindex();
+$themeItemsOk = false;
+$themeOnChangeOk = false;
+$noFloatingToggle = true;
+$settingsFormulasOk = false;
+$emptyLayoutRemoved = true;
+foreach ($settingsDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $settingsFormulasOk = str_contains((string) $c->getProperty('Formulas'), 'gblThemeLight =');
+    }
+    if ($c->name === 'ThemeRadio') {
+        $items = (string) $c->getProperty('Items');
+        $themeItemsOk = str_contains($items, 'Light') && str_contains($items, 'Dark');
+        $themeOnChangeOk = str_contains((string) $c->getProperty('OnChange'), 'gblDarkMode')
+            && str_contains((string) $c->getProperty('OnChange'), 'Dark');
+    }
+    if ($c->name === 'tglPowerSweeperDarkMode') {
+        $noFloatingToggle = false;
+    }
+    if ($c->name === 'SettingsMiddle') {
+        // empty LayoutMax* cleaned only by analyze_app_checker; dark hop leaves them
+    }
+}
+assert_true($settingsFormulasOk, 'settings fixture gets Formulas theme palette');
+assert_true($themeItemsOk, 'ThemeRadio Items includes Light and Dark');
+assert_true($themeOnChangeOk, 'ThemeRadio OnChange sets gblDarkMode from Dark selection');
+assert_true($noFloatingToggle, 'ThemeRadio present — no floating toggle injected');
 
 // Brand override via theme_defaults option (central palette only)
 $overrideDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
@@ -225,17 +261,32 @@ $dmOverrideReport = new Report();
         ],
     ],
 ]);
-$overrideOnStart = '';
+$overrideFormulas = '';
 foreach ($overrideDoc->controls() as $c) {
     if ($c->isApp()) {
-        $overrideOnStart = (string) ($c->getProperty('OnStart') ?? '');
+        $overrideFormulas = (string) ($c->getProperty('Formulas') ?? '');
     }
 }
 assert_true(
-    str_contains($overrideOnStart, 'Accent: RGBA(220, 38, 38, 1)')
-        && str_contains($overrideOnStart, 'Accent: RGBA(248, 113, 113, 1)'),
-    'theme_defaults option edits Accent in central palette'
+    str_contains($overrideFormulas, 'Accent: RGBA(220, 38, 38, 1)')
+        && str_contains($overrideFormulas, 'Accent: RGBA(248, 113, 113, 1)'),
+    'theme_defaults option edits Accent in central Formulas palette'
 );
+
+// analyze_app_checker removes empty layout formulas
+$emptyDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_settings.pa.yaml', 'Src/Home.pa.yaml');
+$emptyReport = new Report();
+(new AnalyzeAppCheckerHop())->apply([$emptyDoc], $emptyReport, ['_extract_dir' => sys_get_temp_dir()]);
+$emptyDoc->reindex();
+$layoutCleared = true;
+foreach ($emptyDoc->controls() as $c) {
+    if ($c->name === 'SettingsMiddle') {
+        $layoutCleared = $c->getProperty('LayoutMaxHeight') === null
+            && $c->getProperty('LayoutMaxWidth') === null;
+    }
+}
+assert_true($layoutCleared, 'analyze_app_checker removes empty LayoutMaxHeight/Width');
+assert_true($emptyReport->count() > 0, 'analyze_app_checker reports work');
 
 $white = ColorValue::parse('=RGBA(255, 255, 255, 1)');
 assert_true($white !== null, 'parse white');
@@ -387,8 +438,9 @@ $kmsHome = ZipTool::readEntry($kmsOut, 'Src/HomeScreen.pa.yaml');
 $kmsControls = ZipTool::readEntry($kmsOut, 'Src/ControlsScreen.pa.yaml');
 $kmsApp = ZipTool::readEntry($kmsOut, 'Src/App.pa.yaml');
 assert_true(is_string($kmsHome) && str_contains($kmsHome, 'tglPowerSweeperDarkMode'), 'kitchen sink home gets dark toggle');
-assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblDarkMode'), 'kitchen sink App.OnStart sets gblDarkMode');
-assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblThemeLight') && str_contains((string) $kmsApp, 'gblThemeDark'), 'kitchen sink App.OnStart has editable palettes');
+assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblDarkMode'), 'kitchen sink App sets gblDarkMode');
+assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblThemeLight') && str_contains((string) $kmsApp, 'gblThemeDark'), 'kitchen sink App has editable palettes');
+assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblThemeLight ='), 'kitchen sink palettes are named formulas in Formulas');
 assert_true(is_string($kmsHome) && str_contains($kmsHome, 'gblTheme.'), 'kitchen sink home colors use gblTheme tokens');
 assert_true(is_string($kmsControls) && str_contains($kmsControls, 'gblTheme.'), 'kitchen sink controls colors use gblTheme tokens');
 assert_true(
