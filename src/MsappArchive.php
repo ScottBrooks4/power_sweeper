@@ -61,6 +61,9 @@ final class MsappArchive
     public function saveDocuments(): void
     {
         foreach ($this->documents as $doc) {
+            if (!$doc->isDirty()) {
+                continue;
+            }
             $abs = $this->documentPaths[$doc->relativePath] ?? null;
             if ($abs === null) {
                 continue;

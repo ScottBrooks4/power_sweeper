@@ -11,6 +11,10 @@ final class ControlDocument
     /** @var list<ControlNode> */
     private array $controls = [];
 
+    private MutationTracker $mutations;
+
+    private string $yamlHeader = '';
+
     /**
      * @param array<mixed> $data
      */
@@ -18,7 +22,10 @@ final class ControlDocument
         public readonly string $relativePath,
         public readonly string $format,
         private array $data,
+        string $yamlHeader = '',
     ) {
+        $this->mutations = new MutationTracker();
+        $this->yamlHeader = $yamlHeader;
         $this->rebuildControls();
     }
 
@@ -34,7 +41,7 @@ final class ControlDocument
             if (!is_array($data)) {
                 return null;
             }
-            return new self($relativePath, 'yaml', $data);
+            return new self($relativePath, 'yaml', $data, PowerAppsYaml::extractHeaderComment($raw));
         }
 
         if (str_ends_with($lower, '.json')) {
@@ -70,11 +77,24 @@ final class ControlDocument
         return $this->controls;
     }
 
+    public function isDirty(): bool
+    {
+        return $this->mutations->isDirty();
+    }
+
+    public function markDirty(): void
+    {
+        $this->mutations->mark();
+    }
+
     public function save(string $absolutePath): void
     {
+        if (!$this->mutations->isDirty()) {
+            return;
+        }
+
         if ($this->format === 'yaml') {
-            $yaml = Yaml::dump($this->data, 12, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
-            file_put_contents($absolutePath, $yaml);
+            file_put_contents($absolutePath, PowerAppsYaml::dump($this->data, $this->yamlHeader));
             return;
         }
 
@@ -106,6 +126,7 @@ final class ControlDocument
             $this->transformJsonFormulas($this->data, $this->relativePath, $mapper, $changed);
         }
         if ($changed > 0) {
+            $this->mutations->mark();
             $this->rebuildControls();
         }
         return $changed;
@@ -243,7 +264,7 @@ final class ControlDocument
                 if (isset($value['Children']) && is_array($value['Children'])) {
                     $children = $this->extractYamlChildren($value['Children'], $path);
                 }
-                $node = new ControlNode($name, $type, $path, 'yaml', $value, $children);
+                $node = new ControlNode($name, $type, $path, 'yaml', $value, $children, $this->mutations);
                 $this->controls[] = $node;
                 continue;
             }
@@ -281,7 +302,7 @@ final class ControlDocument
                     if (isset($body['Children']) && is_array($body['Children'])) {
                         $grand = $this->extractYamlChildren($body['Children'], $path);
                     }
-                    $node = new ControlNode((string) $name, $type, $path, 'yaml', $body, $grand);
+                    $node = new ControlNode((string) $name, $type, $path, 'yaml', $body, $grand, $this->mutations);
                     $this->controls[] = $node;
                     $nodes[] = $node;
                 }
@@ -296,7 +317,7 @@ final class ControlDocument
                 if (isset($item['Children']) && is_array($item['Children'])) {
                     $grand = $this->extractYamlChildren($item['Children'], $path);
                 }
-                $node = new ControlNode($name, $type, $path, 'yaml', $item, $grand);
+                $node = new ControlNode($name, $type, $path, 'yaml', $item, $grand, $this->mutations);
                 $this->controls[] = $node;
                 $nodes[] = $node;
             }
@@ -355,7 +376,7 @@ final class ControlDocument
             }
         }
 
-        $node = new ControlNode($name, $type, $path, 'json', $control, $children);
+        $node = new ControlNode($name, $type, $path, 'json', $control, $children, $this->mutations);
         $this->controls[] = $node;
     }
 
@@ -380,7 +401,7 @@ final class ControlDocument
                 }
             }
         }
-        $node = new ControlNode($name, $type, $path, 'json', $control, $children);
+        $node = new ControlNode($name, $type, $path, 'json', $control, $children, $this->mutations);
         $this->controls[] = $node;
         return $node;
     }

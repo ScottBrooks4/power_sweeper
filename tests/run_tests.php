@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
+use PowerSweeper\PowerAppsYaml;
 use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaLocaleNormalizer;
 use PowerSweeper\Hops\AccessibilityLabelsHop;
@@ -444,6 +445,44 @@ foreach ($packNames as $n) {
 }
 assert_true($hasBs, 'packed .msapp uses Windows backslash entry names for Studio import');
 assert_true(in_array('Src\\Screen1.pa.yaml', $packNames, true) || in_array('Controls\\Screen1.json', $packNames, true), 'packed entries include Src\\ or Controls\\ paths');
+
+// --- Power Apps YAML dump (Studio import shape) ---
+$paYaml = PowerAppsYaml::dump([
+    'Screens' => [
+        'Home' => [
+            'Properties' => [
+                'Fill' => '=RGBA(1, 2, 3, 1)',
+                'Y' => '=10',
+                'Font' => "=Font.'Open Sans'",
+            ],
+            'Children' => [
+                ['Box' => [
+                    'Control' => 'Rectangle@2.3.0',
+                    'Properties' => ['BorderColor' => '=gblTheme.Border'],
+                ]],
+            ],
+        ],
+    ],
+], "# banner\n# line");
+assert_true(str_starts_with($paYaml, "# banner\n"), 'PowerAppsYaml keeps header comment');
+assert_true(str_contains($paYaml, 'Fill: =RGBA(1, 2, 3, 1)'), 'PowerAppsYaml leaves Power Fx unquoted');
+assert_true(str_contains($paYaml, 'Y: =10') && !str_contains($paYaml, "'Y':"), 'PowerAppsYaml does not quote Y key');
+assert_true(str_contains($paYaml, "Font: =Font.'Open Sans'"), 'PowerAppsYaml keeps Font.\'…\' unquoted as formula');
+assert_true(str_contains($paYaml, '- Box:'), 'PowerAppsYaml uses inline Children list items');
+assert_true(!str_contains($paYaml, "Fill: '="), 'PowerAppsYaml does not emit Fill: \'=…\'');
+
+// Dirty tracking: empty hop sequence must not rewrite YAML
+$dirtyDir = sys_get_temp_dir() . '/ps_dirty_' . bin2hex(random_bytes(3));
+mkdir($dirtyDir . '/Src', 0777, true);
+$origYaml = "# keep\nScreens:\n  Home:\n    Properties:\n      Fill: =RGBA(9, 9, 9, 1)\n";
+file_put_contents($dirtyDir . '/Src/Home.pa.yaml', $origYaml);
+file_put_contents($dirtyDir . '/Header.json', '{}');
+$dirtyIn = $dirtyDir . '/in.msapp';
+$dirtyOut = $dirtyDir . '/out.msapp';
+ZipTool::createFromDirectory($dirtyDir, $dirtyIn, ZipTool::STYLE_WINDOWS);
+(new Pipeline())->run($dirtyIn, [], $dirtyOut);
+$after = ZipTool::readEntry($dirtyOut, 'Src/Home.pa.yaml');
+assert_true($after === $origYaml, 'empty pipeline preserves original YAML bytes (dirty tracking)');
 
 // --- zip path style: preserve source, optional posix hop ---
 $styleDir = sys_get_temp_dir() . '/ps_style_' . bin2hex(random_bytes(3));

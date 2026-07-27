@@ -20,7 +20,13 @@ final class ControlNode
         public string $format,
         private array &$node,
         public array $children = [],
+        private ?MutationTracker $mutations = null,
     ) {
+    }
+
+    private function touch(): void
+    {
+        $this->mutations?->mark();
     }
 
     public function getProperty(string $name): ?string
@@ -69,6 +75,7 @@ final class ControlNode
                 $this->node['Properties'] = [];
             }
             $this->node['Properties'][$name] = $value;
+            $this->touch();
             return;
         }
 
@@ -76,6 +83,7 @@ final class ControlNode
             foreach ($this->node['Rules'] as $i => $rule) {
                 if (is_array($rule) && ($rule['Property'] ?? null) === $name) {
                     $this->node['Rules'][$i]['InvariantScript'] = $this->stripEquals($value);
+                    $this->touch();
                     return;
                 }
             }
@@ -85,10 +93,12 @@ final class ControlNode
                 'InvariantScript' => $this->stripEquals($value),
                 'RuleProviderType' => 'Unknown',
             ];
+            $this->touch();
             return;
         }
 
         $this->node[$name] = $value;
+        $this->touch();
     }
 
     public function removeProperty(string $name): void
@@ -96,15 +106,20 @@ final class ControlNode
         if ($this->format === 'yaml') {
             if (isset($this->node['Properties']) && is_array($this->node['Properties'])) {
                 unset($this->node['Properties'][$name]);
+                $this->touch();
             }
             return;
         }
 
         if (isset($this->node['Rules']) && is_array($this->node['Rules'])) {
+            $before = count($this->node['Rules']);
             $this->node['Rules'] = array_values(array_filter(
                 $this->node['Rules'],
                 static fn($rule) => !(is_array($rule) && ($rule['Property'] ?? null) === $name)
             ));
+            if (count($this->node['Rules']) !== $before) {
+                $this->touch();
+            }
         }
     }
 
@@ -217,6 +232,7 @@ final class ControlNode
             }
         }
         $this->node['Children'][] = [$name => $body];
+        $this->touch();
     }
 
     private function stripEquals(string $value): string

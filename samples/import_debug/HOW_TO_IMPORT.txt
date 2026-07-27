@@ -1,0 +1,47 @@
+Power Sweeper — import debug (Studio "unknown error")
+=====================================================
+
+Root cause
+----------
+Older cleaned .msapp files rewrote Src/*.pa.yaml through Symfony's YAML dumper.
+Studio rejects that shape (quoted Power Fx like `Fill: '=…'`, broken Children
+lists like `-\n  Name:`, and sometimes flow `{ Control: … }` maps).
+
+Zip entry separators (Windows `\`) were already fine on the failing files.
+
+What to try (in order)
+----------------------
+Plain app that imports today:
+  CDLS (L) VCR App (4).msapp
+
+Stepped rebuilds from that plain app (same folder / steps/):
+  steps/CDLS_VCR_01_empty_pipeline.msapp     — unpack/repack only
+  steps/CDLS_VCR_02_unwhack_only.msapp
+  steps/CDLS_VCR_03_dark_mode_only.msapp
+  steps/CDLS_VCR_04_unwhack_then_dark.msapp
+  steps/CDLS_VCR_05_repair_studio_errors.msapp
+  steps/CDLS_VCR_06_repair_then_dark.msapp
+
+Recommended new outputs:
+  CDLS_L_VCR_App.repair_only.msapp           — repair hops only
+  CDLS_L_VCR_App.repair_then_dark.msapp      — repair then dark mode
+
+YAML-only repair of the previously failing cleaned packs
+(re-serialize formulas/Children; keeps prior hop edits):
+  CDLS_L_VCR_App_20260725.cleaned.REPAIRED_YAML.msapp
+  VCDS_THCEE_20260725.cleaned.REPAIRED_YAML.msapp
+
+Still-broken originals (for comparison; expect Studio unknown error):
+  CDLS_L_VCR_App_20260725.cleaned.msapp
+  VCDS_THCEE_20260725.cleaned.msapp
+
+Import
+------
+1. make.powerapps.com → Apps → Import app → From file (.msapp)
+2. Prefer REPAIRED_YAML or repair_then_dark / repair_only
+3. Open in Studio and Save once
+
+Two-step workflow (profiles, not combined):
+1. Profile repair_studio_errors → download
+2. Profile dark_mode on that output → download
+(Requires Power Sweeper build with PowerAppsYaml fix.)
