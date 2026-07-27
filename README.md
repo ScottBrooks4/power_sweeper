@@ -36,7 +36,13 @@ sh scripts/fix_permissions.sh
 
 ### Studio import “Unknown error” after cleaning
 
-If a plain `.msapp` imports but a cleaned one fails with a generic Studio error, the usual cause was **YAML rewrite shape** (quoted Power Fx like `Fill: '=…'`, broken `Children` lists), not zip separators. Current builds dump Src YAML via `PowerAppsYaml` (Studio-compatible) and only rewrite files hops actually change. See [`samples/import_debug/HOW_TO_IMPORT.txt`](samples/import_debug/HOW_TO_IMPORT.txt).
+If a plain `.msapp` imports but a cleaned one fails with a generic Studio error, check (in order):
+
+1. **JSON empty objects** — PHP `json_decode($raw, true)` turns Studio `{}` into `[]` (e.g. `OverridableProperties`). Control JSON is now decoded as objects and written with `StudioJson`.
+2. **YAML rewrite shape** — quoted Power Fx like `Fill: '=…'` or broken `Children` lists. Src YAML is dumped via `PowerAppsYaml`.
+3. **ZIP host metadata** — Linux `ZipArchive` Unix stamps; packs use a DOS-compatible writer for Windows-style `.msapp`.
+
+See [`samples/import_debug/from_plain/HOW_TO_TEST.txt`](samples/import_debug/from_plain/HOW_TO_TEST.txt) for a bisect pack built from a known-good plain app.
 
 ## How it works
 

@@ -30,3 +30,6 @@ Notes:
   - A working + B/C/D/E failing isolates serialize format.
   - A–E working + G/H failing isolates hop logic.
   - F working means raw edits are safe even if dumpers still struggle.
+  - Rebuild after code changes: php samples/import_debug/from_plain/build.php
+  - Known past break: PHP json_decode(..., true) turned Studio `{}` into `[]`
+    (e.g. OverridableProperties). Fixed via object-mode JSON trees + StudioJson.

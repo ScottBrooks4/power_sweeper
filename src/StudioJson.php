@@ -6,18 +6,22 @@ namespace PowerSweeper;
 
 /**
  * Encode control JSON the way Power Apps Studio exports it:
- * CRLF newlines and 2-space indentation (not PHP's default LF + 4 spaces).
+ * CRLF newlines and 2-space indentation.
+ *
+ * Important: decode with json_decode($raw) (objects), NOT json_decode($raw, true).
+ * Associative-array decode turns Studio empty objects `{}` into `[]`, which
+ * Studio rejects with ErrOpeningDocument_UnknownError.
  */
 final class StudioJson
 {
     /**
-     * @param array<mixed> $data
+     * @param object|array<mixed> $data
      */
-    public static function encode(array $data, string $newline = "\r\n", int $indentSize = 2): string
+    public static function encode(object|array $data, string $newline = "\r\n", int $indentSize = 2): string
     {
         $json = json_encode(
             $data,
-            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION
         );
         if ($json === false) {
             throw new \RuntimeException('Unable to encode control JSON');
@@ -35,22 +39,16 @@ final class StudioJson
             ) ?? $json;
         }
 
-        // Normalize to LF first, then to the desired newline.
         $json = str_replace(["\r\n", "\r"], "\n", $json);
         if ($newline !== "\n") {
             $json = str_replace("\n", $newline, $json);
         }
 
-        if (!str_ends_with($json, $newline)) {
-            $json .= $newline;
-        }
-
+        // Studio files typically end at "}" with no extra trailing newline.
         return $json;
     }
 
     /**
-     * Detect newline + indent size from an existing Studio JSON document.
-     *
      * @return array{newline: string, indent: int}
      */
     public static function detectStyle(string $raw): array

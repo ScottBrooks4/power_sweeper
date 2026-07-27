@@ -20,12 +20,12 @@ final class ControlDocument
     private int $jsonIndent = 2;
 
     /**
-     * @param array<mixed> $data
+     * @param array<mixed>|object $data YAML trees are arrays; JSON trees are objects.
      */
     public function __construct(
         public readonly string $relativePath,
         public readonly string $format,
-        private array $data,
+        private array|object $data,
         string $yamlHeader = '',
         string $jsonNewline = "\r\n",
         int $jsonIndent = 2,
@@ -65,8 +65,9 @@ final class ControlDocument
             if ($raw === false) {
                 return null;
             }
-            $data = json_decode($raw, true);
-            if (!is_array($data)) {
+            // Object-mode decode preserves Studio empty objects `{}` (assoc mode turns them into `[]`).
+            $data = json_decode($raw);
+            if (!is_object($data)) {
                 return null;
             }
             // Control trees, or any JSON carrying InvariantScript (internal / classic rules)
@@ -110,6 +111,9 @@ final class ControlDocument
         }
 
         if ($this->format === 'yaml') {
+            if (!is_array($this->data)) {
+                throw new \LogicException('YAML ControlDocument expected array tree');
+            }
             file_put_contents($absolutePath, PowerAppsYaml::dump($this->data, $this->yamlHeader));
             return;
         }
@@ -137,6 +141,9 @@ final class ControlDocument
     {
         $changed = 0;
         if ($this->format === 'yaml') {
+            if (!is_array($this->data)) {
+                return 0;
+            }
             $this->transformYamlFormulas($this->data, $this->relativePath, $mapper, $changed);
         } else {
             $this->transformJsonFormulas($this->data, $this->relativePath, $mapper, $changed);
@@ -152,10 +159,14 @@ final class ControlDocument
     {
         $this->controls = [];
         if ($this->format === 'yaml') {
-            $this->walkYaml($this->data, $this->relativePath);
+            if (is_array($this->data)) {
+                $this->walkYaml($this->data, $this->relativePath);
+            }
             return;
         }
-        $this->walkJson($this->data, $this->relativePath);
+        if (is_object($this->data)) {
+            $this->walkJson($this->data, $this->relativePath);
+        }
     }
 
     /**
@@ -204,11 +215,41 @@ final class ControlDocument
     }
 
     /**
-     * @param array<mixed> $data
      * @param callable(string, string): string $mapper
      */
-    private function transformJsonFormulas(array &$data, string $path, callable $mapper, int &$changed): void
+    private function transformJsonFormulas(object|array &$data, string $path, callable $mapper, int &$changed): void
     {
+        if (is_object($data)) {
+            foreach (get_object_vars($data) as $key => $value) {
+                if ($key === 'InvariantScript' && is_string($value)) {
+                    $label = $path . '.InvariantScript';
+                    $next = $mapper($value, $label);
+                    if ($next !== $value) {
+                        $data->{$key} = $next;
+                        $changed++;
+                    }
+                    continue;
+                }
+                if (is_string($value) && self::looksLikeFormulaString($value)) {
+                    if (in_array($key, ['Value', 'Script', 'Expression', 'Formula'], true)) {
+                        $label = $path . '.' . $key;
+                        $next = $mapper($value, $label);
+                        if ($next !== $value) {
+                            $data->{$key} = $next;
+                            $changed++;
+                        }
+                    }
+                    continue;
+                }
+                if (is_object($value) || is_array($value)) {
+                    $childPath = $path . '/' . $key;
+                    $this->transformJsonFormulas($value, $childPath, $mapper, $changed);
+                    $data->{$key} = $value;
+                }
+            }
+            return;
+        }
+
         foreach ($data as $key => &$value) {
             if ($key === 'InvariantScript' && is_string($value)) {
                 $label = $path . '.InvariantScript';
@@ -220,7 +261,6 @@ final class ControlDocument
                 continue;
             }
             if (is_string($value) && self::looksLikeFormulaString($value)) {
-                // Catch other formula-bearing fields without touching pure metadata
                 if (in_array((string) $key, ['Value', 'Script', 'Expression', 'Formula'], true)) {
                     $label = $path . '.' . (string) $key;
                     $next = $mapper($value, $label);
@@ -231,7 +271,7 @@ final class ControlDocument
                 }
                 continue;
             }
-            if (is_array($value)) {
+            if (is_object($value) || is_array($value)) {
                 $childPath = is_string($key) ? $path . '/' . $key : $path;
                 $this->transformJsonFormulas($value, $childPath, $mapper, $changed);
             }
@@ -341,107 +381,88 @@ final class ControlDocument
         return $nodes;
     }
 
-    /**
-     * @param array<mixed> $data
-     */
-    private function walkJson(array &$data, string $pathPrefix): void
+    private function walkJson(object $data, string $pathPrefix): void
     {
-        if (isset($data['TopParent']) && is_array($data['TopParent'])) {
-            $this->walkJsonControl($data['TopParent'], $pathPrefix);
+        if (isset($data->TopParent) && is_object($data->TopParent)) {
+            $this->walkJsonControl($data->TopParent, $pathPrefix);
             return;
         }
 
-        if (isset($data['Controls']) && is_array($data['Controls'])) {
-            foreach ($data['Controls'] as &$control) {
-                if (is_array($control)) {
+        if (isset($data->Controls) && is_array($data->Controls)) {
+            foreach ($data->Controls as &$control) {
+                if (is_object($control)) {
                     $this->walkJsonControl($control, $pathPrefix);
                 }
             }
+            unset($control);
             return;
         }
 
         // Single control object
-        if (isset($data['Name']) && (isset($data['Rules']) || isset($data['Template']) || isset($data['Children']))) {
+        if (isset($data->Name) && (isset($data->Rules) || isset($data->Template) || isset($data->Children))) {
             $this->walkJsonControl($data, $pathPrefix);
         }
     }
 
-    /**
-     * @param array<mixed> $control
-     */
-    private function walkJsonControl(array &$control, string $pathPrefix): void
+    private function walkJsonControl(object &$control, string $pathPrefix): void
     {
-        $name = (string) ($control['Name'] ?? 'Control');
-        $type = 'Unknown';
-        if (isset($control['Template']) && is_array($control['Template'])) {
-            $type = (string) ($control['Template']['Name'] ?? $control['Template']['Id'] ?? 'Unknown');
-        } elseif (isset($control['Type'])) {
-            $type = (string) $control['Type'];
-        }
-
-        $path = $pathPrefix . '/' . $name;
-        $children = [];
-        if (isset($control['Children']) && is_array($control['Children'])) {
-            foreach ($control['Children'] as &$child) {
-                if (is_array($child)) {
-                    $childNode = $this->walkJsonControlReturn($child, $path);
-                    if ($childNode !== null) {
-                        $children[] = $childNode;
-                    }
-                }
-            }
-        }
-
-        $node = new ControlNode($name, $type, $path, 'json', $control, $children, $this->mutations);
-        $this->controls[] = $node;
+        $this->walkJsonControlReturn($control, $pathPrefix);
     }
 
-    /**
-     * @param array<mixed> $control
-     */
-    private function walkJsonControlReturn(array &$control, string $pathPrefix): ControlNode
+    private function walkJsonControlReturn(object &$control, string $pathPrefix): ControlNode
     {
-        $name = (string) ($control['Name'] ?? 'Control');
+        $name = (string) ($control->Name ?? 'Control');
         $type = 'Unknown';
-        if (isset($control['Template']) && is_array($control['Template'])) {
-            $type = (string) ($control['Template']['Name'] ?? $control['Template']['Id'] ?? 'Unknown');
-        } elseif (isset($control['Type'])) {
-            $type = (string) $control['Type'];
+        if (isset($control->Template) && is_object($control->Template)) {
+            $type = (string) ($control->Template->Name ?? $control->Template->Id ?? 'Unknown');
+        } elseif (isset($control->Type)) {
+            $type = (string) $control->Type;
         }
         $path = $pathPrefix . '/' . $name;
         $children = [];
-        if (isset($control['Children']) && is_array($control['Children'])) {
-            foreach ($control['Children'] as &$child) {
-                if (is_array($child)) {
+        if (isset($control->Children) && is_array($control->Children)) {
+            foreach ($control->Children as &$child) {
+                if (is_object($child)) {
                     $children[] = $this->walkJsonControlReturn($child, $path);
                 }
             }
+            unset($child);
         }
         $node = new ControlNode($name, $type, $path, 'json', $control, $children, $this->mutations);
         $this->controls[] = $node;
         return $node;
     }
 
-    /** @param array<mixed> $data */
-    private static function looksLikeControlJson(array $data): bool
+    private static function looksLikeControlJson(object $data): bool
     {
-        if (isset($data['TopParent']) || isset($data['Controls'])) {
+        if (isset($data->TopParent) || isset($data->Controls)) {
             return true;
         }
-        if (isset($data['Name']) && (isset($data['Rules']) || isset($data['Children']) || isset($data['Template']))) {
+        if (isset($data->Name) && (isset($data->Rules) || isset($data->Children) || isset($data->Template))) {
             return true;
         }
         return false;
     }
 
-    /** @param array<mixed> $data */
-    private static function containsInvariantScript(array $data): bool
+    private static function containsInvariantScript(object|array $data): bool
     {
+        if (is_object($data)) {
+            foreach (get_object_vars($data) as $key => $value) {
+                if ($key === 'InvariantScript' && is_string($value)) {
+                    return true;
+                }
+                if ((is_object($value) || is_array($value)) && self::containsInvariantScript($value)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         foreach ($data as $key => $value) {
             if ($key === 'InvariantScript' && is_string($value)) {
                 return true;
             }
-            if (is_array($value) && self::containsInvariantScript($value)) {
+            if ((is_object($value) || is_array($value)) && self::containsInvariantScript($value)) {
                 return true;
             }
         }

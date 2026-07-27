@@ -530,6 +530,18 @@ assert_true(!str_contains($studioJson, "{\n    \""), 'StudioJson does not use PH
 $style = StudioJson::detectStyle("{\r\n  \"A\": 1\r\n}\r\n");
 assert_true($style['newline'] === "\r\n" && $style['indent'] === 2, 'StudioJson detects Studio export style');
 
+// Empty objects must stay `{}` (assoc json_decode turns them into `[]` and Studio rejects the file).
+$emptyObjFixture = sys_get_temp_dir() . '/ps_empty_obj_' . bin2hex(random_bytes(3)) . '.json';
+file_put_contents($emptyObjFixture, "{\r\n  \"TopParent\": {\r\n    \"Name\": \"Screen1\",\r\n    \"Template\": {\r\n      \"Name\": \"screen\",\r\n      \"OverridableProperties\": {}\r\n    },\r\n    \"Rules\": [],\r\n    \"Children\": []\r\n  }\r\n}");
+$emptyDoc = ControlDocument::fromFile($emptyObjFixture, 'Controls/EmptyObj.json');
+assert_true($emptyDoc !== null, 'empty-object JSON fixture loads');
+$emptyDoc->markDirty();
+$emptyDoc->save($emptyObjFixture);
+$emptyRound = file_get_contents($emptyObjFixture);
+assert_true(is_string($emptyRound) && str_contains($emptyRound, '"OverridableProperties": {}'), 'JSON roundtrip preserves empty object {}');
+assert_true(is_string($emptyRound) && !str_contains($emptyRound, '"OverridableProperties": []'), 'JSON roundtrip does not emit empty array for OverridableProperties');
+@unlink($emptyObjFixture);
+
 // --- zip path style: preserve source, optional posix hop ---
 $styleDir = sys_get_temp_dir() . '/ps_style_' . bin2hex(random_bytes(3));
 mkdir($styleDir . '/win/Src', 0777, true);

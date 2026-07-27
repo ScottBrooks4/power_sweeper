@@ -6,11 +6,17 @@ namespace PowerSweeper;
 
 /**
  * Unified view of a single control inside a YAML or JSON document.
+ *
+ * YAML nodes are associative arrays. JSON nodes are stdClass trees so that
+ * Studio empty objects (`{}`) are never collapsed to PHP empty arrays (`[]`).
  */
 final class ControlNode
 {
+    /** @var array<string, mixed>|object */
+    private array|object $node;
+
     /**
-     * @param array<string, mixed> $node Mutable reference into the document tree
+     * @param array<string, mixed>|object $node Mutable view into the document tree
      * @param list<ControlNode> $children
      */
     public function __construct(
@@ -18,10 +24,11 @@ final class ControlNode
         public string $type,
         public string $path,
         public string $format,
-        private array &$node,
+        array|object &$node,
         public array $children = [],
         private ?MutationTracker $mutations = null,
     ) {
+        $this->node = &$node;
     }
 
     private function touch(): void
@@ -32,32 +39,33 @@ final class ControlNode
     public function getProperty(string $name): ?string
     {
         if ($this->format === 'yaml') {
-            $props = $this->node['Properties'] ?? null;
+            $props = is_array($this->node) ? ($this->node['Properties'] ?? null) : null;
             if (!is_array($props) || !array_key_exists($name, $props)) {
                 return null;
             }
             return self::stringify($props[$name]);
         }
 
-        // JSON Rules / PropertyValues style
-        if (isset($this->node['Rules']) && is_array($this->node['Rules'])) {
-            foreach ($this->node['Rules'] as $rule) {
-                if (is_array($rule) && ($rule['Property'] ?? null) === $name) {
-                    return self::stringify($rule['InvariantScript'] ?? $rule['Value'] ?? null);
+        $node = $this->jsonNode();
+
+        if (isset($node->Rules) && is_array($node->Rules)) {
+            foreach ($node->Rules as $rule) {
+                if (is_object($rule) && ($rule->Property ?? null) === $name) {
+                    return self::stringify($rule->InvariantScript ?? $rule->Value ?? null);
                 }
             }
         }
 
-        if (isset($this->node['PropertyValues']) && is_array($this->node['PropertyValues'])) {
-            foreach ($this->node['PropertyValues'] as $pv) {
-                if (is_array($pv) && ($pv['Property'] ?? null) === $name) {
-                    return self::stringify($pv['Value'] ?? null);
+        if (isset($node->PropertyValues) && is_array($node->PropertyValues)) {
+            foreach ($node->PropertyValues as $pv) {
+                if (is_object($pv) && ($pv->Property ?? null) === $name) {
+                    return self::stringify($pv->Value ?? null);
                 }
             }
         }
 
-        if (array_key_exists($name, $this->node)) {
-            return self::stringify($this->node[$name]);
+        if (property_exists($node, $name)) {
+            return self::stringify($node->{$name});
         }
 
         return null;
@@ -71,6 +79,9 @@ final class ControlNode
     public function setProperty(string $name, string $value): void
     {
         if ($this->format === 'yaml') {
+            if (!is_array($this->node)) {
+                return;
+            }
             if (!isset($this->node['Properties']) || !is_array($this->node['Properties'])) {
                 $this->node['Properties'] = [];
             }
@@ -79,15 +90,17 @@ final class ControlNode
             return;
         }
 
-        if (isset($this->node['Rules']) && is_array($this->node['Rules'])) {
-            foreach ($this->node['Rules'] as $i => $rule) {
-                if (is_array($rule) && ($rule['Property'] ?? null) === $name) {
-                    $this->node['Rules'][$i]['InvariantScript'] = $this->stripEquals($value);
+        $node = $this->jsonNode();
+
+        if (isset($node->Rules) && is_array($node->Rules)) {
+            foreach ($node->Rules as $i => $rule) {
+                if (is_object($rule) && ($rule->Property ?? null) === $name) {
+                    $rule->InvariantScript = $this->stripEquals($value);
                     $this->touch();
                     return;
                 }
             }
-            $this->node['Rules'][] = [
+            $node->Rules[] = (object) [
                 'Property' => $name,
                 'Category' => 'Data',
                 'InvariantScript' => $this->stripEquals($value),
@@ -97,27 +110,28 @@ final class ControlNode
             return;
         }
 
-        $this->node[$name] = $value;
+        $node->{$name} = $value;
         $this->touch();
     }
 
     public function removeProperty(string $name): void
     {
         if ($this->format === 'yaml') {
-            if (isset($this->node['Properties']) && is_array($this->node['Properties'])) {
+            if (is_array($this->node) && isset($this->node['Properties']) && is_array($this->node['Properties'])) {
                 unset($this->node['Properties'][$name]);
                 $this->touch();
             }
             return;
         }
 
-        if (isset($this->node['Rules']) && is_array($this->node['Rules'])) {
-            $before = count($this->node['Rules']);
-            $this->node['Rules'] = array_values(array_filter(
-                $this->node['Rules'],
-                static fn($rule) => !(is_array($rule) && ($rule['Property'] ?? null) === $name)
+        $node = $this->jsonNode();
+        if (isset($node->Rules) && is_array($node->Rules)) {
+            $before = count($node->Rules);
+            $node->Rules = array_values(array_filter(
+                $node->Rules,
+                static fn($rule) => !(is_object($rule) && ($rule->Property ?? null) === $name)
             ));
-            if (count($this->node['Rules']) !== $before) {
+            if (count($node->Rules) !== $before) {
                 $this->touch();
             }
         }
@@ -170,15 +184,16 @@ final class ControlNode
     public function propertyNames(): array
     {
         if ($this->format === 'yaml') {
-            $props = $this->node['Properties'] ?? [];
+            $props = is_array($this->node) ? ($this->node['Properties'] ?? []) : [];
             return is_array($props) ? array_map('strval', array_keys($props)) : [];
         }
 
         $names = [];
-        if (isset($this->node['Rules']) && is_array($this->node['Rules'])) {
-            foreach ($this->node['Rules'] as $rule) {
-                if (is_array($rule) && isset($rule['Property'])) {
-                    $names[] = (string) $rule['Property'];
+        $node = $this->jsonNode();
+        if (isset($node->Rules) && is_array($node->Rules)) {
+            foreach ($node->Rules as $rule) {
+                if (is_object($rule) && isset($rule->Property)) {
+                    $names[] = (string) $rule->Property;
                 }
             }
         }
@@ -219,7 +234,7 @@ final class ControlNode
      */
     public function addYamlChild(string $name, array $body): void
     {
-        if ($this->format !== 'yaml') {
+        if ($this->format !== 'yaml' || !is_array($this->node)) {
             return;
         }
         if (!isset($this->node['Children']) || !is_array($this->node['Children'])) {
@@ -233,6 +248,14 @@ final class ControlNode
         }
         $this->node['Children'][] = [$name => $body];
         $this->touch();
+    }
+
+    private function jsonNode(): object
+    {
+        if (!is_object($this->node)) {
+            throw new \LogicException('JSON ControlNode expected object tree');
+        }
+        return $this->node;
     }
 
     private function stripEquals(string $value): string
