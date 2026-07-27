@@ -79,7 +79,7 @@ For apps like **CDLS VCR** / **VCDS THCEE**, run **two separate passes** (do not
 
 Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the result. You can also build a custom hop sequence by adding hops from both profiles yourself — order should still be repair hops first, then `enable_dark_mode`.
 
-Dark mode alone does **not** fix locale/formula corruption; run repair first when App checker is noisy. Theme palettes live in **App.Formulas** (named formulas) so App Checker does not flood with `ErrInvalidName` on every `gblTheme.*` reference.
+Dark mode alone does **not** fix locale/formula corruption; run repair first when App checker is noisy. Theme palettes live in **App.Formulas** as static named-formula records; controls use `If(gblDarkMode, gblThemeDark.Token, gblThemeLight.Token)` so App Checker does not flood with `Name isn't valid. 'gblTheme'…`.
 
 ### Locale unwhack
 
@@ -89,11 +89,11 @@ When an app is edited under a comma-decimal locale (German, French, …), Studio
 
 The `dark_mode` profile builds an **editable central palette** instead of hard-coding `If(gblDarkMode, …)` / RGBA on every control:
 
-1. `App.Formulas` gets named formulas `gblThemeLight` / `gblThemeDark` (tokens like `Page`, `Surface`, `Text`, `Accent`, …) and `gblTheme = If(Coalesce(gblDarkMode, false), gblThemeDark, gblThemeLight)`
+1. `App.Formulas` gets static named formulas `gblThemeLight` / `gblThemeDark` (tokens like `Page`, `Surface`, `Text`, `Accent`, …)
 2. `App.OnStart` only initializes `Set(gblDarkMode, false)`
 3. Settings **Theme** radio is wired to `["Light","Dark"]` when present; otherwise a Dark mode toggle is injected
-4. Theme control only flips `gblDarkMode` — `gblTheme` follows via the named formula
-5. Literal fills/text/borders become `gblTheme.Surface`, `gblTheme.Text`, etc.
+4. Theme control only flips `gblDarkMode`
+5. Literal fills/text/borders become `If(Coalesce(gblDarkMode, false), gblThemeDark.Surface, gblThemeLight.Surface)` (etc.) — not `gblTheme.X`, which App Checker rejects when `gblTheme` is a Set/reactive name
 
 **Where to edit colors**
 

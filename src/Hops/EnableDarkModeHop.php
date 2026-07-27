@@ -12,14 +12,19 @@ use PowerSweeper\Report;
 /**
  * Wire dark mode via a central editable theme palette.
  *
- * App.Formulas defines (named formulas — App Checker understands field access):
- *   gblThemeLight / gblThemeDark  — named color tokens (Page, Surface, Text, Accent, …)
- *   gblTheme                      — If(gblDarkMode, dark, light)
+ * App.Formulas defines static named-formula records (App Checker can type-check fields):
+ *   gblThemeLight / gblThemeDark  — tokens like Page, Surface, Text, Accent, …
  *
  * App.OnStart only initializes:
  *   Set(gblDarkMode, false)
  *
- * Control color properties become =gblTheme.Token so makers edit colors in one place.
+ * Control colors become:
+ *   If(Coalesce(gblDarkMode, false), gblThemeDark.Token, gblThemeLight.Token)
+ *
+ * We intentionally do NOT use a reactive named formula `gblTheme = If(gblDarkMode, …)` —
+ * named formulas that reference Set() variables often fail to register, which produces
+ * thousands of "Name isn't valid. 'gblTheme'…" App Checker errors.
+ *
  * Settings Theme radio (Light/Dark) is preferred over injecting a floating toggle.
  */
 final class EnableDarkModeHop implements HopInterface
@@ -105,7 +110,7 @@ final class EnableDarkModeHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Add Light/Dark theme control and central gblThemeLight/gblThemeDark/gblTheme named-formula palettes; rewrite literal colors to gblTheme.* tokens (edit colors in App.Formulas / config/theme_defaults.php).';
+        return 'Add Light/Dark theme control and central gblThemeLight/gblThemeDark named-formula palettes; rewrite literal colors to If(gblDarkMode, gblThemeDark.Token, gblThemeLight.Token) (edit colors in App.Formulas / config/theme_defaults.php).';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -256,7 +261,7 @@ final class EnableDarkModeHop implements HopInterface
             $report->add(self::id(), '(ui)', 'Theme', '(no settings radio/toggle found)', 'palette applied; add a Theme Light/Dark control manually if needed');
         }
 
-        // Pass 2: point literals at gblTheme.Token
+        // Pass 2: point literals (and legacy gblTheme.Token) at If(gblDarkMode, dark.Token, light.Token)
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
                 foreach (self::COLOR_PROPERTIES as $prop) {
@@ -264,24 +269,20 @@ final class EnableDarkModeHop implements HopInterface
                     if ($from === null || trim($from) === '') {
                         continue;
                     }
-                    if ($this->alreadyThemed($from, $var, $theme) && str_contains($from, $theme . '.')) {
-                        continue;
-                    }
-                    if ($this->alreadyThemed($from, $var, $theme) && !str_contains($from, $theme . '.')) {
-                        if (!preg_match('/^[=]?\s*If\s*\(\s*' . preg_quote($var, '/') . '\s*,/i', trim($from))) {
+
+                    $token = $this->tokenFromExistingThemeFormula($from, $var, $theme, $themeLight, $themeDark);
+                    if ($token === null) {
+                        if ($this->isIfThemeFormula($from, $var, $themeLight, $themeDark)) {
                             continue;
                         }
-                    }
-                    $parsed = ColorValue::parse($from);
-                    if ($parsed === null) {
-                        $pair = $this->parseLegacyIfPair($from, $var);
-                        if ($pair === null) {
-                            continue;
-                        }
-                        $parsed = $pair['light'];
-                        $token = ColorValue::themeToken($parsed, $prop);
-                    } else {
-                        if (ColorValue::isTransparent($parsed)) {
+                        $parsed = ColorValue::parse($from);
+                        if ($parsed === null) {
+                            $pair = $this->parseLegacyIfPair($from, $var);
+                            if ($pair === null) {
+                                continue;
+                            }
+                            $parsed = $pair['light'];
+                        } elseif (ColorValue::isTransparent($parsed)) {
                             continue;
                         }
                         $token = ColorValue::themeToken($parsed, $prop);
@@ -291,8 +292,8 @@ final class EnableDarkModeHop implements HopInterface
                         continue;
                     }
 
-                    $to = $control->format === 'yaml' ? '=' . $theme . '.' . $token : $theme . '.' . $token;
-                    if ($to === $from || trim(ltrim(trim($from), '=')) === $theme . '.' . $token) {
+                    $to = $this->themeColorFormula($token, $var, $themeLight, $themeDark, $control->format === 'yaml');
+                    if ($to === $from || trim(ltrim(trim($from), '=')) === trim(ltrim($to, '='))) {
                         continue;
                     }
                     $control->setProperty($prop, $to);
@@ -300,6 +301,68 @@ final class EnableDarkModeHop implements HopInterface
                 }
             }
         }
+    }
+
+    private function themeColorFormula(
+        string $token,
+        string $var,
+        string $themeLight,
+        string $themeDark,
+        bool $yamlEquals
+    ): string {
+        $body = 'If(Coalesce(' . $var . ', false), '
+            . $themeDark . '.' . $token . ', '
+            . $themeLight . '.' . $token . ')';
+        return $yamlEquals ? '=' . $body : $body;
+    }
+
+    private function isIfThemeFormula(string $formula, string $var, string $themeLight, string $themeDark): bool
+    {
+        $v = trim(ltrim(trim($formula), '='));
+        return (bool) preg_match(
+            '/^If\s*\(\s*Coalesce\s*\(\s*' . preg_quote($var, '/')
+            . '\s*,\s*false\s*\)\s*,\s*' . preg_quote($themeDark, '/')
+            . '\.\w+\s*,\s*' . preg_quote($themeLight, '/')
+            . '\.\w+\s*\)$/i',
+            $v
+        );
+    }
+
+    /**
+     * Extract token from legacy `gblTheme.Token` or already-migrated If(…) form.
+     */
+    private function tokenFromExistingThemeFormula(
+        string $formula,
+        string $var,
+        string $theme,
+        string $themeLight,
+        string $themeDark
+    ): ?string {
+        $v = trim(ltrim(trim($formula), '='));
+        if (preg_match('/^' . preg_quote($theme, '/') . '\.(\w+)$/', $v, $m)) {
+            return $m[1];
+        }
+        if (preg_match(
+            '/^If\s*\(\s*Coalesce\s*\(\s*' . preg_quote($var, '/')
+            . '\s*,\s*false\s*\)\s*,\s*' . preg_quote($themeDark, '/')
+            . '\.(\w+)\s*,\s*' . preg_quote($themeLight, '/')
+            . '\.\w+\s*\)$/i',
+            $v,
+            $m
+        )) {
+            return $m[1];
+        }
+        if (preg_match(
+            '/^If\s*\(\s*' . preg_quote($var, '/')
+            . '\s*,\s*' . preg_quote($themeDark, '/')
+            . '\.(\w+)\s*,\s*' . preg_quote($themeLight, '/')
+            . '\.\w+\s*\)$/i',
+            $v,
+            $m
+        )) {
+            return $m[1];
+        }
+        return null;
     }
 
     /**
@@ -337,11 +400,11 @@ final class EnableDarkModeHop implements HopInterface
             $darkFields[] = $token . ': ' . ColorValue::formatRgba($dark);
         }
 
-        // Named formulas so App Checker type-checks gblTheme.Token (avoids ~thousands of ErrInvalidName).
+        // Static named-formula records only — do not bind gblTheme to gblDarkMode here.
+        // Controls use If(Coalesce(gblDarkMode,false), gblThemeDark.Token, gblThemeLight.Token).
         return self::BLOCK_START . "\n"
             . $themeLight . ' = { ' . implode(', ', $lightFields) . " };\n"
             . $themeDark . ' = { ' . implode(', ', $darkFields) . " };\n"
-            . $theme . ' = If(Coalesce(' . $var . ', false), ' . $themeDark . ', ' . $themeLight . ");\n"
             . self::BLOCK_END;
     }
 
@@ -620,8 +683,8 @@ final class EnableDarkModeHop implements HopInterface
                 'Y' => '=16',
                 'Width' => '=180',
                 'Height' => '=40',
-                'TrueFill' => '=' . $theme . '.Accent',
-                'FalseFill' => '=' . $theme . '.Rail',
+                'TrueFill' => $this->themeColorFormula('Accent', $var, self::THEME_LIGHT, self::THEME_DARK, true),
+                'FalseFill' => $this->themeColorFormula('Rail', $var, self::THEME_LIGHT, self::THEME_DARK, true),
                 'TrueText' => '="Dark"',
                 'FalseText' => '="Light"',
             ],
@@ -639,6 +702,8 @@ final class EnableDarkModeHop implements HopInterface
     {
         $v = strtolower($formula);
         return str_contains($v, strtolower($theme))
+            || str_contains($v, 'gblthemelight')
+            || str_contains($v, 'gblthemedark')
             || str_contains($v, strtolower($var))
             || str_contains($v, 'gblappcolors')
             || str_contains($v, 'app.theme');

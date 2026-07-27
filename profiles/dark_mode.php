@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 return [
-    'description' => 'Add Light/Dark on Settings Theme radio (or a toggle) and central gblThemeLight/gblThemeDark/gblTheme named-formula palettes; controls use gblTheme.* tokens (edit colors in App.Formulas or config/theme_defaults.php). Prefer running repair_studio_errors first as a separate step.',
+    'description' => 'Add Light/Dark on Settings Theme radio (or a toggle) and central gblThemeLight/gblThemeDark named-formula palettes; controls use If(gblDarkMode, gblThemeDark.Token, gblThemeLight.Token) (edit colors in App.Formulas or config/theme_defaults.php). Prefer running repair_studio_errors first as a separate step.',
     'hops' => [
         [
             'id' => 'enable_dark_mode',

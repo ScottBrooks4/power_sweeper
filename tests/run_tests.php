@@ -192,11 +192,10 @@ foreach ($doc->controls() as $c) {
         $onStart = (string) $c->getProperty('OnStart');
         $formulas = (string) $c->getProperty('Formulas');
         $onStartOk = str_contains($onStart, 'gblDarkMode');
-        $paletteOk = str_contains($formulas, 'gblThemeLight')
-            && str_contains($formulas, 'gblThemeDark')
-            && str_contains($formulas, 'gblTheme')
+        $paletteOk = str_contains($formulas, 'gblThemeLight =')
+            && str_contains($formulas, 'gblThemeDark =')
             && str_contains($formulas, 'ps-theme:start')
-            && str_contains($formulas, 'Coalesce(gblDarkMode');
+            && !preg_match('/gblTheme\s*=\s*If/', $formulas); // reactive gblTheme named formula breaks App Checker
     }
     if ($c->name === 'tglPowerSweeperDarkMode') {
         $hasToggle = true;
@@ -204,18 +203,23 @@ foreach ($doc->controls() as $c) {
             && str_contains((string) $c->getProperty('OnUncheck'), 'Set(gblDarkMode, false)');
     }
     if ($c->name === 'Screen1') {
-        $screenFillThemed = str_contains((string) $c->getProperty('Fill'), 'gblTheme.');
+        $fill = (string) $c->getProperty('Fill');
+        $screenFillThemed = str_contains($fill, 'gblThemeDark.')
+            && str_contains($fill, 'gblThemeLight.')
+            && str_contains($fill, 'gblDarkMode');
     }
     if ($c->name === 'Title') {
-        $titleColorThemed = str_contains((string) $c->getProperty('Color'), 'gblTheme.');
+        $color = (string) $c->getProperty('Color');
+        $titleColorThemed = str_contains($color, 'gblThemeDark.')
+            && str_contains($color, 'gblThemeLight.');
     }
 }
 assert_true($onStartOk, 'App.OnStart initializes gblDarkMode');
-assert_true($paletteOk, 'App.Formulas defines editable gblThemeLight/Dark named-formula palette');
+assert_true($paletteOk, 'App.Formulas defines static gblThemeLight/Dark named-formula palettes');
 assert_true($hasToggle, 'dark mode toggle injected when no Theme radio');
-assert_true($toggleSetsDarkMode, 'toggle sets gblDarkMode (theme follows via named formula)');
-assert_true($screenFillThemed, 'screen Fill uses gblTheme token');
-assert_true($titleColorThemed, 'label Color uses gblTheme token');
+assert_true($toggleSetsDarkMode, 'toggle sets gblDarkMode');
+assert_true($screenFillThemed, 'screen Fill uses If(gblDarkMode, dark.Token, light.Token)');
+assert_true($titleColorThemed, 'label Color uses If(gblDarkMode, dark.Token, light.Token)');
 
 // Settings ThemeRadio gets Light/Dark wired (CDLS pattern)
 $settingsDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_settings.pa.yaml', 'Src/Home.pa.yaml');
@@ -441,17 +445,17 @@ assert_true(is_string($kmsHome) && str_contains($kmsHome, 'tglPowerSweeperDarkMo
 assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblDarkMode'), 'kitchen sink App sets gblDarkMode');
 assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblThemeLight') && str_contains((string) $kmsApp, 'gblThemeDark'), 'kitchen sink App has editable palettes');
 assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblThemeLight ='), 'kitchen sink palettes are named formulas in Formulas');
-assert_true(is_string($kmsHome) && str_contains($kmsHome, 'gblTheme.'), 'kitchen sink home colors use gblTheme tokens');
-assert_true(is_string($kmsControls) && str_contains($kmsControls, 'gblTheme.'), 'kitchen sink controls colors use gblTheme tokens');
+assert_true(is_string($kmsHome) && str_contains($kmsHome, 'gblThemeDark.') && str_contains($kmsHome, 'gblThemeLight.'), 'kitchen sink home colors use theme palettes');
+assert_true(is_string($kmsControls) && str_contains($kmsControls, 'gblThemeDark.') && str_contains($kmsControls, 'gblThemeLight.'), 'kitchen sink controls colors use theme palettes');
 assert_true(
     is_string($kmsControls)
-    && preg_match("/SelectedFill:\\s*'?=gblTheme\\./m", $kmsControls) === 1,
-    'gallery SelectedFill uses theme token'
+    && preg_match("/SelectedFill:\\s*'?=If\\(Coalesce\\(gblDarkMode/m", $kmsControls) === 1,
+    'gallery SelectedFill uses If(gblDarkMode, …) theme formula'
 );
 assert_true(
     is_string($kmsControls)
-    && preg_match("/RailFill:\\s*'?=gblTheme\\./m", $kmsControls) === 1,
-    'slider RailFill uses theme token'
+    && preg_match("/RailFill:\\s*'?=If\\(Coalesce\\(gblDarkMode/m", $kmsControls) === 1,
+    'slider RailFill uses If(gblDarkMode, …) theme formula'
 );
 @unlink($kmsOut);
 

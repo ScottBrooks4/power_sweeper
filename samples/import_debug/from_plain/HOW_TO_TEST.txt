@@ -35,7 +35,8 @@ Notes:
     (e.g. OverridableProperties). Fixed via object-mode JSON trees + StudioJson.
 
 Notes on H/J (dark mode) after 2026-07-27 fix:
-  - Theme palettes live in App.Formulas as named formulas (not OnStart Set records)
-    so App Checker should stay near the ~150 formula-error baseline instead of ~2400 ErrInvalidName.
+  - Theme palettes: static App.Formulas named formulas gblThemeLight / gblThemeDark.
+  - Controls use If(Coalesce(gblDarkMode,false), gblThemeDark.Token, gblThemeLight.Token)
+    — NOT gblTheme.Token (that caused "Name isn't valid. 'gblTheme'…" × ~2300).
   - Settings → Theme radio is wired to Light/Dark (TopbarHeader ThemeRadio).
   - Prefer I then H/J as two steps: repair_studio_errors, then dark_mode.
