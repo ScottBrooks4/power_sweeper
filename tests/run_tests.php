@@ -294,6 +294,10 @@ assert_true($emptyReport->count() > 0, 'analyze_app_checker reports work');
 
 $white = ColorValue::parse('=RGBA(255, 255, 255, 1)');
 assert_true($white !== null, 'parse white');
+$fixedAlpha = ColorValue::normalizeColorLiteral('=RGBA(240, 240, 240, 0,2)');
+assert_true(str_contains($fixedAlpha, '0.2'), 'locale RGBA alpha comma fixed');
+$parsedAlpha = ColorValue::parse($fixedAlpha);
+assert_true($parsedAlpha !== null && abs($parsedAlpha['a'] - 0.2) < 0.001, 'parse fixed locale RGBA alpha');
 $darkBg = ColorValue::toDark($white, 'background');
 assert_true($darkBg['r'] < 40 && $darkBg['g'] < 40 && $darkBg['b'] < 40, 'white maps to dark background');
 

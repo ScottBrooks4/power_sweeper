@@ -14,9 +14,22 @@ final class ColorValue
      */
     public static function parse(string $formula): ?array
     {
+        $formula = self::normalizeColorLiteral($formula);
         $v = trim($formula);
         $v = ltrim($v, '=');
         $v = trim($v);
+
+        // Locale-broken alpha: RGBA(240, 240, 240, 0,2) → treated as 0.2
+        if (preg_match('/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i', $v, $m)) {
+            $alpha = (float) ($m[4] . '.' . $m[5]);
+            return [
+                'r' => (int) $m[1],
+                'g' => (int) $m[2],
+                'b' => (int) $m[3],
+                'a' => $alpha,
+                'raw' => $v,
+            ];
+        }
 
         if (preg_match('/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([0-9.]+)\s*)?\)$/i', $v, $m)) {
             return [
@@ -73,6 +86,29 @@ final class ColorValue
         }
 
         return null;
+    }
+
+    /**
+     * Repair locale-corrupted color literals before parse/theme (e.g. RGBA comma-decimal alpha).
+     */
+    public static function normalizeColorLiteral(string $formula): string
+    {
+        if ($formula === '' || trim($formula) === '') {
+            return $formula;
+        }
+
+        $fixed = FormulaLocaleNormalizer::toInvariant($formula);
+        $hadEquals = str_starts_with(trim($fixed), '=');
+        $body = ltrim(trim($fixed), '=');
+
+        if (preg_match('/^RGBA?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i', $body, $m)) {
+            $alpha = (float) ($m[4] . '.' . $m[5]);
+            $aStr = abs($alpha - round($alpha)) < 0.0001 ? (string) (int) round($alpha) : rtrim(rtrim(sprintf('%.3F', $alpha), '0'), '.');
+            $body = sprintf('RGBA(%d, %d, %d, %s)', (int) $m[1], (int) $m[2], (int) $m[3], $aStr);
+            return ($hadEquals ? '=' : '') . $body;
+        }
+
+        return $fixed;
     }
 
     public static function isLiteral(string $formula): bool

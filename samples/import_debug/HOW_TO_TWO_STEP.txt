@@ -1,5 +1,5 @@
-CDLS VCR — two-step Power Sweeper outputs (from plain source)
-=============================================================
+CDLS VCR — Power Sweeper outputs (from plain source)
+====================================================
 
 Source (imports OK in Studio):
   CDLS (L) VCR App (4).msapp
@@ -7,25 +7,36 @@ Source (imports OK in Studio):
 Rebuild:
   php samples/import_debug/build_two_step.php
 
-Deliverables (copy to DND Windows, e.g. Q:\import_debug\):
+Raw download (GitHub main):
+  https://raw.githubusercontent.com/freementls/power_sweeper/main/samples/import_debug/CDLS_L_VCR_step1_repair.msapp
+  https://raw.githubusercontent.com/freementls/power_sweeper/main/samples/import_debug/CDLS_L_VCR_step2_dark_mode.msapp
+  https://raw.githubusercontent.com/freementls/power_sweeper/main/samples/import_debug/CDLS_L_VCR_step3_repair_then_dark.msapp
+
+Deliverables
+------------
 
   1) CDLS_L_VCR_step1_repair.msapp
      Profile: repair_studio_errors
-     - Reads embedded AppCheckerResult.sarif when present
-     - Locale formula unwhack, boolean Checked repair, a11y labels, focus rings, tooltips
-     - Does NOT apply dark mode
+     Fixes locale formulas, booleans, a11y labels, focus, tooltips.
+     Does NOT apply dark mode.
 
   2) CDLS_L_VCR_step2_dark_mode.msapp
-     Profile: dark_mode (from the same plain source — not combined with repair)
-     - App.Formulas: static gblThemeLight / gblThemeDark palettes
-     - Controls: If(Coalesce(gblDarkMode,false), gblThemeDark.Token, gblThemeLight.Token)
-     - Settings → Theme radio: Light / Dark
-     - Does NOT run the repair pass
+     Profile: dark_mode (from plain — not repaired)
+     Theme palettes + Settings Light/Dark. Use to test theme only.
 
-Recommended workflow in Studio
-------------------------------
-  A) Test repair only: open step1 → check App Checker → save if good.
-  B) Test dark only: open step2 → Settings → Theme → Dark → check contrast.
-  C) Production: open step1 → save → run dark_mode in Power Sweeper on that saved .msapp.
+  3) CDLS_L_VCR_step3_repair_then_dark.msapp  ← recommended
+     Profiles: repair_studio_errors → dark_mode
+     Best single import for day-to-day use.
 
-Do NOT use old linuxed .cleaned packs for import bisect — use from_plain/ or these step files.
+Studio workflow
+---------------
+  A) Quick test repair: open step1 → App Checker → save.
+  B) Quick test dark:   open step2 → Settings → Theme → Dark.
+  C) Production:        open step3 (or step1 save → dark_mode in Power Sweeper).
+
+App Checker note: embedded SARIF updates only after you save in Studio.
+
+Dark mode (current):
+  - App.Formulas: gblThemeLight / gblThemeDark (static named formulas)
+  - Controls: If(Coalesce(gblDarkMode,false), gblThemeDark.Token, gblThemeLight.Token)
+  - NOT gblTheme.Token (caused ~2300 invalid-name errors)

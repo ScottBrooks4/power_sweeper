@@ -143,7 +143,7 @@ final class EnableDarkModeHop implements HopInterface
                     if ($from === null || trim($from) === '' || $this->alreadyThemed($from, $var, $theme)) {
                         continue;
                     }
-                    $parsed = ColorValue::parse($from);
+                    $parsed = $this->parseColorLiteral($from);
                     if ($parsed === null || ColorValue::isTransparent($parsed)) {
                         continue;
                     }
@@ -275,7 +275,13 @@ final class EnableDarkModeHop implements HopInterface
                         if ($this->isIfThemeFormula($from, $var, $themeLight, $themeDark)) {
                             continue;
                         }
-                        $parsed = ColorValue::parse($from);
+                        $normalized = ColorValue::normalizeColorLiteral($from);
+                        if ($normalized !== $from && ColorValue::parse($normalized) !== null) {
+                            $control->setProperty($prop, $normalized);
+                            $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($normalized));
+                            $from = $normalized;
+                        }
+                        $parsed = $this->parseColorLiteral($from);
                         if ($parsed === null) {
                             $pair = $this->parseLegacyIfPair($from, $var);
                             if ($pair === null) {
@@ -301,6 +307,12 @@ final class EnableDarkModeHop implements HopInterface
                 }
             }
         }
+    }
+
+    private function parseColorLiteral(string $formula): ?array
+    {
+        $normalized = ColorValue::normalizeColorLiteral($formula);
+        return ColorValue::parse($normalized);
     }
 
     private function themeColorFormula(
