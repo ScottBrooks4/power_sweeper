@@ -1,20 +1,13 @@
 CDLS VCR — Power Sweeper outputs (from plain source)
 ====================================================
 
-Customer .msapp files are NOT stored in this repository. Keep the plain
-export locally (or on private storage) and rebuild deliverables on your machine.
-
-Source (imports OK in Studio — local only):
-  CDLS (L) VCR App (4).msapp
-  Place in this folder before building.
-
-Rebuild:
+Rebuild locally (plain source stays off GitHub):
   php samples/import_debug/build_two_step.php
 
-Outputs (written locally, not committed):
-  CDLS_L_VCR_step1_repair.msapp
-  CDLS_L_VCR_step2_dark_mode.msapp
-  CDLS_L_VCR_step3_repair_then_dark.msapp
+Raw download (GitHub main):
+  https://raw.githubusercontent.com/freementls/power_sweeper/main/samples/import_debug/CDLS_L_VCR_step1_repair.msapp
+  https://raw.githubusercontent.com/freementls/power_sweeper/main/samples/import_debug/CDLS_L_VCR_step2_dark_mode.msapp
+  https://raw.githubusercontent.com/freementls/power_sweeper/main/samples/import_debug/CDLS_L_VCR_step3_repair_then_dark.msapp
 
 Deliverables
 ------------
@@ -37,6 +30,8 @@ Studio workflow
   A) Quick test repair: open step1 → App Checker → save.
   B) Quick test dark:   open step2 → Settings → Theme → Dark.
   C) Production:        open step3 (or step1 save → dark_mode in Power Sweeper).
+
+Download tip: use the raw.githubusercontent.com links above (not the GitHub HTML file view).
 
 App Checker note: embedded SARIF updates only after you save in Studio.
 
