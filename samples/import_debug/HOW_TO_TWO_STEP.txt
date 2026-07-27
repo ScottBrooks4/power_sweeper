@@ -1,16 +1,20 @@
 CDLS VCR — Power Sweeper outputs (from plain source)
 ====================================================
 
-Source (imports OK in Studio):
+Customer .msapp files are NOT stored in this repository. Keep the plain
+export locally (or on private storage) and rebuild deliverables on your machine.
+
+Source (imports OK in Studio — local only):
   CDLS (L) VCR App (4).msapp
+  Place in this folder before building.
 
 Rebuild:
   php samples/import_debug/build_two_step.php
 
-Raw download (GitHub main):
-  https://raw.githubusercontent.com/freementls/power_sweeper/main/samples/import_debug/CDLS_L_VCR_step1_repair.msapp
-  https://raw.githubusercontent.com/freementls/power_sweeper/main/samples/import_debug/CDLS_L_VCR_step2_dark_mode.msapp
-  https://raw.githubusercontent.com/freementls/power_sweeper/main/samples/import_debug/CDLS_L_VCR_step3_repair_then_dark.msapp
+Outputs (written locally, not committed):
+  CDLS_L_VCR_step1_repair.msapp
+  CDLS_L_VCR_step2_dark_mode.msapp
+  CDLS_L_VCR_step3_repair_then_dark.msapp
 
 Deliverables
 ------------

@@ -8,10 +8,8 @@ composer.phar
 .DS_Store
 *.log
 
-# Never publish real/customer apps or generated packages
+# Never publish real/customer apps or generated packages (security: no .msapp in git)
 *.msapp
-# Exception: import bisect samples (Studio unknown-error diagnosis)
-!/samples/import_debug/**/*.msapp
 /import/
 /samples/**/*.report.json
 
