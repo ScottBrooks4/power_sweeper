@@ -8,6 +8,7 @@ use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
 use PowerSweeper\PowerAppsYaml;
 use PowerSweeper\StudioJson;
+use PowerSweeper\StudioIssueScanner;
 use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaLocaleNormalizer;
 use PowerSweeper\Hops\AccessibilityLabelsHop;
@@ -17,6 +18,7 @@ use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
+use PowerSweeper\Hops\ScanStudioIssuesHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
 use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
@@ -139,6 +141,20 @@ assert_true(!str_contains($inv, ';;'), 'no leftover double-semicolon');
 $safe = '=Set(x, 1); Set(y, 2)';
 assert_true($safe === FormulaLocaleNormalizer::toInvariant($safe), 'leaves invariant chaining alone');
 assert_true(!FormulaLocaleNormalizer::looksLocaleCorrupted($safe), 'invariant not flagged');
+
+// Compact invariant RGBA must NOT be treated as decimal commas (was mangling to RGBA(0.0,0.0)).
+$compactRgba = 'RGBA(0,0,0,0)';
+assert_true(!FormulaLocaleNormalizer::looksLocaleCorrupted($compactRgba), 'compact invariant RGBA not flagged as locale');
+assert_true(FormulaLocaleNormalizer::toInvariant($compactRgba) === $compactRgba, 'compact invariant RGBA unchanged');
+$spacedRgba = 'RGBA(0, 0, 0, 0)';
+assert_true(!FormulaLocaleNormalizer::looksLocaleCorrupted($spacedRgba), 'spaced invariant RGBA not flagged');
+$localeRgba = 'RGBA(0; 0; 0; 1)';
+assert_true(FormulaLocaleNormalizer::looksLocaleCorrupted($localeRgba), 'locale RGBA(; ) flagged');
+assert_true(FormulaLocaleNormalizer::toInvariant($localeRgba) === 'RGBA(0, 0, 0, 1)', 'locale RGBA converts without dropping args');
+$localeRgbaTight = 'RGBA(0;0;0;1)';
+assert_true(FormulaLocaleNormalizer::toInvariant($localeRgbaTight) === 'RGBA(0,0,0,1)', 'tight locale RGBA keeps four args');
+$standaloneDec = '=Parent.Width * 0,5';
+assert_true(FormulaLocaleNormalizer::toInvariant($standaloneDec) === '=Parent.Width * 0.5', 'standalone decimal comma still fixed');
 
 // --- unwhack locale on YAML ---
 $doc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/Screen1.pa.yaml');
@@ -302,7 +318,7 @@ assert_true($vcrYaml !== null && $vcrJson !== null, 'VCR locale fixtures load');
 $vcrReport = new Report();
 (new UnwhackLocaleFormulasHop())->apply([$vcrYaml, $vcrJson], $vcrReport);
 (new RepairCheckedBooleansHop())->apply([$vcrYaml, $vcrJson], $vcrReport);
-(new EnsureFocusVisibleHop())->apply([$vcrYaml], $vcrReport);
+(new EnsureFocusVisibleHop())->apply([$vcrYaml, $vcrJson], $vcrReport);
 assert_true($vcrReport->count() > 10, 'VCR repair reports multiple fixes');
 
 $vcrSizeOk = false;
@@ -310,6 +326,10 @@ $vcrOrientOk = false;
 $vcrCheckedOk = false;
 $vcrFocusOk = false;
 $vcrJsonSizeOk = false;
+$vcrIfNumericBoolOk = false;
+$vcrVisibleBoolOk = false;
+$vcrAutoBindOk = false;
+$vcrJsonVisibleOk = false;
 foreach ($vcrYaml->controls() as $c) {
     if ($c->name === 'VCRHomePage') {
         $size = (string) $c->getProperty('Size');
@@ -320,6 +340,13 @@ foreach ($vcrYaml->controls() as $c) {
     if ($c->name === 'VIPCheckbox') {
         $def = (string) $c->getProperty('Default');
         $vcrCheckedOk = $def === '=true' || str_ends_with($def, 'true');
+    }
+    if ($c->name === 'BulkFlag') {
+        $checked = (string) $c->getProperty('Checked');
+        $visible = (string) $c->getProperty('Visible');
+        $vcrIfNumericBoolOk = str_contains($checked, 'true') && str_contains($checked, 'false')
+            && !preg_match('/,\s*1\s*,\s*0/', $checked);
+        $vcrVisibleBoolOk = $visible === '=true' || str_ends_with($visible, 'true');
     }
     if ($c->name === 'NewRequestButton') {
         $ft = (string) $c->getProperty('FocusedBorderThickness');
@@ -339,12 +366,52 @@ foreach ($vcrJson->controls() as $c) {
             $vcrCheckedOk = true;
         }
     }
+    if ($c->name === 'LegacyLabel') {
+        $vis = (string) ($c->getProperty('Visible') ?? '');
+        $vcrJsonVisibleOk = $vis === 'true';
+    }
+    if ($c->name === 'Button1_3') {
+        $ft = (string) ($c->getProperty('FocusedBorderThickness') ?? '');
+        if (str_contains($ft, '2')) {
+            $vcrFocusOk = true;
+        }
+    }
 }
+// AutoRuleBindingString is not exposed via ControlNode properties — re-read via transform capture
+$autoBindSample = '';
+$vcrJson->transformFormulas(static function (string $f, string $label) use (&$autoBindSample): string {
+    if (str_contains($label, 'AutoRuleBindingString')) {
+        $autoBindSample = $f;
+    }
+    return $f;
+});
+// Re-load and check file after save
+$vcrJsonTmp = sys_get_temp_dir() . '/vcr_json_' . bin2hex(random_bytes(3)) . '.json';
+$vcrJson->markDirty();
+$vcrJson->save($vcrJsonTmp);
+$vcrJsonRaw = (string) file_get_contents($vcrJsonTmp);
+$vcrAutoBindOk = str_contains($vcrJsonRaw, '"AutoRuleBindingString": "RGBA(0, 0, 0, 0)"')
+    || str_contains($vcrJsonRaw, '"AutoRuleBindingString": "RGBA(0,0,0,0)"');
+@unlink($vcrJsonTmp);
+
 assert_true($vcrSizeOk, 'VCR screen Size decimal unwhacked (fixes received-2-expected-1 class)');
 assert_true($vcrOrientOk, 'VCR Orientation separators unwhacked');
 assert_true($vcrCheckedOk, 'VCR Checked/Default booleans repaired');
+assert_true($vcrIfNumericBoolOk, 'VCR If(cond, 1, 0) Checked rewritten to true/false');
+assert_true($vcrVisibleBoolOk, 'VCR Visible: 1 rewritten to true');
 assert_true($vcrFocusOk, 'VCR interactive focus ring applied');
 assert_true($vcrJsonSizeOk, 'VCR internal JSON Size unwhacked');
+assert_true($vcrJsonVisibleOk, 'VCR JSON Visible boolean repaired');
+assert_true($vcrAutoBindOk, 'VCR AutoRuleBindingString locale RGBA unwhacked');
+
+$vcrIssues = StudioIssueScanner::scan([$vcrYaml, $vcrJson]);
+$vcrLocaleLeft = array_values(array_filter($vcrIssues, static fn($i) => $i['kind'] === 'locale_separators'));
+$vcrBoolLeft = array_values(array_filter(
+    $vcrIssues,
+    static fn($i) => str_starts_with($i['kind'], 'expecting_boolean')
+));
+assert_true($vcrLocaleLeft === [], 'scanner finds no remaining locale separators on VCR fixtures');
+assert_true($vcrBoolLeft === [], 'scanner finds no remaining boolean literals on VCR fixtures');
 
 $parseProbe = FormulaLocaleNormalizer::toInvariant(
     '=Set(gblJson; ParseJSON(gblPayload));; Set(x; Value(Text(gblJson.Amount); "en-US"))'
@@ -509,6 +576,24 @@ $paYamlScreens = PowerAppsYaml::dump([
 ]);
 assert_true(str_contains($paYamlScreens, 'VCR Home Page:') && !str_contains($paYamlScreens, "'VCR Home Page':"), 'PowerAppsYaml leaves spaced screen names unquoted');
 assert_true(str_contains($paYamlScreens, 'VCR / VCN Form:') && !str_contains($paYamlScreens, "'VCR / VCN Form':"), 'PowerAppsYaml leaves slashed screen names unquoted');
+
+// Formulas with ": " (UpdateContext records) must use block scalars so YAML round-trips.
+$colonFx = PowerAppsYaml::dump([
+    'Screen1' => [
+        'Properties' => [
+            'OnSelect' => '=UpdateContext({varDetailScreenSelect: 1})',
+            'Fill' => '=RGBA(1, 2, 3, 1)',
+        ],
+    ],
+]);
+assert_true(str_contains($colonFx, "OnSelect: |-") && str_contains($colonFx, '=UpdateContext({varDetailScreenSelect: 1})'), 'PowerAppsYaml uses block scalar for UpdateContext colon formulas');
+assert_true(str_contains($colonFx, 'Fill: =RGBA(1, 2, 3, 1)'), 'PowerAppsYaml keeps simple Power Fx unquoted');
+$colonParsed = \Symfony\Component\Yaml\Yaml::parse($colonFx);
+assert_true(
+    is_array($colonParsed)
+    && ($colonParsed['Screen1']['Properties']['OnSelect'] ?? null) === '=UpdateContext({varDetailScreenSelect: 1})',
+    'colon-bearing Power Fx YAML round-trips through Symfony parse'
+);
 
 // Dirty tracking: empty hop sequence must not rewrite YAML
 $dirtyDir = sys_get_temp_dir() . '/ps_dirty_' . bin2hex(random_bytes(3));

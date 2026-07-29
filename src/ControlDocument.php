@@ -221,8 +221,8 @@ final class ControlDocument
     {
         if (is_object($data)) {
             foreach (get_object_vars($data) as $key => $value) {
-                if ($key === 'InvariantScript' && is_string($value)) {
-                    $label = $path . '.InvariantScript';
+                if (is_string($value) && self::isJsonFormulaField($key)) {
+                    $label = $path . '.' . $key;
                     $next = $mapper($value, $label);
                     if ($next !== $value) {
                         $data->{$key} = $next;
@@ -251,8 +251,8 @@ final class ControlDocument
         }
 
         foreach ($data as $key => &$value) {
-            if ($key === 'InvariantScript' && is_string($value)) {
-                $label = $path . '.InvariantScript';
+            if (is_string($value) && self::isJsonFormulaField((string) $key)) {
+                $label = $path . '.' . (string) $key;
                 $next = $mapper($value, $label);
                 if ($next !== $value) {
                     $value = $next;
@@ -277,6 +277,18 @@ final class ControlDocument
             }
         }
         unset($value);
+    }
+
+    /**
+     * JSON fields that carry Power Fx (locale corruption shows up here in classic packs).
+     */
+    private static function isJsonFormulaField(string $key): bool
+    {
+        return in_array($key, [
+            'InvariantScript',
+            // Template/auto bindings often retain locale RGBA(...;...) after language switch
+            'AutoRuleBindingString',
+        ], true);
     }
 
     private static function looksLikeFormulaString(string $value): bool

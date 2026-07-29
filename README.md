@@ -62,7 +62,10 @@ Order matters: the same hops in a different sequence can produce different resul
 | `strip_default_fill` | Clear opaque white container fills |
 | `normalize_classic_button_chrome` | Clear Hover/Pressed fills when Fill is already transparent |
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
-| `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` the formula bar may not expose |
+| `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` and `AutoRuleBindingString` |
+| `repair_checked_booleans` | Normalize `Checked`/`Default`/`Visible`/… from `1`/`0`/`"true"` or `If(cond, 1, 0)` to real booleans |
+| `ensure_focus_visible` | Set focus ring thickness/color on interactive controls (“Focus isn’t showing”) |
+| `scan_studio_issues` | Report remaining locale/boolean/focus issues without modifying the app (verify after repair) |
 | `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` palettes, add or reuse a dark-mode toggle, and point literal colors at `gblTheme.*` tokens |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
 | `set_zip_path_style` | Force zip entry separators to `windows` (`\\`) or `posix` (`/`). Default is to **preserve** the source style (almost always Windows) |
@@ -80,7 +83,7 @@ Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the res
 
 ### Locale unwhack
 
-When an app is edited under a comma-decimal locale (German, French, …), Studio can persist locale separators into formulas — including classic JSON rules you cannot open in the formula bar. The `unwhack_locale` profile converts those back to invariant Power Fx (`.` decimal, `,` list separator, `;` chaining) across `Src/**/*.pa.yaml` and control JSON `InvariantScript`.
+When an app is edited under a comma-decimal locale (German, French, …), Studio can persist locale separators into formulas — including classic JSON rules you cannot open in the formula bar. The `unwhack_locale` profile converts those back to invariant Power Fx (`.` decimal, `,` list separator, `;` chaining) across `Src/**/*.pa.yaml` and control JSON `InvariantScript` / `AutoRuleBindingString`. Compact invariant colors like `RGBA(0,0,0,0)` are left alone (not mistaken for decimal commas).
 
 ### Dark mode
 
@@ -144,11 +147,13 @@ Import with **make.powerapps.com → Apps → Import app → From file (.msapp)*
 
 Profile **`repair_studio_errors`** is the pass to use on apps like CDLS VCR after a language/region switch. It runs:
 
-1. `unwhack_locale_formulas` — Expected operator, Invalid number of arguments (Size/Orientation), ParseJSON / If / LookUp separator damage, including internal JSON  
-2. `repair_checked_booleans` — “Expecting a true or false value” on checkbox/toggle `Checked`/`Default` (`1`/`0`/`"true"`)  
+1. `unwhack_locale_formulas` — Expected operator, Invalid number of arguments (Size/Orientation), ParseJSON / If / LookUp separator damage, including internal JSON + AutoRuleBindingString  
+2. `repair_checked_booleans` — “Expecting a true or false value” on Checked/Default/Visible (`1`/`0`/`"true"` / `If(cond, 1, 0)`)  
 3. `accessibility_labels` — missing AccessibleLabel  
 4. `ensure_focus_visible` — App checker “Focus isn’t showing”  
 5. `tooltip_from_label` — empty tooltips  
+
+Append hop **`scan_studio_issues`** afterward to list anything the heuristics still flag (report-only).
 
 **Not auto-fixed** (different App checker categories): SharePoint **delegation** warnings, **unused variables/media**, missing Power Automate **Run** targets when the flow isn’t in the app.
 

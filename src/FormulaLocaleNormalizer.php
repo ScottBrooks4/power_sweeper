@@ -49,11 +49,14 @@ final class FormulaLocaleNormalizer
             return true;
         }
 
-        // Decimal comma numbers: 12,5 or 12.345,67 or Parent.Width * 0,5
+        // German-style thousands + decimal: 12.345,67
         if (preg_match('/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/', $masked)) {
             return true;
         }
-        if (preg_match('/(?<![A-Za-z_.])\d+,\d+/', $masked)) {
+
+        // Standalone decimal comma (0,5 / 12,5), but NOT compact invariant lists
+        // like RGBA(0,0,0,0) which are comma-separated numeric args (3+ numbers).
+        if (self::hasStandaloneDecimalComma($masked)) {
             return true;
         }
 
@@ -83,7 +86,8 @@ final class FormulaLocaleNormalizer
         if ($force && !self::looksLocaleCorrupted($formula)) {
             $masked = self::maskProtected($body);
             $hasSignal = str_contains($masked, ';;')
-                || preg_match('/(?<![A-Za-z_.])\d+,\d+/', $masked)
+                || self::hasStandaloneDecimalComma($masked)
+                || preg_match('/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/', $masked)
                 || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $masked)
                 || preg_match('/\{[^}"\']*;/', $masked);
             if (!$hasSignal) {
@@ -112,16 +116,7 @@ final class FormulaLocaleNormalizer
 
     private static function convertCodeSegment(string $code): string
     {
-        // 1) Chaining ;; → placeholder
-        $code = str_replace(';;', "\x00CHAIN\x00", $code);
-
-        // 2) List separator ; → ,
-        $code = str_replace(';', ',', $code);
-
-        // 3) Restore chaining as ;
-        $code = str_replace("\x00CHAIN\x00", ';', $code);
-
-        // 4) German-style thousands + decimal: 12.345,67 → 12345.67
+        // 1) Thousands + decimal FIRST (while ';' still marks locale lists)
         $code = preg_replace_callback(
             '/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/',
             static function (array $m): string {
@@ -132,15 +127,65 @@ final class FormulaLocaleNormalizer
             $code
         ) ?? $code;
 
-        // Plain decimal comma: 12,5 / 0,5 → 12.5 / 0.5
+        // 2) Standalone decimal commas BEFORE ';' → ',' (critical ordering).
+        //    Otherwise RGBA(0;0;0;1) becomes RGBA(0,0,0,1) then wrongly RGBA(0.0,0.0).
+        $code = self::convertStandaloneDecimalCommas($code);
+
+        // 3) Chaining ;; → placeholder
+        $code = str_replace(';;', "\x00CHAIN\x00", $code);
+
+        // 4) List separator ; → ,
+        $code = str_replace(';', ',', $code);
+
+        // 5) Restore chaining as ;
+        $code = str_replace("\x00CHAIN\x00", ';', $code);
+
+        // 6) Studio double-comma bug
+        $code = preg_replace('/,(?=\s*,)/', '', $code) ?? $code;
+
+        return $code;
+    }
+
+    /**
+     * True when masked code has a decimal comma that is not just a multi-arg
+     * numeric list (RGBA(0,0,0,1), etc.).
+     */
+    private static function hasStandaloneDecimalComma(string $masked): bool
+    {
+        $withoutLists = preg_replace(
+            '/(?<![A-Za-z_.])\d+(?:\s*,\s*\d+){2,}/',
+            ' ',
+            $masked
+        ) ?? $masked;
+
+        return preg_match('/(?<![A-Za-z_.])\d+,\d+/', $withoutLists) === 1;
+    }
+
+    /**
+     * Convert 12,5 → 12.5 while leaving comma-separated numeric lists intact.
+     */
+    private static function convertStandaloneDecimalCommas(string $code): string
+    {
+        $protected = [];
+        $code = preg_replace_callback(
+            '/(?<![A-Za-z_.])\d+(?:\s*,\s*\d+){2,}/',
+            static function (array $m) use (&$protected): string {
+                $key = "\x00NUMLIST" . count($protected) . "\x00";
+                $protected[$key] = $m[0];
+                return $key;
+            },
+            $code
+        ) ?? $code;
+
         $code = preg_replace_callback(
             '/(?<![A-Za-z_.])\d+,\d+(?!\d)/',
             static fn(array $m): string => str_replace(',', '.', $m[0]),
             $code
         ) ?? $code;
 
-        // Studio double-comma bug
-        $code = preg_replace('/,(?=\s*,)/', '', $code) ?? $code;
+        if ($protected !== []) {
+            $code = str_replace(array_keys($protected), array_values($protected), $code);
+        }
 
         return $code;
     }
