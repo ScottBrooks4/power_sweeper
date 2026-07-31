@@ -60,6 +60,12 @@ final class FormulaLocaleNormalizer
             return true;
         }
 
+        // Half-converted color alphas: RGBA(240, 240, 240, 0,2) or RGBA(119, 119, 119, ,4)
+        // Studio reports these as Invalid number of arguments / Expected operator.
+        if (self::hasBrokenColorAlpha($masked)) {
+            return true;
+        }
+
         return false;
     }
 
@@ -87,6 +93,7 @@ final class FormulaLocaleNormalizer
             $masked = self::maskProtected($body);
             $hasSignal = str_contains($masked, ';;')
                 || self::hasStandaloneDecimalComma($masked)
+                || self::hasBrokenColorAlpha($masked)
                 || preg_match('/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/', $masked)
                 || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $masked)
                 || preg_match('/\{[^}"\']*;/', $masked);
@@ -140,8 +147,53 @@ final class FormulaLocaleNormalizer
         // 5) Restore chaining as ;
         $code = str_replace("\x00CHAIN\x00", ';', $code);
 
-        // 6) Studio double-comma bug
+        // 6) Half-converted color alphas BEFORE collapsing empty ,, 
+        //    (RGBA(119, 119, 119, ,4) must become 0.4, not lose the empty slot).
+        $code = self::repairBrokenColorAlpha($code);
+
+        // 7) Studio double-comma bug (empty args)
         $code = preg_replace('/,(?=\s*,)/', '', $code) ?? $code;
+
+        return $code;
+    }
+
+    /**
+     * Detect RGBA/ColorFade-style calls where locale alpha survived as an extra
+     * list arg: RGBA(r, g, b, 0,2) or RGBA(r, g, b, ,4).
+     */
+    private static function hasBrokenColorAlpha(string $masked): bool
+    {
+        return preg_match(
+            '/\bRGBA?\s*\(\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*\d+\s*,\s*\d+\s*\)/i',
+            $masked
+        ) === 1
+            || preg_match(
+                '/\bRGBA?\s*\(\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*,\s*\d+\s*\)/i',
+                $masked
+            ) === 1;
+    }
+
+    /**
+     * RGBA(240, 240, 240, 0,2) → RGBA(240, 240, 240, 0.2)
+     * RGBA(119, 119, 119, ,4) → RGBA(119, 119, 119, 0.4)
+     */
+    private static function repairBrokenColorAlpha(string $code): string
+    {
+        $code = preg_replace_callback(
+            '/\b(RGBA?)\s*\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i',
+            static function (array $m): string {
+                return sprintf('%s(%s, %s, %s, %s.%s)', $m[1], $m[2], $m[3], $m[4], $m[5], $m[6]);
+            },
+            $code
+        ) ?? $code;
+
+        $code = preg_replace_callback(
+            '/\b(RGBA?)\s*\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*,\s*(\d+)\s*\)/i',
+            static function (array $m): string {
+                return sprintf('%s(%s, %s, %s, 0.%s)', $m[1], $m[2], $m[3], $m[4], $m[5]);
+            },
+            $code
+        ) ?? $code;
 
         return $code;
     }

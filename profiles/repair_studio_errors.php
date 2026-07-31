@@ -18,12 +18,13 @@ declare(strict_types=1);
  * report anything still flagged by heuristics.
  */
 return [
-    'description' => 'Repair Studio App checker errors from locale corruption (Size/Orientation/ParseJSON/Checked/Visible), then accessibility labels, focus rings, and tooltips.',
+    'description' => 'Repair Studio App checker errors from locale corruption (Size/Orientation/ParseJSON/Checked/Visible/RGBA alpha), then accessibility labels, focus rings, tab index, and tooltips.',
     'hops' => [
         ['id' => 'unwhack_locale_formulas', 'options' => []],
         ['id' => 'repair_checked_booleans', 'options' => []],
         ['id' => 'accessibility_labels', 'options' => []],
         ['id' => 'ensure_focus_visible', 'options' => ['thickness' => 2]],
+        ['id' => 'ensure_tab_index', 'options' => ['value' => 0]],
         ['id' => 'tooltip_from_label', 'options' => []],
     ],
 ];

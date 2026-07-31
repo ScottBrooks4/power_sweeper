@@ -9,6 +9,7 @@ use PowerSweeper\Hops\AlignNearMissHop;
 use PowerSweeper\Hops\CorrelateSharePointHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
+use PowerSweeper\Hops\EnsureTabIndexHop;
 use PowerSweeper\Hops\HopInterface;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
@@ -36,6 +37,7 @@ final class HopRegistry
             UnwhackLocaleFormulasHop::class,
             RepairCheckedBooleansHop::class,
             EnsureFocusVisibleHop::class,
+            EnsureTabIndexHop::class,
             ScanStudioIssuesHop::class,
             EnableDarkModeHop::class,
             CorrelateSharePointHop::class,

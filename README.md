@@ -65,6 +65,7 @@ Order matters: the same hops in a different sequence can produce different resul
 | `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` and `AutoRuleBindingString` |
 | `repair_checked_booleans` | Normalize `Checked`/`Default`/`Visible`/… from `1`/`0`/`"true"` or `If(cond, 1, 0)` to real booleans |
 | `ensure_focus_visible` | Set focus ring thickness/color on interactive controls (“Focus isn’t showing”) |
+| `ensure_tab_index` | Set `TabIndex = 0` on interactive controls when unset |
 | `scan_studio_issues` | Report remaining locale/boolean/focus issues without modifying the app (verify after repair) |
 | `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` palettes, add or reuse a dark-mode toggle, and point literal colors at `gblTheme.*` tokens |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
@@ -151,7 +152,8 @@ Profile **`repair_studio_errors`** is the pass to use on apps like CDLS VCR afte
 2. `repair_checked_booleans` — “Expecting a true or false value” on Checked/Default/Visible (`1`/`0`/`"true"` / `If(cond, 1, 0)`)  
 3. `accessibility_labels` — missing AccessibleLabel  
 4. `ensure_focus_visible` — App checker “Focus isn’t showing”  
-5. `tooltip_from_label` — empty tooltips  
+5. `ensure_tab_index` — “TabIndex should be defined” on interactive controls  
+6. `tooltip_from_label` — empty tooltips  
 
 Append hop **`scan_studio_issues`** afterward to list anything the heuristics still flag (report-only).
 

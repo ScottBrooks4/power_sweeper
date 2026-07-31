@@ -156,6 +156,19 @@ assert_true(FormulaLocaleNormalizer::toInvariant($localeRgbaTight) === 'RGBA(0,0
 $standaloneDec = '=Parent.Width * 0,5';
 assert_true(FormulaLocaleNormalizer::toInvariant($standaloneDec) === '=Parent.Width * 0.5', 'standalone decimal comma still fixed');
 
+// Half-converted color alphas (list commas + locale decimal) → BadArity in Studio
+$halfAlpha = 'RGBA(240, 240, 240, 0,2)';
+assert_true(FormulaLocaleNormalizer::looksLocaleCorrupted($halfAlpha), 'half-converted RGBA alpha flagged');
+assert_true(FormulaLocaleNormalizer::toInvariant($halfAlpha) === 'RGBA(240, 240, 240, 0.2)', 'half-converted RGBA alpha repaired');
+$emptyAlpha = 'RGBA(119, 119, 119, ,4)';
+assert_true(FormulaLocaleNormalizer::looksLocaleCorrupted($emptyAlpha), 'empty+fragment RGBA alpha flagged');
+assert_true(FormulaLocaleNormalizer::toInvariant($emptyAlpha) === 'RGBA(119, 119, 119, 0.4)', 'empty+fragment RGBA alpha repaired');
+$countIfLocale = 'CountIf(App.SizeBreakpoints; Value >= Self.Width)';
+assert_true(
+    FormulaLocaleNormalizer::toInvariant($countIfLocale) === 'CountIf(App.SizeBreakpoints, Value >= Self.Width)',
+    'Size breakpoint CountIf locale separators unwhacked'
+);
+
 // --- unwhack locale on YAML ---
 $doc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/Screen1.pa.yaml');
 assert_true($doc !== null, 'locale fixture loads');
