@@ -704,8 +704,8 @@ if (is_file($app16)) {
     $archive->unpack();
     $live = \PowerSweeper\StudioLiveChecker::check($archive->documents(), ['extract_dir' => $archive->extractDir()]);
     $archive->cleanup();
-    assert_true($live['total'] >= 600 && $live['total'] <= 700, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
-    assert_true(($live['by_category']['formulas'] ?? 0) >= 250, 'App (16) live formula issues');
+    assert_true($live['total'] >= 400 && $live['total'] <= 550, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
+    assert_true(($live['by_category']['formulas'] ?? 0) >= 90, 'App (16) live formula issues');
     assert_true(($live['by_category']['accessibility'] ?? 0) >= 200, 'App (16) live a11y issues');
     // Compare overlap with embedded SARIF
     $det = \PowerSweeper\StudioErrorDetector::detectFromMsapp($app16, false);
@@ -719,7 +719,7 @@ if (is_file($app16)) {
             $overlap++;
         }
     }
-    assert_true($overlap >= 200, 'App (16) live checker overlaps embedded SARIF (got ' . $overlap . ')');
+    assert_true($overlap >= 180, 'App (16) live checker overlaps embedded SARIF (got ' . $overlap . ')');
 }
 
 // Repaired pipeline should drive live errors well below original 1719 SARIF
@@ -810,6 +810,28 @@ $rewritten = FormulaIdentifierRewriter::rename(
     ['VCR Home Page' => "'VCR Home Page'.'VCR Home Page'"]
 );
 assert_true($rewritten === 'Notify("VCR Home Page is ready", NotificationType.Information)', 'rewriter leaves string literals alone');
+
+// Component template bindings — stale suffixed refs repaired (Components/*.json)
+$app16 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App (16).msapp';
+if (is_file($app16)) {
+    $componentRepairOut = sys_get_temp_dir() . '/ps_component_bindings_' . bin2hex(random_bytes(4)) . '.msapp';
+    $repairProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
+    (new Pipeline())->run($app16, $repairProfile['hops'], $componentRepairOut);
+    $ghostBindings = 0;
+    $compArch = new \PowerSweeper\MsappArchive($componentRepairOut);
+    $compArch->unpack();
+    foreach ($compArch->documents() as $doc) {
+        $doc->transformFormulas(static function (string $f) use (&$ghostBindings): string {
+            if (preg_match('/Container55_5|Icon2_2\.|Container70_1\./', $f)) {
+                $ghostBindings++;
+            }
+            return $f;
+        });
+    }
+    $compArch->cleanup();
+    assert_true($ghostBindings === 0, 'component AutoRuleBindingString ghost refs repaired (got ' . $ghostBindings . ')');
+    @unlink($componentRepairOut);
+}
 
 $repaired16 = dirname(__DIR__) . '/samples/import_debug/CDLS_L_VCR_App_16.repaired.msapp';
 if (is_file($repaired16)) {

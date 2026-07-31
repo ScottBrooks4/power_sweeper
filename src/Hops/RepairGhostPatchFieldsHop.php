@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PowerSweeper\Hops;
 
 use PowerSweeper\AppControlCatalog;
+use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\Report;
 
 /**
@@ -78,29 +79,38 @@ final class RepairGhostPatchFieldsHop implements HopInterface
 
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($ghosts, $report): string {
-                $new = $formula;
-                foreach (array_keys($ghosts) as $ghost) {
-                    $patterns = [
-                        '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\.\w+\s*,?\s*\r?$/m',
-                        '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\s*,?\s*\r?$/m',
-                    ];
-                    foreach ($patterns as $pattern) {
-                        $replaced = preg_replace($pattern, '// $0', $new);
-                        if ($replaced !== null && $replaced !== $new) {
-                            $report->add(self::id(), $path, $ghost, '(ghost control)', '(commented)');
-                            $new = $replaced;
+                $parts = PowerFxFormulaSegments::split($formula);
+                $changed = false;
+                $out = PowerFxFormulaSegments::mapCode($parts, static function (string $code) use ($ghosts, $report, $path, &$changed): string {
+                    $new = $code;
+                    foreach (array_keys($ghosts) as $ghost) {
+                        $patterns = [
+                            '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\.\w+\s*,?\s*\r?$/m',
+                            '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\s*,?\s*\r?$/m',
+                        ];
+                        foreach ($patterns as $pattern) {
+                            $replaced = preg_replace($pattern, '// $0', $new);
+                            if ($replaced !== null && $replaced !== $new) {
+                                $report->add(self::id(), $path, $ghost, '(ghost control)', '(commented)');
+                                $new = $replaced;
+                                $changed = true;
+                            }
+                        }
+                        foreach (['Checked', 'Text', 'HtmlText', 'SelectedDate', 'Value'] as $prop) {
+                            $bare = '/(?<![\w.])' . preg_quote($ghost, '/') . '\.' . $prop . '(?!\w)/';
+                            $replaced = preg_replace($bare, 'false', $new);
+                            if ($replaced !== null && $replaced !== $new) {
+                                $report->add(self::id(), $path, $ghost . '.' . $prop, '(ghost)', 'false');
+                                $new = $replaced;
+                                $changed = true;
+                            }
                         }
                     }
-                    foreach (['Checked', 'Text', 'HtmlText', 'SelectedDate', 'Value'] as $prop) {
-                        $bare = '/(?<![\w.])' . preg_quote($ghost, '/') . '\.' . $prop . '(?!\w)/';
-                        $replaced = preg_replace($bare, 'false', $new);
-                        if ($replaced !== null && $replaced !== $new) {
-                            $report->add(self::id(), $path, $ghost . '.' . $prop, '(ghost)', 'false');
-                            $new = $replaced;
-                        }
-                    }
-                }
-                return $new;
+
+                    return $new;
+                });
+
+                return $changed ? $out : $formula;
             });
         }
     }

@@ -32,6 +32,9 @@ final class AppControlCatalog
     /** @var array<string, string> document relative path => screen display name */
     private array $screenByDocPath = [];
 
+    /** @var array<string, array<string, true>> document relative path => control names in that document */
+    private array $controlsByDocPath = [];
+
     /** @var array<string, string> */
     private const RESERVED = [
         'true' => true, 'false' => true, 'Blank' => true, 'Self' => true, 'Parent' => true,
@@ -63,6 +66,16 @@ final class AppControlCatalog
                     $children[$control->name] = true;
                 }
                 $cat->componentDefChildren[$defName] = array_keys($children);
+            }
+        }
+
+        foreach ($documents as $doc) {
+            $names = [];
+            foreach ($doc->controls() as $control) {
+                $names[$control->name] = true;
+            }
+            if ($names !== []) {
+                $cat->controlsByDocPath[$doc->relativePath] = $names;
             }
         }
 
@@ -104,6 +117,14 @@ final class AppControlCatalog
     public function screenForDocument(ControlDocument $doc): ?string
     {
         return $this->screenByDocPath[$doc->relativePath] ?? $this->inferScreenName($doc);
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    public function controlNamesForDocument(ControlDocument $doc): array
+    {
+        return $this->controlsByDocPath[$doc->relativePath] ?? [];
     }
 
     public function hasOnScreen(string $screen, string $name): bool

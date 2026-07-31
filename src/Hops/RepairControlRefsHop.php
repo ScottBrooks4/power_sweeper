@@ -14,7 +14,7 @@ use PowerSweeper\ScreenReferenceNormalizer;
 
 /**
  * Repair stale suffixed control names (Foo_1 -> Foo), cross-screen copy-paste refs,
- * and component child access (NavTabs -> topNav_1.NavTabs_2).
+ * component template bindings (AutoRuleBindingString), and component child access.
  */
 final class RepairControlRefsHop implements HopInterface
 {
@@ -40,7 +40,7 @@ final class RepairControlRefsHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Fix stale _1/_2 suffixed control names, cross-screen refs, component child access, and known identifier typos after screen duplication.';
+        return 'Fix stale _1/_2 suffixed control names, cross-screen refs, component template bindings, and known identifier typos after screen duplication.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -49,14 +49,17 @@ final class RepairControlRefsHop implements HopInterface
         $screens = $catalog->screenNames();
 
         foreach ($documents as $doc) {
-            $screen = $catalog->screenForDocument($doc);
-            if ($screen === null) {
+            $localNames = $catalog->controlNamesForDocument($doc);
+            if ($localNames === []) {
                 continue;
             }
 
-            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $report): string {
-                $map = $this->buildRenameMap($formula, $screen, $catalog);
-                $new = $map === [] ? $formula : $this->applyRenameMap($formula, $map, $catalog);
+            $screen = $catalog->screenForDocument($doc);
+
+            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $localNames, $report): string {
+                $new = $this->repairGhostLayoutBinding($formula, $localNames);
+                $map = $this->buildRenameMap($new, $screen, $catalog, $localNames);
+                $new = $map === [] ? $new : $this->applyRenameMap($new, $map, $catalog);
                 $new = ScreenReferenceNormalizer::normalize($new, $screens);
                 if ($new !== $formula) {
                     $report->add(
@@ -74,9 +77,11 @@ final class RepairControlRefsHop implements HopInterface
     }
 
     /**
+     * @param array<string, true> $localNames
+     *
      * @return array<string, string>
      */
-    private function buildRenameMap(string $formula, string $screen, AppControlCatalog $catalog): array
+    private function buildRenameMap(string $formula, ?string $screen, AppControlCatalog $catalog, array $localNames): array
     {
         $map = [];
         $ids = FormulaReferenceExtractor::identifiers($formula);
@@ -89,24 +94,43 @@ final class RepairControlRefsHop implements HopInterface
             if ($catalog->isReserved($id)) {
                 continue;
             }
+            if (isset($localNames[$id])) {
+                continue;
+            }
             if (isset(self::TYPO_MAP[$id])) {
                 $target = self::TYPO_MAP[$id];
-                if ($catalog->hasOnScreen($screen, $id)) {
+                if ($screen !== null && $catalog->hasOnScreen($screen, $id)) {
                     continue;
                 }
-                if ($catalog->hasOnScreen($screen, $target)) {
+                if ($screen !== null && $catalog->hasOnScreen($screen, $target)) {
                     $map[$id] = $target;
                     continue;
                 }
-                $others = array_values(array_filter(
-                    $catalog->screensWith($target),
-                    static fn(string $s): bool => $s !== $screen
-                ));
-                if (count($others) === 1) {
-                    $map[$id] = $catalog->qualify($others[0], $target);
-                } else {
+                if (isset($localNames[$target])) {
                     $map[$id] = $target;
+                    continue;
                 }
+                if ($screen !== null) {
+                    $others = array_values(array_filter(
+                        $catalog->screensWith($target),
+                        static fn(string $s): bool => $s !== $screen
+                    ));
+                    if (count($others) === 1) {
+                        $map[$id] = $catalog->qualify($others[0], $target);
+                        continue;
+                    }
+                }
+                $map[$id] = $target;
+                continue;
+            }
+
+            $local = $this->resolveInLocalScope($id, $localNames);
+            if ($local !== null && $local !== $id) {
+                $map[$id] = $local;
+                continue;
+            }
+
+            if ($screen === null) {
                 continue;
             }
 
@@ -117,6 +141,62 @@ final class RepairControlRefsHop implements HopInterface
         }
 
         return $map;
+    }
+
+    /**
+     * @param array<string, true> $localNames
+     */
+    private function resolveInLocalScope(string $identifier, array $localNames): ?string
+    {
+        if (isset($localNames[$identifier])) {
+            return null;
+        }
+
+        if (preg_match('/^(.+)_(\d+)$/', $identifier, $m)) {
+            $base = $m[1];
+            $suffix = (int) $m[2];
+            if (isset($localNames[$base])) {
+                return $base;
+            }
+
+            $candidates = [];
+            foreach (array_keys($localNames) as $name) {
+                if (!preg_match('/^' . preg_quote($base, '/') . '_(\d+)$/', $name, $mm)) {
+                    continue;
+                }
+                $candidates[$name] = abs((int) $mm[1] - $suffix);
+            }
+            if ($candidates !== []) {
+                asort($candidates);
+
+                return array_key_first($candidates);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Replace layout bindings that reference controls removed from component templates.
+     *
+     * @param array<string, true> $localNames
+     */
+    private function repairGhostLayoutBinding(string $formula, array $localNames): string
+    {
+        $trim = trim($formula);
+        $patterns = [
+            '/^([A-Za-z_][\w]*)\.Y \+ \1\.Height$/' => 'Parent.Y + Parent.Height',
+            '/^([A-Za-z_][\w]*)\.X \+ \1\.Width$/' => 'Parent.X + Parent.Width',
+            '/^([A-Za-z_][\w]*)\.Width$/' => 'Parent.Width',
+            '/^([A-Za-z_][\w]*)\.Height$/' => 'Parent.Height',
+        ];
+        foreach ($patterns as $pattern => $replacement) {
+            if (preg_match($pattern, $trim, $m) === 1 && !isset($localNames[$m[1]])) {
+                return $replacement;
+            }
+        }
+
+        return $formula;
     }
 
     /**
@@ -172,6 +252,7 @@ final class RepairControlRefsHop implements HopInterface
     private static function preview(string $s): string
     {
         $s = preg_replace('/\s+/', ' ', trim($s)) ?? $s;
+
         return strlen($s) > 160 ? substr($s, 0, 157) . '...' : $s;
     }
 }

@@ -25,6 +25,7 @@ final class StudioErrorDetector
         'app-ErrIncompatibleTypesForEquality-Left-Right' => ['category' => 'formulas', 'description' => 'Incompatible types for comparison'],
         'app-ErrIncompatibleCtxtVariableTypes' => ['category' => 'formulas', 'description' => 'Incompatible context variable types'],
         'app-ErrBadToken' => ['category' => 'formulas', 'description' => 'Unexpected characters in formula'],
+        'app-formula-mangled-screen-ref' => ['category' => 'formulas', 'description' => 'Mangled or over-quoted screen reference'],
         'app-ErrTypeError-Arg-Expected-Found' => ['category' => 'formulas', 'description' => 'Argument type mismatch'],
         'app-WarnBooleanExpected' => ['category' => 'formulas', 'description' => 'Boolean value expected'],
         'app-WarnNoUsableFields' => ['category' => 'formulas', 'description' => 'Rule produces only nested tables/records'],

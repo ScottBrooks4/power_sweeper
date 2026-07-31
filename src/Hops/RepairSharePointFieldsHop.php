@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PowerSweeper\Hops;
 
+use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\Report;
 
 /**
@@ -43,29 +44,37 @@ final class RepairSharePointFieldsHop implements HopInterface
     {
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($report): string {
-                // Never mutate the varCurrentPackage loader — repair_var_current_package owns that shape.
                 if (str_contains($formula, 'Set(') && str_contains($formula, 'varCurrentPackage') && str_contains($formula, 'loadedRequest')) {
                     return $formula;
                 }
-                $new = $formula;
-                foreach (self::FIELD_RENAMES as $old => $replacement) {
-                    $pattern = '/\b([A-Za-z_][\w]*)\.' . preg_quote($old, '/') . '\b/';
-                    $replaced = preg_replace($pattern, '$1.' . $replacement, $new);
-                    if ($replaced !== null && $replaced !== $new) {
-                        $report->add(self::id(), $path, 'record field', $old, $replacement);
-                        $new = $replaced;
+
+                $parts = PowerFxFormulaSegments::split($formula);
+                $changed = false;
+                $out = PowerFxFormulaSegments::mapCode($parts, static function (string $code) use ($report, $path, &$changed): string {
+                    $new = $code;
+                    foreach (self::FIELD_RENAMES as $old => $replacement) {
+                        $pattern = '/\b([A-Za-z_][\w]*)\.' . preg_quote($old, '/') . '\b/';
+                        $replaced = preg_replace($pattern, '$1.' . $replacement, $new);
+                        if ($replaced !== null && $replaced !== $new) {
+                            $report->add(self::id(), $path, 'record field', $old, $replacement);
+                            $new = $replaced;
+                            $changed = true;
+                        }
                     }
-                }
-                foreach (self::DROP_FIELDS as $field) {
-                    // Remove lines like AmendmentVisit: Foo, from record literals
-                    $pattern = '/\s*' . preg_quote($field, '/') . '\s*:\s*[^,\n\/]+,?\s*/';
-                    $replaced = preg_replace($pattern, '', $new);
-                    if ($replaced !== null && $replaced !== $new) {
-                        $report->add(self::id(), $path, 'record field', $field, '(removed)');
-                        $new = $replaced;
+                    foreach (self::DROP_FIELDS as $field) {
+                        $pattern = '/\s*' . preg_quote($field, '/') . '\s*:\s*[^,\n\/]+,?\s*/';
+                        $replaced = preg_replace($pattern, '', $new);
+                        if ($replaced !== null && $replaced !== $new) {
+                            $report->add(self::id(), $path, 'record field', $field, '(removed)');
+                            $new = $replaced;
+                            $changed = true;
+                        }
                     }
-                }
-                return $new;
+
+                    return $new;
+                });
+
+                return $changed ? $out : $formula;
             });
         }
     }

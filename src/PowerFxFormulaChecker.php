@@ -57,15 +57,26 @@ final class PowerFxFormulaChecker
 
         $findings = array_merge($findings, $this->checkLocale($body, $location, $screen, $controlType, $property));
         $findings = array_merge($findings, $this->checkBooleans($body, $location, $screen, $controlType, $property, $controlName));
-        $findings = array_merge($findings, $this->checkIdentifiers(
-            $body,
-            $screen,
-            $location,
-            $controlType,
-            $property,
-            $controlName,
-            $localNames
-        ));
+
+        $parts = PowerFxFormulaSegments::splitForStructure($body);
+        $offset = 0;
+        foreach ($parts as [$type, $text]) {
+            if ($type === 'code') {
+                $findings = array_merge($findings, $this->checkIdentifiers(
+                    $text,
+                    $screen,
+                    $location,
+                    $controlType,
+                    $property,
+                    $controlName,
+                    $localNames,
+                    $body,
+                    $offset
+                ));
+            }
+            $offset += strlen($text);
+        }
+
         $findings = array_merge($findings, $this->checkDelegation($body, $location, $screen, $controlType, $property));
         $findings = array_merge($findings, $this->checkMangledScreenRefs($body, $location, $screen, $controlType, $property));
 
@@ -328,20 +339,22 @@ final class PowerFxFormulaChecker
      * @return list<Finding>
      */
     private function checkIdentifiers(
-        string $body,
+        string $segment,
         string $screen,
         string $location,
         string $controlType,
         string $property,
         string $controlName,
         array $localNames,
+        string $fullBody,
+        int $baseOffset = 0,
     ): array {
         $findings = [];
         $errorBindings = [];
-        $masked = $this->maskProtected($body);
+        $masked = $this->maskProtected($segment);
 
         // varCurrentPackage.Field references
-        if (preg_match_all('/\bvarCurrentPackage\.([A-Za-z_][\w]*)/', $body, $m, PREG_OFFSET_CAPTURE)) {
+        if (preg_match_all('/\bvarCurrentPackage\.([A-Za-z_][\w]*)/', $segment, $m, PREG_OFFSET_CAPTURE)) {
             foreach ($m[1] as $i => $fieldMatch) {
                 $field = $fieldMatch[0];
                 if ($this->dataContext->isPackageField($field)) {
@@ -357,7 +370,7 @@ final class PowerFxFormulaChecker
                     $controlType,
                     $property,
                     '.' . $field,
-                    $dotPos + strlen('varCurrentPackage'),
+                    $dotPos + strlen('varCurrentPackage') + $baseOffset,
                     strlen($field) + 1
                 );
                 $errorBindings['varCurrentPackage.' . $field] = true;
@@ -374,16 +387,19 @@ final class PowerFxFormulaChecker
             foreach ($chains[0] as $chainMatch) {
                 $chain = $chainMatch[0];
                 $chainStart = (int) $chainMatch[1];
+                if ($chainStart > 0 && in_array($segment[$chainStart - 1], [')', ']', '}'], true)) {
+                    continue;
+                }
                 $parts = $this->splitMemberChain($chain);
                 if ($parts === []) {
                     continue;
                 }
                 $root = $parts[0];
-                $rootValid = $this->isValidRootReference($body, $root, $screen, $controlName, $localNames);
+                $rootValid = $this->isValidRootReference($fullBody, $root, $screen, $controlName, $localNames);
                 if ($rootValid) {
                     continue;
                 }
-                $rootOffset = $chainStart;
+                $rootOffset = $chainStart + $baseOffset;
                 if (!isset($errorBindings[$root])) {
                     $findings[] = $this->makeFinding(
                         'app-ErrInvalidName',
@@ -427,11 +443,11 @@ final class PowerFxFormulaChecker
         }
 
         // Bare identifiers — only flag likely control references (Studio is conservative here).
-        foreach ($this->bareIdentifiers($masked) as $idInfo) {
+        foreach ($this->bareIdentifiers($segment) as $idInfo) {
             $id = $idInfo['name'];
             $offset = $idInfo['offset'];
             // With({ r: LookUp(...) }, r.Field) / { v: ThisRecord.Value }
-            if (FormulaRefContext::isRecordVariable($body, $id)) {
+            if (FormulaRefContext::isRecordVariable($fullBody, $id)) {
                 continue;
             }
             if (strlen($id) <= 1) {
@@ -462,11 +478,11 @@ final class PowerFxFormulaChecker
                 continue;
             }
             // Record field name: { FieldName: or , FieldName:
-            if ($this->isRecordFieldName($body, $offset, $id)) {
+            if ($this->isRecordFieldName($fullBody, $offset + $baseOffset, $id)) {
                 continue;
             }
             // Enum member access: EnumType.Member — EnumType is valid
-            if ($this->isEnumMemberAccess($body, $offset, $id)) {
+            if ($this->isEnumMemberAccess($fullBody, $offset + $baseOffset, $id)) {
                 continue;
             }
             // SharePoint / record field names (request_user, time_submitted, …)
@@ -501,13 +517,13 @@ final class PowerFxFormulaChecker
                 $controlType,
                 $property,
                 $id,
-                $offset,
+                $offset + $baseOffset,
                 strlen($id)
             );
             $errorBindings[$id] = true;
 
             // If followed by .Property in formula, add InvalidDot
-            $after = substr($body, $offset + strlen($id));
+            $after = substr($segment, $offset + strlen($id));
             if (preg_match('/^\.([A-Za-z_][\w]*)/', $after, $pm, PREG_OFFSET_CAPTURE)) {
                 $prop = $pm[1][0];
                 $findings[] = $this->makeFinding(
@@ -519,7 +535,7 @@ final class PowerFxFormulaChecker
                     $controlType,
                     $property,
                     '.' . $prop,
-                    $offset + strlen($id),
+                    $offset + strlen($id) + $baseOffset,
                     strlen($prop) + 1
                 );
             }
