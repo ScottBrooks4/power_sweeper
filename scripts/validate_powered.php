@@ -64,6 +64,14 @@ foreach ($archive->documents() as $doc) {
         if ($control->name === 'ThemeRadio' && str_contains((string) $control->getProperty('OnChange'), 'gblThemeDark')) {
             $themeRadioWired = true;
         }
+        if (
+            !$themeRadioWired
+            && str_contains($control->path, 'TopbarHeader')
+            && str_contains(strtolower($control->type), 'radio')
+            && str_contains((string) $control->getProperty('OnChange'), 'gblThemeDark')
+        ) {
+            $themeRadioWired = true;
+        }
         if ($control->name === 'TopbarHeader' && str_contains($control->path, 'ComponentDefinitions')) {
             $rootScope = $control->getYamlDefinitionField('AccessAppScope');
             if ($rootScope === true || $rootScope === 'true') {

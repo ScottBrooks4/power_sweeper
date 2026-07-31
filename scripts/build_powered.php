@@ -42,6 +42,14 @@ foreach ($arch->documents() as $doc) {
         if ($c->name === 'ThemeRadio' && str_contains((string) $c->getProperty('OnChange'), 'gblThemeDark')) {
             $themeRadioWired = true;
         }
+        if (
+            !$themeRadioWired
+            && str_contains($c->path, 'TopbarHeader')
+            && str_contains(strtolower($c->type), 'radio')
+            && str_contains((string) $c->getProperty('OnChange'), 'gblThemeDark')
+        ) {
+            $themeRadioWired = true;
+        }
     }
 }
 $arch->cleanup();

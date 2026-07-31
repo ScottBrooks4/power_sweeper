@@ -1069,6 +1069,9 @@ if (is_file($repair2)) {
     $adminYaml = ZipTool::readEntry($poweredTestOut, 'Src/VCR Admin Screen.pa.yaml');
     assert_true(is_string($detailsYaml) && str_contains($detailsYaml, 'gblTheme.Success'), 'Color.Green maps to gblTheme.Success');
     assert_true(is_string($adminYaml) && str_contains($adminYaml, 'gblTheme.Warning'), 'Color.Yellow maps to gblTheme.Warning');
+    $vcnYamlPowered = ZipTool::readEntry($poweredTestOut, 'Src/VCR _ VCN Form.pa.yaml');
+    assert_true(is_string($vcnYamlPowered) && preg_match('/Sites:[\\s\\S]*?ModernNumberInput@1\\.1\\.1[\\s\\S]*?Fill:\\s*=gblTheme\\.InputFill/m', $vcnYamlPowered) === 1, 'ModernNumberInput Sites gets gblTheme.InputFill');
+    assert_true(is_string($vcnYamlPowered) && preg_match('/Remarks:[\\s\\S]*?RichTextEditor@2\\.7\\.0[\\s\\S]*?Fill:\\s*=gblTheme\\.InputFill/m', $vcnYamlPowered) === 1, 'RichTextEditor Remarks gets gblTheme.InputFill');
     @unlink($poweredTestOut);
 }
 
