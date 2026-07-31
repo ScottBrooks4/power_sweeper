@@ -90,6 +90,15 @@ final class EnableDarkModeHop implements HopInterface
         'ChevronHoverBackground',
         'ChevronDisabledFill',
         'ChevronDisabledBackground',
+        'ItemHoverFill',
+        'ItemHoverColor',
+        'AddedItemFill',
+        'RemovedItemFill',
+        'ItemErrorFill',
+        'ItemErrorColor',
+        'DropTargetBorderColor',
+        'DropTargetBackgroundColor',
+        'DropTargetTextColor',
     ];
 
     /** Tokens guaranteed in gblThemeLight/gblThemeDark — all control colors map here. */
@@ -1001,7 +1010,7 @@ final class EnableDarkModeHop implements HopInterface
             }
         }
 
-        return (bool) preg_match('/\.(Fill|Color|BorderColor|FontColor|BasePaletteColor|BackgroundColor|HoverFill|HoverColor|DisabledFill|DisabledColor|LoadingSpinnerColor)(\.|$)/i', $path);
+        return (bool) preg_match('/\.(Fill|Color|BorderColor|FontColor|BasePaletteColor|BackgroundColor|HoverFill|HoverColor|DisabledFill|DisabledColor|LoadingSpinnerColor|ItemHoverFill|ItemHoverColor|AddedItemFill|RemovedItemFill|ItemErrorFill|ItemErrorColor|DropTargetBorderColor|DropTargetBackgroundColor|DropTargetTextColor)(\.|$)/i', $path);
     }
 
     private function propertyFromPath(string $path): string
