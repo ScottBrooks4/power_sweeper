@@ -93,6 +93,7 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 | `repair_formula_refs` | Control refs, SharePoint fields, package shape, ghost Patch fields (+ SARIF) |
 | `repair_delegation` | SharePoint delegation fixes (+ SARIF) |
 | `repair_studio_errors` | **Full Studio checker repair** (locale, refs, booleans, a11y, delegation, SARIF) |
+| `repair_powered` | **Full repair + dark mode** — outputs `*.powered.msapp` with `gblTheme` toggle (CDLS VCR preset) |
 | `repair_studio_errors_then_dark` | Full repair + dark mode (CDLS VCR one-shot) |
 | `scan_studio_issues` | Report-only verify pass (no formula edits) |
 | `regenerate_sarif` | Refresh `AppCheckerResult.sarif` from live checker only |
@@ -102,8 +103,15 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 
 For apps like **CDLS VCR** / **VCDS THCEE**, you can either:
 
-1. Profile **`repair_studio_errors`** → download → verify in Studio  
-2. Profile **`dark_mode`** on that cleaned `.msapp` (or use **`repair_studio_errors_then_dark`** for both in one run)
+1. Profile **`repair_powered`** (or `php scripts/build_powered.php input.msapp`) → `*.powered.msapp` with full repair + `gblTheme` toggle  
+2. Profile **`repair_studio_errors`** → download → verify in Studio  
+3. Profile **`dark_mode`** on that cleaned `.msapp` (or use **`repair_studio_errors_then_dark`** for both in one run)
+
+Validate a powered deliverable:
+
+```bash
+php scripts/validate_powered.php samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp
+```
 
 Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the result. Order should still be repair hops first, then `enable_dark_mode`.
 
@@ -186,11 +194,12 @@ Profile **`repair_studio_errors`** is the full pass for apps like CDLS VCR after
 4. `repair_sharepoint_fields` — list/column typos in metadata and formulas  
 5. `repair_var_current_package` — `varCurrentPackage` record shape  
 6. `repair_ghost_patch_fields` — ghost Patch fields from duplicated screens  
-7. `repair_checked_booleans` — “Expecting a true or false value” on Checked/Default/Visible  
-8. `accessibility_labels`, `ensure_focus_visible`, `ensure_tab_index`, `tooltip_from_label`  
-9. `repair_maintainability` — safe maintainability fixes  
-10. `repair_delegation` — SharePoint delegation (email filters, collection CountIf, split duplicate-request Filters)  
-11. `regenerate_sarif` — write fresh `AppCheckerResult.sarif` from the live App checker  
+7. `repair_studio_syntax` — trailing Concatenate commas, screen-qualified `Date()`, App bootstrap  
+8. `repair_checked_booleans` — “Expecting a true or false value” on Checked/Default/Visible  
+9. `accessibility_labels`, `ensure_focus_visible`, `ensure_tab_index`, `tooltip_from_label`  
+10. `repair_maintainability` — safe maintainability fixes  
+11. `repair_delegation` — SharePoint delegation (email filters, collection CountIf, split duplicate-request Filters)  
+12. `regenerate_sarif` — write fresh `AppCheckerResult.sarif` from the live App checker  
 
 Use **`scan_studio_issues`** afterward for a report-only verify pass, or **`regenerate_sarif`** alone to refresh SARIF without formula edits.
 

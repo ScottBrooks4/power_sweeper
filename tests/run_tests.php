@@ -1066,6 +1066,15 @@ if (is_file($repair2)) {
     @unlink($poweredTestOut);
 }
 
+// validate_powered.php — deliverable smoke check
+if (is_file($repair2)) {
+    $poweredSample = dirname(__DIR__) . '/samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp';
+    if (is_file($poweredSample)) {
+        $validateOut = shell_exec('php ' . escapeshellarg(dirname(__DIR__) . '/scripts/validate_powered.php') . ' ' . escapeshellarg($poweredSample) . ' 2>&1');
+        assert_true(is_string($validateOut) && str_contains($validateOut, 'All powered validation checks passed'), 'validate_powered.php passes on sample');
+    }
+}
+
 echo "\n";
 if ($failed > 0) {
     echo "FAILED: {$failed} assertion(s)\n";
