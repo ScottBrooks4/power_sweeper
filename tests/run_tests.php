@@ -1059,6 +1059,10 @@ if (is_file($repair2)) {
     $poweredArch->cleanup();
     assert_true($opaqueRgba < 30, 'powered build keeps opaque hard-coded RGBA low (got ' . $opaqueRgba . ')');
     assert_true(is_string($vcnYaml) && str_contains($vcnYaml, 'gblTheme.LinkCss'), 'Jump to annex links bind gblTheme.LinkCss');
+    $detailsYaml = ZipTool::readEntry($poweredTestOut, 'Src/VCR Details Screen.pa.yaml');
+    $adminYaml = ZipTool::readEntry($poweredTestOut, 'Src/VCR Admin Screen.pa.yaml');
+    assert_true(is_string($detailsYaml) && str_contains($detailsYaml, 'gblTheme.Success'), 'Color.Green maps to gblTheme.Success');
+    assert_true(is_string($adminYaml) && str_contains($adminYaml, 'gblTheme.Warning'), 'Color.Yellow maps to gblTheme.Warning');
     @unlink($poweredTestOut);
 }
 

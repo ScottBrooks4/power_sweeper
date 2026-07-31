@@ -105,6 +105,15 @@ final class EnableDarkModeHop implements HopInterface
     private const CORE_THEME_TOKENS = [
         'Page', 'Surface', 'SurfaceMuted', 'InputFill', 'Text', 'TextMuted', 'TextOnAccent',
         'Border', 'BorderStrong', 'Accent', 'Focus', 'Rail', 'Link', 'LinkHover', 'Disabled',
+        'Success', 'Warning',
+    ];
+
+    /** @var array<string, string> Power Apps Color enum → gblTheme token */
+    private const COLOR_ENUM_MAP = [
+        'Color.Green' => 'Success',
+        'Color.Yellow' => 'Warning',
+        'Color.Red' => 'Accent',
+        'Color.Blue' => 'Accent',
     ];
 
     private const LEGACY_SURFACE = 'DefaultGrayBackgroud';
@@ -203,6 +212,8 @@ final class EnableDarkModeHop implements HopInterface
                     'Border' => ['r' => 200, 'g' => 200, 'b' => 200, 'a' => 1.0],
                     'BorderStrong' => ['r' => 0, 'g' => 0, 'b' => 0, 'a' => 1.0],
                     'Accent' => ['r' => 0, 'g' => 18, 'b' => 107, 'a' => 1.0],
+                    'Success' => ['r' => 22, 'g' => 163, 'b' => 74, 'a' => 1.0],
+                    'Warning' => ['r' => 234, 'g' => 179, 'b' => 8, 'a' => 1.0],
                     'Disabled' => ['r' => 119, 'g' => 119, 'b' => 119, 'a' => 0.4],
                     default => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
                 },
@@ -276,6 +287,16 @@ final class EnableDarkModeHop implements HopInterface
                         continue;
                     }
                     if ($this->usesActiveThemeToken($from, $theme)) {
+                        continue;
+                    }
+                    $enumRewritten = $this->rewriteColorEnums($from, $theme);
+                    if ($enumRewritten !== $from) {
+                        $to = $control->format === 'yaml' && !str_starts_with(trim($enumRewritten), '=')
+                            && str_starts_with(trim($from), '=')
+                            ? '=' . ltrim($enumRewritten, '=')
+                            : $enumRewritten;
+                        $control->setProperty($prop, $to);
+                        $report->add(self::id(), $control->path, $prop, $from, $to);
                         continue;
                     }
                     if ($this->usesStaticThemePalette($from, $themeLight, $themeDark)) {
@@ -369,6 +390,12 @@ final class EnableDarkModeHop implements HopInterface
                 $prop = $this->propertyFromPath($path);
                 $changed = false;
                 $out = \PowerSweeper\PowerFxFormulaSegments::transformCode($formula, function (string $code) use ($theme, $prop, $path, $report, &$changed): string {
+                    $enumCode = $this->rewriteColorEnums($code, $theme);
+                    if ($enumCode !== $code) {
+                        $report->add(self::id(), $path, 'Color enum', $code, $enumCode);
+                        $code = $enumCode;
+                        $changed = true;
+                    }
                     $replaced = preg_replace_callback('/RGBA\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[0-9.]+)?\s*\)/i', function (array $m) use ($theme, $prop, $path, $report, &$changed): string {
                         $parsed = ColorValue::parse($m[0]);
                         if ($parsed === null || ColorValue::isTransparent($parsed)) {
@@ -932,6 +959,7 @@ final class EnableDarkModeHop implements HopInterface
                 return $theme . '.' . $this->coreTokenForLiteral($parsed, $property);
             }, $code);
             $replaced = preg_replace('/\bColor\.White\b/i', $theme . '.Page', $replaced ?? $code);
+            $replaced = $this->rewriteColorEnums($replaced ?? $code, $theme);
             if ($replaced !== $code) {
                 $changed = true;
             }
@@ -946,6 +974,19 @@ final class EnableDarkModeHop implements HopInterface
         }
 
         return $changed ? $out : $formula;
+    }
+
+    private function rewriteColorEnums(string $formula, string $theme): string
+    {
+        $out = $formula;
+        foreach (self::COLOR_ENUM_MAP as $enum => $token) {
+            $replaced = preg_replace('/\b' . preg_quote($enum, '/') . '\b/i', $theme . '.' . $token, $out);
+            if (is_string($replaced)) {
+                $out = $replaced;
+            }
+        }
+
+        return $out;
     }
 
     private function usesActiveThemeToken(string $formula, string $theme): bool
@@ -989,9 +1030,10 @@ final class EnableDarkModeHop implements HopInterface
             str_contains($token, 'Link') => str_contains($token, 'Hover') ? 'LinkHover' : 'Link',
             str_contains($token, 'Text') || str_ends_with($token, 'Text') => 'Text',
             str_contains($token, 'Border') || $token === 'Focus' => str_contains($token, 'Strong') ? 'BorderStrong' : 'Border',
+            str_contains($token, 'Success') => 'Success',
+            str_contains($token, 'Warning') => 'Warning',
             str_contains($token, 'Accent') || str_contains($token, 'Selection') || str_contains($token, 'Highlight')
-                || str_contains($token, 'Checkmark') || str_contains($token, 'Progress') || str_contains($token, 'Danger')
-                || str_contains($token, 'Warning') || str_contains($token, 'Success') => 'Accent',
+                || str_contains($token, 'Checkmark') || str_contains($token, 'Progress') || str_contains($token, 'Danger') => 'Accent',
             str_contains($token, 'Disabled') => 'Disabled',
             str_contains($token, 'Rail') || str_contains($token, 'Handle') || str_contains($token, 'Track') => 'Rail',
             str_contains($token, 'Input') => 'InputFill',
