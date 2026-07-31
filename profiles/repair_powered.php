@@ -9,8 +9,9 @@ declare(strict_types=1);
  */
 return [
     'description' => 'Powered preset: repair_studio_errors (locale, refs, syntax, a11y, delegation) then enable_dark_mode with editable gblThemeLight/gblThemeDark palettes.',
+    'app_class' => 'vcr',
     'hops' => array_merge(
-        (include __DIR__ . '/repair_studio_errors.php')['hops'],
+        include __DIR__ . '/includes/vcr_repair_hops.php',
         (include __DIR__ . '/dark_mode.php')['hops'],
     ),
 ];

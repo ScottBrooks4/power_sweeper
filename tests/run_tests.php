@@ -761,6 +761,24 @@ if (is_file($fixtureYaml)) {
     }
 }
 
+// FormulaRefContext — global component hosts are not bare cross-screen refs
+$thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
+if (is_file($thceeFriday)) {
+    $thceeArch = new \PowerSweeper\MsappArchive($thceeFriday);
+    $thceeArch->unpack();
+    $thceeCatalog = \PowerSweeper\AppControlCatalog::build($thceeArch->documents());
+    assert_true(
+        !\PowerSweeper\FormulaRefContext::hasBareCrossScreenControlRef(
+            'comTranslations.Labels.Foo',
+            'comTranslations',
+            'THCEE Refresh Screen',
+            $thceeCatalog
+        ),
+        'comTranslations is not flagged as bare cross-screen ref'
+    );
+    $thceeArch->cleanup();
+}
+
 // ScreenReferenceNormalizer — idempotent, no triple-encoding
 $screens = ['VCR Home Page', 'VCR Admin Screen', 'VCR / VCN Form'];
 $navDup = "Navigate('VCR Home Page'.'VCR Home Page', ScreenTransition.Fade)";
@@ -915,7 +933,14 @@ assert_true(in_array('repair_delegation', $profileIds, true), 'repair_delegation
 assert_true(in_array('regenerate_sarif', $profileIds, true), 'regenerate_sarif profile exists');
 assert_true(in_array('repair_formula_refs', $profileIds, true), 'repair_formula_refs profile exists');
 assert_true(in_array('repair_powered', $profileIds, true), 'repair_powered profile exists');
+assert_true(in_array('powered_thcee', $profileIds, true), 'powered_thcee profile exists');
 assert_true(in_array('repair_studio_errors_then_dark', $profileIds, true), 'repair_studio_errors_then_dark profile exists');
+$profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
+$vcrPowered = $profileLoader->resolvePoweredProfile('CDLS VCR App.msapp');
+$thceePowered = $profileLoader->resolvePoweredProfile('VCDS THCEE App.msapp');
+assert_true(in_array('repair_control_refs', array_column($vcrPowered['hops'], 'id'), true), 'VCR powered profile includes repair_control_refs');
+assert_true(!in_array('repair_control_refs', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile skips repair_control_refs');
+assert_true(in_array('enable_dark_mode', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes enable_dark_mode');
 foreach ($allProfiles as $profile) {
     assert_true($profile['description'] !== '', 'profile ' . $profile['id'] . ' has description');
     foreach ($profile['hops'] as $hop) {

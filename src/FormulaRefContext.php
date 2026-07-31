@@ -71,6 +71,11 @@ final class FormulaRefContext
             return false;
         }
 
+        // Global component host on a hidden screen (comTranslations, comExternalFunctions, …).
+        if ($catalog->isComponentInstance($id)) {
+            return false;
+        }
+
         foreach ($others as $other) {
             if (self::isQualifiedOnScreen($formula, $id, $other, $catalog)) {
                 return false;

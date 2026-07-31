@@ -537,6 +537,9 @@ final class PowerFxFormulaChecker
             $others = $this->catalog->screensWith($id);
             $isBad = false;
             if ($others !== [] && !in_array($screen, $others, true)) {
+                if ($this->catalog->isComponentInstance($id)) {
+                    continue;
+                }
                 $isBad = true; // bare cross-screen ref
             } elseif (preg_match('/_\d+$/', $id)) {
                 $isBad = true; // stale suffixed control copy
@@ -719,6 +722,9 @@ final class PowerFxFormulaChecker
             return true;
         }
         if ($this->catalog->resolveIdentifier($screen, $name) !== null) {
+            return true;
+        }
+        if ($this->catalog->isComponentInstance($name)) {
             return true;
         }
         $others = $this->catalog->screensWith($name);

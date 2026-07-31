@@ -4,16 +4,24 @@
 declare(strict_types=1);
 
 /**
- * Build *.powered.msapp deliverables (repair_studio_errors + dark mode).
+ * Build *.powered.msapp deliverables (repair + dark mode).
  *
  * Usage:
- *   php scripts/build_powered.php [input.msapp] [output.msapp]
+ *   php scripts/build_powered.php [input.msapp] [output.msapp] [profile.php]
+ *
+ * Profile auto-selection:
+ *   - explicit profile.php when provided
+ *   - powered_thcee for *THCEE* inputs
+ *   - repair_powered (VCR-class full repair + dark mode) otherwise
  */
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use PowerSweeper\ProfileLoader;
+
 $input = $argv[1] ?? dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
 $output = $argv[2] ?? null;
+$explicitProfile = $argv[3] ?? null;
 
 if (!is_file($input)) {
     fwrite(STDERR, "Input not found: {$input}\n");
@@ -26,7 +34,13 @@ if ($output === null) {
     $output = dirname($input) . '/' . preg_replace('/[^A-Za-z0-9_]+/', '_', $base) . '.powered.msapp';
 }
 
-$profile = include dirname(__DIR__) . '/profiles/repair_powered.php';
+$profilesDir = dirname(__DIR__) . '/profiles';
+$loader = new ProfileLoader($profilesDir);
+$profile = $loader->resolvePoweredProfile($input, is_string($explicitProfile) && $explicitProfile !== '' ? $explicitProfile : null);
+$profileLabel = is_string($explicitProfile) && $explicitProfile !== ''
+    ? basename($explicitProfile)
+    : (preg_match('/THCEE/i', basename($input)) ? 'powered_thcee.php' : 'repair_powered.php');
+
 (new PowerSweeper\Pipeline())->run($input, $profile['hops'], $output);
 
 $arch = new PowerSweeper\MsappArchive($output);
@@ -55,6 +69,7 @@ foreach ($arch->documents() as $doc) {
 $arch->cleanup();
 
 echo "Built: {$output}\n";
+echo "Profile: {$profileLabel}\n";
 echo "Live checker total: {$live['total']}\n";
 echo "Theme palettes in App.OnStart: " . ($hasTheme ? 'yes' : 'no') . "\n";
 echo "ThemeRadio wired: " . ($themeRadioWired ? 'yes' : 'no') . "\n";

@@ -77,7 +77,7 @@ final class StudioLiveChecker
             }
         }
 
-        $findings = array_merge($findings, self::checkAppLevel($scanDocs, $allFormulaText));
+        $findings = array_merge($findings, self::checkAppLevel($scanDocs, $allFormulaText, $catalog));
 
         $findings = self::dedupeFindings($findings);
 
@@ -227,7 +227,7 @@ final class StudioLiveChecker
      * @param list<ControlDocument> $documents
      * @return list<array<string,mixed>>
      */
-    private static function checkAppLevel(array $documents, string $allFormulaText): array
+    private static function checkAppLevel(array $documents, string $allFormulaText, AppControlCatalog $catalog): array
     {
         $findings = [];
         $app = null;
@@ -286,7 +286,6 @@ final class StudioLiveChecker
         }
 
         // Cross-screen event dependencies (bare unqualified control refs only)
-        $catalog = AppControlCatalog::build($documents);
         foreach ($documents as $doc) {
             $screen = $catalog->screenForDocument($doc);
             if ($screen === null) {

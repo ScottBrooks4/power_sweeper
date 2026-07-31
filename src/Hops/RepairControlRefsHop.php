@@ -169,7 +169,7 @@ final class RepairControlRefsHop implements HopInterface
                         $catalog->screensWith($target),
                         static fn(string $s): bool => $s !== $screen
                     ));
-                    if (count($others) === 1) {
+                    if (count($others) === 1 && !$catalog->isComponentInstance($target)) {
                         $map[$id] = $catalog->qualify($others[0], $target);
                         continue;
                     }

@@ -35,6 +35,9 @@ final class AppControlCatalog
     /** @var array<string, array<string, true>> document relative path => control names in that document */
     private array $controlsByDocPath = [];
 
+    /** @var array<string, true> canvas component instance names (global host pattern — never screen-qualify) */
+    private array $componentInstances = [];
+
     /** @var array<string, string> */
     private const RESERVED = [
         'true' => true, 'false' => true, 'Blank' => true, 'Self' => true, 'Parent' => true,
@@ -94,6 +97,7 @@ final class AppControlCatalog
                 $cat->screensByControl[$control->name][] = $screen;
 
                 if (str_contains($control->type, 'CanvasComponent')) {
+                    $cat->componentInstances[$control->name] = true;
                     $def = $cat->componentNameFromInstance($control->name);
                     $children = $cat->componentDefChildren[$def] ?? [];
                     if ($children !== []) {
@@ -138,6 +142,11 @@ final class AppControlCatalog
     public function screensWith(string $name): array
     {
         return $this->screensByControl[$name] ?? [];
+    }
+
+    public function isComponentInstance(string $name): bool
+    {
+        return isset($this->componentInstances[$name]);
     }
 
     public function quoteScreen(string $screen): string
@@ -188,6 +197,9 @@ final class AppControlCatalog
                 static fn(string $s): bool => $s !== $screen
             ));
             if (count($others) === 1) {
+                if ($this->isComponentInstance($base)) {
+                    return null;
+                }
                 if ($this->isScreenName($base)) {
                     return $this->quoteScreen($base);
                 }
@@ -219,6 +231,9 @@ final class AppControlCatalog
             static fn(string $s): bool => $s !== $screen
         ));
         if (count($others) === 1) {
+            if ($this->isComponentInstance($identifier)) {
+                return null;
+            }
             if ($this->isScreenName($identifier)) {
                 return $this->quoteScreen($identifier);
             }
