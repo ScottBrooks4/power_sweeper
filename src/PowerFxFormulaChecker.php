@@ -344,7 +344,7 @@ final class PowerFxFormulaChecker
                     continue;
                 }
                 $root = $parts[0];
-                $rootValid = $this->isValidRootReference($root, $screen, $controlName, $localNames);
+                $rootValid = $this->isValidRootReference($body, $root, $screen, $controlName, $localNames);
                 if ($rootValid) {
                     continue;
                 }
@@ -395,11 +395,11 @@ final class PowerFxFormulaChecker
         foreach ($this->bareIdentifiers($masked) as $idInfo) {
             $id = $idInfo['name'];
             $offset = $idInfo['offset'];
-            if (strlen($id) <= 1) {
+            // With({ r: LookUp(...) }, r.Field) / { v: ThisRecord.Value }
+            if (FormulaRefContext::isRecordVariable($body, $id)) {
                 continue;
             }
-            // With({ r: LookUp(...) }, r.Field) — single-letter record bindings
-            if (preg_match('/\b' . preg_quote($id, '/') . '\s*:/', $body)) {
+            if (strlen($id) <= 1) {
                 continue;
             }
             if ($id === $controlName || $id === '_' || preg_match('/^_\d+$/', $id)) {
@@ -580,9 +580,12 @@ final class PowerFxFormulaChecker
     /**
      * @param array<string, true> $localNames
      */
-    private function isValidRootReference(string $root, string $screen, string $controlName, array $localNames): bool
+    private function isValidRootReference(string $body, string $root, string $screen, string $controlName, array $localNames): bool
     {
         $name = $this->unquote($root);
+        if (FormulaRefContext::isRecordVariable($body, $name)) {
+            return true;
+        }
         if ($name === $screen || $this->catalog->hasOnScreen($screen, $name)) {
             return true;
         }

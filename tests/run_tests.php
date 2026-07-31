@@ -703,8 +703,8 @@ if (is_file($app16)) {
     $archive->unpack();
     $live = \PowerSweeper\StudioLiveChecker::check($archive->documents(), ['extract_dir' => $archive->extractDir()]);
     $archive->cleanup();
-    assert_true($live['total'] >= 800 && $live['total'] <= 1050, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
-    assert_true(($live['by_category']['formulas'] ?? 0) >= 400, 'App (16) live formula issues');
+    assert_true($live['total'] >= 650 && $live['total'] <= 750, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
+    assert_true(($live['by_category']['formulas'] ?? 0) >= 250, 'App (16) live formula issues');
     assert_true(($live['by_category']['accessibility'] ?? 0) >= 200, 'App (16) live a11y issues');
     // Compare overlap with embedded SARIF
     $det = \PowerSweeper\StudioErrorDetector::detectFromMsapp($app16, false);
@@ -729,8 +729,9 @@ $repairedArchive = new \PowerSweeper\MsappArchive($repairedPipelineOut);
 $repairedArchive->unpack();
 $repairedLive = \PowerSweeper\StudioLiveChecker::check($repairedArchive->documents(), ['extract_dir' => $repairedArchive->extractDir()]);
 $repairedArchive->cleanup();
-assert_true($repairedLive['total'] < 100, 'Repaired pipeline live checker under 100 (got ' . $repairedLive['total'] . ')');
-assert_true(($repairedLive['by_category']['formulas'] ?? 0) < 20, 'Repaired pipeline formula errors under 20');
+assert_true($repairedLive['total'] < 55, 'Repaired pipeline live checker under 55 (got ' . $repairedLive['total'] . ')');
+assert_true(($repairedLive['by_category']['formulas'] ?? 0) === 0, 'Repaired pipeline has no formula errors');
+assert_true(($repairedLive['by_category']['performance'] ?? 0) > 0, 'Repaired pipeline retains delegation hints');
 @unlink($repairedPipelineOut);
 
 // StudioErrorDetector — App (16) SARIF inventory
@@ -766,7 +767,7 @@ if (is_file($repaired16)) {
     assert_true(($post['by_kind']['unresolved_control_ref'] ?? 0) === 0, 'App (16) repaired has no unresolved control refs');
     assert_true(($post['by_category']['accessibility'] ?? 0) === 0, 'App (16) repaired has no a11y issues');
     // Delegation warnings are expected; formula heuristics may still report locale edge cases.
-    assert_true($post['total'] < 200, 'App (16) repaired heuristic total under 200 (was 1719 SARIF)');
+    assert_true($post['total'] < 60, 'App (16) repaired heuristic total under 60 (was 1719 SARIF)');
 }
 
 echo "\n";

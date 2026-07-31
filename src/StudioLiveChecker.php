@@ -285,7 +285,7 @@ final class StudioLiveChecker
             }
         }
 
-        // Cross-screen event dependencies
+        // Cross-screen event dependencies (bare unqualified control refs only)
         $catalog = AppControlCatalog::build($documents);
         foreach ($documents as $doc) {
             $screen = $catalog->screenForDocument($doc);
@@ -298,26 +298,28 @@ final class StudioLiveChecker
                     if ($value === null || trim($value) === '') {
                         continue;
                     }
+                    $reported = false;
                     foreach (FormulaReferenceExtractor::identifiers($value) as $id) {
-                        if ($catalog->hasOnScreen($screen, $id)) {
+                        if (!FormulaRefContext::hasBareCrossScreenControlRef($value, $id, $screen, $catalog)) {
                             continue;
                         }
-                        $others = $catalog->screensWith($id);
-                        if ($others !== [] && !in_array($screen, $others, true)) {
-                            $findings[] = self::structFinding(
-                                'app-CrossScreenEventDependencies',
-                                'Medium',
-                                [],
-                                self::qualifiedLocation($screen, $control->path, $prop),
-                                $screen,
-                                self::controlTypeFqn($screen, $control),
-                                $prop,
-                                '',
-                                0,
-                                0
-                            );
-                            break 2;
-                        }
+                        $findings[] = self::structFinding(
+                            'app-CrossScreenEventDependencies',
+                            'Medium',
+                            [],
+                            self::qualifiedLocation($screen, $control->path, $prop),
+                            $screen,
+                            self::controlTypeFqn($screen, $control),
+                            $prop,
+                            $id,
+                            0,
+                            0
+                        );
+                        $reported = true;
+                        break;
+                    }
+                    if ($reported) {
+                        break;
                     }
                 }
             }
