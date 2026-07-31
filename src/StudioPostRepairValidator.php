@@ -23,9 +23,11 @@ final class StudioPostRepairValidator
      *   issues:list<array{category:string,kind:string,control:string,property:string,detail:string}>
      * }
      */
-    public static function validate(array $documents): array
+    public static function validate(array $documents, array $options = []): array
     {
         $catalog = AppControlCatalog::build($documents);
+        $extractDir = $options['extract_dir'] ?? null;
+        $dataContext = AppDataContext::build($documents, is_string($extractDir) ? $extractDir : null);
         $packageFields = self::activePackageFields($documents);
         $issues = [];
 
@@ -80,8 +82,8 @@ final class StudioPostRepairValidator
                         ];
                     }
 
-                    if (str_contains(strtolower($prop), 'onselect') || str_contains(strtolower($prop), 'onchange') || str_contains(strtolower($prop), 'onvisible')) {
-                        foreach (self::delegationHints($value) as $hint) {
+                    if (str_contains(strtolower($prop), 'onselect') || str_contains(strtolower($prop), 'onchange') || str_contains(strtolower($prop), 'onvisible') || strtolower($prop) === 'items' || strtolower($prop) === 'default') {
+                        foreach (self::delegationHints($value, $dataContext) as $hint) {
                             $issues[] = [
                                 'category' => 'performance',
                                 'kind' => 'delegation_warning',
@@ -238,15 +240,28 @@ final class StudioPostRepairValidator
     /**
      * @return list<string>
      */
-    private static function delegationHints(string $formula): array
+    private static function delegationHints(string $formula, AppDataContext $dataContext): array
     {
+        $body = ltrim(trim($formula), '=');
+        $predicates = DelegationPredicateExtractor::extract($formula, $dataContext);
+        if ($predicates === []) {
+            return [];
+        }
+
+        $funcs = ['Lower', 'Upper', 'Trim', 'Len', 'CountIf', 'Find', 'MatchAll', 'Right', 'Substitute'];
         $hints = [];
-        if (preg_match_all('/\b(Lower|Upper|Trim|Len|CountIf|Find|MatchAll)\s*\(/i', $formula, $m)) {
-            foreach (array_unique($m[1]) as $fn) {
-                $hints[] = $fn;
+        foreach ($funcs as $fn) {
+            if (!preg_match_all('/\b' . preg_quote($fn, '/') . '\s*\(/i', $body, $m, PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+            foreach ($m[0] as $match) {
+                if (DelegationPredicateExtractor::offsetInSpan((int) $match[1], $predicates)) {
+                    $hints[] = $fn;
+                }
             }
         }
-        return $hints;
+
+        return array_values(array_unique($hints));
     }
 
     private static function isBlankOrZero(string $value): bool

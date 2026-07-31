@@ -25,9 +25,9 @@ final class PowerFxFormulaChecker
     /** @var array<string, true> */
     private const DELEGATION_FUNCS = [
         'Lower' => true, 'Upper' => true, 'Trim' => true, 'Len' => true,
-        'CountIf' => true, 'Find' => true, 'MatchAll' => true, 'Search' => true,
+        'CountIf' => true, 'Find' => true, 'MatchAll' => true,
         'Mid' => true, 'Left' => true, 'Right' => true, 'Substitute' => true,
-        'IsMatch' => true, 'EndsWith' => true, 'StartsWith' => true,
+        'IsMatch' => true,
     ];
 
   public function __construct(
@@ -503,45 +503,67 @@ final class PowerFxFormulaChecker
             return [];
         }
 
-        $findings = [];
-        foreach (array_keys(self::DELEGATION_FUNCS) as $fn) {
-            if (!preg_match('/\b' . preg_quote($fn, '/') . '\s*\(/i', $body, $m, PREG_OFFSET_CAPTURE)) {
-                continue;
-            }
-            $rule = 'app-SuggestRemoteExecutionHint';
-            if ($fn === 'CountIf' && preg_match('/\bCountIf\s*\(\s*\'[^\']+\'/i', $body)) {
-                $rule = 'app-SuggestRemoteExecutionHint-OpNotSupportedByService';
-            }
-            if ($fn === 'Search' || ($fn === 'Find' && preg_match('/\bFind\s*\([^,]+,\s*[A-Za-z_]/', $body))) {
-                $rule = 'app-SuggestRemoteExecutionHint-StringMatchSecondParam';
-            }
-            $findings[] = $this->makeFinding(
-                $rule,
-                'Medium',
-                [$fn],
-                $location,
-                $screen,
-                $controlType,
-                $property,
-                $fn,
-                (int) $m[0][1],
-                strlen($fn)
-            );
+        $predicates = DelegationPredicateExtractor::extract('=' . $body, $this->dataContext);
+        if ($predicates === []) {
+            return [];
         }
 
-        if (preg_match('/\b\w+\s+in\s+[^;]+/i', $body, $m, PREG_OFFSET_CAPTURE)) {
-            $findings[] = $this->makeFinding(
-                'app-SuggestRemoteExecutionHint-InOpRhs',
-                'Medium',
-                ['in'],
-                $location,
-                $screen,
-                $controlType,
-                $property,
-                'in',
-                (int) $m[0][1],
-                2
-            );
+        $findings = [];
+        foreach (array_keys(self::DELEGATION_FUNCS) as $fn) {
+            if (!preg_match_all('/\b' . preg_quote($fn, '/') . '\s*\(/i', $body, $matches, PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+            foreach ($matches[0] as $m) {
+                $offset = (int) $m[1];
+                if (!DelegationPredicateExtractor::offsetInSpan($offset, $predicates)) {
+                    continue;
+                }
+                $rule = 'app-SuggestRemoteExecutionHint';
+                if ($fn === 'CountIf' && preg_match('/\bCountIf\s*\(\s*\'[^\']+\'/i', $body)) {
+                    $rule = 'app-SuggestRemoteExecutionHint-OpNotSupportedByService';
+                }
+                if ($fn === 'Find' && preg_match('/\bFind\s*\([^,]+,\s*[A-Za-z_]/', $body)) {
+                    $rule = 'app-SuggestRemoteExecutionHint-StringMatchSecondParam';
+                }
+                $findings[] = $this->makeFinding(
+                    $rule,
+                    'Medium',
+                    [$fn],
+                    $location,
+                    $screen,
+                    $controlType,
+                    $property,
+                    $fn,
+                    $offset,
+                    strlen($fn)
+                );
+            }
+        }
+
+        foreach ($predicates as $pred) {
+            $predicate = substr($body, $pred['start'], $pred['end'] - $pred['start']);
+            if (!preg_match_all('/(?<![\w"\'])\b([A-Za-z_][\w]*)\s+in\s+([A-Za-z_][\w.]*)/i', $predicate, $inMatches, PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+            foreach ($inMatches[0] as $i => $m) {
+                $lhs = $inMatches[1][$i][0];
+                if (in_array(strtolower($lhs), ['true', 'false'], true)) {
+                    continue;
+                }
+                $offset = $pred['start'] + (int) $m[1];
+                $findings[] = $this->makeFinding(
+                    'app-SuggestRemoteExecutionHint-InOpRhs',
+                    'Medium',
+                    ['in'],
+                    $location,
+                    $screen,
+                    $controlType,
+                    $property,
+                    'in',
+                    $offset,
+                    2
+                );
+            }
         }
 
         return $findings;

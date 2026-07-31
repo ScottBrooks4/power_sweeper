@@ -118,9 +118,16 @@ final class AppDataContext
     public function documentsToScan(array $documents): array
     {
         $preferred = array_flip($this->preferredDocByScreen);
+        $componentJsonSigs = $this->componentControlSignatures($documents, 'Components/');
         $out = [];
         foreach ($documents as $doc) {
             $path = $doc->relativePath;
+            if (str_starts_with($path, 'Src/Components/') && $doc->format === 'yaml') {
+                $sig = $this->signatureForDocument($doc);
+                if ($sig !== null && isset($componentJsonSigs[$sig])) {
+                    continue;
+                }
+            }
             if (isset($preferred[$path])) {
                 $out[] = $doc;
                 continue;
@@ -142,6 +149,40 @@ final class AppDataContext
             }
         }
         return $out;
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @return array<string, true>
+     */
+    private function componentControlSignatures(array $documents, string $prefix): array
+    {
+        $sigs = [];
+        foreach ($documents as $doc) {
+            if ($doc->format !== 'json' || !str_starts_with($doc->relativePath, $prefix)) {
+                continue;
+            }
+            $sig = $this->signatureForDocument($doc);
+            if ($sig !== null) {
+                $sigs[$sig] = true;
+            }
+        }
+
+        return $sigs;
+    }
+
+    private function signatureForDocument(ControlDocument $doc): ?string
+    {
+        $names = [];
+        foreach ($doc->controls() as $control) {
+            $names[] = $control->name;
+        }
+        if ($names === []) {
+            return null;
+        }
+        sort($names);
+
+        return implode('|', $names);
     }
 
     public function isDataSource(string $name): bool
