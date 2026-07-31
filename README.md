@@ -63,7 +63,15 @@ Order matters: the same hops in a different sequence can produce different resul
 | `normalize_classic_button_chrome` | Clear Hover/Pressed fills when Fill is already transparent |
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
 | `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` and `AutoRuleBindingString` |
+| `repair_control_refs` | Qualify bare cross-screen control references in formulas |
+| `repair_double_qualified_refs` | Collapse double-qualified refs (`'Screen'.'Screen'.Control`) |
+| `repair_sharepoint_fields` | Fix SharePoint list/column name typos in datasource metadata and formulas |
+| `repair_var_current_package` | Repair `varCurrentPackage` record shape after screen duplication |
+| `repair_ghost_patch_fields` | Comment out Patch fields referencing controls removed from duplicated screens |
 | `repair_checked_booleans` | Normalize `Checked`/`Default`/`Visible`/… from `1`/`0`/`"true"` or `If(cond, 1, 0)` to real booleans |
+| `repair_maintainability` | Address maintainability-class App checker issues where safe |
+| `repair_delegation` | Repair SharePoint delegation warnings (email filters, collection CountIf, split Filters, admin lookup) |
+| `regenerate_sarif` | Run the live Studio-equivalent App checker and write `AppCheckerResult.sarif` (updates error counts without Studio Save) |
 | `ensure_focus_visible` | Set focus ring thickness/color on interactive controls (“Focus isn’t showing”) |
 | `ensure_tab_index` | Set `TabIndex = 0` on interactive controls when unset |
 | `scan_studio_issues` | Report remaining locale/boolean/focus issues without modifying the app (verify after repair) |
@@ -73,14 +81,38 @@ Order matters: the same hops in a different sequence can produce different resul
 
 ## Profiles
 
-PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `repair_studio_errors`, `dark_mode`, `sharepoint_correlate`, `posix_zip_paths`, `windows_zip_paths`.
+PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles).
 
-For apps like **CDLS VCR** / **VCDS THCEE**, run **two separate passes** (do not combine into one profile):
+| Profile | Purpose |
+|---------|---------|
+| `default` | Balanced cleanup: containers, align, accessibility labels |
+| `containers_only` | Container normalization only |
+| `a11y_pass` | Accessibility labels and tooltips |
+| `transparent_buttons` | Strip default button chrome |
+| `unwhack_locale` | Locale separator repair only |
+| `repair_formula_refs` | Control refs, SharePoint fields, package shape, ghost Patch fields (+ SARIF) |
+| `repair_delegation` | SharePoint delegation fixes (+ SARIF) |
+| `repair_studio_errors` | **Full Studio checker repair** (locale, refs, booleans, a11y, delegation, SARIF) |
+| `repair_studio_errors_then_dark` | Full repair + dark mode (CDLS VCR one-shot) |
+| `scan_studio_issues` | Report-only verify pass (no formula edits) |
+| `regenerate_sarif` | Refresh `AppCheckerResult.sarif` from live checker only |
+| `dark_mode` | `gblTheme` palettes and dark-mode toggle |
+| `sharepoint_correlate` | SharePoint schema correlate + typo repair |
+| `posix_zip_paths` / `windows_zip_paths` | Zip entry separator style |
 
-1. Profile **`repair_studio_errors`** → download → open/save in Studio if you want to verify checker cleanup  
-2. Profile **`dark_mode`** on that cleaned `.msapp` → download → open/save in Studio, use the Dark mode toggle  
+For apps like **CDLS VCR** / **VCDS THCEE**, you can either:
 
-Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the result. You can also build a custom hop sequence by adding hops from both profiles yourself — order should still be repair hops first, then `enable_dark_mode`.
+1. Profile **`repair_studio_errors`** → download → verify in Studio  
+2. Profile **`dark_mode`** on that cleaned `.msapp` (or use **`repair_studio_errors_then_dark`** for both in one run)
+
+Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the result. Order should still be repair hops first, then `enable_dark_mode`.
+
+**Modular repair profiles** (compose or run standalone):
+
+- **`repair_formula_refs`** — when formulas break after screen duplication (unqualified refs, double qualification, SharePoint typos)  
+- **`repair_delegation`** — when performance/delegation hints are the only remaining issues  
+- **`regenerate_sarif`** — refresh embedded App checker counts without editing formulas  
+- **`scan_studio_issues`** — report-only verification after any repair pass
 
 ### Locale unwhack
 
@@ -146,18 +178,23 @@ Import with **make.powerapps.com → Apps → Import app → From file (.msapp)*
 
 ### Repair Studio errors (VCR-class apps)
 
-Profile **`repair_studio_errors`** is the pass to use on apps like CDLS VCR after a language/region switch. It runs:
+Profile **`repair_studio_errors`** is the full pass for apps like CDLS VCR after a language/region switch or screen duplication. It runs, in order:
 
-1. `unwhack_locale_formulas` — Expected operator, Invalid number of arguments (Size/Orientation), ParseJSON / If / LookUp separator damage, including internal JSON + AutoRuleBindingString  
-2. `repair_checked_booleans` — “Expecting a true or false value” on Checked/Default/Visible (`1`/`0`/`"true"` / `If(cond, 1, 0)`)  
-3. `accessibility_labels` — missing AccessibleLabel  
-4. `ensure_focus_visible` — App checker “Focus isn’t showing”  
-5. `ensure_tab_index` — “TabIndex should be defined” on interactive controls  
-6. `tooltip_from_label` — empty tooltips  
+1. `unwhack_locale_formulas` — Expected operator, invalid arity, ParseJSON / If / LookUp separator damage (YAML + JSON `InvariantScript` / `AutoRuleBindingString`)  
+2. `repair_control_refs` — qualify bare cross-screen control references  
+3. `repair_double_qualified_refs` — collapse `'Screen'.'Screen'.Control` double qualification  
+4. `repair_sharepoint_fields` — list/column typos in metadata and formulas  
+5. `repair_var_current_package` — `varCurrentPackage` record shape  
+6. `repair_ghost_patch_fields` — ghost Patch fields from duplicated screens  
+7. `repair_checked_booleans` — “Expecting a true or false value” on Checked/Default/Visible  
+8. `accessibility_labels`, `ensure_focus_visible`, `ensure_tab_index`, `tooltip_from_label`  
+9. `repair_maintainability` — safe maintainability fixes  
+10. `repair_delegation` — SharePoint delegation (email filters, collection CountIf, split duplicate-request Filters)  
+11. `regenerate_sarif` — write fresh `AppCheckerResult.sarif` from the live App checker  
 
-Append hop **`scan_studio_issues`** afterward to list anything the heuristics still flag (report-only).
+Use **`scan_studio_issues`** afterward for a report-only verify pass, or **`regenerate_sarif`** alone to refresh SARIF without formula edits.
 
-**Not auto-fixed** (different App checker categories): SharePoint **delegation** warnings, **unused variables/media**, missing Power Automate **Run** targets when the flow isn’t in the app.
+**Related profiles:** `repair_formula_refs` (refs/SharePoint only), `repair_delegation` (delegation only), `repair_studio_errors_then_dark` (repair + dark mode).
 
 ## Tests
 

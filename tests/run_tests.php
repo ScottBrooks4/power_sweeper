@@ -23,6 +23,7 @@ use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
 use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
 use PowerSweeper\Pipeline;
+use PowerSweeper\ProfileLoader;
 use PowerSweeper\Report;
 use PowerSweeper\SharePoint\SharePointCatalog;
 use PowerSweeper\StringSimilarity;
@@ -766,9 +767,30 @@ if (is_file($repaired16)) {
     assert_true(($post['by_kind']['missing_package_field'] ?? 0) === 0, 'App (16) repaired has no varCurrentPackage field drift');
     assert_true(($post['by_kind']['unresolved_control_ref'] ?? 0) === 0, 'App (16) repaired has no unresolved control refs');
     assert_true(($post['by_category']['accessibility'] ?? 0) === 0, 'App (16) repaired has no a11y issues');
-    // Delegation warnings are expected; formula heuristics may still report locale edge cases.
     assert_true($post['total'] === 0, 'App (16) repaired heuristic total is zero (was 1719 SARIF)');
 }
+
+// Profiles — all hop ids resolve; studio repair hops are exposed
+$hopRegistry = new \PowerSweeper\HopRegistry();
+$allProfiles = (new ProfileLoader(POWER_SWEEPER_PROFILES))->all();
+assert_true(count($allProfiles) >= 14, 'profiles directory loaded (got ' . count($allProfiles) . ')');
+$profileIds = array_column($allProfiles, 'id');
+assert_true(in_array('repair_studio_errors', $profileIds, true), 'repair_studio_errors profile exists');
+assert_true(in_array('repair_delegation', $profileIds, true), 'repair_delegation profile exists');
+assert_true(in_array('regenerate_sarif', $profileIds, true), 'regenerate_sarif profile exists');
+assert_true(in_array('repair_formula_refs', $profileIds, true), 'repair_formula_refs profile exists');
+assert_true(in_array('repair_studio_errors_then_dark', $profileIds, true), 'repair_studio_errors_then_dark profile exists');
+foreach ($allProfiles as $profile) {
+    assert_true($profile['description'] !== '', 'profile ' . $profile['id'] . ' has description');
+    foreach ($profile['hops'] as $hop) {
+        assert_true($hopRegistry->has($hop['id']), 'profile ' . $profile['id'] . ' hop ' . $hop['id'] . ' registered');
+    }
+}
+$repairStudio = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
+$repairHopIds = array_column($repairStudio['hops'], 'id');
+assert_true(in_array('repair_delegation', $repairHopIds, true), 'repair_studio_errors includes repair_delegation');
+assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'repair_studio_errors includes regenerate_sarif');
+assert_true(in_array('repair_control_refs', $repairHopIds, true), 'repair_studio_errors includes repair_control_refs');
 
 echo "\n";
 if ($failed > 0) {

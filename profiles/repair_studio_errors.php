@@ -7,7 +7,7 @@ declare(strict_types=1);
  * and screen duplication (CDLS VCR App class).
  */
 return [
-    'description' => 'Repair Studio App checker errors: locale separators, control refs, SharePoint field typos, booleans, accessibility, maintainability.',
+    'description' => 'Full Studio App checker repair for VCR-class apps: locale separators, control/SharePoint refs, booleans, accessibility, maintainability, delegation, and live SARIF regeneration.',
     'hops' => [
         ['id' => 'unwhack_locale_formulas', 'options' => []],
         ['id' => 'repair_control_refs', 'options' => []],
