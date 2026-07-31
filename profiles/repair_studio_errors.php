@@ -19,5 +19,6 @@ return [
         ['id' => 'ensure_tab_index', 'options' => ['value' => 0]],
         ['id' => 'tooltip_from_label', 'options' => []],
         ['id' => 'repair_maintainability', 'options' => []],
+        ['id' => 'regenerate_sarif', 'options' => []],
     ],
 ];

@@ -11,7 +11,7 @@ namespace PowerSweeper;
 final class StudioErrorDetector
 {
     /** @var array<string, array{category:string,description:string}> */
-    private const RULE_META = [
+    public const RULE_META = [
         'app-ErrOperatorExpected' => ['category' => 'formulas', 'description' => 'Expected operator (+, *, &, etc.)'],
         'app-ErrInvalidName' => ['category' => 'formulas', 'description' => "Name isn't valid — unrecognized identifier"],
         'app-ErrBadArityMinimum' => ['category' => 'formulas', 'description' => 'Invalid number of arguments (too few)'],
@@ -306,6 +306,11 @@ final class StudioErrorDetector
         $property = count($parts) >= 2 ? $parts[count($parts) - 1] : '';
 
         return [$screen, $property];
+    }
+
+    public static function ruleCategory(string $ruleId): string
+    {
+        return self::RULE_META[$ruleId]['category'] ?? self::inferCategory($ruleId);
     }
 
     private static function inferCategory(string $ruleId): string

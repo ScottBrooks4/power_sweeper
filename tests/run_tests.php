@@ -684,8 +684,32 @@ assert_true(($posixResult['report']['total'] ?? 0) >= 1, 'zip path style hop rep
 @rmdir($stageDir);
 @rmdir($tmpDir);
 
-// StudioErrorDetector — App (16) SARIF inventory
+// StudioLiveChecker — live App checker on App (16)
 $app16 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App (16).msapp';
+if (is_file($app16)) {
+    $archive = new \PowerSweeper\MsappArchive($app16);
+    $archive->unpack();
+    $live = \PowerSweeper\StudioLiveChecker::check($archive->documents(), ['extract_dir' => $archive->extractDir()]);
+    $archive->cleanup();
+    assert_true($live['total'] >= 900 && $live['total'] <= 1400, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
+    assert_true(($live['by_category']['formulas'] ?? 0) >= 400, 'App (16) live formula issues');
+    assert_true(($live['by_category']['accessibility'] ?? 0) >= 200, 'App (16) live a11y issues');
+    // Compare overlap with embedded SARIF
+    $det = \PowerSweeper\StudioErrorDetector::detectFromMsapp($app16, false);
+    $embLoc = [];
+    foreach ($det['issues'] as $issue) {
+        $embLoc[$issue['ruleId'] . '|' . $issue['location']] = true;
+    }
+    $overlap = 0;
+    foreach ($live['findings'] as $f) {
+        if (isset($embLoc[$f['ruleId'] . '|' . $f['location']])) {
+            $overlap++;
+        }
+    }
+    assert_true($overlap >= 200, 'App (16) live checker overlaps embedded SARIF (got ' . $overlap . ')');
+}
+
+// StudioErrorDetector — App (16) SARIF inventory
 if (is_file($app16)) {
     $det = \PowerSweeper\StudioErrorDetector::detectFromMsapp($app16, false);
     assert_true($det['sarif_present'], 'App (16) has AppCheckerResult.sarif');
