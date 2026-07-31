@@ -127,6 +127,16 @@ $check($gblThemeDarkOnControls === 0, 'Controls use gblTheme.* not gblThemeDark.
 $check($colorEnum === 0, 'No bare Color.Green/Yellow/Red/Blue on controls (got ' . $colorEnum . ')');
 $check($opaqueRgba === 0, 'No opaque hard-coded RGBA on color properties (got ' . $opaqueRgba . ')');
 
+if (preg_match('/THCEE/i', basename($msappPath))) {
+    $refreshYaml = \PowerSweeper\ZipTool::readEntry($msappPath, 'Src/THCEE Refresh Screen.pa.yaml');
+    $check(
+        is_string($refreshYaml)
+            && str_contains($refreshYaml, 'comTranslations.Labels')
+            && !str_contains($refreshYaml, "'THCEE Control Screen'.comTranslations"),
+        'THCEE keeps bare comTranslations refs (not screen-qualified)'
+    );
+}
+
 echo "\n";
 if ($failed > 0) {
     echo "FAILED: {$failed} check(s)\n";

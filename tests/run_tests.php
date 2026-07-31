@@ -1199,8 +1199,18 @@ if (is_file($repair2)) {
     $poweredSample = dirname(__DIR__) . '/samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp';
     if (is_file($poweredSample)) {
         $validateOut = shell_exec('php ' . escapeshellarg(dirname(__DIR__) . '/scripts/validate_powered.php') . ' ' . escapeshellarg($poweredSample) . ' 2>&1');
-        assert_true(is_string($validateOut) && str_contains($validateOut, 'All powered validation checks passed'), 'validate_powered.php passes on sample');
+        assert_true(is_string($validateOut) && str_contains($validateOut, 'All powered validation checks passed'), 'validate_powered.php passes on VCR repair2 sample');
     }
+}
+$thceePoweredSample = dirname(__DIR__) . '/samples/import_debug/VCDS_THCEE_Friday.powered.msapp';
+if (is_file($thceePoweredSample)) {
+    $validateThcee = shell_exec('php ' . escapeshellarg(dirname(__DIR__) . '/scripts/validate_powered.php') . ' ' . escapeshellarg($thceePoweredSample) . ' 2>&1');
+    assert_true(is_string($validateThcee) && str_contains($validateThcee, 'All powered validation checks passed'), 'validate_powered.php passes on THCEE Friday sample');
+}
+$vcrFridayPowered = dirname(__DIR__) . '/samples/import_debug/CDLS_VCR_App_Friday.powered.msapp';
+if (is_file($vcrFridayPowered)) {
+    $validateVcrFriday = shell_exec('php ' . escapeshellarg(dirname(__DIR__) . '/scripts/validate_powered.php') . ' ' . escapeshellarg($vcrFridayPowered) . ' 2>&1');
+    assert_true(is_string($validateVcrFriday) && str_contains($validateVcrFriday, 'All powered validation checks passed'), 'validate_powered.php passes on VCR Friday sample');
 }
 
 echo "\n";

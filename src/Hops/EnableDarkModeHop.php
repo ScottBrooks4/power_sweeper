@@ -527,6 +527,19 @@ final class EnableDarkModeHop implements HopInterface
             }
         }
 
+        // Pass 6e: DatePicker + DataTable auxiliary color chrome (THCEE cost-rate tables, trip dates)
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($this->isDatePicker($control)) {
+                    $this->applyDatePickerChrome($control, $theme, $var, $report);
+                    continue;
+                }
+                if ($this->isDataTable($control)) {
+                    $this->applyDataTableChrome($control, $theme, $var, $report);
+                }
+            }
+        }
+
         // Pass 6d: section containers around rich text editors (e.g. 10_Remarks)
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
@@ -933,14 +946,67 @@ final class EnableDarkModeHop implements HopInterface
         return str_contains($t, 'richtext');
     }
 
+    private function isDatePicker(ControlNode $control): bool
+    {
+        return str_contains(strtolower($control->type), 'datepicker');
+    }
+
+    private function isDataTable(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+
+        return str_contains($t, 'datatable') && !str_contains($t, 'column');
+    }
+
+    private function applyDatePickerChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    {
+        $props = [
+            'IconFill' => 'Text',
+            'CurrentDateFill' => 'InputFill',
+            'MonthColor' => 'Text',
+            'WeekColor' => 'TextMuted',
+            'DayColor' => 'Text',
+            'SelectedDateFill' => 'Accent',
+            'HoverDateFill' => 'SurfaceMuted',
+            'CalendarHeaderFill' => 'Accent',
+            'BorderColor' => 'Border',
+            'FocusedBorderColor' => 'Accent',
+            'Color' => 'Text',
+            'DisabledColor' => 'TextMuted',
+            'DisabledFill' => 'InputFill',
+        ];
+        foreach ($props as $prop => $token) {
+            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $report, 'Design', $prop === 'BorderColor');
+        }
+    }
+
+    private function applyDataTableChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    {
+        $props = [
+            'LinkColor' => 'Link',
+            'PrimaryColor1' => 'Accent',
+            'PrimaryColor2' => 'Accent',
+            'PrimaryColor3' => 'SurfaceMuted',
+            'InputFill' => 'InputFill',
+            'InvertedColor' => 'Text',
+            'HeadingColor' => 'Text',
+            'Fill' => 'Surface',
+            'Color' => 'Text',
+            'BorderColor' => 'Border',
+        ];
+        foreach ($props as $prop => $token) {
+            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $report, 'Design', $prop === 'BorderColor');
+        }
+    }
+
     /** Nested template + YAML paths for modern number / rich-text controls. */
     private function isModernInputColorPath(string $path): bool
     {
-        if (!preg_match('/RichTextEditor|richTextEditor|ModernNumberInput|modernNumberInput|\/Remarks(\/|\.|$)/i', $path)) {
+        if (!preg_match('/RichTextEditor|richTextEditor|ModernNumberInput|modernNumberInput|DatePicker|datePicker|DataTable|dataTable|\/Remarks(\/|\.|$)/i', $path)) {
             return false;
         }
 
-        return (bool) preg_match('/\.(Fill|Color|BorderColor|FontColor|BasePaletteColor|TemplateFill|Appearance|HoverFill|HoverColor|DisabledFill|DisabledColor|FocusedBorderColor|PressedFill|PressedColor|BackgroundColor|LoadingSpinnerColor)(\.|$)/i', $path);
+        return (bool) preg_match('/\.(Fill|Color|BorderColor|FontColor|BasePaletteColor|TemplateFill|Appearance|HoverFill|HoverColor|DisabledFill|DisabledColor|FocusedBorderColor|PressedFill|PressedColor|BackgroundColor|LoadingSpinnerColor|IconFill|CurrentDateFill|MonthColor|WeekColor|DayColor|SelectedDateFill|HoverDateFill|CalendarHeaderFill|LinkColor|PrimaryColor1|PrimaryColor2|PrimaryColor3|InputFill|InvertedColor|HeadingColor)(\.|$)/i', $path);
     }
 
     private function applyRichTextChrome(ControlNode $control, string $theme, string $var, Report $report): void
@@ -1208,6 +1274,19 @@ final class EnableDarkModeHop implements HopInterface
             $replaced = preg_replace('/\b' . preg_quote($enum, '/') . '\b/i', $theme . '.' . $token, $out);
             if (is_string($replaced)) {
                 $out = $replaced;
+            }
+        }
+
+        $legacyTheme = [
+            'App.Theme.Colors.Primary' => $theme . '.Accent',
+            'App.Theme.Colors.Lighter70' => $theme . '.SurfaceMuted',
+            'App.Theme.Colors.Lighter30' => $theme . '.SurfaceMuted',
+            'App.Theme.Colors.Darker70' => $theme . '.Accent',
+            'App.Theme.Colors.Darker30' => $theme . '.Accent',
+        ];
+        foreach ($legacyTheme as $from => $to) {
+            if (str_contains($out, $from)) {
+                $out = str_replace($from, $to, $out);
             }
         }
 

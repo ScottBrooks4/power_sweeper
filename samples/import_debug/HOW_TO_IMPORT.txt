@@ -31,12 +31,16 @@ Recommended new outputs:
 Powered deliverable (repair + theme — preferred for Studio import):
   CDLS_L_VCR_App_repair2.powered.msapp       — from repair2 baseline
   CDLS_L_VCR_App_16.powered.msapp            — from App (16) baseline
+  CDLS_VCR_App_Friday.powered.msapp          — VCR Friday (full repair + dark mode)
+  VCDS_THCEE_Friday.powered.msapp            — THCEE Friday (full repair + dark mode)
 
 Repair-only deliverable (no dark mode, fresh SARIF):
   CDLS_L_VCR_App_repair2.repaired.msapp       — php scripts/build_repaired.php
 
 Validate a powered pack locally:
   php scripts/validate_powered.php samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp
+  php scripts/validate_powered.php samples/import_debug/CDLS_VCR_App_Friday.powered.msapp
+  php scripts/validate_powered.php samples/import_debug/VCDS_THCEE_Friday.powered.msapp
 
 Compare before/after repair patterns:
   php scripts/compare_repair2_patterns.php
