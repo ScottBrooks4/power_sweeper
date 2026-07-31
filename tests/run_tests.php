@@ -1019,6 +1019,8 @@ if (is_file($repair2)) {
     $vcnYaml = ZipTool::readEntry($poweredTestOut, 'Src/VCR _ VCN Form.pa.yaml');
     assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'LinkCss: "#1D4ED8"'), 'light palette LinkCss hex for HtmlText links');
     assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'LinkCss: "#2DD4BF"'), 'dark palette LinkCss is accessible teal');
+    assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'Text: RGBA(255, 255, 255, 1)'), 'dark palette Text is white for contrast');
+    assert_true(is_string($topbarYaml) && str_contains($topbarYaml, 'AccessAppScope'), 'TopbarHeader enables AccessAppScope for theme toggle');
     assert_true(is_string($vcnYaml) && str_contains($vcnYaml, 'gblTheme.LinkCss'), 'Jump to annex links bind gblTheme.LinkCss');
     @unlink($poweredTestOut);
 }

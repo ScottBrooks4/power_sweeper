@@ -24,11 +24,14 @@ final class FormulaArtifactCleaner
         if (count($lines) < 2) {
             return $formula;
         }
-        $first = ltrim(trim($lines[0]), '=');
-        foreach (array_slice($lines, 1) as $line) {
-            if (ltrim(trim($line), '=') === $first) {
-                return $lines[0];
-            }
+        $normalize = static function (string $line): string {
+            return ltrim(trim($line), '=');
+        };
+        $first = $normalize($lines[0]);
+        // YAML merge duplicate: exactly two lines, second repeats the first verbatim.
+        // Do not treat nested If( … ) lines inside multiline formulas as duplicates.
+        if ($first !== '' && $normalize($lines[1]) === $first && count($lines) === 2) {
+            return $lines[0];
         }
 
         return $formula;

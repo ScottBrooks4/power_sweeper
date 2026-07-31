@@ -216,6 +216,8 @@ final class EnableDarkModeHop implements HopInterface
             }
         }
 
+        $this->ensureThemeComponentAppScope($documents, $report);
+
         // Pass 2: point literals at gblTheme.Token
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
@@ -611,6 +613,28 @@ final class EnableDarkModeHop implements HopInterface
         }
     }
 
+    /** @param list<ControlDocument> $documents */
+    private function ensureThemeComponentAppScope(array $documents, Report $report): void
+    {
+        foreach ($documents as $doc) {
+            if (!str_contains($doc->relativePath, 'TopbarHeader')) {
+                continue;
+            }
+            foreach ($doc->controls() as $control) {
+                if ($control->name !== 'TopbarHeader' || !str_contains($control->path, 'ComponentDefinitions')) {
+                    continue;
+                }
+                $before = (string) ($control->getProperty('AccessAppScope') ?? '');
+                if (str_contains(strtolower($before), 'true')) {
+                    continue;
+                }
+                $to = $control->format === 'yaml' ? '=true' : 'true';
+                $control->setProperty('AccessAppScope', $to);
+                $report->add(self::id(), $control->path, 'AccessAppScope', $before !== '' ? $before : '(unset)', $to);
+            }
+        }
+    }
+
     private function isThemeRadio(ControlNode $control): bool
     {
         if (!str_contains(strtolower($control->type), 'radio')) {
@@ -845,9 +869,9 @@ final class EnableDarkModeHop implements HopInterface
             }
         }
 
-        $forced = [];
+        $forced = $this->normalizePaletteMap($loaded);
         if (isset($options['theme_defaults']) && is_array($options['theme_defaults'])) {
-            $forced = $this->normalizePaletteMap($options['theme_defaults']);
+            $forced = array_merge($forced, $this->normalizePaletteMap($options['theme_defaults']));
         }
 
         return [$core, $forced];

@@ -28,6 +28,9 @@ final class RepairControlRefsHop implements HopInterface
         'Restricted0' => 'UnclassifiedRestricted',
     ];
 
+    /** Canvas screen that hosts form section containers referenced from topNav. */
+    private const FORM_HOST_SCREEN = 'VCR / VCN Form';
+
     public static function id(): string
     {
         return 'repair_control_refs';
@@ -55,12 +58,16 @@ final class RepairControlRefsHop implements HopInterface
             }
 
             $screen = $catalog->screenForDocument($doc);
+            $isComponent = str_starts_with($doc->relativePath, 'Src/Components/');
 
-            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $localNames, $report): string {
+            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $localNames, $isComponent, $report): string {
                 $new = $this->repairGhostLayoutBinding($formula, $localNames);
                 $map = $this->buildRenameMap($new, $screen, $catalog, $localNames);
                 $new = $map === [] ? $new : $this->applyRenameMap($new, $map, $catalog);
                 $new = ScreenReferenceNormalizer::normalize($new, $screens);
+                if ($isComponent) {
+                    $new = $this->qualifyFormSectionRefs($new, $catalog);
+                }
                 if ($new !== $formula) {
                     $report->add(
                         self::id(),
@@ -74,6 +81,53 @@ final class RepairControlRefsHop implements HopInterface
                 return $new;
             });
         }
+    }
+
+    private function qualifyFormSectionRefs(string $formula, AppControlCatalog $catalog): string
+    {
+        if (!str_contains($formula, '_') && !str_contains($formula, 'Annex')) {
+            return $formula;
+        }
+
+        $host = self::FORM_HOST_SCREEN;
+        if (!$catalog->isScreenName($host)) {
+            return $formula;
+        }
+
+        $parts = PowerFxFormulaSegments::split($formula);
+        $out = '';
+        foreach ($parts as [$type, $text]) {
+            if ($type !== 'code') {
+                $out .= $text;
+                continue;
+            }
+            $replaced = preg_replace_callback(
+                "/'(\d+_[^']+)'/",
+                static function (array $m) use ($catalog, $host): string {
+                    $name = str_replace("''", "'", $m[1]);
+                    if ($catalog->hasOnScreen($host, $name)) {
+                        return "'" . str_replace("'", "''", $host) . ".'" . str_replace("'", "''", $name) . "'";
+                    }
+
+                    return $m[0];
+                },
+                $text
+            );
+            $replaced = preg_replace_callback(
+                '/\b(Annex\d|EmergencyContact)\b/',
+                static function (array $m) use ($catalog, $host): string {
+                    if ($catalog->hasOnScreen($host, $m[1])) {
+                        return $catalog->qualify($host, $m[1]);
+                    }
+
+                    return $m[0];
+                },
+                $replaced ?? $text
+            ) ?? $text;
+            $out .= $replaced;
+        }
+
+        return $out;
     }
 
     /**

@@ -42,9 +42,7 @@ final class RepairStudioSyntaxHop implements HopInterface
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($report): string {
                 $new = $this->repairFormula($formula, $path, $report);
-                if ((str_contains($path, 'App/Properties.OnStart') || str_contains($path, 'Properties.OnStart'))
-                    && str_contains($path, '/App/')
-                ) {
+                if ($this->isAppOnStartPath($path)) {
                     $new = $this->repairAppOnStart($new, $path, $report);
                 }
 
@@ -54,6 +52,13 @@ final class RepairStudioSyntaxHop implements HopInterface
 
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
+                if ($control->isApp()) {
+                    $before = (string) ($control->getProperty('OnStart') ?? '');
+                    $after = $this->repairAppOnStart($before, $control->path . '.OnStart', $report);
+                    if ($after !== $before) {
+                        $control->setProperty('OnStart', $after);
+                    }
+                }
                 if ($control->name !== 'VASC Template Control Screen' || !$control->isScreen()) {
                     continue;
                 }
@@ -64,6 +69,13 @@ final class RepairStudioSyntaxHop implements HopInterface
                 }
             }
         }
+    }
+
+    private function isAppOnStartPath(string $path): bool
+    {
+        return str_contains($path, 'OnStart')
+            || str_contains($path, 'Properties.OnStart')
+            || str_contains($path, '/App/');
     }
 
     private function repairFormula(string $formula, string $path, Report $report): string
@@ -89,6 +101,30 @@ final class RepairStudioSyntaxHop implements HopInterface
             $replaced = preg_replace('/\bvarNewRequest\b/', 'false', $new);
             if ($replaced !== null && $replaced !== $new) {
                 $report->add(self::id(), $path, 'varNewRequest', '(undefined)', 'false');
+                $new = $replaced;
+                $changed = true;
+            }
+
+            // 'VCR / VCN Form'.Date(1900,1,1) — screen-qualified Date *function* call
+            $replaced = preg_replace(
+                "/'(?:[^']|'')+'\\.Date\\s*\\(/",
+                'Date(',
+                $new
+            );
+            if ($replaced !== null && $replaced !== $new) {
+                $report->add(self::id(), $path, 'Date()', '(screen-qualified function)', '(fixed)');
+                $new = $replaced;
+                $changed = true;
+            }
+
+            // Record literal keys: 'Screen Name'.VIP: loadedRequest.VIP → VIP: loadedRequest.VIP
+            $replaced = preg_replace(
+                "/'(?:[^']|'')+'\\.([A-Za-z_][\\w]*)\\s*:/",
+                '$1:',
+                $new
+            );
+            if ($replaced !== null && $replaced !== $new) {
+                $report->add(self::id(), $path, 'record key', '(screen-qualified)', '(fixed)');
                 $new = $replaced;
                 $changed = true;
             }

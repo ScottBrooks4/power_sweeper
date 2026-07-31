@@ -97,7 +97,7 @@ final class RepairVarCurrentPackageHop implements HopInterface
             if ($type !== 'code') {
                 continue;
             }
-            if (preg_match_all('/^[ \t]*([A-Za-z_][\w]*)\s*:\s*loadedRequest\./m', $text, $m)) {
+            if (preg_match_all('/^[ \t]*([A-Za-z_][\w]*)\s*:\s*/m', $text, $m)) {
                 foreach ($m[1] as $field) {
                     $activeInCode[$field] = true;
                 }
