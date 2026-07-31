@@ -911,6 +911,7 @@ assert_true(in_array('repair_studio_errors', $profileIds, true), 'repair_studio_
 assert_true(in_array('repair_delegation', $profileIds, true), 'repair_delegation profile exists');
 assert_true(in_array('regenerate_sarif', $profileIds, true), 'regenerate_sarif profile exists');
 assert_true(in_array('repair_formula_refs', $profileIds, true), 'repair_formula_refs profile exists');
+assert_true(in_array('repair_powered', $profileIds, true), 'repair_powered profile exists');
 assert_true(in_array('repair_studio_errors_then_dark', $profileIds, true), 'repair_studio_errors_then_dark profile exists');
 foreach ($allProfiles as $profile) {
     assert_true($profile['description'] !== '', 'profile ' . $profile['id'] . ' has description');
@@ -923,6 +924,17 @@ $repairHopIds = array_column($repairStudio['hops'], 'id');
 assert_true(in_array('repair_delegation', $repairHopIds, true), 'repair_studio_errors includes repair_delegation');
 assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'repair_studio_errors includes regenerate_sarif');
 assert_true(in_array('repair_control_refs', $repairHopIds, true), 'repair_studio_errors includes repair_control_refs');
+
+assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'repair_studio_errors includes repair_studio_syntax');
+
+// repair_studio_syntax — trailing Concatenate comma and undefined var (code only)
+$syntaxIn = 'Concatenate(If(true, "a", ""), If(true, "b", ""), If(true, "c", ""),); Set(x, varNewRequest);';
+$syntaxFixed = \PowerSweeper\PowerFxFormulaSegments::transformCode($syntaxIn, static function (string $code): string {
+    $code = preg_replace('/""\s*,\s*\)/', '"")', $code) ?? $code;
+    return preg_replace('/\bvarNewRequest\b/', 'false', $code) ?? $code;
+});
+assert_true(!str_contains($syntaxFixed, 'varNewRequest'), 'syntax repair removes varNewRequest');
+assert_true(!preg_match('/""\s*,\s*\)/', $syntaxFixed), 'syntax repair removes trailing Concatenate comma');
 
 // repair2.msapp — pipeline idempotency (3 passes, formulas stable)
 $repair2 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';

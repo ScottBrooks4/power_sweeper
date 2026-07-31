@@ -250,6 +250,34 @@ final class EnableDarkModeHop implements HopInterface
                 }
             }
         }
+
+        // Pass 3: ensure canvas screens use theme page background (visible dark/light switch)
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$control->isScreen()) {
+                    continue;
+                }
+                foreach (['Fill', 'BackgroundColor'] as $prop) {
+                    $from = $control->getProperty($prop);
+                    if ($from === null || trim($from) === '') {
+                        $to = $control->format === 'yaml' ? '=' . $theme . '.Page' : $theme . '.Page';
+                        $control->setProperty($prop, $to);
+                        $report->add(self::id(), $control->path, $prop, '(unset)', $to);
+                        continue;
+                    }
+                    if (str_contains($from, $theme . '.Page')) {
+                        continue;
+                    }
+                    $parsed = ColorValue::parse($from);
+                    $isWhite = $parsed !== null && ColorValue::luminance($parsed) >= 0.92;
+                    if ($isWhite || preg_match('/^[=]?\s*Color\.White\b/i', trim($from)) === 1) {
+                        $to = $control->format === 'yaml' ? '=' . $theme . '.Page' : $theme . '.Page';
+                        $control->setProperty($prop, $to);
+                        $report->add(self::id(), $control->path, $prop, $from, $to);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -281,11 +309,10 @@ final class EnableDarkModeHop implements HopInterface
         }
 
         return self::BLOCK_START
-            . ' '
-            . 'Set(' . $var . ', false); '
-            . 'Set(' . $themeLight . ', { ' . implode(', ', $lightFields) . ' }); '
-            . 'Set(' . $themeDark . ', { ' . implode(', ', $darkFields) . ' }); '
-            . 'Set(' . $theme . ', ' . $themeLight . ') '
+            . "\nSet(" . $var . ", false);\n"
+            . "Set({$themeLight}, {\n    " . implode(",\n    ", $lightFields) . "\n});\n"
+            . "Set({$themeDark}, {\n    " . implode(",\n    ", $darkFields) . "\n});\n"
+            . "Set({$theme}, {$themeLight})\n"
             . self::BLOCK_END;
     }
 

@@ -20,6 +20,7 @@ use PowerSweeper\Hops\RepairDoubleQualifiedRefsHop;
 use PowerSweeper\Hops\RepairGhostPatchFieldsHop;
 use PowerSweeper\Hops\RepairMaintainabilityHop;
 use PowerSweeper\Hops\RepairSharePointFieldsHop;
+use PowerSweeper\Hops\RepairStudioSyntaxHop;
 use PowerSweeper\Hops\RegenerateSarifHop;
 use PowerSweeper\Hops\RepairVarCurrentPackageHop;
 use PowerSweeper\Hops\ScanStudioIssuesHop;
@@ -51,6 +52,7 @@ final class HopRegistry
             RepairMaintainabilityHop::class,
             RepairSharePointFieldsHop::class,
             RepairVarCurrentPackageHop::class,
+            RepairStudioSyntaxHop::class,
             EnsureFocusVisibleHop::class,
             EnsureTabIndexHop::class,
             ScanStudioIssuesHop::class,

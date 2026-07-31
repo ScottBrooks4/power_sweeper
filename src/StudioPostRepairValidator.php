@@ -58,17 +58,15 @@ final class StudioPostRepairValidator
                         ];
                     }
 
-                    if (preg_match_all('/\bvarCurrentPackage\.([A-Za-z_][\w]*)/', $value, $m)) {
-                        foreach ($m[1] as $field) {
-                            if (!isset($packageFields[$field])) {
-                                $issues[] = [
-                                    'category' => 'formulas',
-                                    'kind' => 'missing_package_field',
-                                    'control' => $control->path,
-                                    'property' => $prop,
-                                    'detail' => 'varCurrentPackage.' . $field,
-                                ];
-                            }
+                    foreach (self::packageFieldRefsInCode($value) as $field) {
+                        if (!isset($packageFields[$field])) {
+                            $issues[] = [
+                                'category' => 'formulas',
+                                'kind' => 'missing_package_field',
+                                'control' => $control->path,
+                                'property' => $prop,
+                                'detail' => 'varCurrentPackage.' . $field,
+                            ];
                         }
                     }
 
@@ -235,6 +233,27 @@ final class StudioPostRepairValidator
             }
         }
         return array_values(array_unique($bad));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function packageFieldRefsInCode(string $formula): array
+    {
+        $code = '';
+        foreach (PowerFxFormulaSegments::split($formula) as [$type, $text]) {
+            if ($type === 'code') {
+                $code .= $text;
+            }
+        }
+        if ($code === '') {
+            return [];
+        }
+        if (!preg_match_all('/\bvarCurrentPackage\.([A-Za-z_][\w]*)/', $code, $m)) {
+            return [];
+        }
+
+        return array_values(array_unique($m[1]));
     }
 
     /**
