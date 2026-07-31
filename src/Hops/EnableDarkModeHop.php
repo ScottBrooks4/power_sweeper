@@ -250,10 +250,20 @@ final class EnableDarkModeHop implements HopInterface
             $report->add(self::id(), '(app)', 'OnStart', '(missing App control)', 'skipped palette inject — add an App control to edit theme tokens');
         }
 
+        $hasThemeRadio = false;
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($this->isThemeRadio($control)) {
+                    $hasThemeRadio = true;
+                    break 2;
+                }
+            }
+        }
+
         $existingToggle = $this->findDarkToggle($documents, $var);
         if ($existingToggle !== null) {
             $this->wireToggle($existingToggle, $var, $theme, $themeLight, $themeDark, $report);
-        } elseif ($injectToggle) {
+        } elseif ($injectToggle && !$hasThemeRadio) {
             $screen = $this->pickIntroScreen($documents);
             if ($screen !== null && $screen->format === 'yaml') {
                 $this->injectToggle($screen, $var, $theme, $themeLight, $themeDark, $report);

@@ -219,6 +219,12 @@ final class ControlNode
         return str_contains($t, 'toggle');
     }
 
+    public function isRadio(): bool
+    {
+        $t = strtolower($this->type);
+        return str_contains($t, 'radio');
+    }
+
     /** @return list<string> */
     public function propertyNames(): array
     {

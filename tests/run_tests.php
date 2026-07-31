@@ -13,6 +13,7 @@ use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaLocaleNormalizer;
 use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
+use PowerSweeper\Hops\AnalyzeAppCheckerHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
@@ -142,6 +143,11 @@ assert_true(!str_contains($inv, ';;'), 'no leftover double-semicolon');
 $safe = '=Set(x, 1); Set(y, 2)';
 assert_true($safe === FormulaLocaleNormalizer::toInvariant($safe), 'leaves invariant chaining alone');
 assert_true(!FormulaLocaleNormalizer::looksLocaleCorrupted($safe), 'invariant not flagged');
+$rgbaTransparent = '=RGBA(0,0,0,0)';
+assert_true(
+    FormulaLocaleNormalizer::toInvariant($rgbaTransparent) === $rgbaTransparent,
+    'invariant RGBA list commas preserved'
+);
 
 // Compact invariant RGBA must NOT be treated as decimal commas (was mangling to RGBA(0.0,0.0)).
 $compactRgba = 'RGBA(0,0,0,0)';
@@ -244,6 +250,35 @@ assert_true($toggleSwapsTheme, 'toggle swaps gblTheme between light/dark palette
 assert_true($screenFillThemed, 'screen Fill uses gblTheme token');
 assert_true($titleColorThemed, 'label Color uses gblTheme token');
 
+// Settings ThemeRadio gets Light/Dark wired (CDLS pattern)
+$settingsDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_settings.pa.yaml', 'Src/Home.pa.yaml');
+assert_true($settingsDoc !== null, 'dark mode settings fixture loads');
+$settingsReport = new Report();
+(new EnableDarkModeHop())->apply([$settingsDoc], $settingsReport);
+$settingsDoc->reindex();
+$themeItemsOk = false;
+$themeOnChangeOk = false;
+$noFloatingToggle = true;
+$settingsPaletteOk = false;
+foreach ($settingsDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $settingsPaletteOk = str_contains((string) $c->getProperty('OnStart'), 'gblThemeLight');
+    }
+    if ($c->name === 'ThemeRadio') {
+        $items = (string) $c->getProperty('Items');
+        $themeItemsOk = str_contains($items, 'Light') && str_contains($items, 'Dark');
+        $themeOnChangeOk = str_contains((string) $c->getProperty('OnChange'), 'gblThemeDark')
+            && str_contains((string) $c->getProperty('OnChange'), 'gblThemeLight');
+    }
+    if ($c->name === 'tglPowerSweeperDarkMode') {
+        $noFloatingToggle = false;
+    }
+}
+assert_true($settingsPaletteOk, 'settings fixture gets OnStart theme palette');
+assert_true($themeItemsOk, 'ThemeRadio Items includes Light and Dark');
+assert_true($themeOnChangeOk, 'ThemeRadio OnChange swaps gblTheme palettes');
+assert_true($noFloatingToggle, 'ThemeRadio present — no floating toggle injected');
+
 // Brand override via theme_defaults option (central palette only)
 $overrideDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
 $dmOverrideReport = new Report();
@@ -270,8 +305,27 @@ assert_true(
 $linkHex = ColorValue::toHex(['r' => 45, 'g' => 212, 'b' => 191, 'a' => 1.0]);
 assert_true($linkHex === '#2DD4BF', 'ColorValue::toHex for dark link teal');
 
+// analyze_app_checker removes empty layout formulas
+$emptyDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_settings.pa.yaml', 'Src/Home.pa.yaml');
+$emptyReport = new Report();
+(new AnalyzeAppCheckerHop())->apply([$emptyDoc], $emptyReport, ['_extract_dir' => sys_get_temp_dir()]);
+$emptyDoc->reindex();
+$layoutCleared = true;
+foreach ($emptyDoc->controls() as $c) {
+    if ($c->name === 'SettingsMiddle') {
+        $layoutCleared = $c->getProperty('LayoutMaxHeight') === null
+            && $c->getProperty('LayoutMaxWidth') === null;
+    }
+}
+assert_true($layoutCleared, 'analyze_app_checker removes empty LayoutMaxHeight/Width');
+assert_true($emptyReport->count() > 0, 'analyze_app_checker reports work');
+
 $white = ColorValue::parse('=RGBA(255, 255, 255, 1)');
 assert_true($white !== null, 'parse white');
+$fixedAlpha = ColorValue::normalizeColorLiteral('=RGBA(240, 240, 240, 0,2)');
+assert_true(str_contains($fixedAlpha, '0.2'), 'locale RGBA alpha comma fixed');
+$parsedAlpha = ColorValue::parse($fixedAlpha);
+assert_true($parsedAlpha !== null && abs($parsedAlpha['a'] - 0.2) < 0.001, 'parse fixed locale RGBA alpha');
 $darkBg = ColorValue::toDark($white, 'background');
 assert_true($darkBg['r'] < 40 && $darkBg['g'] < 40 && $darkBg['b'] < 40, 'white maps to dark background');
 
@@ -483,19 +537,20 @@ $kmsHome = ZipTool::readEntry($kmsOut, 'Src/HomeScreen.pa.yaml');
 $kmsControls = ZipTool::readEntry($kmsOut, 'Src/ControlsScreen.pa.yaml');
 $kmsApp = ZipTool::readEntry($kmsOut, 'Src/App.pa.yaml');
 assert_true(is_string($kmsHome) && str_contains($kmsHome, 'tglPowerSweeperDarkMode'), 'kitchen sink home gets dark toggle');
-assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblDarkMode'), 'kitchen sink App.OnStart sets gblDarkMode');
-assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblThemeLight') && str_contains((string) $kmsApp, 'gblThemeDark'), 'kitchen sink App.OnStart has editable palettes');
+assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblDarkMode'), 'kitchen sink App sets gblDarkMode');
+assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblThemeLight') && str_contains((string) $kmsApp, 'gblThemeDark'), 'kitchen sink App has editable palettes');
+assert_true(is_string($kmsApp) && str_contains((string) $kmsApp, 'gblThemeLight') && str_contains((string) $kmsApp, 'ps-theme:start'), 'kitchen sink palettes in App.OnStart');
 assert_true(is_string($kmsHome) && str_contains($kmsHome, 'gblTheme.'), 'kitchen sink home colors use gblTheme tokens');
 assert_true(is_string($kmsControls) && str_contains($kmsControls, 'gblTheme.'), 'kitchen sink controls colors use gblTheme tokens');
 assert_true(
     is_string($kmsControls)
     && preg_match("/SelectedFill:\\s*'?=gblTheme\\./m", $kmsControls) === 1,
-    'gallery SelectedFill uses theme token'
+    'gallery SelectedFill uses gblTheme token'
 );
 assert_true(
     is_string($kmsControls)
     && preg_match("/RailFill:\\s*'?=gblTheme\\./m", $kmsControls) === 1,
-    'slider RailFill uses theme token'
+    'slider RailFill uses gblTheme token'
 );
 @unlink($kmsOut);
 

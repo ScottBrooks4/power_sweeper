@@ -8,10 +8,12 @@ composer.phar
 .DS_Store
 *.log
 
-# Never publish real/customer apps or generated packages
+# Never publish real/customer apps or generated packages (security: no .msapp in git)
 *.msapp
-# Exception: import bisect samples (Studio unknown-error diagnosis)
-!/samples/import_debug/**/*.msapp
+# Exception: published review deliverables only (rebuild with build_two_step.php)
+!/samples/import_debug/CDLS_L_VCR_step1_repair.msapp
+!/samples/import_debug/CDLS_L_VCR_step2_dark_mode.msapp
+!/samples/import_debug/CDLS_L_VCR_step3_repair_then_dark.msapp
 /import/
 /samples/**/*.report.json
 

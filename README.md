@@ -75,6 +75,7 @@ Order matters: the same hops in a different sequence can produce different resul
 | `ensure_focus_visible` | Set focus ring thickness/color on interactive controls (“Focus isn’t showing”) |
 | `ensure_tab_index` | Set `TabIndex = 0` on interactive controls when unset |
 | `scan_studio_issues` | Report remaining locale/boolean/focus issues without modifying the app (verify after repair) |
+| `analyze_app_checker` | Read embedded `AppCheckerResult.sarif`, summarize formula errors, and repair known patterns (locale separators, empty layout formulas, boolean Checked) |
 | `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` palettes, add or reuse a dark-mode toggle, and point literal colors at `gblTheme.*` tokens |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
 | `set_zip_path_style` | Force zip entry separators to `windows` (`\\`) or `posix` (`/`). Default is to **preserve** the source style (almost always Windows) |
@@ -94,6 +95,7 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 | `repair_delegation` | SharePoint delegation fixes (+ SARIF) |
 | `repair_studio_errors` | **Full Studio checker repair** (locale, refs, booleans, a11y, delegation, SARIF) |
 | `repair_powered` | **Full repair + dark mode** — outputs `*.powered.msapp` with `gblTheme` toggle (CDLS VCR preset) |
+| `powered_thcee` | **THCEE full repair + dark mode** — same repair chain, preserves global component hosts |
 | `repair_studio_errors_then_dark` | Full repair + dark mode (CDLS VCR one-shot) |
 | `scan_studio_issues` | Report-only verify pass (no formula edits) |
 | `regenerate_sarif` | Refresh `AppCheckerResult.sarif` from live checker only |
@@ -103,9 +105,19 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 
 For apps like **CDLS VCR** / **VCDS THCEE**, you can either:
 
-1. Profile **`repair_powered`** (or `php scripts/build_powered.php input.msapp`) → `*.powered.msapp` with full repair + `gblTheme` toggle  
+1. Profile **`repair_powered`** or **`powered_thcee`** (or `php scripts/build_powered.php input.msapp`) → `*.powered.msapp` with full repair + `gblTheme` toggle  
 2. Profile **`repair_studio_errors`** → download → verify in Studio  
 3. Profile **`dark_mode`** on that cleaned `.msapp` (or use **`repair_studio_errors_then_dark`** for both in one run)
+
+Friday deliverables (repair + dark mode, live checker 0):
+
+```bash
+php scripts/build_friday_deliverables.php
+php scripts/validate_powered.php samples/import_debug/CDLS_VCR_App_Friday.powered.msapp
+php scripts/validate_powered.php samples/import_debug/VCDS_THCEE_Friday.powered.msapp
+```
+
+Download: [GitHub release `friday-deliverable-20260731`](https://github.com/freementls/power_sweeper/releases/tag/friday-deliverable-20260731)
 
 Validate a powered deliverable:
 
@@ -121,6 +133,8 @@ Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the res
 - **`repair_delegation`** — when performance/delegation hints are the only remaining issues  
 - **`regenerate_sarif`** — refresh embedded App checker counts without editing formulas  
 - **`scan_studio_issues`** — report-only verification after any repair pass
+
+Dark mode alone does **not** fix locale/formula corruption; run repair first when App checker is noisy.
 
 ### Locale unwhack
 

@@ -43,7 +43,7 @@ Outputs:
 4. Run → download cleaned app
 5. Open in Power Apps Studio (**File → Open → Browse**), save once
 6. On `HomeScreen`, use **Dark mode** toggle and confirm surfaces/text/borders flip  
-7. Edit theme colors in **App.OnStart** (`gblThemeLight` / `gblThemeDark` tokens) — controls reference `gblTheme.*`, not hard-coded RGBAs
+7. Edit theme colors in **App.Formulas** (`gblThemeLight` / `gblThemeDark` tokens) — controls reference `gblTheme.*`, not hard-coded RGBAs
 
 ## Source layout
 
