@@ -129,6 +129,10 @@ final class AppControlCatalog
 
     public function qualify(string $screen, string $control): string
     {
+        if ($this->isScreenName($control)) {
+            return $this->quoteScreen($control);
+        }
+
         $screenPart = $this->quoteScreen($screen);
         if (preg_match('/^[A-Za-z_][\w]*$/', $control)) {
             return $screenPart . '.' . $control;

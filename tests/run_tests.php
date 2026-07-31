@@ -758,6 +758,51 @@ if (is_file($fixtureYaml)) {
     }
 }
 
+// ScreenReferenceNormalizer — idempotent, no triple-encoding
+$screens = ['VCR Home Page', 'VCR Admin Screen', 'VCR / VCN Form'];
+$navDup = "Navigate('VCR Home Page'.'VCR Home Page', ScreenTransition.Fade)";
+$navOnce = \PowerSweeper\ScreenReferenceNormalizer::normalize($navDup, $screens);
+$navTwice = \PowerSweeper\ScreenReferenceNormalizer::normalize($navOnce, $screens);
+$navThrice = \PowerSweeper\ScreenReferenceNormalizer::normalize($navTwice, $screens);
+assert_true($navOnce === "Navigate('VCR Home Page', ScreenTransition.Fade)", 'Navigate collapses Screen.Screen');
+assert_true($navTwice === $navOnce && $navThrice === $navOnce, 'Navigate normalize is idempotent');
+
+$merged = "'VCR 'VCR Home Page'.Admin Screen'";
+$mergedFixed = \PowerSweeper\ScreenReferenceNormalizer::normalize($merged, $screens);
+assert_true($mergedFixed === "'VCR Admin Screen'", 'merged corruption literal repaired');
+assert_true(
+    \PowerSweeper\ScreenReferenceNormalizer::normalize($mergedFixed, $screens) === $mergedFixed,
+    'merged literal repair is idempotent'
+);
+
+$cross = "'VCR Home Page'.'VCR Home Page'.SubmitButton";
+$crossFixed = \PowerSweeper\ScreenReferenceNormalizer::normalize($cross, $screens);
+assert_true($crossFixed === "'VCR Home Page'.SubmitButton", 'member chain collapses repeated screen');
+assert_true(
+    \PowerSweeper\ScreenReferenceNormalizer::normalize($crossFixed, $screens) === $crossFixed,
+    'member chain normalize is idempotent'
+);
+
+$numeric = "'VCR / VCN Form'.8_Pertinence";
+$numericFixed = \PowerSweeper\ScreenReferenceNormalizer::normalize($numeric, $screens);
+assert_true($numericFixed === "'VCR / VCN Form'.'8_Pertinence'", 'numeric control member quoted once');
+assert_true(
+    \PowerSweeper\ScreenReferenceNormalizer::normalize($numericFixed, $screens) === $numericFixed,
+    'numeric member quote is idempotent'
+);
+
+// FormulaReferenceExtractor — single-quoted screen names are opaque tokens
+$extracted = \PowerSweeper\FormulaReferenceExtractor::identifiers("Navigate('VCR Admin Screen', x)");
+assert_true(in_array('VCR Admin Screen', $extracted, true), 'extracts quoted screen name');
+assert_true(!in_array('Admin', $extracted, true) && !in_array('Screen', $extracted, true), 'does not split inside quoted screen name');
+
+// FormulaIdentifierRewriter — does not rewrite inside double-quoted strings
+$rewritten = FormulaIdentifierRewriter::rename(
+    'Notify("VCR Home Page is ready", NotificationType.Information)',
+    ['VCR Home Page' => "'VCR Home Page'.'VCR Home Page'"]
+);
+assert_true($rewritten === 'Notify("VCR Home Page is ready", NotificationType.Information)', 'rewriter leaves string literals alone');
+
 $repaired16 = dirname(__DIR__) . '/samples/import_debug/CDLS_L_VCR_App_16.repaired.msapp';
 if (is_file($repaired16)) {
     $archive = new \PowerSweeper\MsappArchive($repaired16);
@@ -791,6 +836,63 @@ $repairHopIds = array_column($repairStudio['hops'], 'id');
 assert_true(in_array('repair_delegation', $repairHopIds, true), 'repair_studio_errors includes repair_delegation');
 assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'repair_studio_errors includes regenerate_sarif');
 assert_true(in_array('repair_control_refs', $repairHopIds, true), 'repair_studio_errors includes repair_control_refs');
+
+// repair2.msapp — pipeline idempotency (3 passes, formulas stable)
+$repair2 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
+if (is_file($repair2)) {
+    $idempotentOut = sys_get_temp_dir() . '/ps_idempotent_' . bin2hex(random_bytes(4)) . '.msapp';
+    $repairProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
+    (new Pipeline())->run($repair2, $repairProfile['hops'], $idempotentOut);
+    $pass1Formulas = [];
+    $arch1 = new \PowerSweeper\MsappArchive($idempotentOut);
+    $arch1->unpack();
+    foreach ($arch1->documents() as $doc) {
+        $doc->transformFormulas(function (string $formula, string $path) use (&$pass1Formulas): string {
+            $pass1Formulas[$path] = $formula;
+            return $formula;
+        });
+    }
+    $live1 = \PowerSweeper\StudioLiveChecker::check($arch1->documents(), ['extract_dir' => $arch1->extractDir()]);
+    $arch1->cleanup();
+
+    $pass2Out = sys_get_temp_dir() . '/ps_idempotent_p2_' . bin2hex(random_bytes(4)) . '.msapp';
+    (new Pipeline())->run($idempotentOut, $repairProfile['hops'], $pass2Out);
+    $pass2Formulas = [];
+    $arch2 = new \PowerSweeper\MsappArchive($pass2Out);
+    $arch2->unpack();
+    foreach ($arch2->documents() as $doc) {
+        $doc->transformFormulas(function (string $formula, string $path) use (&$pass2Formulas): string {
+            $pass2Formulas[$path] = $formula;
+            return $formula;
+        });
+    }
+    $live2 = \PowerSweeper\StudioLiveChecker::check($arch2->documents(), ['extract_dir' => $arch2->extractDir()]);
+    $arch2->cleanup();
+
+    $pass3Out = sys_get_temp_dir() . '/ps_idempotent_p3_' . bin2hex(random_bytes(4)) . '.msapp';
+    (new Pipeline())->run($pass2Out, $repairProfile['hops'], $pass3Out);
+    $pass3Formulas = [];
+    $arch3 = new \PowerSweeper\MsappArchive($pass3Out);
+    $arch3->unpack();
+    foreach ($arch3->documents() as $doc) {
+        $doc->transformFormulas(function (string $formula, string $path) use (&$pass3Formulas): string {
+            $pass3Formulas[$path] = $formula;
+            return $formula;
+        });
+    }
+    $live3 = \PowerSweeper\StudioLiveChecker::check($arch3->documents(), ['extract_dir' => $arch3->extractDir()]);
+    $arch3->cleanup();
+
+    assert_true($live1['total'] === 0, 'repair2 pass1 live checker zero (got ' . $live1['total'] . ')');
+    assert_true($live2['total'] === 0, 'repair2 pass2 live checker zero (got ' . $live2['total'] . ')');
+    assert_true($live3['total'] === 0, 'repair2 pass3 live checker zero (got ' . $live3['total'] . ')');
+    assert_true($pass1Formulas === $pass2Formulas, 'repair2 formulas stable after pass 2');
+    assert_true($pass2Formulas === $pass3Formulas, 'repair2 formulas stable after pass 3');
+
+    @unlink($idempotentOut);
+    @unlink($pass2Out);
+    @unlink($pass3Out);
+}
 
 echo "\n";
 if ($failed > 0) {

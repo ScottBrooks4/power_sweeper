@@ -5,6 +5,9 @@ declare(strict_types=1);
 /**
  * Combined pass for Studio App checker errors seen after locale/language switches
  * and screen duplication (CDLS VCR App class).
+ *
+ * repair_double_qualified_refs bookends repair_control_refs: pre-clean existing
+ * corruption, then a final pass for App-level formulas and any edge cases.
  */
 return [
     'description' => 'Full Studio App checker repair for VCR-class apps: locale separators, control/SharePoint refs, booleans, accessibility, maintainability, delegation, and live SARIF regeneration.',

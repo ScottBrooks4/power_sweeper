@@ -8,7 +8,9 @@ use PowerSweeper\AppControlCatalog;
 use PowerSweeper\ControlDocument;
 use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaReferenceExtractor;
+use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\Report;
+use PowerSweeper\ScreenReferenceNormalizer;
 
 /**
  * Repair stale suffixed control names (Foo_1 -> Foo), cross-screen copy-paste refs,
@@ -44,6 +46,7 @@ final class RepairControlRefsHop implements HopInterface
     public function apply(array $documents, Report $report, array $options = []): void
     {
         $catalog = AppControlCatalog::build($documents);
+        $screens = $catalog->screenNames();
 
         foreach ($documents as $doc) {
             $screen = $catalog->screenForDocument($doc);
@@ -51,12 +54,10 @@ final class RepairControlRefsHop implements HopInterface
                 continue;
             }
 
-            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $report): string {
+            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $report): string {
                 $map = $this->buildRenameMap($formula, $screen, $catalog);
-                if ($map === []) {
-                    return $formula;
-                }
-                $new = $this->applyRenameMap($formula, $map);
+                $new = $map === [] ? $formula : $this->applyRenameMap($formula, $map, $catalog);
+                $new = ScreenReferenceNormalizer::normalize($new, $screens);
                 if ($new !== $formula) {
                     $report->add(
                         self::id(),
@@ -66,6 +67,7 @@ final class RepairControlRefsHop implements HopInterface
                         self::preview($new)
                     );
                 }
+
                 return $new;
             });
         }
@@ -109,7 +111,7 @@ final class RepairControlRefsHop implements HopInterface
             }
 
             $resolved = $catalog->resolveIdentifier($screen, $id);
-            if ($resolved !== null && $resolved !== $id) {
+            if ($resolved !== null && $resolved !== $id && !$this->wouldOverQualifyScreen($catalog, $id, $resolved)) {
                 $map[$id] = $resolved;
             }
         }
@@ -120,30 +122,51 @@ final class RepairControlRefsHop implements HopInterface
     /**
      * @param array<string, string> $map
      */
-    private function applyRenameMap(string $formula, array $map): string
+    private function applyRenameMap(string $formula, array $map, AppControlCatalog $catalog): string
     {
-        $new = $formula;
-        // Quoted control names ('2_Requesting_1') must be rewritten before bare identifiers.
         uksort($map, static fn(string $a, string $b): int => strlen($b) <=> strlen($a));
+        $filtered = [];
         foreach ($map as $old => $replacement) {
-            $quotedOld = "'" . str_replace("'", "''", $old) . "'";
-            if (str_contains($replacement, '.')) {
-                $quotedNew = $replacement;
-            } else {
-                $quotedNew = "'" . str_replace("'", "''", $replacement) . "'";
+            if ($this->wouldOverQualifyScreen($catalog, $old, $replacement)) {
+                continue;
             }
-            if (str_contains($new, $quotedOld)) {
-                $new = str_replace($quotedOld, $quotedNew, $new);
-            }
-            if (str_contains($replacement, '.')) {
-                $resetPattern = '/Reset\s*\(\s*' . preg_quote($quotedOld, '/') . '\s*\)/i';
-                $replaced = preg_replace($resetPattern, 'Reset(' . $replacement . ')', $new);
-                if (is_string($replaced)) {
-                    $new = $replaced;
+            $filtered[$old] = $replacement;
+        }
+        if ($filtered === []) {
+            return $formula;
+        }
+
+        $parts = PowerFxFormulaSegments::split($formula);
+        $out = '';
+        foreach ($parts as [$type, $text]) {
+            if ($type === 'code') {
+                foreach ($filtered as $old => $replacement) {
+                    if (!str_contains($replacement, '.')) {
+                        continue;
+                    }
+                    $quotedOld = "'" . str_replace("'", "''", $old) . "'";
+                    $resetPattern = '/Reset\s*\(\s*' . preg_quote($quotedOld, '/') . '\s*\)/i';
+                    $replaced = preg_replace($resetPattern, 'Reset(' . $replacement . ')', $text);
+                    if (is_string($replaced)) {
+                        $text = $replaced;
+                    }
                 }
             }
+            $out .= $text;
         }
-        return FormulaIdentifierRewriter::rename($new, $map);
+
+        return FormulaIdentifierRewriter::rename($out, $filtered);
+    }
+
+    private function wouldOverQualifyScreen(AppControlCatalog $catalog, string $old, string $replacement): bool
+    {
+        if (!$catalog->isScreenName($old)) {
+            return false;
+        }
+
+        $canonical = $catalog->quoteScreen($old);
+
+        return $replacement !== $canonical && str_contains($replacement, '.');
     }
 
     private static function preview(string $s): string
