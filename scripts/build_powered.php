@@ -33,10 +33,14 @@ $arch = new PowerSweeper\MsappArchive($output);
 $arch->unpack();
 $live = PowerSweeper\StudioLiveChecker::check($arch->documents(), ['extract_dir' => $arch->extractDir()]);
 $hasTheme = false;
+$themeRadioWired = false;
 foreach ($arch->documents() as $doc) {
     foreach ($doc->controls() as $c) {
         if ($c->isApp() && str_contains((string) $c->getProperty('OnStart'), 'gblThemeLight')) {
             $hasTheme = true;
+        }
+        if ($c->name === 'ThemeRadio' && str_contains((string) $c->getProperty('OnChange'), 'gblThemeDark')) {
+            $themeRadioWired = true;
         }
     }
 }
@@ -45,3 +49,4 @@ $arch->cleanup();
 echo "Built: {$output}\n";
 echo "Live checker total: {$live['total']}\n";
 echo "Theme palettes in App.OnStart: " . ($hasTheme ? 'yes' : 'no') . "\n";
+echo "ThemeRadio wired: " . ($themeRadioWired ? 'yes' : 'no') . "\n";

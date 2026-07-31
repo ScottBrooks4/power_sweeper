@@ -931,10 +931,17 @@ assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'repair_studi
 $syntaxIn = 'Concatenate(If(true, "a", ""), If(true, "b", ""), If(true, "c", ""),); Set(x, varNewRequest);';
 $syntaxFixed = \PowerSweeper\PowerFxFormulaSegments::transformCode($syntaxIn, static function (string $code): string {
     $code = preg_replace('/""\s*,\s*\)/', '"")', $code) ?? $code;
+    $code = preg_replace('/\)\s*,\s*\)/', '))', $code) ?? $code;
     return preg_replace('/\bvarNewRequest\b/', 'false', $code) ?? $code;
+});
+$syntaxInParen = 'Concatenate(If(true, "a", ""), If(true, "b", ""), If(true, "c", ""),)';
+$syntaxFixedParen = \PowerSweeper\PowerFxFormulaSegments::transformCode($syntaxInParen, static function (string $code): string {
+    $code = preg_replace('/\)\s*,\s*\)/', '))', $code) ?? $code;
+    return $code;
 });
 assert_true(!str_contains($syntaxFixed, 'varNewRequest'), 'syntax repair removes varNewRequest');
 assert_true(!preg_match('/""\s*,\s*\)/', $syntaxFixed), 'syntax repair removes trailing Concatenate comma');
+assert_true(!preg_match('/\)\s*,\s*\)/', $syntaxFixedParen), 'syntax repair removes trailing Concatenate paren comma');
 
 // repair2.msapp — pipeline idempotency (3 passes, formulas stable)
 $repair2 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
@@ -991,6 +998,22 @@ if (is_file($repair2)) {
     @unlink($idempotentOut);
     @unlink($pass2Out);
     @unlink($pass3Out);
+}
+
+// repair2 powered — theme toggle + App YAML twin
+$repair2PoweredProfile = include dirname(__DIR__) . '/profiles/repair_powered.php';
+if (is_file($repair2)) {
+    $poweredTestOut = sys_get_temp_dir() . '/ps_powered_test_' . bin2hex(random_bytes(4)) . '.msapp';
+    (new Pipeline())->run($repair2, $repair2PoweredProfile['hops'], $poweredTestOut);
+    $poweredYaml = ZipTool::readEntry($poweredTestOut, 'Src/App.pa.yaml');
+    $topbarYaml = ZipTool::readEntry($poweredTestOut, 'Src/Components/TopbarHeader.pa.yaml');
+    $homeYaml = ZipTool::readEntry($poweredTestOut, 'Src/VCR Home Page.pa.yaml');
+    assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'gblThemeLight'), 'repair2 powered App.pa.yaml has theme palettes');
+    assert_true(is_string($topbarYaml) && str_contains($topbarYaml, 'gblTheme.Surface'), 'TopbarHeader uses gblTheme.Surface');
+    assert_true(is_string($topbarYaml) && str_contains($topbarYaml, 'gblDarkMode'), 'ThemeRadio DefaultSelectedItems binds gblDarkMode');
+    assert_true(is_string($topbarYaml) && str_contains($topbarYaml, 'gblThemeDark'), 'ThemeRadio OnChange swaps gblThemeDark');
+    assert_true(is_string($homeYaml) && preg_match('/GoodMorning:[\s\S]*?Color:\s*=gblTheme\.Text/m', $homeYaml) === 1, 'GoodMorning label gets gblTheme.Text');
+    @unlink($poweredTestOut);
 }
 
 echo "\n";

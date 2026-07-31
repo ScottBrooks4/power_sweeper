@@ -83,7 +83,10 @@ final class EnableDarkModeHop implements HopInterface
         'RadioBackgroundFill',
         'RadioBorderColor',
         'LoadingSpinnerColor',
+        'FontColor',
     ];
+
+    private const LEGACY_SURFACE = 'DefaultGrayBackgroud';
 
     public static function id(): string
     {
@@ -167,20 +170,25 @@ final class EnableDarkModeHop implements HopInterface
         ksort($palette);
 
         $app = $this->findApp($documents);
-        if ($app !== null) {
-            $before = (string) ($app->getProperty('OnStart') ?? '');
+        $apps = $this->findAllApps($documents);
+        if ($apps !== []) {
             $block = $this->buildThemeBlock($var, $theme, $themeLight, $themeDark, $palette);
-            $after = $this->upsertThemeBlock($before, $block, $app->format === 'yaml');
-            if ($after !== $before) {
-                $app->setProperty('OnStart', $after);
-                $report->add(
-                    self::id(),
-                    $app->path,
-                    'OnStart',
-                    $before !== '' ? self::preview($before) : '(empty)',
-                    'theme palette ' . $themeLight . '/' . $themeDark . '/' . $theme . ' (' . count($palette) . ' tokens)'
-                );
+            foreach ($apps as $appControl) {
+                $before = (string) ($appControl->getProperty('OnStart') ?? '');
+                $after = $this->upsertThemeBlock($before, $block, $appControl->format === 'yaml');
+                if ($after !== $before) {
+                    $appControl->setProperty('OnStart', $after);
+                    $report->add(
+                        self::id(),
+                        $appControl->path,
+                        'OnStart',
+                        $before !== '' ? self::preview($before) : '(empty)',
+                        'theme palette ' . $themeLight . '/' . $themeDark . '/' . $theme . ' (' . count($palette) . ' tokens)'
+                    );
+                }
             }
+        } elseif ($app !== null) {
+            $report->add(self::id(), $app->path, 'OnStart', '(missing theme inject target)', 'skipped palette inject');
         } else {
             $report->add(self::id(), '(app)', 'OnStart', '(missing App control)', 'skipped palette inject — add an App control to edit theme tokens');
         }
@@ -196,6 +204,14 @@ final class EnableDarkModeHop implements HopInterface
                     if (str_contains($screen->path, $doc->relativePath) || str_starts_with($screen->path, $doc->relativePath)) {
                         $doc->reindex();
                     }
+                }
+            }
+        }
+
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($this->isThemeRadio($control)) {
+                    $this->wireThemeRadio($control, $var, $theme, $themeLight, $themeDark, $report);
                 }
             }
         }
@@ -278,6 +294,71 @@ final class EnableDarkModeHop implements HopInterface
                 }
             }
         }
+
+        // Pass 4: replace legacy DefaultGrayBackgroud surfaces with theme token
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                foreach (self::COLOR_PROPERTIES as $prop) {
+                    $from = $control->getProperty($prop);
+                    if ($from === null || !str_contains($from, self::LEGACY_SURFACE)) {
+                        continue;
+                    }
+                    $to = $this->themeFormula($control, $theme, 'Surface');
+                    if ($to === $from) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, $from, $to);
+                }
+            }
+        }
+
+        // Pass 5: labels/text without explicit Color inherit theme foreground
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$this->isTextControl($control)) {
+                    continue;
+                }
+                $from = $control->getProperty('Color');
+                if ($from !== null && trim($from) !== '') {
+                    continue;
+                }
+                $to = $this->themeFormula($control, $theme, 'Text');
+                $control->setProperty('Color', $to);
+                $report->add(self::id(), $control->path, 'Color', '(unset)', $to);
+            }
+        }
+
+        // Pass 6: input surfaces (white / legacy gray fills) use InputFill token
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$this->isInputControl($control)) {
+                    continue;
+                }
+                $from = $control->getProperty('Fill');
+                if ($from !== null && $this->alreadyThemed($from, $var, $theme)) {
+                    continue;
+                }
+                $useToken = 'InputFill';
+                if ($from !== null && trim($from) !== '') {
+                    if (str_contains($from, self::LEGACY_SURFACE)) {
+                        $useToken = 'Surface';
+                    } else {
+                        $parsed = ColorValue::parse($from);
+                        $isWhite = $parsed !== null && ColorValue::luminance($parsed) >= 0.92;
+                        if (!$isWhite && !preg_match('/^[=]?\s*Color\.White\b/i', trim($from))) {
+                            continue;
+                        }
+                    }
+                }
+                $to = $this->themeFormula($control, $theme, $useToken);
+                if ($to === $from) {
+                    continue;
+                }
+                $control->setProperty('Fill', $to);
+                $report->add(self::id(), $control->path, 'Fill', $from ?? '(unset)', $to);
+            }
+        }
     }
 
     /**
@@ -347,14 +428,38 @@ final class EnableDarkModeHop implements HopInterface
     /** @param list<ControlDocument> $documents */
     private function findApp(array $documents): ?ControlNode
     {
+        $apps = $this->findAllApps($documents);
+        return $apps[0] ?? null;
+    }
+
+    /** @param list<ControlDocument> $documents
+     * @return list<ControlNode>
+     */
+    private function findAllApps(array $documents): array
+    {
+        $apps = [];
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
                 if ($control->isApp()) {
-                    return $control;
+                    $apps[] = $control;
                 }
             }
         }
-        return null;
+
+        usort($apps, static function (ControlNode $a, ControlNode $b): int {
+            $score = static function (ControlNode $c): int {
+                if (str_contains($c->path, 'Src/App.')) {
+                    return 0;
+                }
+                if (str_contains($c->path, 'Controls/')) {
+                    return 1;
+                }
+                return 2;
+            };
+            return $score($a) <=> $score($b);
+        });
+
+        return $apps;
     }
 
     /** @param list<ControlDocument> $documents */
@@ -426,6 +531,78 @@ final class EnableDarkModeHop implements HopInterface
             $toggle->setProperty('OnUncheck', $unTo);
             $report->add(self::id(), $toggle->path, 'OnUncheck', $beforeUn !== '' ? $beforeUn : '(empty)', $unTo);
         }
+    }
+
+    private function wireThemeRadio(
+        ControlNode $radio,
+        string $var,
+        string $theme,
+        string $themeLight,
+        string $themeDark,
+        Report $report
+    ): void {
+        $onChangeBody = 'If(Self.Selected.Value = "Dark", Set(' . $var . ', true); Set(' . $theme . ', ' . $themeDark . '), Set(' . $var . ', false); Set(' . $theme . ', ' . $themeLight . '))';
+        $defaultBody = 'If(' . $var . ', ["Dark"], ["Light"])';
+
+        $beforeOnChange = (string) ($radio->getProperty('OnChange') ?? '');
+        $onChangeTrim = trim(ltrim($beforeOnChange, '='));
+        if ($onChangeTrim === '' || $onChangeTrim === 'false' || !str_contains($beforeOnChange, $themeDark)) {
+            $onChangeTo = $radio->format === 'yaml' ? '=' . $onChangeBody : $onChangeBody;
+            $radio->setProperty('OnChange', $onChangeTo);
+            $report->add(self::id(), $radio->path, 'OnChange', $beforeOnChange !== '' ? $beforeOnChange : '(empty)', $onChangeTo);
+        }
+
+        $beforeDefault = (string) ($radio->getProperty('DefaultSelectedItems') ?? '');
+        if (!str_contains($beforeDefault, $var)) {
+            $defaultTo = $radio->format === 'yaml' ? '=' . $defaultBody : $defaultBody;
+            $radio->setProperty('DefaultSelectedItems', $defaultTo);
+            $report->add(self::id(), $radio->path, 'DefaultSelectedItems', $beforeDefault !== '' ? $beforeDefault : '(empty)', $defaultTo);
+        }
+
+        $fontColorTo = $this->themeFormula($radio, $theme, 'Text');
+        $beforeFont = (string) ($radio->getProperty('FontColor') ?? '');
+        $fontTrim = trim(ltrim($beforeFont, '='));
+        if ($fontTrim === '' || $fontTrim === '""') {
+            $radio->setProperty('FontColor', $fontColorTo);
+            $report->add(self::id(), $radio->path, 'FontColor', $beforeFont !== '' ? $beforeFont : '(unset)', $fontColorTo);
+        }
+    }
+
+    private function isThemeRadio(ControlNode $control): bool
+    {
+        if (!str_contains(strtolower($control->type), 'radio')) {
+            return false;
+        }
+        if (str_contains(strtolower($control->name), 'theme')) {
+            return true;
+        }
+        $items = strtolower((string) ($control->getProperty('Items') ?? ''));
+        return str_contains($items, 'light') && str_contains($items, 'dark');
+    }
+
+    private function isTextControl(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+        if (str_contains($t, 'label') || str_contains($t, 'htmltext')) {
+            return true;
+        }
+        return str_contains($t, 'text') && !str_contains($t, 'textinput') && !str_contains($t, 'richtext');
+    }
+
+    private function isInputControl(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+        foreach (['textinput', 'combobox', 'dropdown', 'datepicker', 'richtexteditor'] as $needle) {
+            if (str_contains($t, $needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function themeFormula(ControlNode $control, string $theme, string $token): string
+    {
+        return $control->format === 'yaml' ? '=' . $theme . '.' . $token : $theme . '.' . $token;
     }
 
     /** @param list<ControlDocument> $documents */

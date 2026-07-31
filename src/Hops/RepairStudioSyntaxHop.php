@@ -79,6 +79,13 @@ final class RepairStudioSyntaxHop implements HopInterface
                 $changed = true;
             }
 
+            $replaced = preg_replace('/\)\s*,\s*\)/', '))', $new);
+            if ($replaced !== null && $replaced !== $new) {
+                $report->add(self::id(), $path, 'Concatenate', 'trailing ),)', '(fixed)');
+                $new = $replaced;
+                $changed = true;
+            }
+
             $replaced = preg_replace('/\bvarNewRequest\b/', 'false', $new);
             if ($replaced !== null && $replaced !== $new) {
                 $report->add(self::id(), $path, 'varNewRequest', '(undefined)', 'false');
