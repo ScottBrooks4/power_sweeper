@@ -10,10 +10,21 @@ use PowerSweeper\Hops\AnalyzeAppCheckerHop;
 use PowerSweeper\Hops\CorrelateSharePointHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
+use PowerSweeper\Hops\EnsureTabIndexHop;
 use PowerSweeper\Hops\HopInterface;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
+use PowerSweeper\Hops\RepairControlRefsHop;
+use PowerSweeper\Hops\RepairDelegationHop;
+use PowerSweeper\Hops\RepairDoubleQualifiedRefsHop;
+use PowerSweeper\Hops\RepairGhostPatchFieldsHop;
+use PowerSweeper\Hops\RepairMaintainabilityHop;
+use PowerSweeper\Hops\RepairSharePointFieldsHop;
+use PowerSweeper\Hops\RepairStudioSyntaxHop;
+use PowerSweeper\Hops\RegenerateSarifHop;
+use PowerSweeper\Hops\RepairVarCurrentPackageHop;
+use PowerSweeper\Hops\ScanStudioIssuesHop;
 use PowerSweeper\Hops\SetZipPathStyleHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
@@ -35,7 +46,18 @@ final class HopRegistry
             TooltipFromLabelHop::class,
             UnwhackLocaleFormulasHop::class,
             RepairCheckedBooleansHop::class,
+            RepairControlRefsHop::class,
+            RepairDelegationHop::class,
+            RepairDoubleQualifiedRefsHop::class,
+            RepairGhostPatchFieldsHop::class,
+            RepairMaintainabilityHop::class,
+            RepairSharePointFieldsHop::class,
+            RepairVarCurrentPackageHop::class,
+            RepairStudioSyntaxHop::class,
             EnsureFocusVisibleHop::class,
+            EnsureTabIndexHop::class,
+            ScanStudioIssuesHop::class,
+            RegenerateSarifHop::class,
             AnalyzeAppCheckerHop::class,
             EnableDarkModeHop::class,
             CorrelateSharePointHop::class,

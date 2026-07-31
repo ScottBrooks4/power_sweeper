@@ -63,6 +63,7 @@ $basePath = $basePath === '' ? '' : $basePath;
           <option value="">Custom sequence</option>
           <?php foreach ($profiles as $profile): ?>
             <option value="<?= htmlspecialchars($profile['id'], ENT_QUOTES) ?>"
+              title="<?= htmlspecialchars($profile['description'], ENT_QUOTES) ?>"
               data-hops="<?= htmlspecialchars(json_encode($profile['hops'], JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
               <?= htmlspecialchars($profile['id']) ?>
             </option>

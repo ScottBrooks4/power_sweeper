@@ -38,32 +38,36 @@ final class FormulaLocaleNormalizer
             return true;
         }
 
-        // Function / record args separated with ; instead of , (check unmasked — color blobs use ; legitimately only after mask)
+        // Function / record args separated with ; instead of ,
         // e.g. RGBA(255; 255; 255; 1), If(a; b; c), ParseJSON(x; y), LookUp(t; c; f)
-        if (preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $s)) {
+        if (preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $masked)) {
+            return true;
+        }
+
+        // LookUp('Table'; ID = 1) — locale list sep after a quoted datasource arg
+        if (preg_match("/'(?:[^']|'')+'\\s*;/", $masked)) {
             return true;
         }
 
         // Record / table field separators: { Name: "x"; Amount: 1 }
-        if (preg_match('/\{[^}"\']*;/', $s)) {
+        if (preg_match('/\{[^}"\']*;/', $masked)) {
             return true;
         }
 
-        // Decimal comma numbers: 12,5 or 12.345,67 or Parent.Width * 0,5
+        // German-style thousands + decimal: 12.345,67
         if (preg_match('/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/', $masked)) {
             return true;
         }
-        if (preg_match('/(?<![A-Za-z_.])\d+,\d+/', $masked)) {
+
+        // Standalone decimal comma (0,5 / 12,5), but NOT compact invariant lists
+        // like RGBA(0,0,0,0) which are comma-separated numeric args (3+ numbers).
+        if (self::hasStandaloneDecimalComma($masked)) {
             return true;
         }
 
-        // Prior unwhack bug: RGBA(0,0,0,0) → RGBA(0.0,0.0)
-        if (preg_match('/\bRGBA?\(\s*\d+\.\d+\s*,\s*\d+\.\d+\s*\)/i', $s)) {
-            return true;
-        }
-
-        // Locale-broken RGBA alpha: RGBA(240, 240, 240, 0,2)
-        if (preg_match('/\bRGBA?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)/i', $s)) {
+        // Half-converted color alphas: RGBA(240, 240, 240, 0,2) or RGBA(119, 119, 119, ,4)
+        // Studio reports these as Invalid number of arguments / Expected operator.
+        if (self::hasBrokenColorAlpha($masked)) {
             return true;
         }
 
@@ -93,8 +97,11 @@ final class FormulaLocaleNormalizer
         if ($force && !self::looksLocaleCorrupted($formula)) {
             $masked = self::maskProtected($body);
             $hasSignal = str_contains($masked, ';;')
-                || preg_match('/(?<![A-Za-z_.])\d+,\d+/', $masked)
+                || self::hasStandaloneDecimalComma($masked)
+                || self::hasBrokenColorAlpha($masked)
+                || preg_match('/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/', $masked)
                 || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $masked)
+                || preg_match("/'(?:[^']|'')+'\\s*;/", $masked)
                 || preg_match('/\{[^}"\']*;/', $masked);
             if (!$hasSignal) {
                 return $formula;
@@ -122,18 +129,7 @@ final class FormulaLocaleNormalizer
 
     private static function convertCodeSegment(string $code): string
     {
-        [$code, $colorBlobs] = self::maskColorFunctions($code);
-
-        // 1) Chaining ;; → placeholder
-        $code = str_replace(';;', "\x00CHAIN\x00", $code);
-
-        // 2) List separator ; → ,
-        $code = str_replace(';', ',', $code);
-
-        // 3) Restore chaining as ;
-        $code = str_replace("\x00CHAIN\x00", ';', $code);
-
-        // 4) German-style thousands + decimal: 12.345,67 → 12345.67
+        // 1) Thousands + decimal FIRST (while ';' still marks locale lists)
         $code = preg_replace_callback(
             '/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/',
             static function (array $m): string {
@@ -144,98 +140,117 @@ final class FormulaLocaleNormalizer
             $code
         ) ?? $code;
 
-        // Plain decimal comma: 12,5 / 0,5 → 12.5 / 0.5 (never RGBA/RGB list commas — masked above)
+        // 2) Standalone decimal commas BEFORE ';' → ',' (critical ordering).
+        //    Otherwise RGBA(0;0;0;1) becomes RGBA(0,0,0,1) then wrongly RGBA(0.0,0.0).
+        $code = self::convertStandaloneDecimalCommas($code);
+
+        // 3) Chaining ;; → placeholder
+        $code = str_replace(';;', "\x00CHAIN\x00", $code);
+
+        // 4) List separator ; → ,
+        $code = str_replace(';', ',', $code);
+
+        // 5) Restore chaining as ;
+        $code = str_replace("\x00CHAIN\x00", ';', $code);
+
+        // 6) Half-converted color alphas BEFORE collapsing empty ,, 
+        //    (RGBA(119, 119, 119, ,4) must become 0.4, not lose the empty slot).
+        $code = self::repairBrokenColorAlpha($code);
+
+        // 7) Studio double-comma bug (empty args)
+        $code = preg_replace('/,(?=\s*,)/', '', $code) ?? $code;
+
+        return $code;
+    }
+
+    /**
+     * Detect RGBA/ColorFade-style calls where locale alpha survived as an extra
+     * list arg: RGBA(r, g, b, 0,2) or RGBA(r, g, b, ,4).
+     */
+    private static function hasBrokenColorAlpha(string $masked): bool
+    {
+        return preg_match(
+            '/\bRGBA?\s*\(\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*\d+\s*,\s*\d+\s*\)/i',
+            $masked
+        ) === 1
+            || preg_match(
+                '/\bRGBA?\s*\(\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*,\s*\d+\s*\)/i',
+                $masked
+            ) === 1;
+    }
+
+    /**
+     * RGBA(240, 240, 240, 0,2) → RGBA(240, 240, 240, 0.2)
+     * RGBA(119, 119, 119, ,4) → RGBA(119, 119, 119, 0.4)
+     */
+    private static function repairBrokenColorAlpha(string $code): string
+    {
+        $code = preg_replace_callback(
+            '/\b(RGBA?)\s*\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i',
+            static function (array $m): string {
+                return sprintf('%s(%s, %s, %s, %s.%s)', $m[1], $m[2], $m[3], $m[4], $m[5], $m[6]);
+            },
+            $code
+        ) ?? $code;
+
+        $code = preg_replace_callback(
+            '/\b(RGBA?)\s*\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*,\s*(\d+)\s*\)/i',
+            static function (array $m): string {
+                return sprintf('%s(%s, %s, %s, 0.%s)', $m[1], $m[2], $m[3], $m[4], $m[5]);
+            },
+            $code
+        ) ?? $code;
+
+        return $code;
+    }
+
+    /**
+     * True when masked code has a decimal comma that is not just a multi-arg
+     * numeric list (RGBA(0,0,0,1), etc.).
+     */
+    private static function hasStandaloneDecimalComma(string $masked): bool
+    {
+        $withoutLists = preg_replace(
+            '/(?<![A-Za-z_.])\d+(?:\s*,\s*\d+){2,}/',
+            ' ',
+            $masked
+        ) ?? $masked;
+
+        return preg_match('/(?<![A-Za-z_.])\d+,\d+/', $withoutLists) === 1;
+    }
+
+    /**
+     * Convert 12,5 → 12.5 while leaving comma-separated numeric lists intact.
+     */
+    private static function convertStandaloneDecimalCommas(string $code): string
+    {
+        $protected = [];
+        $code = preg_replace_callback(
+            '/(?<![A-Za-z_.])\d+(?:\s*,\s*\d+){2,}/',
+            static function (array $m) use (&$protected): string {
+                $key = "\x00NUMLIST" . count($protected) . "\x00";
+                $protected[$key] = $m[0];
+                return $key;
+            },
+            $code
+        ) ?? $code;
+
         $code = preg_replace_callback(
             '/(?<![A-Za-z_.])\d+,\d+(?!\d)/',
             static fn(array $m): string => str_replace(',', '.', $m[0]),
             $code
         ) ?? $code;
 
-        // Studio double-comma bug
-        $code = preg_replace('/,(?=\s*,)/', '', $code) ?? $code;
-
-        return self::unmaskColorFunctions($code, $colorBlobs);
-    }
-
-    /**
-     * Mask RGBA/RGB/ColorFade/ColorValue calls so list commas are not treated as decimal commas.
-     *
-     * @return array{0:string,1:array<string,string>}
-     */
-    private static function maskColorFunctions(string $code): array
-    {
-        $store = [];
-        $out = '';
-        $len = strlen($code);
-        $i = 0;
-
-        while ($i < $len) {
-            if (!preg_match('/\b(RGBA|RGB|ColorFade|ColorValue)\s*\(/i', $code, $m, PREG_OFFSET_CAPTURE, $i)) {
-                $out .= substr($code, $i);
-                break;
-            }
-
-            $start = $m[0][1];
-            $out .= substr($code, $i, $start - $i);
-            $open = strpos($code, '(', $start);
-            if ($open === false) {
-                $out .= substr($code, $start);
-                break;
-            }
-
-            $depth = 0;
-            $j = $open;
-            while ($j < $len) {
-                $ch = $code[$j];
-                if ($ch === '(') {
-                    $depth++;
-                } elseif ($ch === ')') {
-                    $depth--;
-                    if ($depth === 0) {
-                        $j++;
-                        break;
-                    }
-                }
-                $j++;
-            }
-
-            $blob = substr($code, $start, $j - $start);
-            $key = "\x00CF" . count($store) . "\x00";
-            $store[$key] = self::normalizeMaskedColorFunction($blob);
-            $out .= $key;
-            $i = $j;
+        if ($protected !== []) {
+            $code = str_replace(array_keys($protected), array_values($protected), $code);
         }
 
-        return [$out, $store];
-    }
-
-    /** @param array<string,string> $store */
-    private static function unmaskColorFunctions(string $code, array $store): string
-    {
-        foreach ($store as $key => $blob) {
-            $code = str_replace($key, $blob, $code);
-        }
         return $code;
-    }
-
-  /**
-     * Fix separators inside a single color function literal (locale ; lists, 0,2 alpha).
-     */
-    private static function normalizeMaskedColorFunction(string $blob): string
-    {
-        // Prior buggy unwhack: RGBA(0.0,0.0) → transparent black
-        if (preg_match('/^RGBA?\(\s*\d+\.\d+\s*,\s*\d+\.\d+\s*\)$/i', trim($blob))) {
-            return 'RGBA(0, 0, 0, 0)';
-        }
-
-        $inner = str_replace(';', ',', $blob);
-        return ColorValue::fixLocaleBrokenAlpha($inner);
     }
 
     private static function maskProtected(string $s): string
     {
-        [$masked,] = self::maskColorFunctions($s);
-        $parts = self::splitProtected($masked);
+        $parts = self::splitProtected($s);
         $out = '';
         foreach ($parts as [$type, $text]) {
             $out .= $type === 'code' ? $text : str_repeat(' ', strlen($text));

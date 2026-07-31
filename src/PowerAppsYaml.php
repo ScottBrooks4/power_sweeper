@@ -134,11 +134,12 @@ final class PowerAppsYaml
     {
         // Block: Key: '=formula'  or  Key: "=formula"
         $yaml = preg_replace_callback(
-            '/^(\\s*[A-Za-z0-9_.\\/-]+):\\s*(["\'])(=.*)\\2$/m',
+            '/^(\\s*)([A-Za-z0-9_.\\/-]+):\\s*(["\'])(=.*)\\3$/m',
             static function (array $m): string {
-                $key = $m[1];
-                $quote = $m[2];
-                $val = $m[3];
+                $indent = $m[1];
+                $key = $m[2];
+                $quote = $m[3];
+                $val = $m[4];
                 if ($quote === "'") {
                     $val = str_replace("''", "'", $val);
                 } else {
@@ -147,9 +148,13 @@ final class PowerAppsYaml
                 if (str_contains($val, "\n") || str_contains($val, "\r")) {
                     return $m[0];
                 }
+                // Colons in UpdateContext({x: 1}) break plain YAML scalars — use Studio block form.
+                if (self::needsBlockScalarFx($val)) {
+                    return $indent . $key . ": |-\n" . $indent . '  ' . $val;
+                }
                 // Values with leading quotes inside (Font.'Open Sans') are fine unquoted for PA
                 // when the whole value starts with =.
-                return $key . ': ' . $val;
+                return $indent . $key . ': ' . $val;
             },
             $yaml
         ) ?? $yaml;
@@ -169,8 +174,8 @@ final class PowerAppsYaml
                     // (embedded comma + colon already bounded by lookahead to , or })
                     $val = str_replace(['\\"', '\\n', '\\r', '\\\\'], ['"', "\n", "\r", '\\'], $val);
                 }
-                if (str_contains($val, "\n") || str_contains($val, "\r")) {
-                    // Multi-line formulas must stay quoted / block — leave original
+                if (str_contains($val, "\n") || str_contains($val, "\r") || self::needsBlockScalarFx($val)) {
+                    // Multi-line / colon-bearing formulas must stay quoted in flow maps
                     return $m[0];
                 }
                 return $prefix . $key . ': ' . $val;
@@ -182,5 +187,16 @@ final class PowerAppsYaml
         $yaml = preg_replace("/([\\s,{])'([A-Za-z][A-Za-z0-9_]*)':/", '$1$2:', $yaml) ?? $yaml;
 
         return $yaml;
+    }
+
+    /**
+     * Power Fx that is unsafe as a plain YAML scalar (Studio uses |- for these).
+     */
+    private static function needsBlockScalarFx(string $val): bool
+    {
+        return str_contains($val, ': ')
+            || str_contains($val, ":\t")
+            || str_contains($val, ' #')
+            || str_starts_with(ltrim($val, '='), '#');
     }
 }

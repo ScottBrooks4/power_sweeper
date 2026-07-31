@@ -31,6 +31,13 @@ VCRHomePage:
           Text: ="Confidential"
           Default: ="true"
           Checked: =0
+    - BulkFlag:
+        Control: Classic/CheckBox@2.0.0
+        Properties:
+          Text: ="Bulk"
+          # After locale unwhack this becomes If(..., 1, 0) — still not a boolean
+          Checked: =If(gblReady; 1; 0)
+          Visible: =1
     - HeaderHtml:
         Control: HtmlViewer@2.0.0
         Properties:

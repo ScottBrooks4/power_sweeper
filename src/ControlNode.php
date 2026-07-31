@@ -76,7 +76,7 @@ final class ControlNode
         return $this->getProperty($name) !== null;
     }
 
-    public function setProperty(string $name, string $value): void
+    public function setProperty(string $name, string $value, string $category = 'Data'): void
     {
         if ($this->format === 'yaml') {
             if (!is_array($this->node)) {
@@ -102,7 +102,7 @@ final class ControlNode
             }
             $node->Rules[] = (object) [
                 'Property' => $name,
-                'Category' => 'Data',
+                'Category' => $category,
                 'InvariantScript' => $this->stripEquals($value),
                 'RuleProviderType' => 'Unknown',
             ];
@@ -111,6 +111,45 @@ final class ControlNode
         }
 
         $node->{$name} = $value;
+        $this->touch();
+    }
+
+    public function getStyleName(): ?string
+    {
+        if ($this->format !== 'json' || !is_object($this->node)) {
+            return null;
+        }
+
+        return isset($this->node->StyleName) ? (string) $this->node->StyleName : null;
+    }
+
+    public function clearStyleName(): void
+    {
+        if ($this->format !== 'json' || !is_object($this->node)) {
+            return;
+        }
+        if (property_exists($this->node, 'StyleName')) {
+            unset($this->node->StyleName);
+            $this->touch();
+        }
+    }
+
+    /** YAML component/screen definition field outside Properties (e.g. AccessAppScope). */
+    public function getYamlDefinitionField(string $name): mixed
+    {
+        if ($this->format !== 'yaml' || !is_array($this->node)) {
+            return null;
+        }
+
+        return $this->node[$name] ?? null;
+    }
+
+    public function setYamlDefinitionField(string $name, mixed $value): void
+    {
+        if ($this->format !== 'yaml' || !is_array($this->node)) {
+            return;
+        }
+        $this->node[$name] = $value;
         $this->touch();
     }
 

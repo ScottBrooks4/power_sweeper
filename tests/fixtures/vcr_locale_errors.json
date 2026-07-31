@@ -52,6 +52,25 @@
             "RuleProviderType": "Unknown"
           }
         ]
+      },
+      {
+        "Name": "LegacyLabel",
+        "Template": { "Name": "label" },
+        "Rules": [
+          {
+            "Property": "Fill",
+            "Category": "Design",
+            "InvariantScript": "RGBA(248, 250, 252, 1)",
+            "AutoRuleBindingString": "RGBA(0; 0; 0; 0)",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Visible",
+            "Category": "Design",
+            "InvariantScript": "1",
+            "RuleProviderType": "Unknown"
+          }
+        ]
       }
     ]
   }

@@ -94,6 +94,48 @@ final class ControlDocument
         return $this->controls;
     }
 
+    /**
+     * Screen display name for this document (Src/*.pa.yaml or Controls/*.json pack).
+     */
+    public function screenName(): ?string
+    {
+        if ($this->format === 'yaml') {
+            if (!str_starts_with($this->relativePath, 'Src/') || str_contains($this->relativePath, 'Components/')) {
+                if (str_starts_with($this->relativePath, 'Src/App.')) {
+                    return 'App';
+                }
+                return null;
+            }
+
+            $base = basename($this->relativePath, '.pa.yaml');
+            if ($base === 'App') {
+                return 'App';
+            }
+
+            $display = preg_replace('/ _ /', ' / ', $base) ?? $base;
+            if (is_array($this->data)) {
+                foreach ($this->controls as $control) {
+                    if ($control->isScreen() || $control->name === $display || $control->name === $base) {
+                        return $control->name;
+                    }
+                }
+            }
+
+            return $display;
+        }
+
+        if ($this->format === 'json' && str_starts_with($this->relativePath, 'Controls/') && is_object($this->data)) {
+            if (isset($this->data->TopParent) && is_object($this->data->TopParent)) {
+                $name = (string) ($this->data->TopParent->Name ?? '');
+                if ($name !== '') {
+                    return $name;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function isDirty(): bool
     {
         return $this->mutations->isDirty();
@@ -221,8 +263,8 @@ final class ControlDocument
     {
         if (is_object($data)) {
             foreach (get_object_vars($data) as $key => $value) {
-                if ($key === 'InvariantScript' && is_string($value)) {
-                    $label = $path . '.InvariantScript';
+                if (is_string($value) && self::isJsonFormulaField($key)) {
+                    $label = $path . '.' . $key;
                     $next = $mapper($value, $label);
                     if ($next !== $value) {
                         $data->{$key} = $next;
@@ -251,8 +293,8 @@ final class ControlDocument
         }
 
         foreach ($data as $key => &$value) {
-            if ($key === 'InvariantScript' && is_string($value)) {
-                $label = $path . '.InvariantScript';
+            if (is_string($value) && self::isJsonFormulaField((string) $key)) {
+                $label = $path . '.' . (string) $key;
                 $next = $mapper($value, $label);
                 if ($next !== $value) {
                     $value = $next;
@@ -277,6 +319,18 @@ final class ControlDocument
             }
         }
         unset($value);
+    }
+
+    /**
+     * JSON fields that carry Power Fx (locale corruption shows up here in classic packs).
+     */
+    private static function isJsonFormulaField(string $key): bool
+    {
+        return in_array($key, [
+            'InvariantScript',
+            // Template/auto bindings often retain locale RGBA(...;...) after language switch
+            'AutoRuleBindingString',
+        ], true);
     }
 
     private static function looksLikeFormulaString(string $value): bool

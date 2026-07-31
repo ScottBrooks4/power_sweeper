@@ -62,47 +62,100 @@ Order matters: the same hops in a different sequence can produce different resul
 | `strip_default_fill` | Clear opaque white container fills |
 | `normalize_classic_button_chrome` | Clear Hover/Pressed fills when Fill is already transparent |
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
-| `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` the formula bar may not expose |
-| `enable_dark_mode` | Inject static `gblThemeLight` / `gblThemeDark` named-formula palettes in App.Formulas, wire Settings Theme Light/Dark (or inject a toggle), and point literal colors at `If(gblDarkMode, gblThemeDark.Token, gblThemeLight.Token)` |
+| `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` and `AutoRuleBindingString` |
+| `repair_control_refs` | Qualify bare cross-screen control references in formulas |
+| `repair_double_qualified_refs` | Collapse double-qualified refs (`'Screen'.'Screen'.Control`) |
+| `repair_sharepoint_fields` | Fix SharePoint list/column name typos in datasource metadata and formulas |
+| `repair_var_current_package` | Repair `varCurrentPackage` record shape after screen duplication |
+| `repair_ghost_patch_fields` | Comment out Patch fields referencing controls removed from duplicated screens |
+| `repair_checked_booleans` | Normalize `Checked`/`Default`/`Visible`/… from `1`/`0`/`"true"` or `If(cond, 1, 0)` to real booleans |
+| `repair_maintainability` | Address maintainability-class App checker issues where safe |
+| `repair_delegation` | Repair SharePoint delegation warnings (email filters, collection CountIf, split Filters, admin lookup) |
+| `regenerate_sarif` | Run the live Studio-equivalent App checker and write `AppCheckerResult.sarif` (updates error counts without Studio Save) |
+| `ensure_focus_visible` | Set focus ring thickness/color on interactive controls (“Focus isn’t showing”) |
+| `ensure_tab_index` | Set `TabIndex = 0` on interactive controls when unset |
+| `scan_studio_issues` | Report remaining locale/boolean/focus issues without modifying the app (verify after repair) |
 | `analyze_app_checker` | Read embedded `AppCheckerResult.sarif`, summarize formula errors, and repair known patterns (locale separators, empty layout formulas, boolean Checked) |
+| `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` palettes, add or reuse a dark-mode toggle, and point literal colors at `gblTheme.*` tokens |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
 | `set_zip_path_style` | Force zip entry separators to `windows` (`\\`) or `posix` (`/`). Default is to **preserve** the source style (almost always Windows) |
 
 ## Profiles
 
-PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles). Examples: `default`, `containers_only`, `a11y_pass`, `transparent_buttons`, `unwhack_locale`, `repair_studio_errors`, `dark_mode`, `sharepoint_correlate`, `posix_zip_paths`, `windows_zip_paths`.
+PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles).
 
-For apps like **CDLS VCR** / **VCDS THCEE**, run **two separate passes** (do not combine into one profile):
+| Profile | Purpose |
+|---------|---------|
+| `default` | Balanced cleanup: containers, align, accessibility labels |
+| `containers_only` | Container normalization only |
+| `a11y_pass` | Accessibility labels and tooltips |
+| `transparent_buttons` | Strip default button chrome |
+| `unwhack_locale` | Locale separator repair only |
+| `repair_formula_refs` | Control refs, SharePoint fields, package shape, ghost Patch fields (+ SARIF) |
+| `repair_delegation` | SharePoint delegation fixes (+ SARIF) |
+| `repair_studio_errors` | **Full Studio checker repair** (locale, refs, booleans, a11y, delegation, SARIF) |
+| `repair_powered` | **Full repair + dark mode** — outputs `*.powered.msapp` with `gblTheme` toggle (CDLS VCR preset) |
+| `powered_thcee` | **THCEE full repair + dark mode** — same repair chain, preserves global component hosts |
+| `repair_studio_errors_then_dark` | Full repair + dark mode (CDLS VCR one-shot) |
+| `scan_studio_issues` | Report-only verify pass (no formula edits) |
+| `regenerate_sarif` | Refresh `AppCheckerResult.sarif` from live checker only |
+| `dark_mode` | `gblTheme` palettes and dark-mode toggle |
+| `sharepoint_correlate` | SharePoint schema correlate + typo repair |
+| `posix_zip_paths` / `windows_zip_paths` | Zip entry separator style |
 
-1. Profile **`repair_studio_errors`** → download → open/save in Studio if you want to verify checker cleanup  
-2. Profile **`dark_mode`** on that cleaned `.msapp` → download → open/save in Studio, use **Settings → Theme → Dark** (or the Dark mode toggle if no Theme radio exists)
+For apps like **CDLS VCR** / **VCDS THCEE**, you can either:
 
-Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the result. You can also build a custom hop sequence by adding hops from both profiles yourself — order should still be repair hops first, then `enable_dark_mode`.
+1. Profile **`repair_powered`** or **`powered_thcee`** (or `php scripts/build_powered.php input.msapp`) → `*.powered.msapp` with full repair + `gblTheme` toggle  
+2. Profile **`repair_studio_errors`** → download → verify in Studio  
+3. Profile **`dark_mode`** on that cleaned `.msapp` (or use **`repair_studio_errors_then_dark`** for both in one run)
 
-Dark mode alone does **not** fix locale/formula corruption; run repair first when App checker is noisy. Theme palettes live in **App.Formulas** as static named-formula records; controls use `If(gblDarkMode, gblThemeDark.Token, gblThemeLight.Token)` so App Checker does not flood with `Name isn't valid. 'gblTheme'…`.
+Friday deliverables (repair + dark mode, live checker 0):
+
+```bash
+php scripts/build_friday_deliverables.php
+php scripts/validate_powered.php samples/import_debug/CDLS_VCR_App_Friday.powered.msapp
+php scripts/validate_powered.php samples/import_debug/VCDS_THCEE_Friday.powered.msapp
+```
+
+Download: [GitHub release `friday-deliverable-20260731`](https://github.com/freementls/power_sweeper/releases/tag/friday-deliverable-20260731)
+
+Validate a powered deliverable:
+
+```bash
+php scripts/validate_powered.php samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp
+```
+
+Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the result. Order should still be repair hops first, then `enable_dark_mode`.
+
+**Modular repair profiles** (compose or run standalone):
+
+- **`repair_formula_refs`** — when formulas break after screen duplication (unqualified refs, double qualification, SharePoint typos)  
+- **`repair_delegation`** — when performance/delegation hints are the only remaining issues  
+- **`regenerate_sarif`** — refresh embedded App checker counts without editing formulas  
+- **`scan_studio_issues`** — report-only verification after any repair pass
+
+Dark mode alone does **not** fix locale/formula corruption; run repair first when App checker is noisy.
 
 ### Locale unwhack
 
-When an app is edited under a comma-decimal locale (German, French, …), Studio can persist locale separators into formulas — including classic JSON rules you cannot open in the formula bar. The `unwhack_locale` profile converts those back to invariant Power Fx (`.` decimal, `,` list separator, `;` chaining) across `Src/**/*.pa.yaml` and control JSON `InvariantScript`.
+When an app is edited under a comma-decimal locale (German, French, …), Studio can persist locale separators into formulas — including classic JSON rules you cannot open in the formula bar. The `unwhack_locale` profile converts those back to invariant Power Fx (`.` decimal, `,` list separator, `;` chaining) across `Src/**/*.pa.yaml` and control JSON `InvariantScript` / `AutoRuleBindingString`. Compact invariant colors like `RGBA(0,0,0,0)` are left alone (not mistaken for decimal commas).
 
 ### Dark mode
 
 The `dark_mode` profile builds an **editable central palette** instead of hard-coding `If(gblDarkMode, …)` / RGBA on every control:
 
-1. `App.Formulas` gets static named formulas `gblThemeLight` / `gblThemeDark` (tokens like `Page`, `Surface`, `Text`, `Accent`, …)
-2. `App.OnStart` only initializes `Set(gblDarkMode, false)`
-3. Settings **Theme** radio is wired to `["Light","Dark"]` when present; otherwise a Dark mode toggle is injected
-4. Theme control only flips `gblDarkMode`
-5. Literal fills/text/borders become `If(Coalesce(gblDarkMode, false), gblThemeDark.Surface, gblThemeLight.Surface)` (etc.) — not `gblTheme.X`, which App Checker rejects when `gblTheme` is a Set/reactive name
+1. `App.OnStart` gets `gblThemeLight` / `gblThemeDark` records (tokens like `Page`, `Surface`, `Text`, `Accent`, …) and `Set(gblTheme, gblThemeLight)`
+2. Toggle sets `gblDarkMode` and swaps `gblTheme` between the two palettes
+3. Literal fills/text/borders become `gblTheme.Surface`, `gblTheme.Text`, etc.
 
 **Where to edit colors**
 
 | Who | Where |
 |-----|--------|
-| App maker (after clean) | `App.Formulas` → `gblThemeLight` / `gblThemeDark` only |
+| App maker (after clean) | `App.OnStart` → `gblThemeLight` / `gblThemeDark` only |
 | Operator / brand defaults | [`config/theme_defaults.php`](config/theme_defaults.php) or hop `theme_defaults` / `theme_defaults_file` options |
 
-Open the cleaned `.msapp` in Studio, save once, then use Settings → Theme (or the toggle).
+Open the cleaned `.msapp` in Studio, save once, then use the toggle.
 
 ### SharePoint correlate
 
@@ -147,15 +200,24 @@ Import with **make.powerapps.com → Apps → Import app → From file (.msapp)*
 
 ### Repair Studio errors (VCR-class apps)
 
-Profile **`repair_studio_errors`** is the pass to use on apps like CDLS VCR after a language/region switch. It runs:
+Profile **`repair_studio_errors`** is the full pass for apps like CDLS VCR after a language/region switch or screen duplication. It runs, in order:
 
-1. `unwhack_locale_formulas` — Expected operator, Invalid number of arguments (Size/Orientation), ParseJSON / If / LookUp separator damage, including internal JSON  
-2. `repair_checked_booleans` — “Expecting a true or false value” on checkbox/toggle `Checked`/`Default` (`1`/`0`/`"true"`)  
-3. `accessibility_labels` — missing AccessibleLabel  
-4. `ensure_focus_visible` — App checker “Focus isn’t showing”  
-5. `tooltip_from_label` — empty tooltips  
+1. `unwhack_locale_formulas` — Expected operator, invalid arity, ParseJSON / If / LookUp separator damage (YAML + JSON `InvariantScript` / `AutoRuleBindingString`)  
+2. `repair_control_refs` — qualify bare cross-screen control references  
+3. `repair_double_qualified_refs` — collapse `'Screen'.'Screen'.Control` double qualification  
+4. `repair_sharepoint_fields` — list/column typos in metadata and formulas  
+5. `repair_var_current_package` — `varCurrentPackage` record shape  
+6. `repair_ghost_patch_fields` — ghost Patch fields from duplicated screens  
+7. `repair_studio_syntax` — trailing Concatenate commas, screen-qualified `Date()`, App bootstrap  
+8. `repair_checked_booleans` — “Expecting a true or false value” on Checked/Default/Visible  
+9. `accessibility_labels`, `ensure_focus_visible`, `ensure_tab_index`, `tooltip_from_label`  
+10. `repair_maintainability` — safe maintainability fixes  
+11. `repair_delegation` — SharePoint delegation (email filters, collection CountIf, split duplicate-request Filters)  
+12. `regenerate_sarif` — write fresh `AppCheckerResult.sarif` from the live App checker  
 
-**Not auto-fixed** (different App checker categories): SharePoint **delegation** warnings, **unused variables/media**, missing Power Automate **Run** targets when the flow isn’t in the app.
+Use **`scan_studio_issues`** afterward for a report-only verify pass, or **`regenerate_sarif`** alone to refresh SARIF without formula edits.
+
+**Related profiles:** `repair_formula_refs` (refs/SharePoint only), `repair_delegation` (delegation only), `repair_studio_errors_then_dark` (repair + dark mode).
 
 ## Tests
 

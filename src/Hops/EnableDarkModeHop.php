@@ -12,20 +12,12 @@ use PowerSweeper\Report;
 /**
  * Wire dark mode via a central editable theme palette.
  *
- * App.Formulas defines static named-formula records (App Checker can type-check fields):
- *   gblThemeLight / gblThemeDark  — tokens like Page, Surface, Text, Accent, …
+ * App.OnStart defines:
+ *   gblThemeLight / gblThemeDark  — named color tokens (Page, Surface, Text, Accent, …)
+ *   gblTheme                      — active palette (swapped by the toggle)
+ *   gblDarkMode                   — boolean
  *
- * App.OnStart only initializes:
- *   Set(gblDarkMode, false)
- *
- * Control colors become:
- *   If(Coalesce(gblDarkMode, false), gblThemeDark.Token, gblThemeLight.Token)
- *
- * We intentionally do NOT use a reactive named formula `gblTheme = If(gblDarkMode, …)` —
- * named formulas that reference Set() variables often fail to register, which produces
- * thousands of "Name isn't valid. 'gblTheme'…" App Checker errors.
- *
- * Settings Theme radio (Light/Dark) is preferred over injecting a floating toggle.
+ * Control color properties become =gblTheme.Token so makers edit colors in one place.
  */
 final class EnableDarkModeHop implements HopInterface
 {
@@ -36,11 +28,6 @@ final class EnableDarkModeHop implements HopInterface
     private const TOGGLE_NAME = 'tglPowerSweeperDarkMode';
     private const BLOCK_START = '/* ps-theme:start */';
     private const BLOCK_END = '/* ps-theme:end */';
-
-    /** Core tokens always taken from theme_defaults (not first-seen literals). */
-    private const CORE_TOKENS = [
-        'Page', 'Surface', 'SurfaceMuted', 'Text', 'TextMuted', 'Border', 'Accent', 'Focus', 'Rail',
-    ];
 
     /** @var list<string> */
     private const COLOR_PROPERTIES = [
@@ -96,7 +83,40 @@ final class EnableDarkModeHop implements HopInterface
         'RadioBackgroundFill',
         'RadioBorderColor',
         'LoadingSpinnerColor',
+        'FontColor',
+        'BasePaletteColor',
+        'BackgroundColor',
+        'ChevronHoverFill',
+        'ChevronHoverBackground',
+        'ChevronDisabledFill',
+        'ChevronDisabledBackground',
+        'ItemHoverFill',
+        'ItemHoverColor',
+        'AddedItemFill',
+        'RemovedItemFill',
+        'ItemErrorFill',
+        'ItemErrorColor',
+        'DropTargetBorderColor',
+        'DropTargetBackgroundColor',
+        'DropTargetTextColor',
     ];
+
+    /** Tokens guaranteed in gblThemeLight/gblThemeDark — all control colors map here. */
+    private const CORE_THEME_TOKENS = [
+        'Page', 'Surface', 'SurfaceMuted', 'InputFill', 'Text', 'TextMuted', 'TextOnAccent',
+        'Border', 'BorderStrong', 'Accent', 'Focus', 'Rail', 'Link', 'LinkHover', 'Disabled',
+        'Success', 'Warning',
+    ];
+
+    /** @var array<string, string> Power Apps Color enum → gblTheme token */
+    private const COLOR_ENUM_MAP = [
+        'Color.Green' => 'Success',
+        'Color.Yellow' => 'Warning',
+        'Color.Red' => 'Accent',
+        'Color.Blue' => 'Accent',
+    ];
+
+    private const LEGACY_SURFACE = 'DefaultGrayBackgroud';
 
     public static function id(): string
     {
@@ -110,7 +130,7 @@ final class EnableDarkModeHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Add Light/Dark theme control and central gblThemeLight/gblThemeDark named-formula palettes; rewrite literal colors to If(gblDarkMode, gblThemeDark.Token, gblThemeLight.Token) (edit colors in App.Formulas / config/theme_defaults.php).';
+        return 'Add a dark-mode toggle and central gblThemeLight/gblThemeDark/gblTheme palettes; rewrite literal colors to gblTheme.* tokens so makers edit theme colors in App.OnStart only.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -143,7 +163,7 @@ final class EnableDarkModeHop implements HopInterface
                     if ($from === null || trim($from) === '' || $this->alreadyThemed($from, $var, $theme)) {
                         continue;
                     }
-                    $parsed = $this->parseColorLiteral($from);
+                    $parsed = ColorValue::parse($from);
                     if ($parsed === null || ColorValue::isTransparent($parsed)) {
                         continue;
                     }
@@ -165,141 +185,166 @@ final class EnableDarkModeHop implements HopInterface
             }
         }
 
-        // Seed missing core tokens; force core + explicit overrides for editable quality
+        // Seed missing core tokens from editable config; then apply explicit overrides
         [$coreDefaults, $forcedDefaults] = $this->resolveCoreDefaults($options);
         foreach ($coreDefaults as $core => $pair) {
             if (!isset($palette[$core])) {
                 $palette[$core] = $pair;
             }
         }
-        foreach (self::CORE_TOKENS as $core) {
-            if (isset($coreDefaults[$core])) {
-                $palette[$core] = $coreDefaults[$core];
-            }
-        }
+        // Hop/profile theme_defaults always win (brand palette without touching controls)
         foreach ($forcedDefaults as $token => $pair) {
             $palette[$token] = $pair;
         }
-
-        // Known semantic tokens: prefer contrast-safe dark defaults over first-seen role mapping
-        foreach (array_keys($palette) as $token) {
-            if (in_array($token, self::CORE_TOKENS, true)) {
+        foreach (self::CORE_THEME_TOKENS as $core) {
+            if (isset($palette[$core])) {
                 continue;
             }
-            $known = ColorValue::defaultDarkForToken($token);
-            // Keep discovered light; replace washed-out / role-confused dark for named tokens
-            if (isset($palette[$token]) && ColorValue::hasNamedDarkDefault($token)) {
-                $palette[$token]['dark'] = $known;
+            $palette[$core] = [
+                'light' => match ($core) {
+                    'Page' => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
+                    'Surface' => ['r' => 240, 'g' => 240, 'b' => 240, 'a' => 1.0],
+                    'SurfaceMuted' => ['r' => 230, 'g' => 230, 'b' => 230, 'a' => 1.0],
+                    'InputFill' => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
+                    'Text' => ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0],
+                    'TextMuted' => ['r' => 100, 'g' => 116, 'b' => 139, 'a' => 1.0],
+                    'TextOnAccent' => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
+                    'Border' => ['r' => 200, 'g' => 200, 'b' => 200, 'a' => 1.0],
+                    'BorderStrong' => ['r' => 0, 'g' => 0, 'b' => 0, 'a' => 1.0],
+                    'Accent' => ['r' => 0, 'g' => 18, 'b' => 107, 'a' => 1.0],
+                    'Success' => ['r' => 22, 'g' => 163, 'b' => 74, 'a' => 1.0],
+                    'Warning' => ['r' => 234, 'g' => 179, 'b' => 8, 'a' => 1.0],
+                    'Disabled' => ['r' => 119, 'g' => 119, 'b' => 119, 'a' => 0.4],
+                    default => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
+                },
+                'dark' => ColorValue::defaultDarkForToken($core),
+            ];
+            if ($core === 'Text') {
+                $palette[$core]['dark'] = ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0];
             }
         }
 
         ksort($palette);
 
-        $apps = $this->findApps($documents);
+        $app = $this->findApp($documents);
+        $apps = $this->findAllApps($documents);
         if ($apps !== []) {
-            $formulasBlock = $this->buildFormulasThemeBlock($var, $theme, $themeLight, $themeDark, $palette);
-            $onStartBlock = self::BLOCK_START . ' Set(' . $var . ', false) ' . self::BLOCK_END;
-            foreach ($apps as $app) {
-                $formulasBefore = (string) ($app->getProperty('Formulas') ?? '');
-                $formulasAfter = $this->upsertThemeBlock($formulasBefore, $formulasBlock, $app->format === 'yaml');
-                if ($formulasAfter !== $formulasBefore) {
-                    $app->setProperty('Formulas', $formulasAfter);
+            $block = $this->buildThemeBlock($var, $theme, $themeLight, $themeDark, $palette);
+            foreach ($apps as $appControl) {
+                $before = (string) ($appControl->getProperty('OnStart') ?? '');
+                $after = $this->upsertThemeBlock($before, $block, $appControl->format === 'yaml');
+                if ($after !== $before) {
+                    $appControl->setProperty('OnStart', $after);
                     $report->add(
                         self::id(),
-                        $app->path,
-                        'Formulas',
-                        $formulasBefore !== '' ? self::preview($formulasBefore) : '(empty)',
-                        'named theme palette ' . $themeLight . '/' . $themeDark . '/' . $theme . ' (' . count($palette) . ' tokens)'
-                    );
-                }
-
-                $onStartBefore = (string) ($app->getProperty('OnStart') ?? '');
-                // Strip legacy OnStart palette Sets (moved to Formulas) and keep a tiny init.
-                $onStartStripped = $this->stripThemeBlock($onStartBefore);
-                $onStartAfter = $this->upsertThemeBlock($onStartStripped, $onStartBlock, $app->format === 'yaml');
-                if ($onStartAfter !== $onStartBefore) {
-                    $app->setProperty('OnStart', $onStartAfter);
-                    $report->add(
-                        self::id(),
-                        $app->path,
+                        $appControl->path,
                         'OnStart',
-                        $onStartBefore !== '' ? self::preview($onStartBefore) : '(empty)',
-                        'init ' . $var . ' (palettes live in App.Formulas)'
+                        $before !== '' ? self::preview($before) : '(empty)',
+                        'theme palette ' . $themeLight . '/' . $themeDark . '/' . $theme . ' (' . count($palette) . ' tokens)'
                     );
                 }
             }
+        } elseif ($app !== null) {
+            $report->add(self::id(), $app->path, 'OnStart', '(missing theme inject target)', 'skipped palette inject');
         } else {
-            $report->add(self::id(), '(app)', 'Formulas', '(missing App control)', 'skipped palette inject — add an App control to edit theme tokens');
+            $report->add(self::id(), '(app)', 'OnStart', '(missing App control)', 'skipped palette inject — add an App control to edit theme tokens');
         }
 
-        $themeRadio = $this->findThemeRadio($documents);
+        $hasThemeRadio = false;
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($this->isThemeRadio($control)) {
+                    $hasThemeRadio = true;
+                    break 2;
+                }
+            }
+        }
+
         $existingToggle = $this->findDarkToggle($documents, $var);
-        $wiredSelector = false;
-
-        if ($themeRadio !== null) {
-            $this->wireThemeRadio($themeRadio, $var, $report);
-            $wiredSelector = true;
-        }
-
         if ($existingToggle !== null) {
-            $this->wireToggle($existingToggle, $var, $report);
-            $wiredSelector = true;
-        } elseif (!$wiredSelector && $injectToggle) {
+            $this->wireToggle($existingToggle, $var, $theme, $themeLight, $themeDark, $report);
+        } elseif ($injectToggle && !$hasThemeRadio) {
             $screen = $this->pickIntroScreen($documents);
             if ($screen !== null && $screen->format === 'yaml') {
-                $this->injectToggle($screen, $var, $theme, $report);
+                $this->injectToggle($screen, $var, $theme, $themeLight, $themeDark, $report);
                 foreach ($documents as $doc) {
                     if (str_contains($screen->path, $doc->relativePath) || str_starts_with($screen->path, $doc->relativePath)) {
                         $doc->reindex();
                     }
                 }
-                $wiredSelector = true;
             }
         }
 
-        if (!$wiredSelector) {
-            $report->add(self::id(), '(ui)', 'Theme', '(no settings radio/toggle found)', 'palette applied; add a Theme Light/Dark control manually if needed');
-        }
-
-        // Pass 2: point literals (and legacy gblTheme.Token) at If(gblDarkMode, dark.Token, light.Token)
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
+                if ($this->isThemeRadio($control)) {
+                    $this->wireThemeRadio($control, $var, $theme, $themeLight, $themeDark, $report);
+                }
+            }
+        }
+
+        $this->ensureThemeComponentAppScope($documents, $report);
+
+        // Pass 2: point literals at gblTheme.Token (always gblTheme — never gblThemeDark/Light on controls)
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($control->name === self::TOGGLE_NAME) {
+                    continue;
+                }
                 foreach (self::COLOR_PROPERTIES as $prop) {
                     $from = $control->getProperty($prop);
                     if ($from === null || trim($from) === '') {
                         continue;
                     }
-
-                    $token = $this->tokenFromExistingThemeFormula($from, $var, $theme, $themeLight, $themeDark);
-                    if ($token === null) {
-                        if ($this->isIfThemeFormula($from, $var, $themeLight, $themeDark)) {
-                            continue;
-                        }
-                        $normalized = ColorValue::normalizeColorLiteral($from);
-                        if ($normalized !== $from && ColorValue::parse($normalized) !== null) {
-                            $control->setProperty($prop, $normalized);
-                            $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($normalized));
-                            $from = $normalized;
-                        }
-                        $parsed = $this->parseColorLiteral($from);
-                        if ($parsed === null) {
-                            $pair = $this->parseLegacyIfPair($from, $var);
-                            if ($pair === null) {
-                                continue;
-                            }
-                            $parsed = $pair['light'];
-                        } elseif (ColorValue::isTransparent($parsed)) {
-                            continue;
-                        }
-                        $token = ColorValue::themeToken($parsed, $prop);
+                    if ($this->usesActiveThemeToken($from, $theme)) {
+                        continue;
                     }
-
-                    if (!isset($palette[$token])) {
+                    $enumRewritten = $this->rewriteColorEnums($from, $theme);
+                    if ($enumRewritten !== $from) {
+                        $to = $control->format === 'yaml' && !str_starts_with(trim($enumRewritten), '=')
+                            && str_starts_with(trim($from), '=')
+                            ? '=' . ltrim($enumRewritten, '=')
+                            : $enumRewritten;
+                        $control->setProperty($prop, $to);
+                        $report->add(self::id(), $control->path, $prop, $from, $to);
+                        continue;
+                    }
+                    if ($this->usesStaticThemePalette($from, $themeLight, $themeDark)) {
+                        $token = $this->extractStaticThemeToken($from, $themeLight, $themeDark);
+                        if ($token !== null) {
+                            $to = $this->themeFormula($control, $theme, $token);
+                            $control->setProperty($prop, $to);
+                            $report->add(self::id(), $control->path, $prop, $from, $to);
+                        }
                         continue;
                     }
 
-                    $to = $this->themeColorFormula($token, $var, $themeLight, $themeDark, $control->format === 'yaml');
-                    if ($to === $from || trim(ltrim(trim($from), '=')) === trim(ltrim($to, '='))) {
+                    $parsed = ColorValue::parse($from);
+                    if ($parsed === null) {
+                        $embedded = $this->rewriteEmbeddedRgba($from, $prop, $theme, $var);
+                        if ($embedded !== $from) {
+                            $to = $control->format === 'yaml' && !str_starts_with(trim($embedded), '=')
+                                && str_starts_with(trim($from), '=')
+                                ? '=' . ltrim($embedded, '=')
+                                : $embedded;
+                            $control->setProperty($prop, $to);
+                            $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($to));
+                            continue;
+                        }
+                        $pair = $this->parseLegacyIfPair($from, $var);
+                        if ($pair === null) {
+                            continue;
+                        }
+                        $parsed = $pair['light'];
+                    }
+                    if (ColorValue::isTransparent($parsed)) {
+                        continue;
+                    }
+
+                    $token = $this->coreTokenForLiteral($parsed, $prop);
+
+                    $to = $this->themeFormula($control, $theme, $token);
+                    if ($to === $from || trim(ltrim(trim($from), '=')) === $theme . '.' . $token) {
                         continue;
                     }
                     $control->setProperty($prop, $to);
@@ -307,80 +352,305 @@ final class EnableDarkModeHop implements HopInterface
                 }
             }
         }
-    }
 
-    private function parseColorLiteral(string $formula): ?array
-    {
-        $normalized = ColorValue::normalizeColorLiteral($formula);
-        return ColorValue::parse($normalized);
-    }
-
-    private function themeColorFormula(
-        string $token,
-        string $var,
-        string $themeLight,
-        string $themeDark,
-        bool $yamlEquals
-    ): string {
-        $body = 'If(Coalesce(' . $var . ', false), '
-            . $themeDark . '.' . $token . ', '
-            . $themeLight . '.' . $token . ')';
-        return $yamlEquals ? '=' . $body : $body;
-    }
-
-    private function isIfThemeFormula(string $formula, string $var, string $themeLight, string $themeDark): bool
-    {
-        $v = trim(ltrim(trim($formula), '='));
-        return (bool) preg_match(
-            '/^If\s*\(\s*Coalesce\s*\(\s*' . preg_quote($var, '/')
-            . '\s*,\s*false\s*\)\s*,\s*' . preg_quote($themeDark, '/')
-            . '\.\w+\s*,\s*' . preg_quote($themeLight, '/')
-            . '\.\w+\s*\)$/i',
-            $v
-        );
-    }
-
-    /**
-     * Extract token from legacy `gblTheme.Token` or already-migrated If(…) form.
-     */
-    private function tokenFromExistingThemeFormula(
-        string $formula,
-        string $var,
-        string $theme,
-        string $themeLight,
-        string $themeDark
-    ): ?string {
-        $v = trim(ltrim(trim($formula), '='));
-        if (preg_match('/^' . preg_quote($theme, '/') . '\.(\w+)$/', $v, $m)) {
-            return $m[1];
+        // Pass 2b: sweep formulas (JSON twins / multiline) for bare RGBA literals on color props
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $themeLight, $themeDark, $var, $report): string {
+                if (!$this->isColorPropertyPath($path)) {
+                    return $formula;
+                }
+                if ($this->usesActiveThemeToken($formula, $theme)) {
+                    return $formula;
+                }
+                $trim = trim(ltrim(trim($formula), '='));
+                $parsed = ColorValue::parse($trim);
+                if ($parsed === null || ColorValue::isTransparent($parsed)) {
+                    if ($this->usesStaticThemePalette($formula, $themeLight, $themeDark)) {
+                        $token = $this->extractStaticThemeToken($formula, $themeLight, $themeDark);
+                        if ($token !== null) {
+                            $report->add(self::id(), $path, 'formula', $themeLight . '/' . $themeDark, $theme . '.' . $token);
+                            return str_starts_with(trim($formula), '=') ? '=' . $theme . '.' . $token : $theme . '.' . $token;
+                        }
+                    }
+                    $pair = $this->parseLegacyIfPair($formula, $var);
+                    if ($pair !== null && !ColorValue::isTransparent($pair['light'])) {
+                        $prop = $this->propertyFromPath($path);
+                        $token = $this->coreTokenForLiteral($pair['light'], $prop);
+                        $report->add(self::id(), $path, 'formula', 'If(' . $var . ',…)', $theme . '.' . $token);
+                        return str_starts_with(trim($formula), '=') ? '=' . $theme . '.' . $token : $theme . '.' . $token;
+                    }
+                    return $formula;
+                }
+                $prop = $this->propertyFromPath($path);
+                $token = $this->coreTokenForLiteral($parsed, $prop);
+                $report->add(self::id(), $path, 'formula', ColorValue::formatRgba($parsed), $theme . '.' . $token);
+                return str_starts_with(trim($formula), '=') ? '=' . $theme . '.' . $token : $theme . '.' . $token;
+            });
         }
-        if (preg_match(
-            '/^If\s*\(\s*Coalesce\s*\(\s*' . preg_quote($var, '/')
-            . '\s*,\s*false\s*\)\s*,\s*' . preg_quote($themeDark, '/')
-            . '\.(\w+)\s*,\s*' . preg_quote($themeLight, '/')
-            . '\.\w+\s*\)$/i',
-            $v,
-            $m
-        )) {
-            return $m[1];
+
+        // Pass 2c: replace embedded RGBA(...) in color formulas (ColorFade, commented blocks, etc.)
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $report): string {
+                if (!$this->isColorPropertyPath($path)) {
+                    return $formula;
+                }
+                if ($this->usesActiveThemeToken($formula, $theme)) {
+                    return $formula;
+                }
+                $prop = $this->propertyFromPath($path);
+                $changed = false;
+                $out = \PowerSweeper\PowerFxFormulaSegments::transformCode($formula, function (string $code) use ($theme, $prop, $path, $report, &$changed): string {
+                    $enumCode = $this->rewriteColorEnums($code, $theme);
+                    if ($enumCode !== $code) {
+                        $report->add(self::id(), $path, 'Color enum', $code, $enumCode);
+                        $code = $enumCode;
+                        $changed = true;
+                    }
+                    $replaced = preg_replace_callback('/RGBA\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[0-9.]+)?\s*\)/i', function (array $m) use ($theme, $prop, $path, $report, &$changed): string {
+                        $parsed = ColorValue::parse($m[0]);
+                        if ($parsed === null || ColorValue::isTransparent($parsed)) {
+                            return $m[0];
+                        }
+                        $token = $this->coreTokenForLiteral($parsed, $prop);
+                        $changed = true;
+                        $report->add(self::id(), $path, 'embedded RGBA', $m[0], $theme . '.' . $token);
+
+                        return $theme . '.' . $token;
+                    }, $code);
+
+                    return is_string($replaced) ? $replaced : $code;
+                });
+
+                return $changed ? $out : $formula;
+            });
         }
-        if (preg_match(
-            '/^If\s*\(\s*' . preg_quote($var, '/')
-            . '\s*,\s*' . preg_quote($themeDark, '/')
-            . '\.(\w+)\s*,\s*' . preg_quote($themeLight, '/')
-            . '\.\w+\s*\)$/i',
-            $v,
-            $m
-        )) {
-            return $m[1];
+
+        // Pass 3: all canvas screens use gblTheme.Page (visible light/dark page background)
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$control->isScreen()) {
+                    continue;
+                }
+                foreach (['Fill', 'BackgroundColor'] as $prop) {
+                    $from = $control->getProperty($prop);
+                    if ($from !== null && $this->usesActiveThemeToken($from, $theme) && str_contains($from, $theme . '.Page')) {
+                        continue;
+                    }
+                    $to = $this->themeFormula($control, $theme, 'Page');
+                    if ($to === $from) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, $from ?? '(unset)', $to);
+                }
+            }
         }
-        return null;
+
+        // Pass 4: replace legacy DefaultGrayBackgroud surfaces with theme token
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                foreach (self::COLOR_PROPERTIES as $prop) {
+                    $from = $control->getProperty($prop);
+                    if ($from === null || !str_contains($from, self::LEGACY_SURFACE)) {
+                        continue;
+                    }
+                    $to = $this->themeFormula($control, $theme, 'Surface');
+                    if ($to === $from) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, $from, $to);
+                }
+            }
+        }
+
+        // Pass 5: labels/text — unset Color or hard-coded literals → gblTheme.Text / TextMuted
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$this->isTextControl($control)) {
+                    continue;
+                }
+                $from = $control->getProperty('Color');
+                if ($from !== null && $this->usesActiveThemeToken($from, $theme)) {
+                    continue;
+                }
+                $token = 'Text';
+                if ($from !== null && trim($from) !== '') {
+                    $parsed = ColorValue::parse($from);
+                    if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
+                        $token = $this->coreTokenForLiteral($parsed, 'Color');
+                        if ($token !== 'Text' && $token !== 'TextMuted' && $token !== 'TextOnAccent' && $token !== 'Link') {
+                            $token = ColorValue::luminance($parsed) > 0.55 ? 'TextMuted' : 'Text';
+                        }
+                    }
+                }
+                $to = $this->themeFormula($control, $theme, $token);
+                if ($to === $from) {
+                    continue;
+                }
+                $control->setProperty('Color', $to);
+                $report->add(self::id(), $control->path, 'Color', $from ?? '(unset)', $to);
+            }
+        }
+
+        // Pass 6: input surfaces (white / legacy gray fills) use InputFill token
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$this->isInputControl($control)) {
+                    continue;
+                }
+                $from = $control->getProperty('Fill');
+                if ($from !== null && $this->alreadyThemed($from, $var, $theme)) {
+                    continue;
+                }
+                $useToken = 'InputFill';
+                if ($from !== null && trim($from) !== '') {
+                    if (str_contains($from, self::LEGACY_SURFACE)) {
+                        $useToken = 'Surface';
+                    } else {
+                        $parsed = ColorValue::parse($from);
+                        $isWhite = $parsed !== null && ColorValue::luminance($parsed) >= 0.92;
+                        if (!$isWhite && !preg_match('/^[=]?\s*Color\.White\b/i', trim($from))) {
+                            continue;
+                        }
+                    }
+                }
+                $to = $this->themeFormula($control, $theme, $useToken);
+                if ($to === $from) {
+                    continue;
+                }
+                $control->setProperty('Fill', $to);
+                $report->add(self::id(), $control->path, 'Fill', $from ?? '(unset)', $to);
+            }
+        }
+
+        // Pass 6b: number inputs + rich text editors — Fill/Color/Border chrome (often unset on ModernNumberInput)
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($this->isRichTextInput($control)) {
+                    $this->applyRichTextChrome($control, $theme, $var, $report);
+                    continue;
+                }
+                if ($this->isNumberInput($control)) {
+                    $this->applyModernInputChrome($control, $theme, $var, $report);
+                }
+            }
+        }
+
+        // Pass 6e: DatePicker + DataTable auxiliary color chrome (THCEE cost-rate tables, trip dates)
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($this->isDatePicker($control)) {
+                    $this->applyDatePickerChrome($control, $theme, $var, $report);
+                    continue;
+                }
+                if ($this->isDataTable($control)) {
+                    $this->applyDataTableChrome($control, $theme, $var, $report);
+                }
+            }
+        }
+
+        // Pass 6d: section containers around rich text editors (e.g. 10_Remarks)
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$control->isContainer()) {
+                    continue;
+                }
+                if (!preg_match('/(?:^|\/)10_Remarks(\/|\.|$)|BugReportingContainer(\/|\.|$)/i', $control->path)) {
+                    continue;
+                }
+                $from = $control->getProperty('Fill');
+                if ($from !== null && trim($from) !== '' && $this->alreadyThemed($from, $var, $theme)) {
+                    continue;
+                }
+                if ($from !== null && trim($from) !== '') {
+                    $parsed = ColorValue::parse($from);
+                    if ($parsed !== null && !ColorValue::isTransparent($parsed) && !$this->usesActiveThemeToken($from, $theme)) {
+                        continue;
+                    }
+                }
+                $to = $this->themeFormula($control, $theme, 'Surface');
+                if ($to === $from) {
+                    continue;
+                }
+                $control->setProperty('Fill', $to);
+                $report->add(self::id(), $control->path, 'Fill', $from ?? '(unset)', $to);
+            }
+        }
+
+        // Pass 6c: sweep JSON/YAML twins for nested rich-text / number template colors
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $themeLight, $themeDark, $var, $report): string {
+                if (!$this->isModernInputColorPath($path)) {
+                    return $formula;
+                }
+                if ($this->usesActiveThemeToken($formula, $theme)) {
+                    return $formula;
+                }
+                $prop = $this->propertyFromPath($path);
+                $enumRewritten = $this->rewriteColorEnums($formula, $theme);
+                if ($enumRewritten !== $formula) {
+                    $report->add(self::id(), $path, 'Color enum', $formula, $enumRewritten);
+                    $formula = $enumRewritten;
+                }
+                $trim = trim(ltrim(trim($formula), '='));
+                $parsed = ColorValue::parse($trim);
+                if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
+                    $token = $this->coreTokenForLiteral($parsed, $prop);
+                    $report->add(self::id(), $path, 'formula', ColorValue::formatRgba($parsed), $theme . '.' . $token);
+                    return str_starts_with(trim($formula), '=') ? '=' . $theme . '.' . $token : $theme . '.' . $token;
+                }
+                if ($this->usesStaticThemePalette($formula, $themeLight, $themeDark)) {
+                    $token = $this->extractStaticThemeToken($formula, $themeLight, $themeDark);
+                    if ($token !== null) {
+                        $report->add(self::id(), $path, 'formula', $themeLight . '/' . $themeDark, $theme . '.' . $token);
+                        return str_starts_with(trim($formula), '=') ? '=' . $theme . '.' . $token : $theme . '.' . $token;
+                    }
+                }
+
+                return $formula;
+            });
+        }
+
+        // Pass 7: hyperlinks — teal in dark mode via gblTheme.Link / LinkCss (not Accent)
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $report): string {
+                if (!str_contains(strtolower($path), 'htmltext')) {
+                    return $formula;
+                }
+                $rewritten = $this->rewriteInlineLinkHtml($formula, $theme);
+                if ($rewritten !== $formula) {
+                    $report->add(self::id(), $path, 'HtmlText', 'color: blue', $theme . '.LinkCss');
+                }
+
+                return $rewritten;
+            });
+
+            foreach ($doc->controls() as $control) {
+                if (!$this->isInlineLinkHost($control)) {
+                    continue;
+                }
+                foreach (['Color', 'HoverColor', 'PressedColor'] as $prop) {
+                    $from = $control->getProperty($prop);
+                    if ($from !== null && str_contains($from, $theme . '.Link')) {
+                        continue;
+                    }
+                    $token = $prop === 'Color' ? 'Link' : 'LinkHover';
+                    $to = $this->themeFormula($control, $theme, $token);
+                    if ($to === $from) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, $from ?? '(unset)', $to);
+                }
+            }
+        }
     }
 
     /**
      * @param array<string, array{light: array{r:int,g:int,b:int,a:float}, dark: array{r:int,g:int,b:int,a:float}}> $palette
      */
-    private function buildFormulasThemeBlock(
+    private function buildThemeBlock(
         string $var,
         string $theme,
         string $themeLight,
@@ -390,12 +660,9 @@ final class EnableDarkModeHop implements HopInterface
         $lightFields = [];
         $darkFields = [];
         foreach ($palette as $token => $pair) {
-            $light = $pair['light'];
-            // Opaque core surfaces/text — translucent first-seen literals break contrast
-            if (in_array($token, self::CORE_TOKENS, true) && $light['a'] < 0.99) {
-                $light['a'] = 1.0;
-            }
+            $lightFields[] = $token . ': ' . ColorValue::formatRgba($pair['light']);
             $dark = $pair['dark'];
+            // If light==dark accent, still fine; ensure dark side has a value
             if (
                 $dark['r'] === $pair['light']['r']
                 && $dark['g'] === $pair['light']['g']
@@ -405,18 +672,23 @@ final class EnableDarkModeHop implements HopInterface
             ) {
                 $dark = ColorValue::defaultDarkForToken($token);
             }
-            if (in_array($token, self::CORE_TOKENS, true) && $dark['a'] < 0.99) {
-                $dark['a'] = 1.0;
-            }
-            $lightFields[] = $token . ': ' . ColorValue::formatRgba($light);
             $darkFields[] = $token . ': ' . ColorValue::formatRgba($dark);
         }
 
-        // Static named-formula records only — do not bind gblTheme to gblDarkMode here.
-        // Controls use If(Coalesce(gblDarkMode,false), gblThemeDark.Token, gblThemeLight.Token).
-        return self::BLOCK_START . "\n"
-            . $themeLight . ' = { ' . implode(', ', $lightFields) . " };\n"
-            . $themeDark . ' = { ' . implode(', ', $darkFields) . " };\n"
+        if (isset($palette['Link'])) {
+            $lightFields[] = 'LinkCss: "' . ColorValue::toHex($palette['Link']['light']) . '"';
+            $darkFields[] = 'LinkCss: "' . ColorValue::toHex($palette['Link']['dark']) . '"';
+        }
+        if (isset($palette['LinkHover'])) {
+            $lightFields[] = 'LinkHoverCss: "' . ColorValue::toHex($palette['LinkHover']['light']) . '"';
+            $darkFields[] = 'LinkHoverCss: "' . ColorValue::toHex($palette['LinkHover']['dark']) . '"';
+        }
+
+        return self::BLOCK_START
+            . "\nSet(" . $var . ", false);\n"
+            . "Set({$themeLight}, {\n    " . implode(",\n    ", $lightFields) . "\n});\n"
+            . "Set({$themeDark}, {\n    " . implode(",\n    ", $darkFields) . "\n});\n"
+            . "Set({$theme}, {$themeLight})\n"
             . self::BLOCK_END;
     }
 
@@ -434,144 +706,55 @@ final class EnableDarkModeHop implements HopInterface
                 '/' . preg_quote(self::BLOCK_START, '/') . '.*?' . preg_quote(self::BLOCK_END, '/') . '/s',
                 $block,
                 $body
-            ) ?? ($body . "\n\n" . $block);
+            ) ?? ($body . '; ' . $block);
         } elseif ($body === '') {
             $body = $block;
         } else {
             if (!str_ends_with($body, ';')) {
                 $body .= ';';
             }
-            $body .= "\n\n" . $block;
+            $body .= ' ' . $block;
         }
 
         $body = trim($body);
         return ($yamlEquals || $hadEquals) ? '=' . $body : $body;
     }
 
-    private function stripThemeBlock(string $existing): string
+    /** @param list<ControlDocument> $documents */
+    private function findApp(array $documents): ?ControlNode
     {
-        $body = trim($existing);
-        $hadEquals = str_starts_with($body, '=');
-        if ($hadEquals) {
-            $body = substr($body, 1);
-        }
-        $body = trim($body);
-        if (str_contains($body, self::BLOCK_START) && str_contains($body, self::BLOCK_END)) {
-            $body = preg_replace(
-                '/\s*;?\s*' . preg_quote(self::BLOCK_START, '/') . '.*?' . preg_quote(self::BLOCK_END, '/') . '/s',
-                '',
-                $body
-            ) ?? $body;
-            $body = trim($body);
-            $body = rtrim($body, ';');
-            $body = trim($body);
-        }
-        if ($body === '') {
-            return $hadEquals ? '=' : '';
-        }
-        return $hadEquals ? '=' . $body : $body;
+        $apps = $this->findAllApps($documents);
+        return $apps[0] ?? null;
     }
 
-    /**
-     * Real canvas App controls (YAML + Controls JSON twin). Skips AppTests harness.
-     *
-     * @param list<ControlDocument> $documents
+    /** @param list<ControlDocument> $documents
      * @return list<ControlNode>
      */
-    private function findApps(array $documents): array
+    private function findAllApps(array $documents): array
     {
         $apps = [];
         foreach ($documents as $doc) {
-            $rel = str_replace('\\', '/', $doc->relativePath);
-            if (str_starts_with(strtolower($rel), 'apptests/')) {
-                continue;
-            }
             foreach ($doc->controls() as $control) {
                 if ($control->isApp()) {
                     $apps[] = $control;
                 }
             }
         }
+
+        usort($apps, static function (ControlNode $a, ControlNode $b): int {
+            $score = static function (ControlNode $c): int {
+                if (str_contains($c->path, 'Src/App.')) {
+                    return 0;
+                }
+                if (str_contains($c->path, 'Controls/')) {
+                    return 1;
+                }
+                return 2;
+            };
+            return $score($a) <=> $score($b);
+        });
+
         return $apps;
-    }
-
-    /** @param list<ControlDocument> $documents */
-    private function findThemeRadio(array $documents): ?ControlNode
-    {
-        $fallback = null;
-        foreach ($documents as $doc) {
-            foreach ($doc->controls() as $control) {
-                if (!$control->isRadio()) {
-                    continue;
-                }
-                $name = strtolower($control->name);
-                $items = strtolower((string) ($control->getProperty('Items') ?? ''));
-                $text = strtolower((string) ($control->getProperty('Text') ?? ''));
-                $accessible = strtolower((string) ($control->getProperty('AccessibleLabel') ?? ''));
-                $blob = $name . ' ' . $text . ' ' . $accessible . ' ' . $items;
-
-                if (
-                    str_contains($blob, 'theme')
-                    || (str_contains($items, 'light') && (str_contains($items, 'dark') || str_contains($name, 'theme')))
-                    || ($name === 'themeradio' || str_contains($name, 'themeradio'))
-                ) {
-                    return $control;
-                }
-                // Items is only ["Light"] — CDLS Settings placeholder waiting for Dark
-                if (preg_match('/\[\s*"light"\s*\]/i', $items) && $fallback === null) {
-                    $fallback = $control;
-                }
-            }
-        }
-        return $fallback;
-    }
-
-    private function wireThemeRadio(ControlNode $radio, string $var, Report $report): void
-    {
-        $itemsTo = $radio->format === 'yaml' ? '=["Light", "Dark"]' : '["Light", "Dark"]';
-        $beforeItems = (string) ($radio->getProperty('Items') ?? '');
-        if (!preg_match('/dark/i', $beforeItems)) {
-            $radio->setProperty('Items', $itemsTo);
-            $report->add(self::id(), $radio->path, 'Items', $beforeItems !== '' ? $beforeItems : '(empty)', $itemsTo);
-        }
-
-        $defaultTo = $radio->format === 'yaml'
-            ? '=If(Coalesce(' . $var . ', false), ["Dark"], ["Light"])'
-            : 'If(Coalesce(' . $var . ', false), ["Dark"], ["Light"])';
-        $beforeDefault = (string) ($radio->getProperty('DefaultSelectedItems') ?? '');
-        if (!str_contains($beforeDefault, $var)) {
-            $radio->setProperty('DefaultSelectedItems', $defaultTo);
-            $report->add(
-                self::id(),
-                $radio->path,
-                'DefaultSelectedItems',
-                $beforeDefault !== '' ? self::preview($beforeDefault) : '(empty)',
-                $defaultTo
-            );
-        }
-
-        $onChange = 'Set(' . $var . ', Self.Selected.Value = "Dark")';
-        $onChangeTo = $radio->format === 'yaml' ? '=' . $onChange : $onChange;
-        $beforeChange = (string) ($radio->getProperty('OnChange') ?? '');
-        if (!str_contains($beforeChange, $var)) {
-            $radio->setProperty('OnChange', $onChangeTo);
-            $report->add(
-                self::id(),
-                $radio->path,
-                'OnChange',
-                $beforeChange !== '' ? self::preview($beforeChange) : '(empty)',
-                $onChangeTo
-            );
-        }
-
-        // Some modern radio builds fire OnSelect instead of / as well as OnChange
-        $beforeSelect = (string) ($radio->getProperty('OnSelect') ?? '');
-        if ($beforeSelect !== '' && trim($beforeSelect) !== '=' && !str_contains($beforeSelect, $var)) {
-            $radio->appendStatement('OnSelect', $onChange);
-            $report->add(self::id(), $radio->path, 'OnSelect', self::preview($beforeSelect), 'appended theme Set');
-        } elseif ($beforeSelect === '' || trim($beforeSelect) === '=') {
-            // Leave OnSelect empty if unused — OnChange is the primary hook for Radio@0.0.25
-        }
     }
 
     /** @param list<ControlDocument> $documents */
@@ -612,8 +795,14 @@ final class EnableDarkModeHop implements HopInterface
         return null;
     }
 
-    private function wireToggle(ControlNode $toggle, string $var, Report $report): void
-    {
+    private function wireToggle(
+        ControlNode $toggle,
+        string $var,
+        string $theme,
+        string $themeLight,
+        string $themeDark,
+        Report $report
+    ): void {
         $beforeDefault = (string) ($toggle->getProperty('Default') ?? '');
         $defaultTo = $toggle->format === 'yaml' ? '=' . $var : $var;
         if (trim(ltrim($beforeDefault, '=')) !== $var) {
@@ -621,23 +810,365 @@ final class EnableDarkModeHop implements HopInterface
             $report->add(self::id(), $toggle->path, 'Default', $beforeDefault !== '' ? $beforeDefault : '(empty)', $defaultTo);
         }
 
-        // Named-formula gblTheme follows gblDarkMode — only flip the boolean.
-        $onCheck = 'Set(' . $var . ', true)';
-        $onUncheck = 'Set(' . $var . ', false)';
+        $onCheck = 'Set(' . $var . ', true); Set(' . $theme . ', ' . $themeDark . ')';
+        $onUncheck = 'Set(' . $var . ', false); Set(' . $theme . ', ' . $themeLight . ')';
 
         $beforeCheck = (string) ($toggle->getProperty('OnCheck') ?? '');
         $checkTo = $toggle->format === 'yaml' ? '=' . $onCheck : $onCheck;
-        if (!str_contains($beforeCheck, 'Set(' . $var . ', true)') && !str_contains($beforeCheck, 'Set(' . $var . ',true)')) {
+        if (!str_contains($beforeCheck, $themeDark)) {
             $toggle->setProperty('OnCheck', $checkTo);
             $report->add(self::id(), $toggle->path, 'OnCheck', $beforeCheck !== '' ? $beforeCheck : '(empty)', $checkTo);
         }
 
         $beforeUn = (string) ($toggle->getProperty('OnUncheck') ?? '');
         $unTo = $toggle->format === 'yaml' ? '=' . $onUncheck : $onUncheck;
-        if (!str_contains($beforeUn, 'Set(' . $var . ', false)') && !str_contains($beforeUn, 'Set(' . $var . ',false)')) {
+        if (!str_contains($beforeUn, $themeLight)) {
             $toggle->setProperty('OnUncheck', $unTo);
             $report->add(self::id(), $toggle->path, 'OnUncheck', $beforeUn !== '' ? $beforeUn : '(empty)', $unTo);
         }
+    }
+
+    private function wireThemeRadio(
+        ControlNode $radio,
+        string $var,
+        string $theme,
+        string $themeLight,
+        string $themeDark,
+        Report $report
+    ): void {
+        $onChangeBody = 'If(Self.Selected.Value = "Dark", Set(' . $var . ', true); Set(' . $theme . ', ' . $themeDark . '), Set(' . $var . ', false); Set(' . $theme . ', ' . $themeLight . '))';
+        $defaultBody = 'If(' . $var . ', ["Dark"], ["Light"])';
+        $itemsBody = '["Light", "Dark"]';
+
+        $beforeItems = (string) ($radio->getProperty('Items') ?? '');
+        if (!str_contains(strtolower($beforeItems), 'dark')) {
+            $itemsTo = $radio->format === 'yaml' ? '=' . $itemsBody : $itemsBody;
+            $radio->setProperty('Items', $itemsTo);
+            $report->add(self::id(), $radio->path, 'Items', $beforeItems !== '' ? $beforeItems : '(unset)', $itemsTo);
+        }
+
+        $beforeOnChange = (string) ($radio->getProperty('OnChange') ?? '');
+        $onChangeTrim = trim(ltrim($beforeOnChange, '='));
+        if ($onChangeTrim === '' || $onChangeTrim === 'false' || !str_contains($beforeOnChange, $themeDark)) {
+            $onChangeTo = $radio->format === 'yaml' ? '=' . $onChangeBody : $onChangeBody;
+            $radio->setProperty('OnChange', $onChangeTo);
+            $report->add(self::id(), $radio->path, 'OnChange', $beforeOnChange !== '' ? $beforeOnChange : '(empty)', $onChangeTo);
+        }
+
+        $beforeDefault = (string) ($radio->getProperty('DefaultSelectedItems') ?? '');
+        if (!str_contains($beforeDefault, $var)) {
+            $defaultTo = $radio->format === 'yaml' ? '=' . $defaultBody : $defaultBody;
+            $radio->setProperty('DefaultSelectedItems', $defaultTo);
+            $report->add(self::id(), $radio->path, 'DefaultSelectedItems', $beforeDefault !== '' ? $beforeDefault : '(empty)', $defaultTo);
+        }
+
+        $fontColorTo = $this->themeFormula($radio, $theme, 'Text');
+        $beforeFont = (string) ($radio->getProperty('FontColor') ?? '');
+        $fontTrim = trim(ltrim($beforeFont, '='));
+        if ($fontTrim === '' || $fontTrim === '""') {
+            $radio->setProperty('FontColor', $fontColorTo);
+            $report->add(self::id(), $radio->path, 'FontColor', $beforeFont !== '' ? $beforeFont : '(unset)', $fontColorTo);
+        }
+    }
+
+    /** @param list<ControlDocument> $documents */
+    private function ensureThemeComponentAppScope(array $documents, Report $report): void
+    {
+        foreach ($documents as $doc) {
+            if (!str_contains($doc->relativePath, 'TopbarHeader')) {
+                continue;
+            }
+            foreach ($doc->controls() as $control) {
+                if ($control->name !== 'TopbarHeader' || !str_contains($control->path, 'ComponentDefinitions')) {
+                    continue;
+                }
+                $beforeRoot = $control->getYamlDefinitionField('AccessAppScope');
+                $hadInProperties = $control->getProperty('AccessAppScope') !== null;
+                if ($beforeRoot !== true && $beforeRoot !== 'true') {
+                    $control->setYamlDefinitionField('AccessAppScope', true);
+                    $report->add(
+                        self::id(),
+                        $control->path,
+                        'AccessAppScope',
+                        $beforeRoot === null ? '(unset)' : (string) $beforeRoot,
+                        'true'
+                    );
+                }
+                if ($hadInProperties) {
+                    $control->removeProperty('AccessAppScope');
+                    $report->add(self::id(), $control->path, 'AccessAppScope', '(duplicate in Properties)', '(root only)');
+                }
+            }
+        }
+    }
+
+    private function isThemeRadio(ControlNode $control): bool
+    {
+        if (!str_contains(strtolower($control->type), 'radio')) {
+            return false;
+        }
+        if (str_contains(strtolower($control->name), 'theme')) {
+            return true;
+        }
+        $items = strtolower((string) ($control->getProperty('Items') ?? ''));
+        if (str_contains($items, 'english') || str_contains($items, 'french')) {
+            return false;
+        }
+        if (str_contains($items, 'light') && str_contains($items, 'dark')) {
+            return true;
+        }
+        // Incomplete theme stub (Light only) inside TopbarHeader settings
+        return str_contains($items, 'light') && str_contains($control->path, 'TopbarHeader');
+    }
+
+    private function isTextControl(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+        if (str_contains($t, 'label') || str_contains($t, 'htmltext')) {
+            return true;
+        }
+        return str_contains($t, 'text') && !str_contains($t, 'textinput') && !str_contains($t, 'richtext');
+    }
+
+    private function isInputControl(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+        foreach (['textinput', 'combobox', 'dropdown', 'datepicker', 'richtexteditor', 'numberinput'] as $needle) {
+            if (str_contains($t, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isNumberInput(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+
+        return str_contains($t, 'numberinput');
+    }
+
+    private function isRichTextInput(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+
+        return str_contains($t, 'richtext');
+    }
+
+    private function isDatePicker(ControlNode $control): bool
+    {
+        return str_contains(strtolower($control->type), 'datepicker');
+    }
+
+    private function isDataTable(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+
+        return str_contains($t, 'datatable') && !str_contains($t, 'column');
+    }
+
+    private function applyDatePickerChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    {
+        $props = [
+            'IconFill' => 'Text',
+            'CurrentDateFill' => 'InputFill',
+            'MonthColor' => 'Text',
+            'WeekColor' => 'TextMuted',
+            'DayColor' => 'Text',
+            'SelectedDateFill' => 'Accent',
+            'HoverDateFill' => 'SurfaceMuted',
+            'CalendarHeaderFill' => 'Accent',
+            'BorderColor' => 'Border',
+            'FocusedBorderColor' => 'Accent',
+            'Color' => 'Text',
+            'DisabledColor' => 'TextMuted',
+            'DisabledFill' => 'InputFill',
+        ];
+        foreach ($props as $prop => $token) {
+            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $report, 'Design', $prop === 'BorderColor');
+        }
+    }
+
+    private function applyDataTableChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    {
+        $props = [
+            'LinkColor' => 'Link',
+            'PrimaryColor1' => 'Accent',
+            'PrimaryColor2' => 'Accent',
+            'PrimaryColor3' => 'SurfaceMuted',
+            'InputFill' => 'InputFill',
+            'InvertedColor' => 'Text',
+            'HeadingColor' => 'Text',
+            'Fill' => 'Surface',
+            'Color' => 'Text',
+            'BorderColor' => 'Border',
+        ];
+        foreach ($props as $prop => $token) {
+            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $report, 'Design', $prop === 'BorderColor');
+        }
+    }
+
+    /** Nested template + YAML paths for modern number / rich-text controls. */
+    private function isModernInputColorPath(string $path): bool
+    {
+        if (!preg_match('/RichTextEditor|richTextEditor|ModernNumberInput|modernNumberInput|DatePicker|datePicker|DataTable|dataTable|\/Remarks(\/|\.|$)/i', $path)) {
+            return false;
+        }
+
+        return (bool) preg_match('/\.(Fill|Color|BorderColor|FontColor|BasePaletteColor|TemplateFill|Appearance|HoverFill|HoverColor|DisabledFill|DisabledColor|FocusedBorderColor|PressedFill|PressedColor|BackgroundColor|LoadingSpinnerColor|IconFill|CurrentDateFill|MonthColor|WeekColor|DayColor|SelectedDateFill|HoverDateFill|CalendarHeaderFill|LinkColor|PrimaryColor1|PrimaryColor2|PrimaryColor3|InputFill|InvertedColor|HeadingColor)(\.|$)/i', $path);
+    }
+
+    private function applyRichTextChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    {
+        $styleName = $control->getStyleName();
+        if ($styleName !== null && $styleName !== '') {
+            $control->clearStyleName();
+            $report->add(self::id(), $control->path, 'StyleName', $styleName, '(cleared for gblTheme)');
+        }
+
+        $props = [
+            'Fill' => ['token' => 'InputFill', 'category' => 'Data'],
+            'Color' => ['token' => 'Text', 'category' => 'Data'],
+            'FontColor' => ['token' => 'Text', 'category' => 'Design'],
+            'TemplateFill' => ['token' => 'InputFill', 'category' => 'Design'],
+            'BasePaletteColor' => ['token' => 'Accent', 'category' => 'Design'],
+            'FocusedBorderColor' => ['token' => 'Accent', 'category' => 'Design'],
+            'BorderColor' => ['token' => 'Border', 'category' => 'Design'],
+            'HoverFill' => ['token' => 'InputFill', 'category' => 'Design'],
+            'HoverColor' => ['token' => 'Text', 'category' => 'Design'],
+            'DisabledFill' => ['token' => 'InputFill', 'category' => 'Design'],
+            'DisabledColor' => ['token' => 'TextMuted', 'category' => 'Design'],
+            'LoadingSpinnerColor' => ['token' => 'Accent', 'category' => 'Design'],
+        ];
+        foreach ($props as $prop => $meta) {
+            $this->applyThemedControlProperty($control, $prop, $meta['token'], $theme, $var, $report, $meta['category'], $prop === 'BorderColor');
+        }
+
+        $appearance = (string) ($control->getProperty('Appearance') ?? '');
+        if ($appearance === '' || !str_contains($appearance, 'FilledDarker')) {
+            $to = $control->format === 'yaml' ? '=Appearance.FilledDarker' : 'Appearance.FilledDarker';
+            $control->setProperty('Appearance', $to, 'Design');
+            $report->add(self::id(), $control->path, 'Appearance', $appearance !== '' ? $appearance : '(unset)', $to);
+        }
+    }
+
+    private function applyModernInputChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    {
+        $props = [
+            'Fill' => 'InputFill',
+            'Color' => 'Text',
+            'FocusedBorderColor' => 'Accent',
+            'BorderColor' => 'Border',
+            'HoverFill' => 'InputFill',
+            'HoverColor' => 'Text',
+            'DisabledFill' => 'InputFill',
+            'DisabledColor' => 'TextMuted',
+        ];
+        foreach ($props as $prop => $token) {
+            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $report, 'Data', false);
+        }
+    }
+
+    private function applyThemedControlProperty(
+        ControlNode $control,
+        string $prop,
+        string $token,
+        string $theme,
+        string $var,
+        Report $report,
+        string $category = 'Data',
+        bool $overrideTransparentBorder = false,
+    ): void {
+        $from = $control->getProperty($prop);
+        if ($from !== null && $this->alreadyThemed($from, $var, $theme)) {
+            return;
+        }
+        if ($from !== null && trim($from) !== '') {
+            $parsed = ColorValue::parse($from);
+            if ($parsed !== null && ColorValue::isTransparent($parsed) && $prop !== 'BorderColor') {
+                return;
+            }
+            if ($parsed !== null && ColorValue::isTransparent($parsed) && $prop === 'BorderColor' && !$overrideTransparentBorder) {
+                return;
+            }
+            if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
+                $mapped = $this->coreTokenForLiteral($parsed, $prop);
+                $to = $this->themeFormula($control, $theme, $mapped);
+                if ($to !== $from) {
+                    $control->setProperty($prop, $to, $category);
+                    $report->add(self::id(), $control->path, $prop, $from, $to);
+                }
+                return;
+            }
+            $enumRewritten = $this->rewriteColorEnums($from, $theme);
+            if ($enumRewritten !== $from) {
+                $to = $control->format === 'yaml' && !str_starts_with(trim($enumRewritten), '=')
+                    && str_starts_with(trim($from), '=')
+                    ? '=' . ltrim($enumRewritten, '=')
+                    : $enumRewritten;
+                $control->setProperty($prop, $to, $category);
+                $report->add(self::id(), $control->path, $prop, $from, $to);
+                return;
+            }
+        }
+        $to = $this->themeFormula($control, $theme, $token);
+        if ($to === $from) {
+            return;
+        }
+        $control->setProperty($prop, $to, $category);
+        $report->add(self::id(), $control->path, $prop, $from ?? '(unset)', $to);
+    }
+
+    private function themeFormula(ControlNode $control, string $theme, string $token): string
+    {
+        return $control->format === 'yaml' ? '=' . $theme . '.' . $token : $theme . '.' . $token;
+    }
+
+    private function isInlineLinkHost(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+        if (!str_contains($t, 'htmlviewer') && !str_contains($t, 'htmltext')) {
+            return false;
+        }
+        $html = strtolower((string) ($control->getProperty('HtmlText') ?? ''));
+        if (str_contains($html, 'color: blue') || str_contains($html, 'color:blue')) {
+            return true;
+        }
+        if (str_contains($html, '.linkcss')) {
+            return true;
+        }
+        $name = strtolower($control->name);
+        return str_contains($name, 'jumpto') || str_contains($name, 'link');
+    }
+
+    private function rewriteInlineLinkHtml(string $formula, string $theme): string
+    {
+        if (str_contains($formula, $theme . '.LinkCss')) {
+            return $formula;
+        }
+        if (!preg_match('/color\s*:\s*blue/i', $formula)) {
+            return $formula;
+        }
+
+        $patterns = [
+            '/="<span style=\'color: blue; text-decoration: underline;\'>([^<]+)<\/span>"/'
+                => '="<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
+            '/="<span style=""color: blue; text-decoration: underline;"">([^<]+)<\/span>"/'
+                => '="<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
+            '/"<span style=\'color: blue; text-decoration: underline;\'>([^<]+)<\/span>"/'
+                => '"<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
+        ];
+
+        $out = $formula;
+        foreach ($patterns as $pattern => $replacement) {
+            $replaced = preg_replace($pattern, $replacement, $out);
+            if ($replaced !== null && $replaced !== $out) {
+                $out = $replaced;
+            }
+        }
+
+        return $out;
     }
 
     /** @param list<ControlDocument> $documents */
@@ -680,6 +1211,8 @@ final class EnableDarkModeHop implements HopInterface
         ControlNode $screen,
         string $var,
         string $theme,
+        string $themeLight,
+        string $themeDark,
         Report $report
     ): void {
         $screen->addYamlChild(self::TOGGLE_NAME, [
@@ -687,16 +1220,16 @@ final class EnableDarkModeHop implements HopInterface
             'Properties' => [
                 'Text' => '="Dark mode"',
                 'AccessibleLabel' => '="Toggle dark mode"',
-                'Tooltip' => '="Switch theme — edit colors in App.Formulas gblThemeLight / gblThemeDark"',
+                'Tooltip' => '="Switch theme — edit colors in App.OnStart gblThemeLight / gblThemeDark"',
                 'Default' => '=' . $var,
-                'OnCheck' => '=Set(' . $var . ', true)',
-                'OnUncheck' => '=Set(' . $var . ', false)',
+                'OnCheck' => '=Set(' . $var . ', true); Set(' . $theme . ', ' . $themeDark . ')',
+                'OnUncheck' => '=Set(' . $var . ', false); Set(' . $theme . ', ' . $themeLight . ')',
                 'X' => '=16',
                 'Y' => '=16',
                 'Width' => '=180',
                 'Height' => '=40',
-                'TrueFill' => $this->themeColorFormula('Accent', $var, self::THEME_LIGHT, self::THEME_DARK, true),
-                'FalseFill' => $this->themeColorFormula('Rail', $var, self::THEME_LIGHT, self::THEME_DARK, true),
+                'TrueFill' => '=' . $theme . '.Accent',
+                'FalseFill' => '=' . $theme . '.Rail',
                 'TrueText' => '="Dark"',
                 'FalseText' => '="Light"',
             ],
@@ -710,15 +1243,149 @@ final class EnableDarkModeHop implements HopInterface
         );
     }
 
+    private function rewriteEmbeddedRgba(string $formula, string $property, string $theme, string $var): string
+    {
+        if ($this->usesActiveThemeToken($formula, $theme)) {
+            return $formula;
+        }
+        $changed = false;
+        $out = \PowerSweeper\PowerFxFormulaSegments::transformCode($formula, function (string $code) use ($property, $theme, &$changed): string {
+            $replaced = preg_replace_callback('/RGBA\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[0-9.]+)?\s*\)/i', function (array $m) use ($property, $theme, &$changed): string {
+                $parsed = ColorValue::parse($m[0]);
+                if ($parsed === null || ColorValue::isTransparent($parsed)) {
+                    return $m[0];
+                }
+                $changed = true;
+
+                return $theme . '.' . $this->coreTokenForLiteral($parsed, $property);
+            }, $code);
+            $replaced = preg_replace('/\bColor\.White\b/i', $theme . '.Page', $replaced ?? $code);
+            $replaced = $this->rewriteColorEnums($replaced ?? $code, $theme);
+            if ($replaced !== $code) {
+                $changed = true;
+            }
+
+            return is_string($replaced) ? $replaced : $code;
+        });
+        if (!$changed) {
+            $pair = $this->parseLegacyIfPair($formula, $var);
+            if ($pair !== null && !ColorValue::isTransparent($pair['light'])) {
+                return $theme . '.' . $this->coreTokenForLiteral($pair['light'], $property);
+            }
+        }
+
+        return $changed ? $out : $formula;
+    }
+
+    private function rewriteColorEnums(string $formula, string $theme): string
+    {
+        $out = $formula;
+        foreach (self::COLOR_ENUM_MAP as $enum => $token) {
+            $replaced = preg_replace('/\b' . preg_quote($enum, '/') . '\b/i', $theme . '.' . $token, $out);
+            if (is_string($replaced)) {
+                $out = $replaced;
+            }
+        }
+
+        $legacyTheme = [
+            'App.Theme.Colors.Primary' => $theme . '.Accent',
+            'App.Theme.Colors.Lighter70' => $theme . '.SurfaceMuted',
+            'App.Theme.Colors.Lighter30' => $theme . '.SurfaceMuted',
+            'App.Theme.Colors.Darker70' => $theme . '.Accent',
+            'App.Theme.Colors.Darker30' => $theme . '.Accent',
+        ];
+        foreach ($legacyTheme as $from => $to) {
+            if (str_contains($out, $from)) {
+                $out = str_replace($from, $to, $out);
+            }
+        }
+
+        return $out;
+    }
+
+    private function usesActiveThemeToken(string $formula, string $theme): bool
+    {
+        return str_contains($formula, $theme . '.');
+    }
+
+    private function usesStaticThemePalette(string $formula, string $themeLight, string $themeDark): bool
+    {
+        return str_contains($formula, $themeLight . '.') || str_contains($formula, $themeDark . '.');
+    }
+
+    private function extractStaticThemeToken(string $formula, string $themeLight, string $themeDark): ?string
+    {
+        foreach ([$themeLight, $themeDark] as $paletteVar) {
+            if (preg_match('/' . preg_quote($paletteVar, '/') . '\.([A-Za-z_][\w]*)/', $formula, $m)) {
+                return $this->normalizeToCoreToken($m[1]);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Map any literal + property to a core gblTheme token (toggle-safe).
+     *
+     * @param array{r:int,g:int,b:int,a:float} $parsed
+     */
+    private function coreTokenForLiteral(array $parsed, string $property): string
+    {
+        return $this->normalizeToCoreToken(ColorValue::themeToken($parsed, $property));
+    }
+
+    private function normalizeToCoreToken(string $token): string
+    {
+        if (in_array($token, self::CORE_THEME_TOKENS, true)) {
+            return $token;
+        }
+
+        return match (true) {
+            str_contains($token, 'Link') => str_contains($token, 'Hover') ? 'LinkHover' : 'Link',
+            str_contains($token, 'Text') || str_ends_with($token, 'Text') => 'Text',
+            str_contains($token, 'Border') || $token === 'Focus' => str_contains($token, 'Strong') ? 'BorderStrong' : 'Border',
+            str_contains($token, 'Success') => 'Success',
+            str_contains($token, 'Warning') => 'Warning',
+            str_contains($token, 'Accent') || str_contains($token, 'Selection') || str_contains($token, 'Highlight')
+                || str_contains($token, 'Checkmark') || str_contains($token, 'Progress') || str_contains($token, 'Danger') => 'Accent',
+            str_contains($token, 'Disabled') => 'Disabled',
+            str_contains($token, 'Rail') || str_contains($token, 'Handle') || str_contains($token, 'Track') => 'Rail',
+            str_contains($token, 'Input') => 'InputFill',
+            str_contains($token, 'Page') => 'Page',
+            str_contains($token, 'Muted') => 'SurfaceMuted',
+            str_contains($token, 'Inverse') || str_contains($token, 'Alt') => 'Surface',
+            default => 'Surface',
+        };
+    }
+
+    private function isColorPropertyPath(string $path): bool
+    {
+        foreach (self::COLOR_PROPERTIES as $prop) {
+            if (str_ends_with($path, '.' . $prop) || str_contains($path, '.' . $prop)) {
+                return true;
+            }
+        }
+
+        return (bool) preg_match('/\.(Fill|Color|BorderColor|FontColor|BasePaletteColor|BackgroundColor|HoverFill|HoverColor|DisabledFill|DisabledColor|LoadingSpinnerColor|ItemHoverFill|ItemHoverColor|AddedItemFill|RemovedItemFill|ItemErrorFill|ItemErrorColor|DropTargetBorderColor|DropTargetBackgroundColor|DropTargetTextColor)(\.|$)/i', $path);
+    }
+
+    private function propertyFromPath(string $path): string
+    {
+        foreach (self::COLOR_PROPERTIES as $prop) {
+            if (str_ends_with($path, '.' . $prop)) {
+                return $prop;
+            }
+        }
+        if (preg_match('/\.([A-Za-z_][\w]*)$/', $path, $m)) {
+            return $m[1];
+        }
+
+        return 'Fill';
+    }
+
     private function alreadyThemed(string $formula, string $var, string $theme): bool
     {
-        $v = strtolower($formula);
-        return str_contains($v, strtolower($theme))
-            || str_contains($v, 'gblthemelight')
-            || str_contains($v, 'gblthemedark')
-            || str_contains($v, strtolower($var))
-            || str_contains($v, 'gblappcolors')
-            || str_contains($v, 'app.theme');
+        return $this->usesActiveThemeToken($formula, $theme);
     }
 
     /**
@@ -745,6 +1412,12 @@ final class EnableDarkModeHop implements HopInterface
     }
 
     /**
+     * Load core palette defaults from config/theme_defaults.php, plus hop option overrides.
+     *
+     * Options:
+     *   - theme_defaults_file: path to a PHP file returning token => {light, dark?}
+     *   - theme_defaults: array of token => {light, dark?} (forced; wins over discovered literals)
+     *
      * @param array<string, mixed> $options
      * @return array{0: array<string, array{light: array{r:int,g:int,b:int,a:float}, dark: array{r:int,g:int,b:int,a:float}>>, 1: array<string, array{light: array{r:int,g:int,b:int,a:float}, dark: array{r:int,g:int,b:int,a:float}>>}
      */
@@ -764,6 +1437,7 @@ final class EnableDarkModeHop implements HopInterface
 
         $core = $this->normalizePaletteMap($loaded);
 
+        // Absolute minimum set if config was empty/missing
         $fallbackLight = [
             'Page' => ['r' => 250, 'g' => 250, 'b' => 252, 'a' => 1.0],
             'Surface' => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
@@ -772,6 +1446,8 @@ final class EnableDarkModeHop implements HopInterface
             'Border' => ['r' => 226, 'g' => 232, 'b' => 240, 'a' => 1.0],
             'Accent' => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
             'Focus' => ['r' => 59, 'g' => 130, 'b' => 246, 'a' => 1.0],
+            'Link' => ['r' => 29, 'g' => 78, 'b' => 216, 'a' => 1.0],
+            'LinkHover' => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
         ];
         foreach ($fallbackLight as $token => $light) {
             if (!isset($core[$token])) {
@@ -782,9 +1458,9 @@ final class EnableDarkModeHop implements HopInterface
             }
         }
 
-        $forced = [];
+        $forced = $this->normalizePaletteMap($loaded);
         if (isset($options['theme_defaults']) && is_array($options['theme_defaults'])) {
-            $forced = $this->normalizePaletteMap($options['theme_defaults']);
+            $forced = array_merge($forced, $this->normalizePaletteMap($options['theme_defaults']));
         }
 
         return [$core, $forced];
