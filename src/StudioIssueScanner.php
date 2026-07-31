@@ -53,7 +53,7 @@ final class StudioIssueScanner
     /**
      * @return list<string>
      */
-    private static function classify(string $prop, string $value, ControlNode $control): array
+    public static function classify(string $prop, string $value, ControlNode $control): array
     {
         $kinds = [];
         if (FormulaLocaleNormalizer::looksLocaleCorrupted($value)) {
@@ -85,7 +85,7 @@ final class StudioIssueScanner
         return $v === '' || $v === '0' || $v === '0.0' || $v === 'false';
     }
 
-    private static function preview(string $s): string
+    public static function preview(string $s): string
     {
         $s = preg_replace('/\s+/', ' ', trim($s)) ?? $s;
         return strlen($s) > 120 ? substr($s, 0, 117) . '...' : $s;

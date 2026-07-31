@@ -14,6 +14,9 @@ use PowerSweeper\Hops\HopInterface;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
+use PowerSweeper\Hops\RepairControlRefsHop;
+use PowerSweeper\Hops\RepairMaintainabilityHop;
+use PowerSweeper\Hops\RepairSharePointFieldsHop;
 use PowerSweeper\Hops\ScanStudioIssuesHop;
 use PowerSweeper\Hops\SetZipPathStyleHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
@@ -36,6 +39,9 @@ final class HopRegistry
             TooltipFromLabelHop::class,
             UnwhackLocaleFormulasHop::class,
             RepairCheckedBooleansHop::class,
+            RepairControlRefsHop::class,
+            RepairMaintainabilityHop::class,
+            RepairSharePointFieldsHop::class,
             EnsureFocusVisibleHop::class,
             EnsureTabIndexHop::class,
             ScanStudioIssuesHop::class,

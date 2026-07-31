@@ -695,6 +695,30 @@ if (is_file($app16)) {
     assert_true($det['auto_fixable'] === 581, 'App (16) auto-fixable count');
 }
 
+// AppControlCatalog — suffix strip and cross-screen qualify
+$cat = \PowerSweeper\AppControlCatalog::build([]);
+// minimal synthetic catalog via reflection is heavy; test resolve paths with a tiny mock doc set
+$fixtureYaml = __DIR__ . '/fixtures/screen.pa.yaml';
+if (is_file($fixtureYaml)) {
+    $doc = ControlDocument::fromFile($fixtureYaml, 'Src/Screen1.pa.yaml');
+    if ($doc !== null) {
+        $miniCat = \PowerSweeper\AppControlCatalog::build([$doc]);
+        assert_true($miniCat->quoteScreen('VCR / VCN Form') === "'VCR / VCN Form'", 'quoteScreen wraps spaced name');
+        assert_true($miniCat->qualify('VCR / VCN Form', '2_Requesting') === "'VCR / VCN Form'.'2_Requesting'", 'qualify numeric control');
+    }
+}
+
+$repaired16 = dirname(__DIR__) . '/samples/import_debug/CDLS_L_VCR_App_16.repaired.msapp';
+if (is_file($repaired16)) {
+    $archive = new \PowerSweeper\MsappArchive($repaired16);
+    $archive->unpack();
+    $post = \PowerSweeper\StudioPostRepairValidator::validate($archive->documents());
+    $archive->cleanup();
+    assert_true($post['total'] <= 40, 'App (16) repaired has at most delegation warnings remaining');
+    assert_true(($post['by_category']['accessibility'] ?? 0) === 0, 'App (16) repaired has no a11y issues');
+    assert_true(($post['by_kind']['unresolved_control_ref'] ?? 0) === 0, 'App (16) repaired has no unresolved control refs');
+}
+
 echo "\n";
 if ($failed > 0) {
     echo "FAILED: {$failed} assertion(s)\n";
