@@ -1021,6 +1021,28 @@ if (is_file($repair2)) {
     assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'LinkCss: "#2DD4BF"'), 'dark palette LinkCss is accessible teal');
     assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'Text: RGBA(255, 255, 255, 1)'), 'dark palette Text is white for contrast');
     assert_true(is_string($topbarYaml) && str_contains($topbarYaml, 'AccessAppScope'), 'TopbarHeader enables AccessAppScope for theme toggle');
+    $poweredArch = new PowerSweeper\MsappArchive($poweredTestOut);
+    $poweredArch->unpack();
+    $opaqueRgba = 0;
+    foreach ($poweredArch->documents() as $doc) {
+        foreach ($doc->controls() as $c) {
+            foreach ($c->propertyNames() as $prop) {
+                $v = (string) ($c->getProperty($prop) ?? '');
+                if (!preg_match('/Fill|Color|Border|FontColor|BasePalette|Background|Chevron/i', $prop)) {
+                    continue;
+                }
+                if (!preg_match('/RGBA\s*\(/i', $v) || str_contains($v, 'gblTheme.')) {
+                    continue;
+                }
+                $parsed = ColorValue::parse($v);
+                if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
+                    $opaqueRgba++;
+                }
+            }
+        }
+    }
+    $poweredArch->cleanup();
+    assert_true($opaqueRgba < 30, 'powered build keeps opaque hard-coded RGBA low (got ' . $opaqueRgba . ')');
     assert_true(is_string($vcnYaml) && str_contains($vcnYaml, 'gblTheme.LinkCss'), 'Jump to annex links bind gblTheme.LinkCss');
     @unlink($poweredTestOut);
 }
