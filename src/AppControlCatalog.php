@@ -36,6 +36,7 @@ final class AppControlCatalog
     private const RESERVED = [
         'true' => true, 'false' => true, 'Blank' => true, 'Self' => true, 'Parent' => true,
         'ThisItem' => true, 'User' => true, 'App' => true, 'Param' => true, 'If' => true,
+        'ThisRecord' => true,
         'Switch' => true, 'With' => true, 'Set' => true, 'UpdateContext' => true, 'Navigate' => true,
         'Collect' => true, 'ClearCollect' => true, 'Patch' => true, 'LookUp' => true, 'Filter' => true,
         'Search' => true, 'CountIf' => true, 'Sum' => true, 'ForAll' => true, 'Concurrent' => true,
@@ -198,6 +199,18 @@ final class AppControlCatalog
             $trimmed = $m[1];
             if ($this->hasOnScreen($screen, $trimmed)) {
                 return $trimmed;
+            }
+        }
+
+        // Trailing 'A' typo on duplicated containers (HoldingContainerA).
+        if (str_ends_with($identifier, 'A') && strlen($identifier) > 2) {
+            $trimmed = substr($identifier, 0, -1);
+            if ($this->hasOnScreen($screen, $trimmed)) {
+                return $trimmed;
+            }
+            $withSuffix = $trimmed . '_1';
+            if ($this->hasOnScreen($screen, $withSuffix)) {
+                return $withSuffix;
             }
         }
 

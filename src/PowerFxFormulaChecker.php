@@ -303,6 +303,7 @@ final class PowerFxFormulaChecker
     ): array {
         $findings = [];
         $errorBindings = [];
+        $masked = $this->maskProtected($body);
 
         // varCurrentPackage.Field references
         if (preg_match_all('/\bvarCurrentPackage\.([A-Za-z_][\w]*)/', $body, $m, PREG_OFFSET_CAPTURE)) {
@@ -331,7 +332,7 @@ final class PowerFxFormulaChecker
         // Member access chains: Identifier(.Identifier)*(.Property)
         if (preg_match_all(
             "/(?:'(?:[^']|'')+'|[A-Za-z_][\w]*)(?:\.(?:'(?:[^']|'')+'|[A-Za-z_][\w]*))+/",
-            $body,
+            $masked,
             $chains,
             PREG_OFFSET_CAPTURE
         )) {
@@ -391,9 +392,16 @@ final class PowerFxFormulaChecker
         }
 
         // Bare identifiers — only flag likely control references (Studio is conservative here).
-        foreach ($this->bareIdentifiers($body) as $idInfo) {
+        foreach ($this->bareIdentifiers($masked) as $idInfo) {
             $id = $idInfo['name'];
             $offset = $idInfo['offset'];
+            if (strlen($id) <= 1) {
+                continue;
+            }
+            // With({ r: LookUp(...) }, r.Field) — single-letter record bindings
+            if (preg_match('/\b' . preg_quote($id, '/') . '\s*:/', $body)) {
+                continue;
+            }
             if ($id === $controlName || $id === '_' || preg_match('/^_\d+$/', $id)) {
                 continue;
             }
@@ -424,6 +432,13 @@ final class PowerFxFormulaChecker
             }
             // Enum member access: EnumType.Member — EnumType is valid
             if ($this->isEnumMemberAccess($body, $offset, $id)) {
+                continue;
+            }
+            // SharePoint / record field names (request_user, time_submitted, …)
+            if (str_contains($id, '_') && !preg_match('/^_[0-9]+$/', $id) && !preg_match('/_[0-9]+$/', $id)) {
+                continue;
+            }
+            if (str_starts_with($id, '@')) {
                 continue;
             }
 
@@ -717,6 +732,24 @@ final class PowerFxFormulaChecker
                 while ($j < $len) {
                     if ($s[$j] === '"') {
                         if (($s[$j + 1] ?? '') === '"') {
+                            $j += 2;
+                            continue;
+                        }
+                        $j++;
+                        break;
+                    }
+                    $j++;
+                }
+                $parts[] = ['string', substr($s, $i, $j - $i)];
+                $i = $j;
+                continue;
+            }
+            if ($s[$i] === "'") {
+                $flush('code', $buf);
+                $j = $i + 1;
+                while ($j < $len) {
+                    if ($s[$j] === "'") {
+                        if (($s[$j + 1] ?? '') === "'") {
                             $j += 2;
                             continue;
                         }

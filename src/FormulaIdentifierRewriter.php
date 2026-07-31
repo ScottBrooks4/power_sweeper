@@ -53,8 +53,9 @@ final class FormulaIdentifierRewriter
             return $code;
         }
 
-        // Unquoted identifier / property access
-        $pattern = '/(?<![\w])' . preg_quote($old, '/') . '(?![\w])/';
+        // Unquoted identifier — skip member access (preceded by '.') so
+        // 'Screen'.Date is not re-qualified to 'Screen'.'Screen'.Date.
+        $pattern = '/(?<![\w.])' . preg_quote($old, '/') . '(?![\w])/';
         return preg_replace($pattern, $new, $code) ?? $code;
     }
 

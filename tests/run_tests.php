@@ -280,6 +280,18 @@ $rewritten = FormulaIdentifierRewriter::rename(
 );
 assert_true(str_contains($rewritten, 'Filter(Requests,') && str_contains($rewritten, 'Status ='), 'formula identifier rewrite');
 
+// Cross-screen qualify must not double-apply on member access
+$cross = FormulaIdentifierRewriter::rename(
+    "=Set(x, 'VCR / VCN Form'.Date.SelectedDate)",
+    ['Date' => "'VCR / VCN Form'.Date"]
+);
+assert_true($cross === "=Set(x, 'VCR / VCN Form'.Date.SelectedDate)", 'no double screen qualification');
+$bare = FormulaIdentifierRewriter::rename(
+    '=IsBlank(Date.SelectedDate)',
+    ['Date' => "'VCR / VCN Form'.Date"]
+);
+assert_true($bare === "=IsBlank('VCR / VCN Form'.Date.SelectedDate)", 'bare cross-screen ref qualified once');
+
 // --- SharePoint correlate hop ---
 $spTmp = sys_get_temp_dir() . '/ps_sp_' . bin2hex(random_bytes(4));
 $spStage = $spTmp . '/stage';
@@ -691,7 +703,7 @@ if (is_file($app16)) {
     $archive->unpack();
     $live = \PowerSweeper\StudioLiveChecker::check($archive->documents(), ['extract_dir' => $archive->extractDir()]);
     $archive->cleanup();
-    assert_true($live['total'] >= 900 && $live['total'] <= 1400, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
+    assert_true($live['total'] >= 800 && $live['total'] <= 1050, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
     assert_true(($live['by_category']['formulas'] ?? 0) >= 400, 'App (16) live formula issues');
     assert_true(($live['by_category']['accessibility'] ?? 0) >= 200, 'App (16) live a11y issues');
     // Compare overlap with embedded SARIF
@@ -708,6 +720,18 @@ if (is_file($app16)) {
     }
     assert_true($overlap >= 200, 'App (16) live checker overlaps embedded SARIF (got ' . $overlap . ')');
 }
+
+// Repaired pipeline should drive live errors well below original 1719 SARIF
+$repairedPipelineOut = sys_get_temp_dir() . '/ps_repaired_live_check_' . bin2hex(random_bytes(4)) . '.msapp';
+$repairProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
+(new Pipeline())->run($app16, $repairProfile['hops'], $repairedPipelineOut);
+$repairedArchive = new \PowerSweeper\MsappArchive($repairedPipelineOut);
+$repairedArchive->unpack();
+$repairedLive = \PowerSweeper\StudioLiveChecker::check($repairedArchive->documents(), ['extract_dir' => $repairedArchive->extractDir()]);
+$repairedArchive->cleanup();
+assert_true($repairedLive['total'] < 100, 'Repaired pipeline live checker under 100 (got ' . $repairedLive['total'] . ')');
+assert_true(($repairedLive['by_category']['formulas'] ?? 0) < 20, 'Repaired pipeline formula errors under 20');
+@unlink($repairedPipelineOut);
 
 // StudioErrorDetector — App (16) SARIF inventory
 if (is_file($app16)) {

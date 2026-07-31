@@ -15,6 +15,8 @@ use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
 use PowerSweeper\Hops\RepairControlRefsHop;
+use PowerSweeper\Hops\RepairDoubleQualifiedRefsHop;
+use PowerSweeper\Hops\RepairGhostPatchFieldsHop;
 use PowerSweeper\Hops\RepairMaintainabilityHop;
 use PowerSweeper\Hops\RepairSharePointFieldsHop;
 use PowerSweeper\Hops\RegenerateSarifHop;
@@ -42,6 +44,8 @@ final class HopRegistry
             UnwhackLocaleFormulasHop::class,
             RepairCheckedBooleansHop::class,
             RepairControlRefsHop::class,
+            RepairDoubleQualifiedRefsHop::class,
+            RepairGhostPatchFieldsHop::class,
             RepairMaintainabilityHop::class,
             RepairSharePointFieldsHop::class,
             RepairVarCurrentPackageHop::class,

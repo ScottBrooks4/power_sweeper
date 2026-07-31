@@ -11,8 +11,10 @@ return [
     'hops' => [
         ['id' => 'unwhack_locale_formulas', 'options' => []],
         ['id' => 'repair_control_refs', 'options' => []],
+        ['id' => 'repair_double_qualified_refs', 'options' => []],
         ['id' => 'repair_sharepoint_fields', 'options' => []],
         ['id' => 'repair_var_current_package', 'options' => []],
+        ['id' => 'repair_ghost_patch_fields', 'options' => []],
         ['id' => 'repair_checked_booleans', 'options' => []],
         ['id' => 'accessibility_labels', 'options' => []],
         ['id' => 'ensure_focus_visible', 'options' => ['thickness' => 2]],

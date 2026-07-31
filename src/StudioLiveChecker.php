@@ -337,6 +337,14 @@ final class StudioLiveChecker
 
     private static function pathToControlFqn(string $path, string $screen): string
     {
+        if ($screen !== '' && $screen !== '(unknown)' && str_contains($path, $screen)) {
+            $pos = strpos($path, $screen);
+            $rest = ltrim(substr($path, $pos + strlen($screen)), '/');
+            $segments = $rest === '' ? [] : array_values(array_filter(explode('/', $rest), static fn(string $s): bool => $s !== ''));
+            $parts = array_merge([$screen], $segments);
+            return implode('.', array_map([self::class, 'quoteName'], $parts));
+        }
+
         $parts = array_values(array_filter(explode('/', $path)));
         $meaningful = [];
         foreach ($parts as $part) {

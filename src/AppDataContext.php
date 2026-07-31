@@ -41,6 +41,11 @@ final class AppDataContext
         'Microsoft' => true, 'Azure' => true, 'SharePoint' => true, 'PowerApps' => true,
         'GroupContainer' => true, 'Classic' => true, 'Modern' => true, 'Canvas' => true,
         'VCR' => true, 'Approval' => true, 'DefaultGrayBackgroud' => true,
+        'LoadingSpinner' => true, 'PaperSize' => true, 'DateTimeZone' => true,
+        'DatePickerFormat' => true, 'ListItemTemplate' => true, 'DecimalPrecision' => true,
+        'ScrollPosition' => true, 'TabSize' => true, 'TabListAppearance' => true,
+        'Zoom' => true, 'LaunchTarget' => true, 'TextMode' => true, 'VirtualKeyboardMode' => true,
+        'leftCircle' => true, 'rightCircle' => true,
     ];
 
     /** @var array<string, true> */
@@ -64,6 +69,7 @@ final class AppDataContext
         'Microsoft' => true, 'Azure' => true, 'SharePoint' => true,
         'Value' => true, // table column / enum in CountIf(App.SizeBreakpoints, Value >= …)
         'Error' => true, 'Warning' => true, 'Information' => true, 'Success' => true,
+        'ThisRecord' => true, 'loadedRequest' => true, 'loadedUser' => true,
         'Hour' => true, 'Minute' => true, 'Second' => true,
         'None' => true, 'Auto' => true, 'Manual' => true, 'Disabled' => true, 'Edit' => true, 'New' => true, 'View' => true,
         'Small' => true, 'Medium' => true, 'Large' => true, 'ExtraLarge' => true,
@@ -81,10 +87,13 @@ final class AppDataContext
         'Email' => true, 'Claims' => true, 'DisplayName' => true, 'Department' => true,
         'JobTitle' => true, 'Picture' => true, 'odata' => true,
         'Blank' => true, 'Empty' => true, 'Null' => true,
+        'loadedRequest' => true, 'loadedUser' => true, 'loadedPackage' => true,
         'Open' => true, 'Sans' => true, 'Segoe' => true, 'UI' => true, 'Semibold' => true,
         'Off' => true, 'On' => true, 'Primary' => true, 'Secondary' => true, 'Subtle' => true,
         'Title' => true, 'Subtitle' => true, 'Body' => true, 'Caption' => true,
-        'AgencyName' => true, 'ParticularSurname' => true, 'RequestID' => true,
+        'request_user' => true, 'time_submitted' => true, 'Title' => true,
+        'FormPage' => true, 'locDestination' => true, 'locRequestor' => true,
+        'locDate' => true, 'locReferenceNumber' => true,
         'AgencyMilitary' => true, 'Hour' => true, 'Minute' => true,
     ];
 
