@@ -17,6 +17,7 @@ use PowerSweeper\Hops\RepairCheckedBooleansHop;
 use PowerSweeper\Hops\RepairControlRefsHop;
 use PowerSweeper\Hops\RepairMaintainabilityHop;
 use PowerSweeper\Hops\RepairSharePointFieldsHop;
+use PowerSweeper\Hops\RepairVarCurrentPackageHop;
 use PowerSweeper\Hops\ScanStudioIssuesHop;
 use PowerSweeper\Hops\SetZipPathStyleHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
@@ -42,6 +43,7 @@ final class HopRegistry
             RepairControlRefsHop::class,
             RepairMaintainabilityHop::class,
             RepairSharePointFieldsHop::class,
+            RepairVarCurrentPackageHop::class,
             EnsureFocusVisibleHop::class,
             EnsureTabIndexHop::class,
             ScanStudioIssuesHop::class,

@@ -94,6 +94,48 @@ final class ControlDocument
         return $this->controls;
     }
 
+    /**
+     * Screen display name for this document (Src/*.pa.yaml or Controls/*.json pack).
+     */
+    public function screenName(): ?string
+    {
+        if ($this->format === 'yaml') {
+            if (!str_starts_with($this->relativePath, 'Src/') || str_contains($this->relativePath, 'Components/')) {
+                if (str_starts_with($this->relativePath, 'Src/App.')) {
+                    return 'App';
+                }
+                return null;
+            }
+
+            $base = basename($this->relativePath, '.pa.yaml');
+            if ($base === 'App') {
+                return 'App';
+            }
+
+            $display = preg_replace('/ _ /', ' / ', $base) ?? $base;
+            if (is_array($this->data)) {
+                foreach ($this->controls as $control) {
+                    if ($control->isScreen() || $control->name === $display || $control->name === $base) {
+                        return $control->name;
+                    }
+                }
+            }
+
+            return $display;
+        }
+
+        if ($this->format === 'json' && str_starts_with($this->relativePath, 'Controls/') && is_object($this->data)) {
+            if (isset($this->data->TopParent) && is_object($this->data->TopParent)) {
+                $name = (string) ($this->data->TopParent->Name ?? '');
+                if ($name !== '') {
+                    return $name;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function isDirty(): bool
     {
         return $this->mutations->isDirty();

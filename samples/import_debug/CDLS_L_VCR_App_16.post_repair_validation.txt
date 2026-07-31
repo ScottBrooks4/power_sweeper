@@ -1,3 +1,12 @@
-Post-repair validation (App 16)
-TOTAL: 36
-  36  delegation_warning
+Post-repair validation (heuristic — not Studio SARIF)
+Generated: 2026-07-31 13:21 UTC
+Total: 30
+
+By category:
+  performance: 30
+
+By kind:
+  delegation_warning: 30
+
+NOTE: Embedded AppCheckerResult.sarif in .msapp is stale until Studio Save.
+Import in Studio and Save once to refresh checker counts.

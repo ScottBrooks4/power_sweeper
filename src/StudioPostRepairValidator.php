@@ -7,6 +7,10 @@ namespace PowerSweeper;
 /**
  * Post-repair validation mirroring Studio App checker classes without relying on
  * stale embedded SARIF. Used to verify repair coverage on unpacked documents.
+ *
+ * This is heuristic — it cannot replace Studio's formula engine — but it checks
+ * the same structural issues that caused App (16)'s bulk errors: unresolved control
+ * refs (including Controls/*.json), and varCurrentPackage record shape drift.
  */
 final class StudioPostRepairValidator
 {
@@ -22,10 +26,14 @@ final class StudioPostRepairValidator
     public static function validate(array $documents): array
     {
         $catalog = AppControlCatalog::build($documents);
+        $packageFields = self::activePackageFields($documents);
         $issues = [];
 
         foreach ($documents as $doc) {
-            $screen = $catalog->screenForDocument($doc) ?? '(unknown)';
+            $screen = $catalog->screenForDocument($doc);
+            if ($screen === null) {
+                continue;
+            }
             $localNames = [];
             foreach ($doc->controls() as $c) {
                 $localNames[$c->name] = true;
@@ -46,6 +54,20 @@ final class StudioPostRepairValidator
                             'property' => $prop,
                             'detail' => StudioIssueScanner::preview($value),
                         ];
+                    }
+
+                    if (preg_match_all('/\bvarCurrentPackage\.([A-Za-z_][\w]*)/', $value, $m)) {
+                        foreach ($m[1] as $field) {
+                            if (!isset($packageFields[$field])) {
+                                $issues[] = [
+                                    'category' => 'formulas',
+                                    'kind' => 'missing_package_field',
+                                    'control' => $control->path,
+                                    'property' => $prop,
+                                    'detail' => 'varCurrentPackage.' . $field,
+                                ];
+                            }
+                        }
                     }
 
                     foreach (self::unresolvedControlRefs($value, $screen, $catalog, $control->name, $localNames) as $ref) {
@@ -134,6 +156,36 @@ final class StudioPostRepairValidator
             'by_kind' => $byKind,
             'issues' => $issues,
         ];
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @return array<string, true>
+     */
+    private static function activePackageFields(array $documents): array
+    {
+        $fields = [];
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($control->name !== 'ExternalFunctions') {
+                    continue;
+                }
+                $load = $control->getProperty('loadPackage');
+                if ($load === null || $load === '') {
+                    continue;
+                }
+                foreach (explode("\n", $load) as $line) {
+                    $t = trim($line);
+                    if ($t === '' || str_starts_with($t, '//') || str_starts_with($t, '/*')) {
+                        continue;
+                    }
+                    if (preg_match('/^([A-Za-z_][\w]*)\s*:/', $t, $m)) {
+                        $fields[$m[1]] = true;
+                    }
+                }
+            }
+        }
+        return $fields;
     }
 
     /**

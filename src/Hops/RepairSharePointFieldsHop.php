@@ -43,6 +43,10 @@ final class RepairSharePointFieldsHop implements HopInterface
     {
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($report): string {
+                // Never mutate the varCurrentPackage loader — repair_var_current_package owns that shape.
+                if (str_contains($formula, 'Set(') && str_contains($formula, 'varCurrentPackage') && str_contains($formula, 'loadedRequest')) {
+                    return $formula;
+                }
                 $new = $formula;
                 foreach (self::FIELD_RENAMES as $old => $replacement) {
                     $pattern = '/\b([A-Za-z_][\w]*)\.' . preg_quote($old, '/') . '\b/';

@@ -264,28 +264,7 @@ final class AppControlCatalog
 
     private function inferScreenName(ControlDocument $doc): ?string
     {
-        if (!str_starts_with($doc->relativePath, 'Src/') || str_contains($doc->relativePath, 'Components/')) {
-            if (str_starts_with($doc->relativePath, 'Src/App.')) {
-                return 'App';
-            }
-            return null;
-        }
-
-        $base = basename($doc->relativePath, '.pa.yaml');
-        if ($base === 'App') {
-            return 'App';
-        }
-
-        // Studio encodes "/" as " _ " in filenames: "VCR _ VCN Form" => "VCR / VCN Form"
-        $display = preg_replace('/ _ /', ' / ', $base) ?? $base;
-
-        foreach ($doc->controls() as $control) {
-            if ($control->isScreen() || $control->name === $display || $control->name === $base) {
-                return $control->name;
-            }
-        }
-
-        return $display;
+        return $doc->screenName();
     }
 
     private function componentNameFromInstance(string $instanceName): string
