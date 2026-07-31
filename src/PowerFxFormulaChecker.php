@@ -488,7 +488,7 @@ final class PowerFxFormulaChecker
             $id = $idInfo['name'];
             $offset = $idInfo['offset'];
             // With({ r: LookUp(...) }, r.Field) / { v: ThisRecord.Value }
-            if (FormulaRefContext::isRecordVariable($fullBody, $id)) {
+            if (FormulaRefContext::isScopedBinding($fullBody, $id)) {
                 continue;
             }
             if (strlen($id) <= 1) {
@@ -700,7 +700,7 @@ final class PowerFxFormulaChecker
     private function isValidRootReference(string $body, string $root, string $screen, string $controlName, array $localNames): bool
     {
         $name = $this->unquote($root);
-        if (FormulaRefContext::isRecordVariable($body, $name)) {
+        if (FormulaRefContext::isScopedBinding($body, $name)) {
             return true;
         }
         if ($name === $screen || $this->catalog->hasOnScreen($screen, $name)) {

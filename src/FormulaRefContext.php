@@ -15,6 +15,19 @@ final class FormulaRefContext
         return preg_match('/\b' . preg_quote($name, '/') . '\s*:/', $formula) === 1;
     }
 
+    /**
+     * ForAll(collection As rec, …) and similar loop bindings.
+     */
+    public static function isLoopVariable(string $formula, string $name): bool
+    {
+        return preg_match('/\bAs\s+' . preg_quote($name, '/') . '\b/', $formula) === 1;
+    }
+
+    public static function isScopedBinding(string $formula, string $name): bool
+    {
+        return self::isRecordVariable($formula, $name) || self::isLoopVariable($formula, $name);
+    }
+
     public static function isPackageFieldRef(string $formula, string $field): bool
     {
         return preg_match('/\bvarCurrentPackage\.' . preg_quote($field, '/') . '\b/', $formula) === 1;

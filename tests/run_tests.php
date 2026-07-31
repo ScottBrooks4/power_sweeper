@@ -761,6 +761,21 @@ if (is_file($fixtureYaml)) {
     }
 }
 
+// FormulaRefContext — ForAll As loop variables are not control refs
+$forAllFormula = "ForAll(approvers As rec, With({ x: rec.Value }, Patch(col, x)))";
+assert_true(
+    \PowerSweeper\FormulaRefContext::isLoopVariable($forAllFormula, 'rec'),
+    'ForAll As rec is a loop variable'
+);
+assert_true(
+    \PowerSweeper\FormulaRefContext::isScopedBinding($forAllFormula, 'rec'),
+    'ForAll As rec is a scoped binding'
+);
+assert_true(
+    !\PowerSweeper\FormulaRefContext::isLoopVariable($forAllFormula, 'approvers'),
+    'ForAll collection name is not a loop variable'
+);
+
 // FormulaRefContext — global component hosts are not bare cross-screen refs
 $thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
 if (is_file($thceeFriday)) {
@@ -1126,6 +1141,16 @@ if (is_file($thceeFriday)) {
     $resolved = $thceeCatalog->resolveIdentifier('THCEE Refresh Screen', 'comTranslations');
     assert_true($resolved === null, 'THCEE comTranslations is not screen-qualified cross-screen');
     $thceeArch->cleanup();
+}
+
+// VCR Friday powered — live checker zero after ForAll As fix
+$vcrFridayPowered = dirname(__DIR__) . '/samples/import_debug/CDLS_VCR_App_Friday.powered.msapp';
+if (is_file($vcrFridayPowered)) {
+    $vcrArch = new \PowerSweeper\MsappArchive($vcrFridayPowered);
+    $vcrArch->unpack();
+    $vcrLive = \PowerSweeper\StudioLiveChecker::check($vcrArch->documents(), ['extract_dir' => $vcrArch->extractDir()]);
+    assert_true($vcrLive['total'] === 0, 'VCR Friday powered live checker zero (got ' . $vcrLive['total'] . ')');
+    $vcrArch->cleanup();
 }
 
 // validate_powered.php — deliverable smoke check
