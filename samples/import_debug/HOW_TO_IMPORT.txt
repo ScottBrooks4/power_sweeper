@@ -32,6 +32,9 @@ Powered deliverable (repair + theme — preferred for Studio import):
   CDLS_L_VCR_App_repair2.powered.msapp       — from repair2 baseline
   CDLS_L_VCR_App_16.powered.msapp            — from App (16) baseline
 
+Repair-only deliverable (no dark mode, fresh SARIF):
+  CDLS_L_VCR_App_repair2.repaired.msapp       — php scripts/build_repaired.php
+
 Validate a powered pack locally:
   php scripts/validate_powered.php samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp
 

@@ -64,8 +64,11 @@ foreach ($archive->documents() as $doc) {
         if ($control->name === 'ThemeRadio' && str_contains((string) $control->getProperty('OnChange'), 'gblThemeDark')) {
             $themeRadioWired = true;
         }
-        if ($control->name === 'TopbarHeader' && str_contains((string) $control->getProperty('AccessAppScope'), 'true')) {
-            $accessAppScope = true;
+        if ($control->name === 'TopbarHeader' && str_contains($control->path, 'ComponentDefinitions')) {
+            $rootScope = $control->getYamlDefinitionField('AccessAppScope');
+            if ($rootScope === true || $rootScope === 'true') {
+                $accessAppScope = true;
+            }
         }
 
         foreach ($control->propertyNames() as $prop) {
@@ -104,6 +107,12 @@ $archive->cleanup();
 $check($hasTheme, 'App.OnStart defines gblThemeLight/gblThemeDark palettes');
 $check($themeRadioWired, 'ThemeRadio OnChange swaps gblTheme via gblDarkMode');
 $check($accessAppScope, 'TopbarHeader AccessAppScope enabled for theme toggle');
+$topbarYaml = \PowerSweeper\ZipTool::readEntry($msappPath, 'Src/Components/TopbarHeader.pa.yaml');
+if (is_string($topbarYaml)) {
+    $rootScope = preg_match('/^\s*AccessAppScope:\s*true\s*$/m', $topbarYaml) === 1;
+    $propScope = preg_match('/^\s*AccessAppScope:\s*=true\s*$/m', $topbarYaml) === 1;
+    $check($rootScope && !$propScope, 'TopbarHeader AccessAppScope at component root only (not duplicated in Properties)');
+}
 $check($screenDate === 0, 'No screen-qualified Date() calls (got ' . $screenDate . ')');
 $check($localeSemi === 0, 'No locale ; after quoted args (got ' . $localeSemi . ')');
 $check($gblThemeDarkOnControls === 0, 'Controls use gblTheme.* not gblThemeDark.* (got ' . $gblThemeDarkOnControls . ')');

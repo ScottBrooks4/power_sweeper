@@ -776,13 +776,22 @@ final class EnableDarkModeHop implements HopInterface
                 if ($control->name !== 'TopbarHeader' || !str_contains($control->path, 'ComponentDefinitions')) {
                     continue;
                 }
-                $before = (string) ($control->getProperty('AccessAppScope') ?? '');
-                if (str_contains(strtolower($before), 'true')) {
-                    continue;
+                $beforeRoot = $control->getYamlDefinitionField('AccessAppScope');
+                $hadInProperties = $control->getProperty('AccessAppScope') !== null;
+                if ($beforeRoot !== true && $beforeRoot !== 'true') {
+                    $control->setYamlDefinitionField('AccessAppScope', true);
+                    $report->add(
+                        self::id(),
+                        $control->path,
+                        'AccessAppScope',
+                        $beforeRoot === null ? '(unset)' : (string) $beforeRoot,
+                        'true'
+                    );
                 }
-                $to = $control->format === 'yaml' ? '=true' : 'true';
-                $control->setProperty('AccessAppScope', $to);
-                $report->add(self::id(), $control->path, 'AccessAppScope', $before !== '' ? $before : '(unset)', $to);
+                if ($hadInProperties) {
+                    $control->removeProperty('AccessAppScope');
+                    $report->add(self::id(), $control->path, 'AccessAppScope', '(duplicate in Properties)', '(root only)');
+                }
             }
         }
     }

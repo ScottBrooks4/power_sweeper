@@ -114,6 +114,25 @@ final class ControlNode
         $this->touch();
     }
 
+    /** YAML component/screen definition field outside Properties (e.g. AccessAppScope). */
+    public function getYamlDefinitionField(string $name): mixed
+    {
+        if ($this->format !== 'yaml' || !is_array($this->node)) {
+            return null;
+        }
+
+        return $this->node[$name] ?? null;
+    }
+
+    public function setYamlDefinitionField(string $name, mixed $value): void
+    {
+        if ($this->format !== 'yaml' || !is_array($this->node)) {
+            return;
+        }
+        $this->node[$name] = $value;
+        $this->touch();
+    }
+
     public function removeProperty(string $name): void
     {
         if ($this->format === 'yaml') {

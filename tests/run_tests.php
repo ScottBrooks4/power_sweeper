@@ -1036,6 +1036,12 @@ if (is_file($repair2)) {
     assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'LinkCss: "#2DD4BF"'), 'dark palette LinkCss is accessible teal');
     assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'Text: RGBA(255, 255, 255, 1)'), 'dark palette Text is white for contrast');
     assert_true(is_string($topbarYaml) && str_contains($topbarYaml, 'AccessAppScope'), 'TopbarHeader enables AccessAppScope for theme toggle');
+    assert_true(
+        is_string($topbarYaml)
+            && preg_match('/^\s*AccessAppScope:\s*true\s*$/m', $topbarYaml) === 1
+            && preg_match('/^\s*AccessAppScope:\s*=true\s*$/m', $topbarYaml) !== 1,
+        'TopbarHeader AccessAppScope at component root only'
+    );
     $poweredArch = new PowerSweeper\MsappArchive($poweredTestOut);
     $poweredArch->unpack();
     $opaqueRgba = 0;
