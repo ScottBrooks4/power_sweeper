@@ -42,6 +42,9 @@ Validate a powered pack locally:
   php scripts/validate_powered.php samples/import_debug/CDLS_VCR_App_Friday.powered.msapp
   php scripts/validate_powered.php samples/import_debug/VCDS_THCEE_Friday.powered.msapp
 
+Build both Friday deliverables (requires source *.msapp uploads in this folder):
+  php scripts/build_friday_deliverables.php
+
 Compare before/after repair patterns:
   php scripts/compare_repair2_patterns.php
 
