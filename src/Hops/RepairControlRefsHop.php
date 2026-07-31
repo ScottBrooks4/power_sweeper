@@ -89,7 +89,20 @@ final class RepairControlRefsHop implements HopInterface
             }
             if (isset(self::TYPO_MAP[$id])) {
                 $target = self::TYPO_MAP[$id];
-                if (!$catalog->hasOnScreen($screen, $id) && ($catalog->hasOnScreen($screen, $target) || count($catalog->screensWith($target)) > 0)) {
+                if ($catalog->hasOnScreen($screen, $id)) {
+                    continue;
+                }
+                if ($catalog->hasOnScreen($screen, $target)) {
+                    $map[$id] = $target;
+                    continue;
+                }
+                $others = array_values(array_filter(
+                    $catalog->screensWith($target),
+                    static fn(string $s): bool => $s !== $screen
+                ));
+                if (count($others) === 1) {
+                    $map[$id] = $catalog->qualify($others[0], $target);
+                } else {
                     $map[$id] = $target;
                 }
                 continue;
@@ -114,8 +127,20 @@ final class RepairControlRefsHop implements HopInterface
         uksort($map, static fn(string $a, string $b): int => strlen($b) <=> strlen($a));
         foreach ($map as $old => $replacement) {
             $quotedOld = "'" . str_replace("'", "''", $old) . "'";
+            if (str_contains($replacement, '.')) {
+                $quotedNew = $replacement;
+            } else {
+                $quotedNew = "'" . str_replace("'", "''", $replacement) . "'";
+            }
             if (str_contains($new, $quotedOld)) {
-                $new = str_replace($quotedOld, $replacement, $new);
+                $new = str_replace($quotedOld, $quotedNew, $new);
+            }
+            if (str_contains($replacement, '.')) {
+                $resetPattern = '/Reset\s*\(\s*' . preg_quote($quotedOld, '/') . '\s*\)/i';
+                $replaced = preg_replace($resetPattern, 'Reset(' . $replacement . ')', $new);
+                if (is_string($replaced)) {
+                    $new = $replaced;
+                }
             }
         }
         return FormulaIdentifierRewriter::rename($new, $map);

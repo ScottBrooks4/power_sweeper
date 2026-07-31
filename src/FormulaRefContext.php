@@ -56,6 +56,12 @@ final class FormulaRefContext
         if (self::isPackageFieldRef($formula, $id)) {
             return false;
         }
+        if ($catalog->isScreenName($id)) {
+            $q = $catalog->quoteScreen($id);
+            if (str_contains($formula, $q)) {
+                return false;
+            }
+        }
 
         $others = array_values(array_filter(
             $catalog->screensWith($id),

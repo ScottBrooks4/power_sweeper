@@ -18,6 +18,18 @@ final class FormulaReferenceExtractor
         $seen = [];
         $out = [];
         foreach ($parts as [$type, $text]) {
+            if ($type === 'string' && str_starts_with($text, "'")) {
+                if (preg_match_all("/'((?:[^']|'')+)'/", $text, $qm)) {
+                    foreach ($qm[1] as $q) {
+                        $name = str_replace("''", "'", $q);
+                        if (!isset($seen[$name])) {
+                            $seen[$name] = true;
+                            $out[] = $name;
+                        }
+                    }
+                }
+                continue;
+            }
             if ($type !== 'code') {
                 continue;
             }
@@ -87,6 +99,24 @@ final class FormulaReferenceExtractor
                 while ($j < $len) {
                     if ($s[$j] === '"') {
                         if (($s[$j + 1] ?? '') === '"') {
+                            $j += 2;
+                            continue;
+                        }
+                        $j++;
+                        break;
+                    }
+                    $j++;
+                }
+                $parts[] = ['string', substr($s, $i, $j - $i)];
+                $i = $j;
+                continue;
+            }
+            if ($s[$i] === "'") {
+                $flush('code', $buf);
+                $j = $i + 1;
+                while ($j < $len) {
+                    if ($s[$j] === "'") {
+                        if (($s[$j + 1] ?? '') === "'") {
                             $j += 2;
                             continue;
                         }

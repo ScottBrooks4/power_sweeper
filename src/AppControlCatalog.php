@@ -163,6 +163,9 @@ final class AppControlCatalog
                 static fn(string $s): bool => $s !== $screen
             ));
             if (count($others) === 1) {
+                if ($this->isScreenName($base)) {
+                    return $this->quoteScreen($base);
+                }
                 return $this->qualify($others[0], $base);
             }
 
@@ -191,6 +194,9 @@ final class AppControlCatalog
             static fn(string $s): bool => $s !== $screen
         ));
         if (count($others) === 1) {
+            if ($this->isScreenName($identifier)) {
+                return $this->quoteScreen($identifier);
+            }
             return $this->qualify($others[0], $identifier);
         }
 
@@ -291,5 +297,17 @@ final class AppControlCatalog
     public function isReserved(string $identifier): bool
     {
         return isset(self::RESERVED[$identifier]);
+    }
+
+    /** True when $name is a canvas screen (top-level screen control exists). */
+    public function isScreenName(string $name): bool
+    {
+        return isset($this->controlsByScreen[$name][$name]);
+    }
+
+    /** @return list<string> */
+    public function screenNames(): array
+    {
+        return array_keys($this->controlsByScreen);
     }
 }
