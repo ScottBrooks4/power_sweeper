@@ -6,42 +6,47 @@ namespace PowerSweeper;
 
 /**
  * Safe, mechanical rewrites for common non-delegable SharePoint / collection patterns.
+ * Code segments only — comments and strings are never modified.
  */
 final class DelegationFormulaRewriter
 {
     public static function rewrite(string $formula): string
     {
-        $out = $formula;
+        // Single-quoted Power Fx names stay in code; only "..." literals and comments are opaque.
+        return PowerFxFormulaSegments::transformCodePreservingLiterals($formula, static function (string $code): string {
+            $out = $code;
 
-        $out = self::replaceAll($out, 'Lower(request_user.Email) = Lower(User().Email)', 'request_user.Email = User().Email');
-        $out = self::replaceAll($out, 'Lower(User().Email) = Lower(request_user.Email)', 'request_user.Email = User().Email');
+            $out = self::replaceAll($out, 'Lower(request_user.Email) = Lower(User().Email)', 'request_user.Email = User().Email');
+            $out = self::replaceAll($out, 'Lower(User().Email) = Lower(request_user.Email)', 'request_user.Email = User().Email');
 
-        $out = self::replaceAll($out, 'CountIf(colAnnex1, !IsBlank(Trim(AgencyName)))', 'CountRows(Filter(colAnnex1, !IsBlank(AgencyName)))');
-        $out = self::replaceAll($out, 'CountIf(colAnnex2, !IsBlank(Trim(ParticularSurname)))', 'CountRows(Filter(colAnnex2, !IsBlank(ParticularSurname)))');
+            $out = self::replaceAll($out, 'CountIf(colAnnex1, !IsBlank(Trim(AgencyName)))', 'CountRows(Filter(colAnnex1, !IsBlank(AgencyName)))');
+            $out = self::replaceAll($out, 'CountIf(colAnnex2, !IsBlank(Trim(ParticularSurname)))', 'CountRows(Filter(colAnnex2, !IsBlank(ParticularSurname)))');
 
-        // Dead commented Patch fields that still trip delegation heuristics.
-        $out = preg_replace('/^[ \t]*\/\/Sites: CountIf\(colAnnex1[^\r\n]*\r?$/m', '', $out) ?? $out;
-        $out = preg_replace('/^[ \t]*\/\/Visitors: CountIf\(colAnnex2[^\r\n]*\r?$/m', '', $out) ?? $out;
+            $out = self::splitDuplicateRequestFilters($out);
+            $out = self::rewriteSubstituteInFilter($out);
 
-        $out = self::splitDuplicateRequestFilters($out);
+            return $out;
+        }, false);
+    }
 
-        $out = self::replaceAll(
-            $out,
-            'Substitute(IDInput.Text, " ", "") in Substitute(Title, " ", "")',
-            'StartsWith(Title, IDInput.Text)'
-        );
+    private static function rewriteSubstituteInFilter(string $formula): string
+    {
+        $space = '(?:\x00PFX\d+\x00|" ")';
+        $empty = '(?:\x00PFX\d+\x00|"")';
+        $pattern = '/Substitute\(IDInput\.Text,\s*' . $space . ',\s*' . $empty
+            . '\)\s+in\s+Substitute\(Title,\s*' . $space . ',\s*' . $empty . '\)/';
+        $replaced = preg_replace($pattern, 'StartsWith(Title, IDInput.Text)', $formula);
 
-        return $out;
+        return is_string($replaced) ? $replaced : $formula;
     }
 
     private static function splitDuplicateRequestFilters(string $formula): string
     {
+        $empty = '(?:\x00PFX\d+\x00|"")';
         $patterns = [
-            // VCR / VCN Form screen controls.
-            '/Filter\(\s*\'CDLS \(L\) VCR Tracking List\'\s*,\s*request_user\.Email = User\(\)\.Email\s*&&\s*Lower\(Trim\(Destination\)\) = locDestination\s*&&\s*Lower\(Trim\(Requestor\)\) = locRequestor\s*&&\s*Date = locDate\s*&&\s*Lower\(Trim\(Coalesce\(ReferenceNumber, ""\)\)\) = locReferenceNumber\s*\)/s' =>
+            '/Filter\(\s*\'CDLS \(L\) VCR Tracking List\'\s*,\s*request_user\.Email = User\(\)\.Email\s*&&\s*Lower\(Trim\(Destination\)\) = locDestination\s*&&\s*Lower\(Trim\(Requestor\)\) = locRequestor\s*&&\s*Date = locDate\s*&&\s*Lower\(Trim\(Coalesce\(ReferenceNumber, ' . $empty . '\)\)\) = locReferenceNumber\s*\)/s' =>
                 "Filter(\n                                Filter(\n                                    'CDLS (L) VCR Tracking List',\n                                    request_user.Email = User().Email && Date = locDate\n                                ),\n                                Lower(Trim(Destination)) = locDestination &&\n                                Lower(Trim(Requestor)) = locRequestor &&\n                                Lower(Trim(Coalesce(ReferenceNumber, \"\"))) = locReferenceNumber\n                            )",
-            // Emergency Contact screen — cross-screen qualified controls.
-            '/Filter\(\s*\'CDLS \(L\) VCR Tracking List\'\s*,\s*request_user\.Email = User\(\)\.Email\s*&&\s*Lower\(Trim\(\'VCR \/ VCN Form\'\.Destination\)\) = locDestination\s*&&\s*Lower\(Trim\(\'VCR \/ VCN Form\'\.Requestor\)\) = locRequestor\s*&&\s*\'VCR \/ VCN Form\'\.Date = locDate\s*&&\s*Lower\(Trim\(Coalesce\(\'VCR \/ VCN Form\'\.ReferenceNumber, ""\)\)\) = locReferenceNumber\s*\)/s' =>
+            '/Filter\(\s*\'CDLS \(L\) VCR Tracking List\'\s*,\s*request_user\.Email = User\(\)\.Email\s*&&\s*Lower\(Trim\(\'VCR \/ VCN Form\'\.Destination\)\) = locDestination\s*&&\s*Lower\(Trim\(\'VCR \/ VCN Form\'\.Requestor\)\) = locRequestor\s*&&\s*\'VCR \/ VCN Form\'\.Date = locDate\s*&&\s*Lower\(Trim\(Coalesce\(\'VCR \/ VCN Form\'\.ReferenceNumber, ' . $empty . '\)\)\) = locReferenceNumber\s*\)/s' =>
                 "Filter(\n                                Filter(\n                                    'CDLS (L) VCR Tracking List',\n                                    request_user.Email = User().Email && 'VCR / VCN Form'.Date = locDate\n                                ),\n                                Lower(Trim('VCR / VCN Form'.Destination)) = locDestination &&\n                                Lower(Trim('VCR / VCN Form'.Requestor)) = locRequestor &&\n                                Lower(Trim(Coalesce('VCR / VCN Form'.ReferenceNumber, \"\"))) = locReferenceNumber\n                            )",
         ];
 

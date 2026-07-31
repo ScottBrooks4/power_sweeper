@@ -811,6 +811,63 @@ $rewritten = FormulaIdentifierRewriter::rename(
 );
 assert_true($rewritten === 'Notify("VCR Home Page is ready", NotificationType.Information)', 'rewriter leaves string literals alone');
 
+// Comment preservation — repairs must not touch // or block comments (idempotent, segment-aware)
+$commentFormula = "// PertinentToDefence.Checked\nIf(true, Navigate('VCR Home Page', ScreenTransition.Fade), /* ghost */ Blank())";
+$commentIdentity = \PowerSweeper\PowerFxFormulaSegments::transformCode($commentFormula, static fn(string $c): string => $c);
+assert_true($commentIdentity === $commentFormula, 'transformCode leaves comments byte-identical');
+
+$navWithComment = "// Navigate('VCR Home Page'.'VCR Home Page')\nNavigate('VCR Home Page'.'VCR Home Page', ScreenTransition.Fade)";
+$navCommentFixed = \PowerSweeper\ScreenReferenceNormalizer::normalize($navWithComment, $screens);
+assert_true(
+    str_starts_with($navCommentFixed, "// Navigate('VCR Home Page'.'VCR Home Page')"),
+    'normalizer preserves line comment above Navigate'
+);
+assert_true(
+    str_contains($navCommentFixed, "Navigate('VCR Home Page', ScreenTransition.Fade)"),
+    'normalizer repairs live Navigate below preserved comment'
+);
+
+$delegComment = "// CountIf(colAnnex1, !IsBlank(Trim(AgencyName)))\nCountIf(colAnnex1, !IsBlank(Trim(AgencyName)))";
+$delegRewritten = \PowerSweeper\DelegationFormulaRewriter::rewrite($delegComment);
+assert_true(
+    str_starts_with($delegRewritten, "// CountIf(colAnnex1, !IsBlank(Trim(AgencyName)))"),
+    'delegation rewriter preserves commented CountIf line'
+);
+assert_true(
+    str_contains($delegRewritten, 'CountRows(Filter(colAnnex1, !IsBlank(AgencyName)))'),
+    'delegation rewriter fixes live CountIf below comment'
+);
+
+$varPkgTmp = sys_get_temp_dir() . '/ps_varpkg_' . bin2hex(random_bytes(4)) . '.pa.yaml';
+file_put_contents($varPkgTmp, <<<'YAML'
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    OnSelect: |-
+      =//AmendmentVisit: loadedRequest.AmendmentVisit,
+      If(varCurrentPackage.AmendmentVisit, "y", "")
+YAML
+);
+$varPkgDoc = ControlDocument::fromFile($varPkgTmp, 'Src/Test.pa.yaml');
+assert_true($varPkgDoc !== null, 'varCurrentPackage comment fixture loads');
+$varPkgReport = new Report();
+(new \PowerSweeper\Hops\RepairVarCurrentPackageHop())->apply([$varPkgDoc], $varPkgReport);
+$varPkgFormula = '';
+foreach ($varPkgDoc->controls() as $c) {
+    if ($c->name === 'Screen1') {
+        $varPkgFormula = (string) $c->getProperty('OnSelect');
+    }
+}
+@unlink($varPkgTmp);
+assert_true(
+    str_contains($varPkgFormula, '//AmendmentVisit: loadedRequest.AmendmentVisit'),
+    'varCurrentPackage hop leaves commented loadPackage field untouched'
+);
+assert_true(
+    !preg_match('/\bvarCurrentPackage\.AmendmentVisit\b/', $varPkgFormula),
+    'varCurrentPackage hop replaces live AmendmentVisit reference with false'
+);
+
 // Component template bindings — stale suffixed refs repaired (Components/*.json)
 $app16 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App (16).msapp';
 if (is_file($app16)) {

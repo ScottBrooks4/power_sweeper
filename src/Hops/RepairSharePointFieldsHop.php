@@ -9,6 +9,7 @@ use PowerSweeper\Report;
 
 /**
  * Fix known SharePoint record field typos and drop fields that do not exist on the list.
+ * Code segments only — comments and strings are never modified.
  */
 final class RepairSharePointFieldsHop implements HopInterface
 {
@@ -37,7 +38,7 @@ final class RepairSharePointFieldsHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Rename mistyped SharePoint column references and remove fields known to be absent from the VCR tracking list.';
+        return 'Rename mistyped SharePoint column references and remove fields known to be absent from the VCR tracking list (code only).';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -48,9 +49,8 @@ final class RepairSharePointFieldsHop implements HopInterface
                     return $formula;
                 }
 
-                $parts = PowerFxFormulaSegments::split($formula);
                 $changed = false;
-                $out = PowerFxFormulaSegments::mapCode($parts, static function (string $code) use ($report, $path, &$changed): string {
+                $out = PowerFxFormulaSegments::transformCode($formula, static function (string $code) use ($report, $path, &$changed): string {
                     $new = $code;
                     foreach (self::FIELD_RENAMES as $old => $replacement) {
                         $pattern = '/\b([A-Za-z_][\w]*)\.' . preg_quote($old, '/') . '\b/';

@@ -6,6 +6,7 @@ namespace PowerSweeper\Hops;
 
 use PowerSweeper\ControlDocument;
 use PowerSweeper\ControlNode;
+use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\Report;
 
 /**
@@ -96,17 +97,19 @@ final class RepairMaintainabilityHop implements HopInterface
             return $formula;
         }
 
-        $new = $formula;
-        foreach ($toRemove as $var) {
-            $pattern = '/\bSet\s*\(\s*' . preg_quote($var, '/') . '\s*,[^;]*\)\s*;\s*/i';
-            $replaced = preg_replace($pattern, '', $new);
-            if ($replaced !== null && $replaced !== $new) {
-                $report->add(self::id(), $path, 'unused variable', $var, '(removed Set statement)');
-                $new = $replaced;
+        return PowerFxFormulaSegments::transformCode($formula, static function (string $code) use ($toRemove, $report, $path): string {
+            $new = $code;
+            foreach ($toRemove as $var) {
+                $pattern = '/\bSet\s*\(\s*' . preg_quote($var, '/') . '\s*,[^;]*\)\s*;\s*/i';
+                $replaced = preg_replace($pattern, '', $new);
+                if ($replaced !== null && $replaced !== $new) {
+                    $report->add(self::id(), $path, 'unused variable', $var, '(removed Set statement)');
+                    $new = $replaced;
+                }
             }
-        }
 
-        return $new;
+            return $new;
+        });
     }
 
     private function fixRowLimit(ControlNode $app, Report $report): void

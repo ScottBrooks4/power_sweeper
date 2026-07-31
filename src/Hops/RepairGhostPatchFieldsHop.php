@@ -9,8 +9,10 @@ use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\Report;
 
 /**
- * Remove Patch record fields that reference controls which do not exist anywhere
- * in the app (legacy copy-paste from duplicated screens).
+ * Remove Patch record fields in live code that reference controls which do not exist
+ * anywhere in the app (legacy copy-paste from duplicated screens).
+ *
+ * Comment regions are never read or modified. Does not inject // comment markers.
  */
 final class RepairGhostPatchFieldsHop implements HopInterface
 {
@@ -61,7 +63,7 @@ final class RepairGhostPatchFieldsHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Comment out Patch/record fields that reference controls removed from duplicated screens (OneTimeVisit, level checkboxes, etc.).';
+        return 'Remove Patch/record fields in live code that reference controls removed from duplicated screens. Comments and strings are never modified.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -79,19 +81,18 @@ final class RepairGhostPatchFieldsHop implements HopInterface
 
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($ghosts, $report): string {
-                $parts = PowerFxFormulaSegments::split($formula);
                 $changed = false;
-                $out = PowerFxFormulaSegments::mapCode($parts, static function (string $code) use ($ghosts, $report, $path, &$changed): string {
+                $out = PowerFxFormulaSegments::transformCode($formula, static function (string $code) use ($ghosts, $report, $path, &$changed): string {
                     $new = $code;
                     foreach (array_keys($ghosts) as $ghost) {
-                        $patterns = [
-                            '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\.\w+\s*,?\s*\r?$/m',
-                            '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\s*,?\s*\r?$/m',
+                        $linePatterns = [
+                            '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\.\w+\s*,?\s*\r?\n/m',
+                            '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\s*,?\s*\r?\n/m',
                         ];
-                        foreach ($patterns as $pattern) {
-                            $replaced = preg_replace($pattern, '// $0', $new);
+                        foreach ($linePatterns as $pattern) {
+                            $replaced = preg_replace($pattern, '', $new);
                             if ($replaced !== null && $replaced !== $new) {
-                                $report->add(self::id(), $path, $ghost, '(ghost control)', '(commented)');
+                                $report->add(self::id(), $path, $ghost, '(ghost control line)', '(removed)');
                                 $new = $replaced;
                                 $changed = true;
                             }

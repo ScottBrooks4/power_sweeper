@@ -103,6 +103,48 @@ final class PowerFxFormulaSegments
     }
 
     /**
+     * Transform only code segments; comments and strings pass through unchanged.
+     *
+     * All formula repair hops should use this (or mapCode) so idempotent rewrites
+     * never match inside // line comments, block comments, or string literals.
+     */
+    public static function transformCode(string $formula, callable $callback, bool $opaqueSingleQuotes = true): string
+    {
+        return self::mapCode(self::split($formula, $opaqueSingleQuotes), $callback);
+    }
+
+    /**
+     * Transform code while treating comments and double/single-quoted strings as opaque placeholders.
+     *
+     * Use when a replacement pattern spans string literal boundaries (e.g. Substitute(x, " ", "")).
+     * Comments and string contents are never modified — only code runs through {@see $callback}.
+     */
+    public static function transformCodePreservingLiterals(string $formula, callable $callback, bool $opaqueSingleQuotes = true): string
+    {
+        $parts = self::split($formula, $opaqueSingleQuotes);
+        $masked = '';
+        /** @var array<string, string> $tokens */
+        $tokens = [];
+        $i = 0;
+        foreach ($parts as [$type, $text]) {
+            if ($type === 'comment' || $type === 'string') {
+                $key = "\x00PFX" . $i++ . "\x00";
+                $tokens[$key] = $text;
+                $masked .= $key;
+                continue;
+            }
+            $masked .= $text;
+        }
+
+        $rewritten = $callback($masked);
+        if ($rewritten === $masked) {
+            return $formula;
+        }
+
+        return str_replace(array_keys($tokens), array_values($tokens), $rewritten);
+    }
+
+    /**
      * Transform only code segments; comments and strings (including 'Screen Name') pass through.
      *
      * @param list<array{0:string,1:string}> $parts

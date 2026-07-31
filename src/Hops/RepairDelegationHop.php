@@ -9,7 +9,8 @@ use PowerSweeper\DelegationFormulaRewriter;
 use PowerSweeper\Report;
 
 /**
- * Rewrite delegable-safe formula patterns (email equality, collection CountIf, dead comments).
+ * Rewrite delegable-safe formula patterns (email equality, collection CountIf, nested Filter splits).
+ * Code segments only — comments and strings are never modified.
  */
 final class RepairDelegationHop implements HopInterface
 {
@@ -25,7 +26,7 @@ final class RepairDelegationHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Apply safe delegation rewrites: email Filter equality, collection CountIf→CountRows, remove dead commented CountIf lines.';
+        return 'Apply safe delegation rewrites in live code only: email Filter equality, collection CountIf→CountRows, nested Filter splits.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void

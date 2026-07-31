@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace PowerSweeper\Hops;
 
 use PowerSweeper\ControlDocument;
+use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\Report;
 
 /**
- * Restore fields on varCurrentPackage in ExternalFunctions.loadPackage that are
- * still referenced elsewhere (savePDFtest, savePDF, etc.) but were commented out.
+ * Align varCurrentPackage record shape with live references.
+ *
+ * - Adds missing loadPackage fields as new live code lines (never uncomments or edits // lines).
+ * - Strips live usages of SharePoint columns known to be absent from the list.
  */
 final class RepairVarCurrentPackageHop implements HopInterface
 {
@@ -30,7 +33,7 @@ final class RepairVarCurrentPackageHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Uncomment loadPackage fields referenced by varCurrentPackage.* and remove dropped SharePoint columns from live formulas.';
+        return 'Add missing loadPackage fields in live code and remove dropped SharePoint column usages. Comments are never modified.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -42,8 +45,12 @@ final class RepairVarCurrentPackageHop implements HopInterface
 
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($used, $report): string {
-                $new = $this->uncommentLoadPackageFields($formula, $used, $report, $path);
+                $new = $formula;
+                if (str_contains($path, 'loadPackage')) {
+                    $new = $this->ensureLoadPackageFields($new, $used, $report, $path);
+                }
                 $new = $this->stripDroppedFieldUsages($new, $report, $path);
+
                 return $new;
             });
         }
@@ -71,52 +78,98 @@ final class RepairVarCurrentPackageHop implements HopInterface
                 }
             }
         }
+
         return $used;
     }
 
     /**
      * @param array<string, true> $used
      */
-    private function uncommentLoadPackageFields(string $formula, array $used, Report $report, string $path): string
+    private function ensureLoadPackageFields(string $formula, array $used, Report $report, string $path): string
     {
-        if (!str_contains($formula, 'varCurrentPackage') || !str_contains($formula, 'loadedRequest')) {
+        if ($used === [] || !str_contains($formula, 'varCurrentPackage') || !str_contains($formula, 'loadedRequest')) {
             return $formula;
         }
 
-        $new = $formula;
-        foreach (array_keys($used) as $field) {
-            // Studio often writes //FieldName without a space after //.
-            $pattern = '/^[ \t]*\/\/[ \t]*(' . preg_quote($field, '/') . '\s*:\s*loadedRequest\.[^,\r\n]+,?)[ \t]*\r?$/m';
-            $replaced = preg_replace($pattern, '$1', $new);
-            if ($replaced !== null && $replaced !== $new) {
-                $report->add(self::id(), $path, 'loadPackage field', '//' . $field, $field);
-                $new = $replaced;
+        $parts = PowerFxFormulaSegments::split($formula);
+        $activeInCode = [];
+        foreach ($parts as [$type, $text]) {
+            if ($type !== 'code') {
+                continue;
+            }
+            if (preg_match_all('/^[ \t]*([A-Za-z_][\w]*)\s*:\s*loadedRequest\./m', $text, $m)) {
+                foreach ($m[1] as $field) {
+                    $activeInCode[$field] = true;
+                }
             }
         }
 
-        return $new;
+        $missing = [];
+        foreach (array_keys($used) as $field) {
+            if (!isset($activeInCode[$field])) {
+                $missing[] = $field;
+            }
+        }
+        if ($missing === []) {
+            return $formula;
+        }
+
+        $indent = '                ';
+        foreach ($parts as [$type, $text]) {
+            if ($type === 'code' && preg_match('/^([ \t]*)([A-Za-z_][\w]*)\s*:\s*loadedRequest\./m', $text, $im)) {
+                $indent = $im[1];
+                break;
+            }
+        }
+
+        $insertBlock = '';
+        foreach ($missing as $field) {
+            $insertBlock .= $indent . $field . ': loadedRequest.' . $field . ",\n";
+            $report->add(self::id(), $path, 'loadPackage field', '(missing)', $field);
+        }
+
+        $anchorIdx = null;
+        foreach ($parts as $idx => [$type, $text]) {
+            if ($type === 'code' && preg_match('/^[ \t]*VIP\s*:\s*loadedRequest\.VIP,/m', $text)) {
+                $anchorIdx = $idx;
+                break;
+            }
+        }
+        if ($anchorIdx === null) {
+            for ($i = count($parts) - 1; $i >= 0; $i--) {
+                if ($parts[$i][0] === 'code' && str_contains($parts[$i][1], 'loadedRequest.')) {
+                    $anchorIdx = $i;
+                    break;
+                }
+            }
+        }
+        if ($anchorIdx === null) {
+            return $formula;
+        }
+
+        $parts[$anchorIdx][1] = rtrim($parts[$anchorIdx][1]) . "\n" . $insertBlock;
+
+        return PowerFxFormulaSegments::join($parts);
     }
 
     private function stripDroppedFieldUsages(string $formula, Report $report, string $path): string
     {
-        $new = $formula;
-        foreach (self::DROP_FIELDS as $field) {
-            $block = '/\s*If\s*\(\s*varCurrentPackage\.' . preg_quote($field, '/')
-                . '\s*,\s*"[^"]*"\s*,\s*""\s*\)\s*,?/';
-            $replaced = preg_replace($block, '', $new);
-            if ($replaced !== null && $replaced !== $new) {
-                $report->add(self::id(), $path, 'varCurrentPackage.' . $field, '(If block)', '(removed)');
-                $new = $replaced;
+        $changed = false;
+        $out = PowerFxFormulaSegments::transformCode($formula, static function (string $code) use ($report, $path, &$changed): string {
+            $new = $code;
+            foreach (self::DROP_FIELDS as $field) {
+                $pattern = '/\bvarCurrentPackage\.' . preg_quote($field, '/') . '\b/';
+                $replaced = preg_replace($pattern, 'false', $new);
+                if ($replaced !== null && $replaced !== $new) {
+                    $report->add(self::id(), $path, 'varCurrentPackage.' . $field, '(reference)', 'false');
+                    $new = $replaced;
+                    $changed = true;
+                }
             }
-            // HtmlText / string compares: varCurrentPackage.AmendmentVisit = "true"
-            $cmp = '/\s*varCurrentPackage\.' . preg_quote($field, '/')
-                . '\s*=\s*"[^"]*"\s*,?/';
-            $replaced = preg_replace($cmp, '', $new);
-            if ($replaced !== null && $replaced !== $new) {
-                $report->add(self::id(), $path, 'varCurrentPackage.' . $field, '(compare)', '(removed)');
-                $new = $replaced;
-            }
-        }
-        return $new;
+
+            return $new;
+        });
+
+        return $changed ? $out : $formula;
     }
 }
