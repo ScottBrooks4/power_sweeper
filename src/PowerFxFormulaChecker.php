@@ -79,6 +79,47 @@ final class PowerFxFormulaChecker
 
         $findings = array_merge($findings, $this->checkDelegation($body, $location, $screen, $controlType, $property));
         $findings = array_merge($findings, $this->checkMangledScreenRefs($body, $location, $screen, $controlType, $property));
+        $findings = array_merge($findings, $this->checkScreenQualifiedDateCalls($body, $location, $screen, $controlType, $property));
+
+        return $findings;
+    }
+
+    /**
+     * 'Screen Name'.Date(1900, 1, 1) — Date function call wrongly qualified through a screen
+     * that also hosts a control named Date (Studio: app-ErrInvalidName | .Date).
+     *
+     * @return list<Finding>
+     */
+    private function checkScreenQualifiedDateCalls(
+        string $body,
+        string $location,
+        string $screen,
+        string $controlType,
+        string $property,
+    ): array {
+        $findings = [];
+        $parts = PowerFxFormulaSegments::splitForStructure($body);
+        $offset = 0;
+        foreach ($parts as [$type, $text]) {
+            if ($type === 'code'
+                && preg_match_all("/'(?:[^']|'')+'\\.Date\\s*\\(/", $text, $m, PREG_OFFSET_CAPTURE)) {
+                foreach ($m[0] as $match) {
+                    $findings[] = $this->makeFinding(
+                        'app-ErrInvalidName',
+                        'High',
+                        ['.Date'],
+                        $location,
+                        $screen,
+                        $controlType,
+                        $property,
+                        '.Date',
+                        $offset + (int) $match[1] + strlen($match[0]) - strlen('Date('),
+                        5
+                    );
+                }
+            }
+            $offset += strlen($text);
+        }
 
         return $findings;
     }

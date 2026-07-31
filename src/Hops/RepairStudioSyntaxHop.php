@@ -81,6 +81,40 @@ final class RepairStudioSyntaxHop implements HopInterface
     private function repairFormula(string $formula, string $path, Report $report): string
     {
         $changed = false;
+
+        // Structural pass: screen-qualified Date()/record keys span single-quoted screen names.
+        $structural = PowerFxFormulaSegments::mapCode(
+            PowerFxFormulaSegments::splitForStructure($formula),
+            function (string $code) use ($report, $path, &$changed): string {
+                $new = $code;
+
+                $replaced = preg_replace(
+                    "/'(?:[^']|'')+'\\.Date\\s*\\(/",
+                    'Date(',
+                    $new
+                );
+                if ($replaced !== null && $replaced !== $new) {
+                    $report->add(self::id(), $path, 'Date()', '(screen-qualified function)', '(fixed)');
+                    $new = $replaced;
+                    $changed = true;
+                }
+
+                $replaced = preg_replace(
+                    "/'(?:[^']|'')+'\\.([A-Za-z_][\\w]*)\\s*:/",
+                    '$1:',
+                    $new
+                );
+                if ($replaced !== null && $replaced !== $new) {
+                    $report->add(self::id(), $path, 'record key', '(screen-qualified)', '(fixed)');
+                    $new = $replaced;
+                    $changed = true;
+                }
+
+                return $new;
+            }
+        );
+        $formula = $changed ? $structural : $formula;
+
         $out = PowerFxFormulaSegments::transformCode($formula, static function (string $code) use ($report, $path, &$changed): string {
             $new = $code;
 
@@ -101,30 +135,6 @@ final class RepairStudioSyntaxHop implements HopInterface
             $replaced = preg_replace('/\bvarNewRequest\b/', 'false', $new);
             if ($replaced !== null && $replaced !== $new) {
                 $report->add(self::id(), $path, 'varNewRequest', '(undefined)', 'false');
-                $new = $replaced;
-                $changed = true;
-            }
-
-            // 'VCR / VCN Form'.Date(1900,1,1) — screen-qualified Date *function* call
-            $replaced = preg_replace(
-                "/'(?:[^']|'')+'\\.Date\\s*\\(/",
-                'Date(',
-                $new
-            );
-            if ($replaced !== null && $replaced !== $new) {
-                $report->add(self::id(), $path, 'Date()', '(screen-qualified function)', '(fixed)');
-                $new = $replaced;
-                $changed = true;
-            }
-
-            // Record literal keys: 'Screen Name'.VIP: loadedRequest.VIP → VIP: loadedRequest.VIP
-            $replaced = preg_replace(
-                "/'(?:[^']|'')+'\\.([A-Za-z_][\\w]*)\\s*:/",
-                '$1:',
-                $new
-            );
-            if ($replaced !== null && $replaced !== $new) {
-                $report->add(self::id(), $path, 'record key', '(screen-qualified)', '(fixed)');
                 $new = $replaced;
                 $changed = true;
             }

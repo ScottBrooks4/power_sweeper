@@ -946,6 +946,21 @@ assert_true(!str_contains($syntaxFixed, 'varNewRequest'), 'syntax repair removes
 assert_true(!preg_match('/""\s*,\s*\)/', $syntaxFixed), 'syntax repair removes trailing Concatenate comma');
 assert_true(!preg_match('/\)\s*,\s*\)/', $syntaxFixedParen), 'syntax repair removes trailing Concatenate paren comma');
 
+// repair_studio_syntax — screen-qualified Date() function calls
+$dateHop = new \PowerSweeper\Hops\RepairStudioSyntaxHop();
+$dateReport = new Report();
+$dateRef = new ReflectionClass($dateHop);
+$dateRepair = $dateRef->getMethod('repairFormula');
+$dateRepair->setAccessible(true);
+$dateFixed = $dateRepair->invoke($dateHop, "='VCR / VCN Form'.Date(1900, 1, 1)", 'test', $dateReport);
+assert_true(str_contains($dateFixed, 'Date(1900') && !str_contains($dateFixed, "'VCR / VCN Form'.Date"), 'syntax repair unwraps screen-qualified Date()');
+
+// locale — LookUp with ; after quoted table name inside concatenation
+$lookupLocale = '"Version #: " & AppVersion & LookUp(\'VASC App Versions\'; ID = 1).AppVersion';
+assert_true(FormulaLocaleNormalizer::looksLocaleCorrupted($lookupLocale), 'LookUp quoted-arg locale separator detected');
+$lookupFixed = FormulaLocaleNormalizer::toInvariant($lookupLocale);
+assert_true(str_contains($lookupFixed, "LookUp('VASC App Versions', ID = 1)"), 'LookUp locale separator unwhacked');
+
 // repair2.msapp — pipeline idempotency (3 passes, formulas stable)
 $repair2 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
 if (is_file($repair2)) {

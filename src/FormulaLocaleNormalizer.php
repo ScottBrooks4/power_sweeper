@@ -44,6 +44,11 @@ final class FormulaLocaleNormalizer
             return true;
         }
 
+        // LookUp('Table'; ID = 1) — locale list sep after a quoted datasource arg
+        if (preg_match("/'(?:[^']|'')+'\\s*;/", $masked)) {
+            return true;
+        }
+
         // Record / table field separators: { Name: "x"; Amount: 1 }
         if (preg_match('/\{[^}"\']*;/', $masked)) {
             return true;
@@ -96,6 +101,7 @@ final class FormulaLocaleNormalizer
                 || self::hasBrokenColorAlpha($masked)
                 || preg_match('/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/', $masked)
                 || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $masked)
+                || preg_match("/'(?:[^']|'')+'\\s*;/", $masked)
                 || preg_match('/\{[^}"\']*;/', $masked);
             if (!$hasSignal) {
                 return $formula;
