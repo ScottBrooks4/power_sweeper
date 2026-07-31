@@ -24,9 +24,17 @@ Stepped rebuilds from that plain app (same folder / steps/):
   steps/CDLS_VCR_05_repair_studio_errors.msapp
   steps/CDLS_VCR_06_repair_then_dark.msapp
 
-Recommended new outputs:
-  CDLS_L_VCR_App.repair_only.msapp           — repair hops only
-  CDLS_L_VCR_App.repair_then_dark.msapp      — repair then dark mode
+Recommended new outputs (App 16 — on main branch):
+  CDLS (L) VCR App (16).msapp                  — original (1719 checker issues)
+  CDLS_L_VCR_App_16.repaired.msapp             — all fixes except delegation warnings
+  CDLS_L_VCR_App_16.repair_then_dark.msapp     — repaired + dark theme
+  CDLS_L_VCR_App_16.errors.txt                 — pre-repair error inventory
+  CDLS_L_VCR_App_16.post_repair_validation.txt — post-repair verification (36 left)
+
+GitHub folder (main branch):
+  https://github.com/freementls/power_sweeper/tree/main/samples/import_debug
+
+Older outputs (App 4):
 
 YAML-only repair of the previously failing cleaned packs
 (re-serialize formulas/Children; keeps prior hop edits):

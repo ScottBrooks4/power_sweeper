@@ -1,0 +1,3 @@
+Post-repair validation (App 16)
+TOTAL: 36
+  36  delegation_warning
