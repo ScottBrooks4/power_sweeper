@@ -32,9 +32,15 @@ final class ScreenReferenceNormalizer
 
         foreach ($screens as $screen) {
             $formula = self::stripExcessQuotesAroundScreen($formula, $screen);
+        }
+
+        $formula = self::collapseCorruptedScreenChains($formula, $screens);
+
+        foreach ($screens as $screen) {
             $formula = self::normalizeMemberChains($formula, $screen);
         }
 
+        $formula = self::normalizeScreenContextValues($formula, $screens);
         $formula = self::normalizeNavigateFirstArguments($formula, $screens);
         $formula = self::ensureNumericControlMemberQuotes($formula);
 
@@ -122,6 +128,199 @@ final class ScreenReferenceNormalizer
     }
 
     /**
+     * Collapse member chains where every segment is a corrupted reference to the same screen.
+     *
+     * @param list<string> $screens
+     */
+    private static function collapseCorruptedScreenChains(string $formula, array $screens): string
+    {
+        $pattern = "/(?:'(?:[^']|'')+'|[A-Za-z_][\w]*)(?:\.(?:'(?:[^']|'')+'|[A-Za-z_][\w]*))+/";
+        $parts = PowerFxFormulaSegments::splitForStructure($formula);
+
+        return PowerFxFormulaSegments::mapCode($parts, static function (string $code) use ($pattern, $screens): string {
+            return preg_replace_callback(
+                $pattern,
+                static function (array $m) use ($screens): string {
+                    $resolved = self::resolveScreenTarget($m[0], $screens);
+                    if ($resolved === null) {
+                        return $m[0];
+                    }
+
+                    $segments = self::splitMemberChain($m[0]);
+                    if ($segments === [] || count($segments) === 1) {
+                        return self::quote($resolved);
+                    }
+
+                    foreach ($segments as $segment) {
+                        if (self::resolveSegmentToScreen($segment, $screens) === null
+                            && !self::looksMangledScreenTarget($m[0], $screens)) {
+                            return $m[0];
+                        }
+                    }
+
+                    return self::quote($resolved);
+                },
+                $code
+            ) ?? $code;
+        });
+    }
+
+    /**
+     * Normalize screen targets in Navigate (handled separately), StartScreen, and table Screen: fields.
+     *
+     * @param list<string> $screens
+     */
+    private static function normalizeScreenContextValues(string $formula, array $screens): string
+    {
+        $parts = PowerFxFormulaSegments::splitForStructure($formula);
+
+        return PowerFxFormulaSegments::mapCode($parts, static function (string $code) use ($screens): string {
+            $code = preg_replace_callback(
+                '/\bStartScreen\s*:\s*([^,\n\r}]+)/i',
+                static function (array $m) use ($screens): string {
+                    $resolved = self::resolveScreenTarget(trim($m[1]), $screens);
+
+                    return $resolved !== null ? 'StartScreen: ' . self::quote($resolved) : $m[0];
+                },
+                $code
+            ) ?? $code;
+
+            return preg_replace_callback(
+                '/\bScreen\s*:\s*([^,\n\r}]+)/',
+                static function (array $m) use ($screens): string {
+                    $resolved = self::resolveScreenTarget(trim($m[1]), $screens);
+
+                    return $resolved !== null ? 'Screen: ' . self::quote($resolved) : $m[0];
+                },
+                $code
+            ) ?? $code;
+        });
+    }
+
+    /**
+     * @param list<string> $screens
+     */
+    private static function resolveScreenTarget(string $expr, array $screens): ?string
+    {
+        $expr = trim($expr);
+        if ($expr === '') {
+            return null;
+        }
+
+        $segments = self::splitMemberChain($expr);
+        if ($segments === []) {
+            $segments = [$expr];
+        }
+
+        $resolved = [];
+        $allSegmentsResolved = true;
+        foreach ($segments as $segment) {
+            $screen = self::resolveSegmentToScreen($segment, $screens);
+            if ($screen === null) {
+                $allSegmentsResolved = false;
+                break;
+            }
+            $resolved[] = $screen;
+        }
+
+        if ($allSegmentsResolved && $resolved !== []) {
+            $unique = array_values(array_unique($resolved));
+            if (count($unique) === 1) {
+                return $unique[0];
+            }
+        }
+
+        if (self::looksMangledScreenTarget($expr, $screens)) {
+            return self::salvageMangledScreenTarget($expr, $screens);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<string> $screens
+     */
+    private static function looksMangledScreenTarget(string $expr, array $screens): bool
+    {
+        if (str_contains($expr, "'''")) {
+            return true;
+        }
+
+        $dequoted = str_replace("''", "'", $expr);
+        if (preg_match("/'[^']+'\.Admin Screen/i", $dequoted) === 1) {
+            return true;
+        }
+
+        $segments = self::splitMemberChain($expr);
+        if (count($segments) < 2) {
+            return false;
+        }
+
+        $last = trim($segments[count($segments) - 1]);
+        if (!str_starts_with($last, "'") && preg_match('/^[A-Za-z_][\w]*$/', self::unquoteToken($last))) {
+            return false;
+        }
+
+        $screenLike = 0;
+        foreach ($segments as $segment) {
+            $literal = self::unquoteToken($segment);
+            if (in_array($literal, $screens, true) || self::repairMergedScreenLiteral($literal, $screens) !== null) {
+                $screenLike++;
+            }
+        }
+
+        return $screenLike === count($segments) && substr_count($dequoted, "'") >= 4;
+    }
+
+    /**
+     * Last-resort recovery when quote nesting prevents member-chain parsing.
+     *
+     * @param list<string> $screens longest-first
+     */
+    private static function salvageMangledScreenTarget(string $expr, array $screens): ?string
+    {
+        $dequoted = str_replace("''", "'", $expr);
+        $bare = str_replace("'", '', $expr);
+
+        $repaired = self::repairMergedScreenLiteral($dequoted, $screens)
+            ?? self::repairMergedScreenLiteral($bare, $screens);
+        if ($repaired !== null) {
+            return $repaired;
+        }
+
+        if (str_contains($bare, 'Admin Screen')) {
+            $adminScreens = array_values(array_filter(
+                $screens,
+                static fn(string $s): bool => stripos($s, 'Admin Screen') !== false
+            ));
+            if (count($adminScreens) === 1) {
+                return $adminScreens[0];
+            }
+        }
+
+        foreach ($screens as $screen) {
+            if (str_contains($bare, str_replace("'", '', $screen))) {
+                return $screen;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<string> $screens
+     */
+    private static function resolveSegmentToScreen(string $segment, array $screens): ?string
+    {
+        $literal = self::unquoteToken($segment);
+        if (in_array($literal, $screens, true)) {
+            return $literal;
+        }
+
+        return self::repairMergedScreenLiteral($literal, $screens);
+    }
+
+    /**
      * Collapse member chains whose leading segments all denote the same screen.
      */
     private static function normalizeMemberChains(string $formula, string $screen): string
@@ -181,6 +380,11 @@ final class ScreenReferenceNormalizer
                 '/\bNavigate\s*\(\s*([^,;]+)/i',
                 static function (array $m) use ($screens): string {
                     $arg = trim($m[1]);
+                    $resolved = self::resolveScreenTarget($arg, $screens);
+                    if ($resolved !== null) {
+                        return 'Navigate(' . self::quote($resolved);
+                    }
+
                     foreach ($screens as $screen) {
                         $canonical = self::quote($screen);
                         $segments = self::splitMemberChain($arg);

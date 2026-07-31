@@ -19,36 +19,42 @@ foreach ($archive->documents() as $doc) {
 }
 
 $all = '';
+$activeMangled = 0;
+$commentMangled = 0;
+
 foreach ($archive->documents() as $doc) {
-    $doc->transformFormulas(static function (string $f) use (&$all): string {
+    $doc->transformFormulas(static function (string $f, string $path) use (&$all, &$activeMangled, &$commentMangled): string {
         $all .= $f . "\n";
+        $parts = PowerSweeper\PowerFxFormulaSegments::splitForStructure($f);
+        foreach ($parts as [$type, $text]) {
+            $mangled = str_contains($text, "'''")
+                || preg_match("/'[^']+'\.Admin Screen/i", str_replace("''", "'", $text));
+            if (!$mangled) {
+                continue;
+            }
+            if ($type === 'code') {
+                $activeMangled++;
+                echo "ACTIVE-MANGLED: $path\n";
+            } else {
+                $commentMangled++;
+            }
+        }
+
         return $f;
     });
 }
 
 echo "Screens: " . implode(', ', array_keys($screens)) . "\n\n";
 
-// Repeated screen qualification patterns
 foreach (array_keys($screens) as $screen) {
     $q = "'" . str_replace("'", "''", $screen) . "'";
     if (str_contains($all, $q . '.' . $q)) {
         echo "DOUBLE: $screen\n";
     }
-    if (preg_match('/\'{2,}' . preg_quote($screen, '/') . '/i', $all)) {
-        echo "EXTRA-QUOTES: $screen\n";
-    }
 }
 
-// Mangled admin pattern
-if (preg_match_all("/'VCR '[^']+'\.Admin Screen'/i", $all, $m)) {
-    echo "\nMangled admin patterns:\n";
-    foreach (array_unique($m[0]) as $p) {
-        echo "  $p\n";
-    }
-}
-
-// Count triple-quote occurrences
-$n = substr_count($all, "'''");
-echo "\nTriple-single-quote count: $n\n";
+echo "\nActive mangled code segments: $activeMangled\n";
+echo "Mangled in comments/strings only: $commentMangled\n";
+echo "Triple-single-quote count (all formulas): " . substr_count($all, "'''") . "\n";
 
 $archive->cleanup();

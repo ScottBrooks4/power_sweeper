@@ -67,8 +67,43 @@ final class PowerFxFormulaChecker
             $localNames
         ));
         $findings = array_merge($findings, $this->checkDelegation($body, $location, $screen, $controlType, $property));
+        $findings = array_merge($findings, $this->checkMangledScreenRefs($body, $location, $screen, $controlType, $property));
 
         return $findings;
+    }
+
+    /**
+     * @return list<Finding>
+     */
+    private function checkMangledScreenRefs(
+        string $body,
+        string $location,
+        string $screen,
+        string $controlType,
+        string $property,
+    ): array {
+        $parts = PowerFxFormulaSegments::splitForStructure($body);
+        foreach ($parts as [$type, $text]) {
+            if ($type !== 'code') {
+                continue;
+            }
+            if (str_contains($text, "'''") || preg_match("/'[^']+'\.Admin Screen/i", str_replace("''", "'", $text))) {
+                return [[
+                    'ruleId' => 'app-formula-mangled-screen-ref',
+                    'level' => 'error',
+                    'messageArgs' => ['Mangled screen reference (over-quoted or merged screen name)'],
+                    'location' => $location,
+                    'screen' => $screen,
+                    'controlType' => $controlType,
+                    'property' => $property,
+                    'snippet' => StudioIssueScanner::preview($text),
+                    'charOffset' => 0,
+                    'charLength' => min(strlen($text), 120),
+                ]];
+            }
+        }
+
+        return [];
     }
 
     /**

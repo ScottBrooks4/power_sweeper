@@ -775,6 +775,14 @@ assert_true(
     'merged literal repair is idempotent'
 );
 
+$extremeNav = "Navigate('''VCR 'VCR Home Page'.Admin Screen''.''VCR 'VCR Home Page'.Admin Screen'''.'''VCR 'VCR Home Page'.Admin Screen''', ScreenTransition.Fade)";
+$extremeNavFixed = \PowerSweeper\ScreenReferenceNormalizer::normalize($extremeNav, $screens);
+assert_true($extremeNavFixed === "Navigate('VCR Admin Screen', ScreenTransition.Fade)", 'extreme Navigate admin screen chain repaired');
+
+$tableScreen = "Screen: '''VCR 'VCR Home Page'.Admin Screen''.''VCR 'VCR Home Page'.Admin Screen'''";
+$tableScreenFixed = \PowerSweeper\ScreenReferenceNormalizer::normalize($tableScreen, $screens);
+assert_true($tableScreenFixed === "Screen: 'VCR Admin Screen'", 'App.Formulas Screen field extreme chain repaired');
+
 $cross = "'VCR Home Page'.'VCR Home Page'.SubmitButton";
 $crossFixed = \PowerSweeper\ScreenReferenceNormalizer::normalize($cross, $screens);
 assert_true($crossFixed === "'VCR Home Page'.SubmitButton", 'member chain collapses repeated screen');
