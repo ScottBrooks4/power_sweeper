@@ -517,10 +517,41 @@ final class EnableDarkModeHop implements HopInterface
         // Pass 6b: number inputs + rich text editors — Fill/Color/Border chrome (often unset on ModernNumberInput)
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
-                if (!$this->isNumberInput($control) && !$this->isRichTextInput($control)) {
+                if ($this->isRichTextInput($control)) {
+                    $this->applyRichTextChrome($control, $theme, $var, $report);
                     continue;
                 }
-                $this->applyModernInputChrome($control, $theme, $var, $report);
+                if ($this->isNumberInput($control)) {
+                    $this->applyModernInputChrome($control, $theme, $var, $report);
+                }
+            }
+        }
+
+        // Pass 6d: section containers around rich text editors (e.g. 10_Remarks)
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$control->isContainer()) {
+                    continue;
+                }
+                if (!preg_match('/(?:^|\/)10_Remarks(\/|\.|$)|BugReportingContainer(\/|\.|$)/i', $control->path)) {
+                    continue;
+                }
+                $from = $control->getProperty('Fill');
+                if ($from !== null && trim($from) !== '' && $this->alreadyThemed($from, $var, $theme)) {
+                    continue;
+                }
+                if ($from !== null && trim($from) !== '') {
+                    $parsed = ColorValue::parse($from);
+                    if ($parsed !== null && !ColorValue::isTransparent($parsed) && !$this->usesActiveThemeToken($from, $theme)) {
+                        continue;
+                    }
+                }
+                $to = $this->themeFormula($control, $theme, 'Surface');
+                if ($to === $from) {
+                    continue;
+                }
+                $control->setProperty('Fill', $to);
+                $report->add(self::id(), $control->path, 'Fill', $from ?? '(unset)', $to);
             }
         }
 
@@ -909,7 +940,41 @@ final class EnableDarkModeHop implements HopInterface
             return false;
         }
 
-        return (bool) preg_match('/\.(Fill|Color|BorderColor|FontColor|HoverFill|HoverColor|DisabledFill|DisabledColor|FocusedBorderColor|PressedFill|PressedColor|BackgroundColor)(\.|$)/i', $path);
+        return (bool) preg_match('/\.(Fill|Color|BorderColor|FontColor|BasePaletteColor|TemplateFill|Appearance|HoverFill|HoverColor|DisabledFill|DisabledColor|FocusedBorderColor|PressedFill|PressedColor|BackgroundColor|LoadingSpinnerColor)(\.|$)/i', $path);
+    }
+
+    private function applyRichTextChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    {
+        $styleName = $control->getStyleName();
+        if ($styleName !== null && $styleName !== '') {
+            $control->clearStyleName();
+            $report->add(self::id(), $control->path, 'StyleName', $styleName, '(cleared for gblTheme)');
+        }
+
+        $props = [
+            'Fill' => ['token' => 'InputFill', 'category' => 'Data'],
+            'Color' => ['token' => 'Text', 'category' => 'Data'],
+            'FontColor' => ['token' => 'Text', 'category' => 'Design'],
+            'TemplateFill' => ['token' => 'InputFill', 'category' => 'Design'],
+            'BasePaletteColor' => ['token' => 'Accent', 'category' => 'Design'],
+            'FocusedBorderColor' => ['token' => 'Accent', 'category' => 'Design'],
+            'BorderColor' => ['token' => 'Border', 'category' => 'Design'],
+            'HoverFill' => ['token' => 'InputFill', 'category' => 'Design'],
+            'HoverColor' => ['token' => 'Text', 'category' => 'Design'],
+            'DisabledFill' => ['token' => 'InputFill', 'category' => 'Design'],
+            'DisabledColor' => ['token' => 'TextMuted', 'category' => 'Design'],
+            'LoadingSpinnerColor' => ['token' => 'Accent', 'category' => 'Design'],
+        ];
+        foreach ($props as $prop => $meta) {
+            $this->applyThemedControlProperty($control, $prop, $meta['token'], $theme, $var, $report, $meta['category'], $prop === 'BorderColor');
+        }
+
+        $appearance = (string) ($control->getProperty('Appearance') ?? '');
+        if ($appearance === '' || !str_contains($appearance, 'FilledDarker')) {
+            $to = $control->format === 'yaml' ? '=Appearance.FilledDarker' : 'Appearance.FilledDarker';
+            $control->setProperty('Appearance', $to, 'Design');
+            $report->add(self::id(), $control->path, 'Appearance', $appearance !== '' ? $appearance : '(unset)', $to);
+        }
     }
 
     private function applyModernInputChrome(ControlNode $control, string $theme, string $var, Report $report): void
@@ -925,48 +990,58 @@ final class EnableDarkModeHop implements HopInterface
             'DisabledColor' => 'TextMuted',
         ];
         foreach ($props as $prop => $token) {
-            $from = $control->getProperty($prop);
-            if ($from !== null && $this->alreadyThemed($from, $var, $theme)) {
-                continue;
-            }
-            if ($from !== null && trim($from) !== '') {
-                $parsed = ColorValue::parse($from);
-                if ($parsed !== null && ColorValue::isTransparent($parsed) && $prop !== 'BorderColor') {
-                    continue;
-                }
-                if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
-                    $mapped = $this->coreTokenForLiteral($parsed, $prop);
-                    $to = $this->themeFormula($control, $theme, $mapped);
-                    if ($to !== $from) {
-                        $control->setProperty($prop, $to);
-                        $report->add(self::id(), $control->path, $prop, $from, $to);
-                    }
-                    continue;
-                }
-                $enumRewritten = $this->rewriteColorEnums($from, $theme);
-                if ($enumRewritten !== $from) {
-                    $to = $control->format === 'yaml' && !str_starts_with(trim($enumRewritten), '=')
-                        && str_starts_with(trim($from), '=')
-                        ? '=' . ltrim($enumRewritten, '=')
-                        : $enumRewritten;
-                    $control->setProperty($prop, $to);
-                    $report->add(self::id(), $control->path, $prop, $from, $to);
-                    continue;
-                }
-            }
-            if ($prop === 'BorderColor' && $from !== null) {
-                $borderParsed = ColorValue::parse($from);
-                if ($borderParsed !== null && ColorValue::isTransparent($borderParsed)) {
-                    continue;
-                }
-            }
-            $to = $this->themeFormula($control, $theme, $token);
-            if ($to === $from) {
-                continue;
-            }
-            $control->setProperty($prop, $to);
-            $report->add(self::id(), $control->path, $prop, $from ?? '(unset)', $to);
+            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $report, 'Data', false);
         }
+    }
+
+    private function applyThemedControlProperty(
+        ControlNode $control,
+        string $prop,
+        string $token,
+        string $theme,
+        string $var,
+        Report $report,
+        string $category = 'Data',
+        bool $overrideTransparentBorder = false,
+    ): void {
+        $from = $control->getProperty($prop);
+        if ($from !== null && $this->alreadyThemed($from, $var, $theme)) {
+            return;
+        }
+        if ($from !== null && trim($from) !== '') {
+            $parsed = ColorValue::parse($from);
+            if ($parsed !== null && ColorValue::isTransparent($parsed) && $prop !== 'BorderColor') {
+                return;
+            }
+            if ($parsed !== null && ColorValue::isTransparent($parsed) && $prop === 'BorderColor' && !$overrideTransparentBorder) {
+                return;
+            }
+            if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
+                $mapped = $this->coreTokenForLiteral($parsed, $prop);
+                $to = $this->themeFormula($control, $theme, $mapped);
+                if ($to !== $from) {
+                    $control->setProperty($prop, $to, $category);
+                    $report->add(self::id(), $control->path, $prop, $from, $to);
+                }
+                return;
+            }
+            $enumRewritten = $this->rewriteColorEnums($from, $theme);
+            if ($enumRewritten !== $from) {
+                $to = $control->format === 'yaml' && !str_starts_with(trim($enumRewritten), '=')
+                    && str_starts_with(trim($from), '=')
+                    ? '=' . ltrim($enumRewritten, '=')
+                    : $enumRewritten;
+                $control->setProperty($prop, $to, $category);
+                $report->add(self::id(), $control->path, $prop, $from, $to);
+                return;
+            }
+        }
+        $to = $this->themeFormula($control, $theme, $token);
+        if ($to === $from) {
+            return;
+        }
+        $control->setProperty($prop, $to, $category);
+        $report->add(self::id(), $control->path, $prop, $from ?? '(unset)', $to);
     }
 
     private function themeFormula(ControlNode $control, string $theme, string $token): string

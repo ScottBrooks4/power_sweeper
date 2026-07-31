@@ -1072,7 +1072,35 @@ if (is_file($repair2)) {
     $vcnYamlPowered = ZipTool::readEntry($poweredTestOut, 'Src/VCR _ VCN Form.pa.yaml');
     assert_true(is_string($vcnYamlPowered) && preg_match('/Sites:[\\s\\S]*?ModernNumberInput@1\\.1\\.1[\\s\\S]*?Fill:\\s*=gblTheme\\.InputFill/m', $vcnYamlPowered) === 1, 'ModernNumberInput Sites gets gblTheme.InputFill');
     assert_true(is_string($vcnYamlPowered) && preg_match('/Remarks:[\\s\\S]*?RichTextEditor@2\\.7\\.0[\\s\\S]*?Fill:\\s*=gblTheme\\.InputFill/m', $vcnYamlPowered) === 1, 'RichTextEditor Remarks gets gblTheme.InputFill');
+    assert_true(is_string($vcnYamlPowered) && preg_match('/Remarks:[\\s\\S]*?RichTextEditor@2\\.7\\.0[\\s\\S]*?Appearance:\\s*=Appearance\\.FilledDarker/m', $vcnYamlPowered) === 1, 'RichTextEditor Remarks gets Appearance.FilledDarker');
+    assert_true(is_string($vcnYamlPowered) && preg_match('/Remarks:[\\s\\S]*?RichTextEditor@2\\.7\\.0[\\s\\S]*?TemplateFill:\\s*=gblTheme\\.InputFill/m', $vcnYamlPowered) === 1, 'RichTextEditor Remarks gets gblTheme.TemplateFill');
     @unlink($poweredTestOut);
+}
+
+// THCEE — global component hosts must stay bare (not screen-qualified)
+$thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
+if (is_file($thceeFriday)) {
+    $thceeProfile = include dirname(__DIR__) . '/profiles/powered_thcee.php';
+    $thceePoweredOut = sys_get_temp_dir() . '/ps_thcee_powered_test_' . bin2hex(random_bytes(4)) . '.msapp';
+    (new Pipeline())->run($thceeFriday, $thceeProfile['hops'], $thceePoweredOut);
+    $refreshYaml = ZipTool::readEntry($thceePoweredOut, 'Src/THCEE Refresh Screen.pa.yaml');
+    assert_true(
+        is_string($refreshYaml)
+            && str_contains($refreshYaml, 'comTranslations.Labels.THCEERefreshScreen')
+            && !str_contains($refreshYaml, "'THCEE Control Screen'.comTranslations"),
+        'THCEE keeps bare comTranslations refs on Refresh Screen'
+    );
+    $thceeYaml = ZipTool::readEntry($thceePoweredOut, 'Src/App.pa.yaml');
+    assert_true(is_string($thceeYaml) && str_contains($thceeYaml, 'gblThemeLight'), 'THCEE powered App.pa.yaml has theme palettes');
+    @unlink($thceePoweredOut);
+
+    $thceeArch = new \PowerSweeper\MsappArchive($thceeFriday);
+    $thceeArch->unpack();
+    $thceeCatalog = \PowerSweeper\AppControlCatalog::build($thceeArch->documents());
+    assert_true($thceeCatalog->isComponentInstance('comTranslations'), 'THCEE comTranslations is a component instance');
+    $resolved = $thceeCatalog->resolveIdentifier('THCEE Refresh Screen', 'comTranslations');
+    assert_true($resolved === null, 'THCEE comTranslations is not screen-qualified cross-screen');
+    $thceeArch->cleanup();
 }
 
 // validate_powered.php — deliverable smoke check
