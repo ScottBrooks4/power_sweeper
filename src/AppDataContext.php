@@ -44,6 +44,7 @@ final class AppDataContext
         'LoadingSpinner' => true, 'PaperSize' => true, 'DateTimeZone' => true,
         'DatePickerFormat' => true, 'ListItemTemplate' => true, 'DecimalPrecision' => true,
         'ScrollPosition' => true, 'TabSize' => true, 'TabListAppearance' => true,
+        'TimeUnit' => true,
         'Zoom' => true, 'LaunchTarget' => true, 'TextMode' => true, 'VirtualKeyboardMode' => true,
         'leftCircle' => true, 'rightCircle' => true,
     ];

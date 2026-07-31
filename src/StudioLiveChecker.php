@@ -50,6 +50,7 @@ final class StudioLiveChecker
             foreach ($doc->controls() as $c) {
                 $localNames[$c->name] = true;
             }
+            $screenRecordVars = FormulaRefContext::recordVariableNames(self::collectAllFormulaText([$doc]));
 
             foreach ($doc->controls() as $control) {
                 foreach ($control->propertyNames() as $prop) {
@@ -67,7 +68,8 @@ final class StudioLiveChecker
                             self::controlTypeFqn($screen, $control),
                             $prop,
                             $control->name,
-                            $localNames
+                            $localNames,
+                            $screenRecordVars,
                         )
                     );
                 }

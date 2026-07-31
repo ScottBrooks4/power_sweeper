@@ -761,6 +761,17 @@ if (is_file($fixtureYaml)) {
     }
 }
 
+// FormulaRefContext — record fields after calls and screen-scoped With records
+assert_true(
+    \PowerSweeper\FormulaRefContext::isRecordVariable('LookUp(T).Values.Text', 'Values') === false,
+    'Values alone is not a record variable definition'
+);
+$recordCtx = "With({ UpdateItemDescription: { Visible: true } }, UpdateItemDescription.Visible)";
+assert_true(
+    \PowerSweeper\FormulaRefContext::isRecordVariable('UpdateItemDescription.Visible', 'UpdateItemDescription', $recordCtx),
+    'UpdateItemDescription from sibling With on same screen'
+);
+
 // FormulaRefContext — ForAll As loop variables are not control refs
 $forAllFormula = "ForAll(approvers As rec, With({ x: rec.Value }, Patch(col, x)))";
 assert_true(
@@ -954,7 +965,8 @@ $profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
 $vcrPowered = $profileLoader->resolvePoweredProfile('CDLS VCR App.msapp');
 $thceePowered = $profileLoader->resolvePoweredProfile('VCDS THCEE App.msapp');
 assert_true(in_array('repair_control_refs', array_column($vcrPowered['hops'], 'id'), true), 'VCR powered profile includes repair_control_refs');
-assert_true(!in_array('repair_control_refs', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile skips repair_control_refs');
+assert_true(in_array('repair_control_refs', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes repair_control_refs (component-safe)');
+assert_true(in_array('regenerate_sarif', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes regenerate_sarif');
 assert_true(in_array('enable_dark_mode', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes enable_dark_mode');
 foreach ($allProfiles as $profile) {
     assert_true($profile['description'] !== '', 'profile ' . $profile['id'] . ' has description');
@@ -1116,6 +1128,35 @@ if (is_file($repair2)) {
     assert_true(is_string($vcnYamlPowered) && preg_match('/Remarks:[\\s\\S]*?RichTextEditor@2\\.7\\.0[\\s\\S]*?TemplateFill:\\s*=gblTheme\\.InputFill/m', $vcnYamlPowered) === 1, 'RichTextEditor Remarks gets gblTheme.TemplateFill');
     @unlink($poweredTestOut);
 }
+
+// PowerFxFormulaChecker — THCEE record-field patterns (no full-app scan)
+$thceeCatalogFixture = \PowerSweeper\AppControlCatalog::build([]);
+$thceeDataFixture = new \PowerSweeper\AppDataContext();
+$thceeFx = new \PowerSweeper\PowerFxFormulaChecker($thceeCatalogFixture, $thceeDataFixture);
+$comboBoxItems = 'LookUp(StatusTable, LangFilter = If(varLang = true, "EN", "FR")).Values.Text';
+$comboFindings = $thceeFx->check($comboBoxItems, 'THCEE Dashboard', 'StatusComboBox.Items', 'ComboBox', 'Items', 'StatusComboBox', []);
+assert_true($comboFindings === [], 'LookUp(...).Values.Text is not flagged as invalid control ref');
+$visibleFindings = $thceeFx->check(
+    'UpdateItemDescription.Visible',
+    'THCEE Trips',
+    'conEditItemDescription.Visible',
+    'GroupContainer',
+    'Visible',
+    'conEditItemDescription',
+    [],
+    ['UpdateItemDescription' => true]
+);
+assert_true($visibleFindings === [], 'With record variable visible on same screen is valid');
+$timeUnitFindings = $thceeFx->check(
+    'DateDiff(DateValue(a), DateValue(b), TimeUnit.Days)',
+    'THCEE Trips',
+    'Trips_NewActivity.OnSelect',
+    'Button',
+    'OnSelect',
+    'Trips_NewActivity',
+    []
+);
+assert_true($timeUnitFindings === [], 'TimeUnit.Days is a Power Fx enum reference');
 
 // THCEE — global component hosts must stay bare (not screen-qualified)
 $thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';

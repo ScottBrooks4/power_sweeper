@@ -47,6 +47,7 @@ final class PowerFxFormulaChecker
         string $property,
         string $controlName,
         array $localNames,
+        ?array $screenRecordVars = null,
     ): array {
         if (trim($formula) === '') {
             return [];
@@ -54,6 +55,7 @@ final class PowerFxFormulaChecker
 
         $findings = [];
         $body = ltrim(trim($formula), '=');
+        $screenRecordVars ??= [];
 
         $findings = array_merge($findings, $this->checkLocale($body, $location, $screen, $controlType, $property));
         $findings = array_merge($findings, $this->checkBooleans($body, $location, $screen, $controlType, $property, $controlName));
@@ -71,7 +73,8 @@ final class PowerFxFormulaChecker
                     $controlName,
                     $localNames,
                     $body,
-                    $offset
+                    $offset,
+                    $screenRecordVars,
                 ));
             }
             $offset += strlen($text);
@@ -389,6 +392,7 @@ final class PowerFxFormulaChecker
         array $localNames,
         string $fullBody,
         int $baseOffset = 0,
+        array $screenRecordVars = [],
     ): array {
         $findings = [];
         $errorBindings = [];
@@ -428,7 +432,7 @@ final class PowerFxFormulaChecker
             foreach ($chains[0] as $chainMatch) {
                 $chain = $chainMatch[0];
                 $chainStart = (int) $chainMatch[1];
-                if ($chainStart > 0 && in_array($segment[$chainStart - 1], [')', ']', '}'], true)) {
+                if ($this->isRecordMemberAfterCall($segment, $chainStart)) {
                     continue;
                 }
                 $parts = $this->splitMemberChain($chain);
@@ -436,7 +440,7 @@ final class PowerFxFormulaChecker
                     continue;
                 }
                 $root = $parts[0];
-                $rootValid = $this->isValidRootReference($fullBody, $root, $screen, $controlName, $localNames);
+                $rootValid = $this->isValidRootReference($fullBody, $root, $screen, $controlName, $localNames, $screenRecordVars);
                 if ($rootValid) {
                     continue;
                 }
@@ -488,7 +492,10 @@ final class PowerFxFormulaChecker
             $id = $idInfo['name'];
             $offset = $idInfo['offset'];
             // With({ r: LookUp(...) }, r.Field) / { v: ThisRecord.Value }
-            if (FormulaRefContext::isScopedBinding($fullBody, $id)) {
+            if (FormulaRefContext::isLoopVariable($fullBody, $id)) {
+                continue;
+            }
+            if (isset($screenRecordVars[$id])) {
                 continue;
             }
             if (strlen($id) <= 1) {
@@ -697,10 +704,25 @@ final class PowerFxFormulaChecker
     /**
      * @param array<string, true> $localNames
      */
-    private function isValidRootReference(string $body, string $root, string $screen, string $controlName, array $localNames): bool
-    {
+    private function isValidRootReference(
+        string $formula,
+        string $root,
+        string $screen,
+        string $controlName,
+        array $localNames,
+        array $screenRecordVars = [],
+    ): bool {
         $name = $this->unquote($root);
-        if (FormulaRefContext::isScopedBinding($body, $name)) {
+        if (FormulaRefContext::isLoopVariable($formula, $name)) {
+            return true;
+        }
+        if (FormulaRefContext::isRecordVariable($formula, $name)) {
+            return true;
+        }
+        if (isset($screenRecordVars[$name])) {
+            return true;
+        }
+        if ($this->isRecordFieldInTablePredicate($formula, $name)) {
             return true;
         }
         if ($name === $screen || $this->catalog->hasOnScreen($screen, $name)) {
@@ -729,6 +751,41 @@ final class PowerFxFormulaChecker
         }
         $others = $this->catalog->screensWith($name);
         return $others !== [] && in_array($screen, $others, true);
+    }
+
+    /**
+     * Func(...).Field or ParseJSON(...).Field — record member, not a control chain.
+     */
+    private function isRecordMemberAfterCall(string $segment, int $chainStart): bool
+    {
+        if ($chainStart <= 0) {
+            return false;
+        }
+        if ($chainStart > 0 && in_array($segment[$chainStart - 1], [')', ']', '}'], true)) {
+            return true;
+        }
+        $i = $chainStart - 1;
+        if ($i >= 0 && $segment[$i] === '.') {
+            $i--;
+        }
+        while ($i >= 0 && ($segment[$i] === ' ' || $segment[$i] === "\t" || $segment[$i] === "\n" || $segment[$i] === "\r")) {
+            $i--;
+        }
+
+        return $i >= 0 && in_array($segment[$i], [')', ']', '}'], true);
+    }
+
+    /**
+     * LookUp(col, RecordField.Subfield = …) / Filter(col, RecordField …).
+     */
+    private function isRecordFieldInTablePredicate(string $body, string $fieldName): bool
+    {
+        $q = preg_quote($fieldName, '/');
+
+        return preg_match(
+            '/\b(?:LookUp|Filter|Search|CountIf|SumIf|First|Last)\s*\(\s*[^,]+,\s*[^)]*\b' . $q . '\b/',
+            $body
+        ) === 1;
     }
 
     /**

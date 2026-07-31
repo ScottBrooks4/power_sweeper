@@ -3,14 +3,13 @@
 declare(strict_types=1);
 
 /**
- * THCEE "powered" preset: locale + dark mode only.
+ * THCEE "powered" preset: full Studio repair + dark mode.
  *
- * Skips VCR-class control-ref / syntax repair hops that can break THCEE's
- * global component host pattern (comTranslations, comExternalFunctions_* on
- * THCEE Control Screen referenced bare from other screens).
+ * Uses the same repair chain as VCR-class apps; component-host safety for
+ * comTranslations / comExternalFunctions_* is enforced inside repair_control_refs.
  */
 return [
-    'description' => 'THCEE powered preset: unwhack locale separators then enable_dark_mode (no VCR-class control ref repair).',
+    'description' => 'THCEE powered preset: full Studio repair (locale, refs, syntax, a11y, delegation) then enable_dark_mode.',
     'app_class' => 'thcee',
     'hops' => include __DIR__ . '/includes/thcee_powered_hops.php',
 ];

@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 /**
- * THCEE powered hop chain: locale + dark mode only.
+ * THCEE powered hop chain: full Studio repair + dark mode.
  *
- * Skips VCR-class control-ref / syntax repair that breaks global component hosts
- * (comTranslations, comExternalFunctions_* on THCEE Control Screen).
+ * Component-host safety (comTranslations, comExternalFunctions_*) is enforced inside
+ * repair_control_refs and the live checker — global component refs stay bare.
  *
  * @return list<array{id:string,options?:array<string,mixed>}>
  */
 return array_merge(
-    (include dirname(__DIR__) . '/unwhack_locale.php')['hops'],
+    include __DIR__ . '/vcr_repair_hops.php',
     (include dirname(__DIR__) . '/dark_mode.php')['hops'],
 );

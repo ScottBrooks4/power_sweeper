@@ -10,9 +10,34 @@ namespace PowerSweeper;
  */
 final class FormulaRefContext
 {
-    public static function isRecordVariable(string $formula, string $name): bool
+    /**
+     * @return array<string, true>
+     */
+    public static function recordVariableNames(string $formula): array
     {
-        return preg_match('/\b' . preg_quote($name, '/') . '\s*:/', $formula) === 1;
+        $names = [];
+        if (preg_match_all('/\b([A-Za-z_][\w]*)\s*:/', $formula, $m)) {
+            foreach ($m[1] as $name) {
+                if (!in_array($name, ['http', 'https', 'true', 'false'], true)) {
+                    $names[$name] = true;
+                }
+            }
+        }
+
+        return $names;
+    }
+
+    public static function isRecordVariable(string $formula, string $name, ?string $extendedContext = null): bool
+    {
+        $pattern = '/\b' . preg_quote($name, '/') . '\s*:/';
+        if (preg_match($pattern, $formula) === 1) {
+            return true;
+        }
+        if ($extendedContext !== null && $extendedContext !== $formula) {
+            return preg_match($pattern, $extendedContext) === 1;
+        }
+
+        return false;
     }
 
     /**
@@ -23,9 +48,9 @@ final class FormulaRefContext
         return preg_match('/\bAs\s+' . preg_quote($name, '/') . '\b/', $formula) === 1;
     }
 
-    public static function isScopedBinding(string $formula, string $name): bool
+    public static function isScopedBinding(string $formula, string $name, ?string $extendedContext = null): bool
     {
-        return self::isRecordVariable($formula, $name) || self::isLoopVariable($formula, $name);
+        return self::isRecordVariable($formula, $name, $extendedContext) || self::isLoopVariable($formula, $name);
     }
 
     public static function isPackageFieldRef(string $formula, string $field): bool
