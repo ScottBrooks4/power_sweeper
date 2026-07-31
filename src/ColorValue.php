@@ -275,6 +275,8 @@ final class ColorValue
             'Handle' => ['r' => 240, 'g' => 240, 'b' => 240, 'a' => 1.0],
             'Rail' => ['r' => 70, 'g' => 70, 'b' => 70, 'a' => 1.0],
             'Selection' => ['r' => 30, 'g' => 64, 'b' => 175, 'a' => 1.0],
+            'Link' => ['r' => 45, 'g' => 212, 'b' => 191, 'a' => 1.0],
+            'LinkHover' => ['r' => 94, 'g' => 234, 'b' => 212, 'a' => 1.0],
             default => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
         };
     }
@@ -288,6 +290,16 @@ final class ColorValue
         $aStr = abs($a - round($a)) < 0.0001 ? (string) (int) round($a) : rtrim(rtrim(sprintf('%.3F', $a), '0'), '.');
         $body = sprintf('RGBA(%d, %d, %d, %s)', $c['r'], $c['g'], $c['b'], $aStr);
         return $yamlEquals ? '=' . $body : $body;
+    }
+
+    /**
+     * CSS hex for HtmlText link colors (#RRGGBB).
+     *
+     * @param array{r:int,g:int,b:int,a:float} $c
+     */
+    public static function toHex(array $c): string
+    {
+        return sprintf('#%02X%02X%02X', $c['r'], $c['g'], $c['b']);
     }
 
     /**

@@ -267,6 +267,9 @@ assert_true(
     'theme_defaults option edits Accent in central palette'
 );
 
+$linkHex = ColorValue::toHex(['r' => 45, 'g' => 212, 'b' => 191, 'a' => 1.0]);
+assert_true($linkHex === '#2DD4BF', 'ColorValue::toHex for dark link teal');
+
 $white = ColorValue::parse('=RGBA(255, 255, 255, 1)');
 assert_true($white !== null, 'parse white');
 $darkBg = ColorValue::toDark($white, 'background');
@@ -1013,6 +1016,10 @@ if (is_file($repair2)) {
     assert_true(is_string($topbarYaml) && str_contains($topbarYaml, 'gblDarkMode'), 'ThemeRadio DefaultSelectedItems binds gblDarkMode');
     assert_true(is_string($topbarYaml) && str_contains($topbarYaml, 'gblThemeDark'), 'ThemeRadio OnChange swaps gblThemeDark');
     assert_true(is_string($homeYaml) && preg_match('/GoodMorning:[\s\S]*?Color:\s*=gblTheme\.Text/m', $homeYaml) === 1, 'GoodMorning label gets gblTheme.Text');
+    $vcnYaml = ZipTool::readEntry($poweredTestOut, 'Src/VCR _ VCN Form.pa.yaml');
+    assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'LinkCss: "#1D4ED8"'), 'light palette LinkCss hex for HtmlText links');
+    assert_true(is_string($poweredYaml) && str_contains($poweredYaml, 'LinkCss: "#2DD4BF"'), 'dark palette LinkCss is accessible teal');
+    assert_true(is_string($vcnYaml) && str_contains($vcnYaml, 'gblTheme.LinkCss'), 'Jump to annex links bind gblTheme.LinkCss');
     @unlink($poweredTestOut);
 }
 

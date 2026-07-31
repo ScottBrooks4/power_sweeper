@@ -359,6 +359,40 @@ final class EnableDarkModeHop implements HopInterface
                 $report->add(self::id(), $control->path, 'Fill', $from ?? '(unset)', $to);
             }
         }
+
+        // Pass 7: hyperlinks — teal in dark mode via gblTheme.Link / LinkCss (not Accent)
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $report): string {
+                if (!str_contains(strtolower($path), 'htmltext')) {
+                    return $formula;
+                }
+                $rewritten = $this->rewriteInlineLinkHtml($formula, $theme);
+                if ($rewritten !== $formula) {
+                    $report->add(self::id(), $path, 'HtmlText', 'color: blue', $theme . '.LinkCss');
+                }
+
+                return $rewritten;
+            });
+
+            foreach ($doc->controls() as $control) {
+                if (!$this->isInlineLinkHost($control)) {
+                    continue;
+                }
+                foreach (['Color', 'HoverColor', 'PressedColor'] as $prop) {
+                    $from = $control->getProperty($prop);
+                    if ($from !== null && str_contains($from, $theme . '.Link')) {
+                        continue;
+                    }
+                    $token = $prop === 'Color' ? 'Link' : 'LinkHover';
+                    $to = $this->themeFormula($control, $theme, $token);
+                    if ($to === $from) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, $from ?? '(unset)', $to);
+                }
+            }
+        }
     }
 
     /**
@@ -387,6 +421,15 @@ final class EnableDarkModeHop implements HopInterface
                 $dark = ColorValue::defaultDarkForToken($token);
             }
             $darkFields[] = $token . ': ' . ColorValue::formatRgba($dark);
+        }
+
+        if (isset($palette['Link'])) {
+            $lightFields[] = 'LinkCss: "' . ColorValue::toHex($palette['Link']['light']) . '"';
+            $darkFields[] = 'LinkCss: "' . ColorValue::toHex($palette['Link']['dark']) . '"';
+        }
+        if (isset($palette['LinkHover'])) {
+            $lightFields[] = 'LinkHoverCss: "' . ColorValue::toHex($palette['LinkHover']['light']) . '"';
+            $darkFields[] = 'LinkHoverCss: "' . ColorValue::toHex($palette['LinkHover']['dark']) . '"';
         }
 
         return self::BLOCK_START
@@ -605,6 +648,52 @@ final class EnableDarkModeHop implements HopInterface
         return $control->format === 'yaml' ? '=' . $theme . '.' . $token : $theme . '.' . $token;
     }
 
+    private function isInlineLinkHost(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+        if (!str_contains($t, 'htmlviewer') && !str_contains($t, 'htmltext')) {
+            return false;
+        }
+        $html = strtolower((string) ($control->getProperty('HtmlText') ?? ''));
+        if (str_contains($html, 'color: blue') || str_contains($html, 'color:blue')) {
+            return true;
+        }
+        if (str_contains($html, '.linkcss')) {
+            return true;
+        }
+        $name = strtolower($control->name);
+        return str_contains($name, 'jumpto') || str_contains($name, 'link');
+    }
+
+    private function rewriteInlineLinkHtml(string $formula, string $theme): string
+    {
+        if (str_contains($formula, $theme . '.LinkCss')) {
+            return $formula;
+        }
+        if (!preg_match('/color\s*:\s*blue/i', $formula)) {
+            return $formula;
+        }
+
+        $patterns = [
+            '/="<span style=\'color: blue; text-decoration: underline;\'>([^<]+)<\/span>"/'
+                => '="<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
+            '/="<span style=""color: blue; text-decoration: underline;"">([^<]+)<\/span>"/'
+                => '="<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
+            '/"<span style=\'color: blue; text-decoration: underline;\'>([^<]+)<\/span>"/'
+                => '"<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
+        ];
+
+        $out = $formula;
+        foreach ($patterns as $pattern => $replacement) {
+            $replaced = preg_replace($pattern, $replacement, $out);
+            if ($replaced !== null && $replaced !== $out) {
+                $out = $replaced;
+            }
+        }
+
+        return $out;
+    }
+
     /** @param list<ControlDocument> $documents */
     private function pickIntroScreen(array $documents): ?ControlNode
     {
@@ -744,6 +833,8 @@ final class EnableDarkModeHop implements HopInterface
             'Border' => ['r' => 226, 'g' => 232, 'b' => 240, 'a' => 1.0],
             'Accent' => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
             'Focus' => ['r' => 59, 'g' => 130, 'b' => 246, 'a' => 1.0],
+            'Link' => ['r' => 29, 'g' => 78, 'b' => 216, 'a' => 1.0],
+            'LinkHover' => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
         ];
         foreach ($fallbackLight as $token => $light) {
             if (!isset($core[$token])) {
