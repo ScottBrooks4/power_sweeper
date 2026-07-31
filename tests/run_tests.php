@@ -684,6 +684,17 @@ assert_true(($posixResult['report']['total'] ?? 0) >= 1, 'zip path style hop rep
 @rmdir($stageDir);
 @rmdir($tmpDir);
 
+// StudioErrorDetector — App (16) SARIF inventory
+$app16 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App (16).msapp';
+if (is_file($app16)) {
+    $det = \PowerSweeper\StudioErrorDetector::detectFromMsapp($app16, false);
+    assert_true($det['sarif_present'], 'App (16) has AppCheckerResult.sarif');
+    assert_true($det['total'] === 1719, 'App (16) SARIF total is 1719');
+    assert_true(($det['by_category']['formulas'] ?? 0) === 1112, 'App (16) formula count');
+    assert_true(($det['by_category']['accessibility'] ?? 0) === 476, 'App (16) a11y count');
+    assert_true($det['auto_fixable'] === 581, 'App (16) auto-fixable count');
+}
+
 echo "\n";
 if ($failed > 0) {
     echo "FAILED: {$failed} assertion(s)\n";
