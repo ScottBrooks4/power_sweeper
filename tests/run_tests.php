@@ -912,6 +912,27 @@ $perHost = \PowerSweeper\FormulaPatternAnalyzer::inferPerHostRenameMap([$pattern
 assert_true(isset($perHost['ValueInput5']['ValueInput1_1']), 'pattern analyzer maps stale ref per host');
 assert_true($perHost['ValueInput5']['ValueInput1_1'] === 'ValueInput5', 'pattern analyzer aligns host index');
 
+// Formula repair converger — locale verify loop on corrupt fixture
+$localeDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($localeDoc !== null, 'locale_corrupt fixture loads');
+$localeData = \PowerSweeper\AppDataContext::build([$localeDoc]);
+$localeCatalog = \PowerSweeper\AppControlCatalog::build([$localeDoc]);
+$localeChecker = new \PowerSweeper\PowerFxFormulaChecker($localeCatalog, $localeData);
+$beforeLocale = $localeChecker->check(
+    (string) $localeDoc->controls()[0]->getProperty('Fill') ?: '=RGBA(255; 255; 255; 1)',
+    'Screen1',
+    'Screen1.Fill',
+    'Screen',
+    'Fill',
+    'Screen1',
+    ['Screen1' => true],
+    [],
+);
+assert_true(count($beforeLocale) > 0, 'locale corrupt Fill has checker findings');
+$convergeStats = (new \PowerSweeper\FormulaRepairConverger())->converge([$localeDoc], ['max_rounds' => 2]);
+assert_true($convergeStats['repairs'] > 0, 'converger repairs locale_corrupt');
+assert_true($convergeStats['after'] <= $convergeStats['before'], 'converger reduces formula errors');
+
 $thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
 if (is_file($thceeFriday)) {
     $thceeArch = new \PowerSweeper\MsappArchive($thceeFriday);
@@ -1106,6 +1127,7 @@ assert_true(in_array('repair_delegation', $repairHopIds, true), 'repair_studio_e
 assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'repair_studio_errors includes regenerate_sarif');
 assert_true(in_array('repair_control_refs', $repairHopIds, true), 'repair_studio_errors includes repair_control_refs');
 assert_true(in_array('repair_context_aware_refs', $repairHopIds, true), 'repair_studio_errors includes repair_context_aware_refs');
+assert_true(in_array('repair_converge_formulas', $repairHopIds, true), 'repair_studio_errors includes repair_converge_formulas');
 $smartProfile = include dirname(__DIR__) . '/profiles/repair_smart.php';
 $smartHopIds = array_column($smartProfile['hops'], 'id');
 assert_true(in_array('meaningful_names', $smartHopIds, true), 'repair_smart includes meaningful_names');

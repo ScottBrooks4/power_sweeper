@@ -16,6 +16,7 @@ use PowerSweeper\Hops\MeaningfulNamesHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
+use PowerSweeper\Hops\RepairConvergeFormulasHop;
 use PowerSweeper\Hops\RepairContextAwareRefsHop;
 use PowerSweeper\Hops\RepairControlRefsHop;
 use PowerSweeper\Hops\RepairDelegationHop;
@@ -51,6 +52,7 @@ final class HopRegistry
             RepairCheckedBooleansHop::class,
             RepairControlRefsHop::class,
             RepairContextAwareRefsHop::class,
+            RepairConvergeFormulasHop::class,
             RepairDelegationHop::class,
             RepairDoubleQualifiedRefsHop::class,
             RepairGhostPatchFieldsHop::class,

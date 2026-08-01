@@ -67,6 +67,7 @@ Order matters: the same hops in a different sequence can produce different resul
 | `repair_control_refs` | Qualify bare cross-screen control references in formulas |
 | `meaningful_names` | Rename auto-generated names (`Button1`, `Container54_2`, …) to PascalCase identifiers from Text / AccessibleLabel / Tooltip / child labels |
 | `repair_context_aware_refs` | Iteratively repair stale refs, copy-paste mistakes, and typos using pattern detection and live error verification |
+| `repair_converge_formulas` | Live-checker loop: repeat ref/locale/boolean fixes until formula errors stop decreasing |
 | `repair_double_qualified_refs` | Collapse double-qualified refs (`'Screen'.'Screen'.Control`) |
 | `repair_sharepoint_fields` | Fix SharePoint list/column name typos in datasource metadata and formulas |
 | `repair_var_current_package` | Repair `varCurrentPackage` record shape after screen duplication |

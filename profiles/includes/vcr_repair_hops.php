@@ -27,5 +27,6 @@ return [
     ['id' => 'tooltip_from_label', 'options' => []],
     ['id' => 'repair_maintainability', 'options' => []],
     ['id' => 'repair_delegation', 'options' => []],
+    ['id' => 'repair_converge_formulas', 'options' => []],
     ['id' => 'regenerate_sarif', 'options' => []],
 ];
