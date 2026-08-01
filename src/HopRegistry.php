@@ -12,6 +12,7 @@ use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\EnsureTabIndexHop;
 use PowerSweeper\Hops\HopInterface;
+use PowerSweeper\Hops\MeaningfulNamesHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
@@ -41,6 +42,7 @@ final class HopRegistry
         foreach ([
             NormalizeContainersHop::class,
             AccessibilityLabelsHop::class,
+            MeaningfulNamesHop::class,
             AlignNearMissHop::class,
             StripDefaultFillHop::class,
             NormalizeClassicButtonChromeHop::class,

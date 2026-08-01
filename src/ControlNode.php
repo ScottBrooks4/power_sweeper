@@ -295,6 +295,21 @@ final class ControlNode
         $this->touch();
     }
 
+    public function renameJsonName(string $newName): bool
+    {
+        if ($this->format !== 'json' || !is_object($this->node)) {
+            return false;
+        }
+        if ($newName === $this->name) {
+            return false;
+        }
+        $this->node->Name = $newName;
+        $this->name = $newName;
+        $this->touch();
+
+        return true;
+    }
+
     private function jsonNode(): object
     {
         if (!is_object($this->node)) {

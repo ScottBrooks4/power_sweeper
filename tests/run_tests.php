@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
+use PowerSweeper\ControlNaming;
 use PowerSweeper\PowerAppsYaml;
 use PowerSweeper\StudioJson;
 use PowerSweeper\StudioIssueScanner;
@@ -16,6 +17,7 @@ use PowerSweeper\Hops\AlignNearMissHop;
 use PowerSweeper\Hops\AnalyzeAppCheckerHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
+use PowerSweeper\Hops\MeaningfulNamesHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\RepairContextAwareRefsHop;
@@ -131,6 +133,45 @@ foreach ($doc->controls() as $c) {
         assert_true($c->getProperty('Tooltip') !== null, 'Tooltip set on button');
     }
 }
+
+// --- meaningful control names ---
+assert_true(ControlNaming::isGenericName('Button1'), 'Button1 is generic');
+assert_true(ControlNaming::isGenericName('Container54_2'), 'Container54_2 is generic');
+assert_true(ControlNaming::isGenericName('Label7_183'), 'Label7_183 is generic');
+assert_true(!ControlNaming::isGenericName('SubmitRequestButton'), 'SubmitRequestButton is not generic');
+assert_true(
+    ControlNaming::toIdentifier('Submit Request', 'Button') === 'SubmitRequestButton',
+    'toIdentifier PascalCase + suffix'
+);
+assert_true(
+    ControlNaming::toIdentifier('Customer Details', 'Container') === 'CustomerDetailsContainer',
+    'toIdentifier multi-word container'
+);
+$genericDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/generic_names.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($genericDoc !== null, 'generic_names fixture loads');
+$report = new Report();
+(new MeaningfulNamesHop())->apply([$genericDoc], $report);
+$submitBtn = $detailsContainer = $detailsLabel = null;
+foreach ($genericDoc->controls() as $c) {
+    if ($c->name === 'SubmitRequestButton') {
+        $submitBtn = $c;
+    }
+    if ($c->name === 'CustomerDetailsContainer') {
+        $detailsContainer = $c;
+    }
+    if ($c->name === 'CustomerDetailsLabel') {
+        $detailsLabel = $c;
+    }
+}
+assert_true($submitBtn !== null, 'Button1 renamed to SubmitRequestButton');
+assert_true($detailsContainer !== null, 'Container1 renamed to CustomerDetailsContainer');
+assert_true($detailsLabel !== null, 'Label1 renamed to CustomerDetailsLabel');
+assert_true(
+    str_contains((string) $submitBtn->getProperty('OnSelect'), 'SubmitRequestButton.Text'),
+    'OnSelect control ref updated after rename'
+);
+assert_true(!str_contains((string) $submitBtn->getProperty('OnSelect'), 'Button1.'), 'old Button1 ref removed from formula');
+assert_true($report->count() >= 3, 'meaningful_names reported renames');
 
 // --- locale normalizer unit checks ---
 $eu = '=If(Slider1.Value > 10,5; Notify("Hi"; NotificationType.Information); Color.Red);; Set(x; 12,5)';
@@ -1044,6 +1085,7 @@ assert_true(in_array('repair_formula_refs', $profileIds, true), 'repair_formula_
 assert_true(in_array('repair_powered', $profileIds, true), 'repair_powered profile exists');
 assert_true(in_array('powered_thcee', $profileIds, true), 'powered_thcee profile exists');
 assert_true(in_array('repair_studio_errors_then_dark', $profileIds, true), 'repair_studio_errors_then_dark profile exists');
+assert_true(in_array('meaningful_names', $profileIds, true), 'meaningful_names profile exists');
 $profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
 $vcrPowered = $profileLoader->resolvePoweredProfile('CDLS VCR App.msapp');
 $thceePowered = $profileLoader->resolvePoweredProfile('VCDS THCEE App.msapp');

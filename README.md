@@ -57,6 +57,7 @@ Order matters: the same hops in a different sequence can produce different resul
 | Hop | Purpose |
 |-----|---------|
 | `normalize_containers` | Clear default drop shadow, border, radius, and padding on containers |
+| `meaningful_names` | Rename auto-generated names (`Button1`, `Container54_2`, …) to PascalCase identifiers from Text / AccessibleLabel / Tooltip / child labels |
 | `accessibility_labels` | Fill missing `AccessibleLabel` from Text / Tooltip / name |
 | `align_near_miss` | Snap sibling X/Y/Width/Height values off by a few pixels |
 | `strip_default_fill` | Clear opaque white container fills |
@@ -90,6 +91,7 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 | `default` | Balanced cleanup: containers, align, accessibility labels |
 | `containers_only` | Container normalization only |
 | `a11y_pass` | Accessibility labels and tooltips |
+| `meaningful_names` | Rename generic Studio control names from visible/accessible text, then fill a11y labels and tooltips |
 | `transparent_buttons` | Strip default button chrome |
 | `unwhack_locale` | Locale separator repair only |
 | `repair_formula_refs` | Control refs, SharePoint fields, package shape, ghost Patch fields (+ SARIF) |
