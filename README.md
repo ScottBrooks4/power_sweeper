@@ -64,6 +64,7 @@ Order matters: the same hops in a different sequence can produce different resul
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
 | `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` and `AutoRuleBindingString` |
 | `repair_control_refs` | Qualify bare cross-screen control references in formulas |
+| `repair_context_aware_refs` | Iteratively repair stale refs, copy-paste mistakes, and typos using pattern detection and live error verification |
 | `repair_double_qualified_refs` | Collapse double-qualified refs (`'Screen'.'Screen'.Control`) |
 | `repair_sharepoint_fields` | Fix SharePoint list/column name typos in datasource metadata and formulas |
 | `repair_var_current_package` | Repair `varCurrentPackage` record shape after screen duplication |

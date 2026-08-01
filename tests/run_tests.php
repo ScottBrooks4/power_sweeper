@@ -18,6 +18,7 @@ use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
+use PowerSweeper\Hops\RepairContextAwareRefsHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
 use PowerSweeper\Hops\ScanStudioIssuesHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
@@ -844,6 +845,33 @@ assert_true(
 
 // FormulaRefContext — global component hosts are not bare cross-screen refs
 $thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
+
+// Context-aware reference repair — copy-paste pattern + stale suffix with verify loop
+$copyPasteDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/copy_paste_refs.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($copyPasteDoc !== null, 'copy_paste_refs fixture loads');
+$copyPasteReport = new Report();
+(new RepairContextAwareRefsHop())->apply([$copyPasteDoc], $copyPasteReport);
+$vi5 = $rb1 = null;
+foreach ($copyPasteDoc->controls() as $c) {
+    if ($c->name === 'ValueInput5') {
+        $vi5 = $c;
+    }
+    if ($c->name === 'RemoteButton1') {
+        $rb1 = $c;
+    }
+}
+assert_true($vi5 !== null && $rb1 !== null, 'copy_paste fixture controls found');
+assert_true(str_contains((string) $vi5->getProperty('Default'), 'ValueInput5.Text'), 'ValueInput5 aligned to self not stale ValueInput1_1');
+assert_true(str_contains((string) $rb1->getProperty('OnSelect'), 'RemoteButton1.Text'), 'RemoteButton1_2 normalized to RemoteButton1');
+assert_true($copyPasteReport->count() > 0, 'repair_context_aware_refs reported changes');
+
+$patternDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/copy_paste_refs.pa.yaml', 'Src/Screen1.pa.yaml');
+$patternCatalog = \PowerSweeper\AppControlCatalog::build([$patternDoc]);
+$perHost = \PowerSweeper\FormulaPatternAnalyzer::inferPerHostRenameMap([$patternDoc], $patternCatalog);
+assert_true(isset($perHost['ValueInput5']['ValueInput1_1']), 'pattern analyzer maps stale ref per host');
+assert_true($perHost['ValueInput5']['ValueInput1_1'] === 'ValueInput5', 'pattern analyzer aligns host index');
+
+$thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
 if (is_file($thceeFriday)) {
     $thceeArch = new \PowerSweeper\MsappArchive($thceeFriday);
     $thceeArch->unpack();
@@ -1034,6 +1062,7 @@ $repairHopIds = array_column($repairStudio['hops'], 'id');
 assert_true(in_array('repair_delegation', $repairHopIds, true), 'repair_studio_errors includes repair_delegation');
 assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'repair_studio_errors includes regenerate_sarif');
 assert_true(in_array('repair_control_refs', $repairHopIds, true), 'repair_studio_errors includes repair_control_refs');
+assert_true(in_array('repair_context_aware_refs', $repairHopIds, true), 'repair_studio_errors includes repair_context_aware_refs');
 
 assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'repair_studio_errors includes repair_studio_syntax');
 

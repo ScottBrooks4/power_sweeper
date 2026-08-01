@@ -15,6 +15,7 @@ use PowerSweeper\Hops\HopInterface;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
+use PowerSweeper\Hops\RepairContextAwareRefsHop;
 use PowerSweeper\Hops\RepairControlRefsHop;
 use PowerSweeper\Hops\RepairDelegationHop;
 use PowerSweeper\Hops\RepairDoubleQualifiedRefsHop;
@@ -47,6 +48,7 @@ final class HopRegistry
             UnwhackLocaleFormulasHop::class,
             RepairCheckedBooleansHop::class,
             RepairControlRefsHop::class,
+            RepairContextAwareRefsHop::class,
             RepairDelegationHop::class,
             RepairDoubleQualifiedRefsHop::class,
             RepairGhostPatchFieldsHop::class,

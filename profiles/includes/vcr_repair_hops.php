@@ -14,6 +14,7 @@ return [
     ['id' => 'unwhack_locale_formulas', 'options' => []],
     ['id' => 'repair_double_qualified_refs', 'options' => []],
     ['id' => 'repair_control_refs', 'options' => []],
+    ['id' => 'repair_context_aware_refs', 'options' => []],
     ['id' => 'repair_double_qualified_refs', 'options' => []],
     ['id' => 'repair_var_current_package', 'options' => []],
     ['id' => 'repair_sharepoint_fields', 'options' => []],

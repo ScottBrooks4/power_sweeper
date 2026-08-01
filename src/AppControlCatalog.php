@@ -66,7 +66,7 @@ final class AppControlCatalog
                 $cat->componentDefPaths[$defName] = $doc->relativePath;
                 $children = [];
                 foreach ($doc->controls() as $control) {
-                    $children[$control->name] = true;
+                    $children[(string) $control->name] = true;
                 }
                 $cat->componentDefChildren[$defName] = array_keys($children);
             }
@@ -75,7 +75,7 @@ final class AppControlCatalog
         foreach ($documents as $doc) {
             $names = [];
             foreach ($doc->controls() as $control) {
-                $names[$control->name] = true;
+                $names[(string) $control->name] = true;
             }
             if ($names !== []) {
                 $cat->controlsByDocPath[$doc->relativePath] = $names;
@@ -93,15 +93,16 @@ final class AppControlCatalog
             }
 
             foreach ($doc->controls() as $control) {
-                $cat->controlsByScreen[$screen][$control->name] = true;
-                $cat->screensByControl[$control->name][] = $screen;
+                $controlName = (string) $control->name;
+                $cat->controlsByScreen[$screen][$controlName] = true;
+                $cat->screensByControl[$controlName][] = $screen;
 
                 if (str_contains($control->type, 'CanvasComponent')) {
-                    $cat->componentInstances[$control->name] = true;
-                    $def = $cat->componentNameFromInstance($control->name);
+                    $cat->componentInstances[$controlName] = true;
+                    $def = $cat->componentNameFromInstance($controlName);
                     $children = $cat->componentDefChildren[$def] ?? [];
                     if ($children !== []) {
-                        $cat->componentChildrenByScreen[$screen][$control->name] = $children;
+                        $cat->componentChildrenByScreen[$screen][$controlName] = $children;
                         foreach ($children as $child) {
                             // Component children are addressable as Instance.Child when instance is on screen.
                             $cat->controlsByScreen[$screen][$child] = true;
@@ -134,6 +135,14 @@ final class AppControlCatalog
     public function hasOnScreen(string $screen, string $name): bool
     {
         return isset($this->controlsByScreen[$screen][$name]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function controlNamesOnScreen(string $screen): array
+    {
+        return array_map('strval', array_keys($this->controlsByScreen[$screen] ?? []));
     }
 
     /**

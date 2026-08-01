@@ -1,0 +1,140 @@
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - Gallery1:
+        Control: Gallery@2.0.0
+        Properties:
+          Items: =[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+          TemplateSize: =80
+          Width: =400
+          Height: =400
+        Children:
+          - TitleLabel1:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - TitleLabel2:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - TitleLabel3:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - TitleLabel4:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - TitleLabel5:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - TitleLabel6:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - TitleLabel7:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - TitleLabel8:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - TitleLabel9:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - TitleLabel10:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Row " & Text(ThisItem.Value)
+                Width: =200
+                Height: =32
+          - ValueInput1:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+          - ValueInput2:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+          - ValueInput3:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+          - ValueInput4:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+          - ValueInput5:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+          - ValueInput6:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+          - ValueInput7:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+          - ValueInput8:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+          - ValueInput9:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+          - ValueInput10:
+              Control: TextInput@2.0.0
+              Properties:
+                Default: =ValueInput1_1.Text
+                Width: =120
+                Height: =32
+    - RemoteButton1:
+        Control: Classic/Button@2.0.0
+        Properties:
+          Text: ="Go"
+          OnSelect: =Notify(RemoteButton1_2.Text, NotificationType.Information)
+          Width: =120
+          Height: =40
