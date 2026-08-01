@@ -1076,7 +1076,7 @@ if (is_file($repaired16)) {
 // Profiles — all hop ids resolve; studio repair hops are exposed
 $hopRegistry = new \PowerSweeper\HopRegistry();
 $allProfiles = (new ProfileLoader(POWER_SWEEPER_PROFILES))->all();
-assert_true(count($allProfiles) >= 14, 'profiles directory loaded (got ' . count($allProfiles) . ')');
+assert_true(count($allProfiles) >= 15, 'profiles directory loaded (got ' . count($allProfiles) . ')');
 $profileIds = array_column($allProfiles, 'id');
 assert_true(in_array('repair_studio_errors', $profileIds, true), 'repair_studio_errors profile exists');
 assert_true(in_array('repair_delegation', $profileIds, true), 'repair_delegation profile exists');
@@ -1086,6 +1086,7 @@ assert_true(in_array('repair_powered', $profileIds, true), 'repair_powered profi
 assert_true(in_array('powered_thcee', $profileIds, true), 'powered_thcee profile exists');
 assert_true(in_array('repair_studio_errors_then_dark', $profileIds, true), 'repair_studio_errors_then_dark profile exists');
 assert_true(in_array('meaningful_names', $profileIds, true), 'meaningful_names profile exists');
+assert_true(in_array('repair_smart', $profileIds, true), 'repair_smart profile exists');
 $profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
 $vcrPowered = $profileLoader->resolvePoweredProfile('CDLS VCR App.msapp');
 $thceePowered = $profileLoader->resolvePoweredProfile('VCDS THCEE App.msapp');
@@ -1105,6 +1106,11 @@ assert_true(in_array('repair_delegation', $repairHopIds, true), 'repair_studio_e
 assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'repair_studio_errors includes regenerate_sarif');
 assert_true(in_array('repair_control_refs', $repairHopIds, true), 'repair_studio_errors includes repair_control_refs');
 assert_true(in_array('repair_context_aware_refs', $repairHopIds, true), 'repair_studio_errors includes repair_context_aware_refs');
+$smartProfile = include dirname(__DIR__) . '/profiles/repair_smart.php';
+$smartHopIds = array_column($smartProfile['hops'], 'id');
+assert_true(in_array('meaningful_names', $smartHopIds, true), 'repair_smart includes meaningful_names');
+assert_true(in_array('repair_context_aware_refs', $smartHopIds, true), 'repair_smart includes repair_context_aware_refs');
+assert_true(!in_array('meaningful_names', $repairHopIds, true), 'repair_studio_errors does not rename by default');
 
 assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'repair_studio_errors includes repair_studio_syntax');
 

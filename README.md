@@ -65,6 +65,7 @@ Order matters: the same hops in a different sequence can produce different resul
 | `tooltip_from_label` | Copy Text / AccessibleLabel into empty Tooltip |
 | `unwhack_locale_formulas` | Repair comma-decimal / `;` list-separator corruption (e.g. after switching authoring language to German), including internal `InvariantScript` and `AutoRuleBindingString` |
 | `repair_control_refs` | Qualify bare cross-screen control references in formulas |
+| `meaningful_names` | Rename auto-generated names (`Button1`, `Container54_2`, …) to PascalCase identifiers from Text / AccessibleLabel / Tooltip / child labels |
 | `repair_context_aware_refs` | Iteratively repair stale refs, copy-paste mistakes, and typos using pattern detection and live error verification |
 | `repair_double_qualified_refs` | Collapse double-qualified refs (`'Screen'.'Screen'.Control`) |
 | `repair_sharepoint_fields` | Fix SharePoint list/column name typos in datasource metadata and formulas |
@@ -96,7 +97,8 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 | `unwhack_locale` | Locale separator repair only |
 | `repair_formula_refs` | Control refs, SharePoint fields, package shape, ghost Patch fields (+ SARIF) |
 | `repair_delegation` | SharePoint delegation fixes (+ SARIF) |
-| `repair_studio_errors` | **Full Studio checker repair** (locale, refs, booleans, a11y, delegation, SARIF) |
+| `repair_studio_errors` | **Full Studio checker repair** (locale, context-aware refs, booleans, a11y, delegation, SARIF) |
+| `repair_smart` | **Meaningful names + full repair** — rename generic controls first, then `repair_studio_errors` chain |
 | `repair_powered` | **Full repair + dark mode** — outputs `*.powered.msapp` with `gblTheme` toggle (CDLS VCR preset) |
 | `powered_thcee` | **THCEE full repair + dark mode** — same repair chain, preserves global component hosts |
 | `repair_studio_errors_then_dark` | Full repair + dark mode (CDLS VCR one-shot) |

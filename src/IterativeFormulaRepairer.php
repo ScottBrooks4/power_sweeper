@@ -66,12 +66,31 @@ final class IterativeFormulaRepairer
                     }
 
                     $hostPatternMap = $perHostPatternMap[$controlName] ?? [];
-                    if ($hostPatternMap === [] && !$this->quickNeedsWork($formula, $screen, $controlName, $localNames, $catalog)) {
+                    if (
+                        $hostPatternMap === []
+                        && !$this->quickNeedsWork($formula, $screen, $controlName, $localNames, $catalog)
+                        && !$this->hasStructuralIssue($formula)
+                    ) {
                         return $formula;
                     }
 
                     $controlType = $this->controlTypeFor($doc, $controlName);
                     $location = $screen . '.' . $controlName . '.' . $property;
+                    $original = $formula;
+
+                    $formula = $this->applyStructuralFixes(
+                        $formula,
+                        $checker,
+                        $screen,
+                        $location,
+                        $controlType,
+                        $property,
+                        $controlName,
+                        $localNames,
+                        $screenRecordVars,
+                        $hostPatternMap,
+                        $catalog,
+                    );
 
                     $badIds = $this->badIdentifiers(
                         $formula,
@@ -81,7 +100,11 @@ final class IterativeFormulaRepairer
                         $catalog,
                         $hostPatternMap,
                     );
-                    if ($badIds === [] && $hostPatternMap === []) {
+                    if ($badIds === [] && $hostPatternMap === [] && !$this->hasStructuralIssue($formula)) {
+                        if ($formula !== $original) {
+                            $iterRepairs++;
+                        }
+
                         return $formula;
                     }
 
@@ -99,7 +122,6 @@ final class IterativeFormulaRepairer
                         $catalog,
                     );
 
-                    $original = $formula;
                     $map = [];
                     foreach (array_keys($hostPatternMap + array_fill_keys($badIds, true)) as $badId) {
                         if (isset($map[$badId])) {
@@ -422,7 +444,12 @@ final class IterativeFormulaRepairer
 
         $count = 0;
         foreach ($findings as $finding) {
-            if (!in_array($finding['ruleId'], ['app-ErrInvalidName', 'app-ErrInvalidDot', 'app-formula-mangled-screen-ref'], true)) {
+            if (!in_array($finding['ruleId'], [
+                'app-ErrInvalidName',
+                'app-ErrInvalidDot',
+                'app-formula-mangled-screen-ref',
+                'app-ErrOperatorExpected',
+            ], true)) {
                 continue;
             }
             $count++;
@@ -486,6 +513,83 @@ final class IterativeFormulaRepairer
         }
 
         return false;
+    }
+
+    private function hasStructuralIssue(string $formula): bool
+    {
+        return str_contains($formula, "'''")
+            || preg_match("/'(?:[^']|'')+'\\.Date\\s*\\(/", $formula) === 1
+            || preg_match("/'(?:[^']|'')+'\\.([A-Za-z_][\\w]*)\\s*:/", $formula) === 1;
+    }
+
+    /**
+     * @param array<string, string> $hostPatternMap
+     * @param array<string, true> $localNames
+     */
+    private function applyStructuralFixes(
+        string $formula,
+        PowerFxFormulaChecker $checker,
+        string $screen,
+        string $location,
+        string $controlType,
+        string $property,
+        string $controlName,
+        array $localNames,
+        array $screenRecordVars,
+        array $hostPatternMap,
+        AppControlCatalog $catalog,
+    ): string {
+        $current = $formula;
+
+        $normalized = ScreenReferenceNormalizer::normalize($current, $catalog->screenNames());
+        if ($normalized !== $current && $this->isImprovement(
+            $checker,
+            $current,
+            $normalized,
+            $screen,
+            $location,
+            $controlType,
+            $property,
+            $controlName,
+            $localNames,
+            $screenRecordVars,
+            $hostPatternMap,
+            $catalog,
+        )) {
+            $current = $normalized;
+        }
+
+        $syntaxFixed = $this->fixScreenQualifiedSyntax($current);
+        if ($syntaxFixed !== $current && $this->isImprovement(
+            $checker,
+            $current,
+            $syntaxFixed,
+            $screen,
+            $location,
+            $controlType,
+            $property,
+            $controlName,
+            $localNames,
+            $screenRecordVars,
+            $hostPatternMap,
+            $catalog,
+        )) {
+            $current = $syntaxFixed;
+        }
+
+        return $current;
+    }
+
+    private function fixScreenQualifiedSyntax(string $formula): string
+    {
+        return PowerFxFormulaSegments::mapCode(
+            PowerFxFormulaSegments::splitForStructure($formula),
+            static function (string $code): string {
+                $code = preg_replace("/'(?:[^']|'')+'\\.Date\\s*\\(/", 'Date(', $code) ?? $code;
+
+                return preg_replace("/'(?:[^']|'')+'\\.([A-Za-z_][\\w]*)\\s*:/", '$1:', $code) ?? $code;
+            }
+        );
     }
 
     private function collectFormulaText(ControlDocument $doc): string
