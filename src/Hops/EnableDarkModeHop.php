@@ -7,6 +7,7 @@ namespace PowerSweeper\Hops;
 use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
 use PowerSweeper\ControlNode;
+use PowerSweeper\HopOptions;
 use PowerSweeper\Report;
 
 /**
@@ -148,6 +149,7 @@ final class EnableDarkModeHop implements HopInterface
             ? (string) $options['theme_dark_var']
             : self::THEME_DARK;
         $injectToggle = !array_key_exists('inject_toggle', $options) || (bool) $options['inject_toggle'];
+        $force = HopOptions::force($options);
 
         /** @var array<string, array{light: array{r:int,g:int,b:int,a:float}, dark: array{r:int,g:int,b:int,a:float}}> $palette */
         $palette = [];
@@ -161,6 +163,9 @@ final class EnableDarkModeHop implements HopInterface
                 foreach (self::COLOR_PROPERTIES as $prop) {
                     $from = $control->getProperty($prop);
                     if ($from === null || trim($from) === '' || $this->alreadyThemed($from, $var, $theme)) {
+                        continue;
+                    }
+                    if ($this->shouldPreserveUserValue($from, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
                         continue;
                     }
                     $parsed = ColorValue::parse($from);
@@ -299,6 +304,9 @@ final class EnableDarkModeHop implements HopInterface
                     if ($this->usesActiveThemeToken($from, $theme)) {
                         continue;
                     }
+                    if ($this->shouldPreserveUserValue($from, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
+                        continue;
+                    }
                     $enumRewritten = $this->rewriteColorEnums($from, $theme);
                     if ($enumRewritten !== $from) {
                         $to = $control->format === 'yaml' && !str_starts_with(trim($enumRewritten), '=')
@@ -355,11 +363,15 @@ final class EnableDarkModeHop implements HopInterface
 
         // Pass 2b: sweep formulas (JSON twins / multiline) for bare RGBA literals on color props
         foreach ($documents as $doc) {
-            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $themeLight, $themeDark, $var, $report): string {
+            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $themeLight, $themeDark, $var, $force, $report): string {
                 if (!$this->isColorPropertyPath($path)) {
                     return $formula;
                 }
                 if ($this->usesActiveThemeToken($formula, $theme)) {
+                    return $formula;
+                }
+                $prop = $this->propertyFromPath($path);
+                if ($this->shouldPreserveUserValue($formula, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
                     return $formula;
                 }
                 $trim = trim(ltrim(trim($formula), '='));
@@ -390,7 +402,7 @@ final class EnableDarkModeHop implements HopInterface
 
         // Pass 2c: replace embedded RGBA(...) in color formulas (ColorFade, commented blocks, etc.)
         foreach ($documents as $doc) {
-            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $report): string {
+            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $themeLight, $themeDark, $var, $force, $report): string {
                 if (!$this->isColorPropertyPath($path)) {
                     return $formula;
                 }
@@ -398,6 +410,9 @@ final class EnableDarkModeHop implements HopInterface
                     return $formula;
                 }
                 $prop = $this->propertyFromPath($path);
+                if ($this->shouldPreserveUserValue($formula, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
+                    return $formula;
+                }
                 $changed = false;
                 $out = \PowerSweeper\PowerFxFormulaSegments::transformCode($formula, function (string $code) use ($theme, $prop, $path, $report, &$changed): string {
                     $enumCode = $this->rewriteColorEnums($code, $theme);
@@ -434,6 +449,9 @@ final class EnableDarkModeHop implements HopInterface
                 foreach (['Fill', 'BackgroundColor'] as $prop) {
                     $from = $control->getProperty($prop);
                     if ($from !== null && $this->usesActiveThemeToken($from, $theme) && str_contains($from, $theme . '.Page')) {
+                        continue;
+                    }
+                    if ($from !== null && $this->shouldPreserveUserValue($from, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
                         continue;
                     }
                     $to = $this->themeFormula($control, $theme, 'Page');
@@ -474,6 +492,9 @@ final class EnableDarkModeHop implements HopInterface
                 if ($from !== null && $this->usesActiveThemeToken($from, $theme)) {
                     continue;
                 }
+                if ($from !== null && $this->shouldPreserveUserValue($from, 'Color', $force, $theme, $var, $themeLight, $themeDark)) {
+                    continue;
+                }
                 $token = 'Text';
                 if ($from !== null && trim($from) !== '') {
                     $parsed = ColorValue::parse($from);
@@ -507,6 +528,8 @@ final class EnableDarkModeHop implements HopInterface
                 if ($from !== null && trim($from) !== '') {
                     if (str_contains($from, self::LEGACY_SURFACE)) {
                         $useToken = 'Surface';
+                    } elseif ($this->shouldPreserveUserValue($from, 'Fill', $force, $theme, $var, $themeLight, $themeDark)) {
+                        continue;
                     } else {
                         $parsed = ColorValue::parse($from);
                         $isWhite = $parsed !== null && ColorValue::luminance($parsed) >= 0.92;
@@ -528,11 +551,11 @@ final class EnableDarkModeHop implements HopInterface
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
                 if ($this->isRichTextInput($control)) {
-                    $this->applyRichTextChrome($control, $theme, $var, $report);
+                    $this->applyRichTextChrome($control, $theme, $var, $themeLight, $themeDark, $force, $report);
                     continue;
                 }
                 if ($this->isNumberInput($control)) {
-                    $this->applyModernInputChrome($control, $theme, $var, $report);
+                    $this->applyModernInputChrome($control, $theme, $var, $themeLight, $themeDark, $force, $report);
                 }
             }
         }
@@ -541,11 +564,11 @@ final class EnableDarkModeHop implements HopInterface
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
                 if ($this->isDatePicker($control)) {
-                    $this->applyDatePickerChrome($control, $theme, $var, $report);
+                    $this->applyDatePickerChrome($control, $theme, $var, $themeLight, $themeDark, $force, $report);
                     continue;
                 }
                 if ($this->isDataTable($control)) {
-                    $this->applyDataTableChrome($control, $theme, $var, $report);
+                    $this->applyDataTableChrome($control, $theme, $var, $themeLight, $themeDark, $force, $report);
                 }
             }
         }
@@ -566,7 +589,9 @@ final class EnableDarkModeHop implements HopInterface
                 if ($from !== null && trim($from) !== '') {
                     $parsed = ColorValue::parse($from);
                     if ($parsed !== null && !ColorValue::isTransparent($parsed) && !$this->usesActiveThemeToken($from, $theme)) {
-                        continue;
+                        if ($this->shouldPreserveUserValue($from, 'Fill', $force, $theme, $var, $themeLight, $themeDark)) {
+                            continue;
+                        }
                     }
                 }
                 $to = $this->themeFormula($control, $theme, 'Surface');
@@ -580,7 +605,7 @@ final class EnableDarkModeHop implements HopInterface
 
         // Pass 6c: sweep JSON/YAML twins for nested rich-text / number template colors
         foreach ($documents as $doc) {
-            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $themeLight, $themeDark, $var, $report): string {
+            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $themeLight, $themeDark, $var, $force, $report): string {
                 if (!$this->isModernInputColorPath($path)) {
                     return $formula;
                 }
@@ -588,6 +613,9 @@ final class EnableDarkModeHop implements HopInterface
                     return $formula;
                 }
                 $prop = $this->propertyFromPath($path);
+                if ($this->shouldPreserveUserValue($formula, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
+                    return $formula;
+                }
                 $enumRewritten = $this->rewriteColorEnums($formula, $theme);
                 if ($enumRewritten !== $formula) {
                     $report->add(self::id(), $path, 'Color enum', $formula, $enumRewritten);
@@ -968,7 +996,7 @@ final class EnableDarkModeHop implements HopInterface
         return str_contains($t, 'datatable') && !str_contains($t, 'column');
     }
 
-    private function applyDatePickerChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    private function applyDatePickerChrome(ControlNode $control, string $theme, string $var, string $themeLight, string $themeDark, bool $force, Report $report): void
     {
         $props = [
             'IconFill' => 'Text',
@@ -986,11 +1014,11 @@ final class EnableDarkModeHop implements HopInterface
             'DisabledFill' => 'InputFill',
         ];
         foreach ($props as $prop => $token) {
-            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $report, 'Design', $prop === 'BorderColor');
+            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $themeLight, $themeDark, $force, $report, 'Design', $prop === 'BorderColor');
         }
     }
 
-    private function applyDataTableChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    private function applyDataTableChrome(ControlNode $control, string $theme, string $var, string $themeLight, string $themeDark, bool $force, Report $report): void
     {
         $props = [
             'LinkColor' => 'Link',
@@ -1005,7 +1033,7 @@ final class EnableDarkModeHop implements HopInterface
             'BorderColor' => 'Border',
         ];
         foreach ($props as $prop => $token) {
-            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $report, 'Design', $prop === 'BorderColor');
+            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $themeLight, $themeDark, $force, $report, 'Design', $prop === 'BorderColor');
         }
     }
 
@@ -1019,7 +1047,7 @@ final class EnableDarkModeHop implements HopInterface
         return (bool) preg_match('/\.(Fill|Color|BorderColor|FontColor|BasePaletteColor|TemplateFill|Appearance|HoverFill|HoverColor|DisabledFill|DisabledColor|FocusedBorderColor|PressedFill|PressedColor|BackgroundColor|LoadingSpinnerColor|IconFill|CurrentDateFill|MonthColor|WeekColor|DayColor|SelectedDateFill|HoverDateFill|CalendarHeaderFill|LinkColor|PrimaryColor1|PrimaryColor2|PrimaryColor3|InputFill|InvertedColor|HeadingColor)(\.|$)/i', $path);
     }
 
-    private function applyRichTextChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    private function applyRichTextChrome(ControlNode $control, string $theme, string $var, string $themeLight, string $themeDark, bool $force, Report $report): void
     {
         $styleName = $control->getStyleName();
         if ($styleName !== null && $styleName !== '') {
@@ -1042,7 +1070,7 @@ final class EnableDarkModeHop implements HopInterface
             'LoadingSpinnerColor' => ['token' => 'Accent', 'category' => 'Design'],
         ];
         foreach ($props as $prop => $meta) {
-            $this->applyThemedControlProperty($control, $prop, $meta['token'], $theme, $var, $report, $meta['category'], $prop === 'BorderColor');
+            $this->applyThemedControlProperty($control, $prop, $meta['token'], $theme, $var, $themeLight, $themeDark, $force, $report, $meta['category'], $prop === 'BorderColor');
         }
 
         $appearance = (string) ($control->getProperty('Appearance') ?? '');
@@ -1053,7 +1081,7 @@ final class EnableDarkModeHop implements HopInterface
         }
     }
 
-    private function applyModernInputChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    private function applyModernInputChrome(ControlNode $control, string $theme, string $var, string $themeLight, string $themeDark, bool $force, Report $report): void
     {
         $props = [
             'Fill' => 'InputFill',
@@ -1066,7 +1094,7 @@ final class EnableDarkModeHop implements HopInterface
             'DisabledColor' => 'TextMuted',
         ];
         foreach ($props as $prop => $token) {
-            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $report, 'Data', false);
+            $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $themeLight, $themeDark, $force, $report, 'Data', false);
         }
     }
 
@@ -1076,12 +1104,18 @@ final class EnableDarkModeHop implements HopInterface
         string $token,
         string $theme,
         string $var,
+        string $themeLight,
+        string $themeDark,
+        bool $force,
         Report $report,
         string $category = 'Data',
         bool $overrideTransparentBorder = false,
     ): void {
         $from = $control->getProperty($prop);
         if ($from !== null && $this->alreadyThemed($from, $var, $theme)) {
+            return;
+        }
+        if ($from !== null && trim($from) !== '' && $this->shouldPreserveUserValue($from, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
             return;
         }
         if ($from !== null && trim($from) !== '') {
@@ -1386,6 +1420,48 @@ final class EnableDarkModeHop implements HopInterface
     private function alreadyThemed(string $formula, string $var, string $theme): bool
     {
         return $this->usesActiveThemeToken($formula, $theme);
+    }
+
+    /**
+     * When force is off, keep literals the maker likely chose (non-default colors/fills).
+     */
+    private function shouldPreserveUserValue(
+        string $from,
+        string $prop,
+        bool $force,
+        string $theme,
+        string $var,
+        string $themeLight,
+        string $themeDark,
+    ): bool {
+        if ($force || trim($from) === '') {
+            return false;
+        }
+        if ($this->usesActiveThemeToken($from, $theme)) {
+            return true;
+        }
+        if (str_contains($from, self::LEGACY_SURFACE)) {
+            return false;
+        }
+        if ($this->usesStaticThemePalette($from, $themeLight, $themeDark)) {
+            return false;
+        }
+        if ($this->parseLegacyIfPair($from, $var) !== null) {
+            return false;
+        }
+        foreach (array_keys(self::COLOR_ENUM_MAP) as $enum) {
+            if (preg_match('/\b' . preg_quote($enum, '/') . '\b/i', $from)) {
+                return false;
+            }
+        }
+        if (preg_match('/App\.Theme\.Colors\./', $from)) {
+            return false;
+        }
+        if (preg_match('/\bColor\.White\b/i', $from)) {
+            return false;
+        }
+
+        return !ColorValue::isStudioDefault($from, $prop);
     }
 
     /**

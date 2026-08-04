@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PowerSweeper\Hops;
 
 use PowerSweeper\ControlDocument;
+use PowerSweeper\HopOptions;
 use PowerSweeper\Report;
 
 final class TooltipFromLabelHop implements HopInterface
@@ -26,6 +27,8 @@ final class TooltipFromLabelHop implements HopInterface
 
     public function apply(array $documents, Report $report, array $options = []): void
     {
+        $force = HopOptions::force($options);
+
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
                 $t = strtolower($control->type);
@@ -34,7 +37,7 @@ final class TooltipFromLabelHop implements HopInterface
                 }
 
                 $tooltip = $control->getProperty('Tooltip');
-                if ($tooltip !== null && !$this->isBlank($tooltip)) {
+                if (!$force && $tooltip !== null && !$this->isBlank($tooltip)) {
                     continue;
                 }
 

@@ -398,6 +398,73 @@ final class ColorValue
     }
 
     /**
+     * Whether a literal color/fill looks like an untouched Studio default (safe to rewrite).
+     * Non-literal formulas (theme refs, expressions) return false — treat as user-authored.
+     */
+    public static function isStudioDefault(string $formula, string $property = 'Fill'): bool
+    {
+        $trim = trim($formula);
+        if ($trim === '') {
+            return true;
+        }
+
+        $body = strtolower(ltrim($trim, '='));
+        if (str_contains($body, 'defaultgraybackgroud') || str_contains($body, 'app.theme.colors.')) {
+            return true;
+        }
+        if (preg_match('/\bcolor\.(white|transparent|lightgray|lightgrey|black)\b/', $body)) {
+            return true;
+        }
+
+        $parsed = self::parse($formula);
+        if ($parsed === null) {
+            return false;
+        }
+        if (self::isTransparent($parsed)) {
+            return true;
+        }
+
+        $role = self::roleForProperty($property);
+        $lum = self::luminance($parsed);
+        $sat = self::saturation($parsed);
+
+        if ($role === 'background' || str_contains(strtolower($property), 'fill')) {
+            if ($lum >= 0.92) {
+                return true;
+            }
+            if ($parsed['r'] >= 228 && $parsed['g'] >= 228 && $parsed['b'] >= 228 && $parsed['a'] >= 0.85) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if ($role === 'foreground') {
+            if ($lum <= 0.08) {
+                return true;
+            }
+            if ($sat < 0.12 && $lum > 0.35 && $lum < 0.55) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if ($role === 'border') {
+            if ($lum <= 0.08) {
+                return true;
+            }
+            if ($sat < 0.12 && $lum >= 0.72) {
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
      * @param array{r:int,g:int,b:int,a:float} $a
      * @param array{r:int,g:int,b:int,a:float} $b
      * @return array{r:int,g:int,b:int,a:float}

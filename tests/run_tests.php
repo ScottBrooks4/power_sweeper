@@ -82,6 +82,75 @@ assert_true($btn !== null, 'found button');
 assert_true($btn->getProperty('AccessibleLabel') !== null, 'AccessibleLabel set');
 assert_true(str_contains(strtolower((string) $btn->getProperty('AccessibleLabel')), 'start'), 'AccessibleLabel from Text');
 
+// --- accessibility force ---
+$doc = loadFixtureDoc();
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('AccessibleLabel', '="User reviewed label"');
+        break;
+    }
+}
+$report = new Report();
+(new AccessibilityLabelsHop())->apply([$doc], $report);
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        assert_true(str_contains((string) $c->getProperty('AccessibleLabel'), 'User reviewed label'), 'AccessibleLabel kept when force=false');
+    }
+}
+$doc = loadFixtureDoc();
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('AccessibleLabel', '="User reviewed label"');
+        break;
+    }
+}
+$report = new Report();
+(new AccessibilityLabelsHop())->apply([$doc], $report, ['force' => true]);
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        assert_true(str_contains(strtolower((string) $c->getProperty('AccessibleLabel')), 'start'), 'AccessibleLabel overwritten when force=true');
+    }
+}
+
+// --- profile force propagation ---
+$profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
+$a11yConfig = include POWER_SWEEPER_PROFILES . '/a11y_pass.php';
+$resolved = $profileLoader->resolveHops(array_merge($a11yConfig, ['force' => true]));
+assert_true(($resolved[0]['options']['force'] ?? false) === true, 'profile force merges into hop options');
+$resolvedHopOverride = $profileLoader->resolveHops([
+    'force' => true,
+    'hops' => [['id' => 'accessibility_labels', 'options' => ['force' => false]]],
+]);
+assert_true(($resolvedHopOverride[0]['options']['force'] ?? true) === false, 'hop-level force overrides profile force');
+
+// --- ColorValue studio defaults ---
+assert_true(ColorValue::isStudioDefault('=RGBA(255, 255, 255, 1)', 'Fill'), 'white fill is studio default');
+assert_true(ColorValue::isStudioDefault('=RGBA(20, 20, 20, 1)', 'Color'), 'near-black text is studio default');
+assert_true(!ColorValue::isStudioDefault('=RGBA(37, 99, 235, 1)', 'Fill'), 'brand blue fill is not studio default');
+
+// --- dark mode force preserves custom colors ---
+$darkDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
+assert_true($darkDoc !== null, 'dark mode fixture loads');
+$darkReport = new Report();
+(new EnableDarkModeHop())->apply([$darkDoc], $darkReport);
+$accentFill = null;
+foreach ($darkDoc->controls() as $c) {
+    if ($c->name === 'Accent') {
+        $accentFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true($accentFill !== null && !str_contains($accentFill, 'gblTheme.'), 'custom accent fill preserved when force=false');
+$darkDocForced = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
+assert_true($darkDocForced !== null, 'dark mode fixture reloads');
+(new EnableDarkModeHop())->apply([$darkDocForced], new Report(), ['force' => true]);
+$accentFillForced = null;
+foreach ($darkDocForced->controls() as $c) {
+    if ($c->name === 'Accent') {
+        $accentFillForced = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true($accentFillForced !== null && str_contains($accentFillForced, 'gblTheme.'), 'custom accent fill re-themed when force=true');
+
 // --- align near miss ---
 $doc = loadFixtureDoc();
 $report = new Report();
