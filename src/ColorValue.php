@@ -432,7 +432,16 @@ final class ColorValue
             if ($lum >= 0.92) {
                 return true;
             }
-            if ($parsed['r'] >= 228 && $parsed['g'] >= 228 && $parsed['b'] >= 228 && $parsed['a'] >= 0.85) {
+            // Near-white Studio / Fluent defaults (incl. slate-100-ish chrome).
+            if ($parsed['r'] >= 220 && $parsed['g'] >= 220 && $parsed['b'] >= 220 && $parsed['a'] >= 0.85) {
+                return true;
+            }
+            // Low-saturation light fills (borders, rails, disabled chrome).
+            if ($sat < 0.15 && $lum >= 0.85 && $parsed['a'] >= 0.85) {
+                return true;
+            }
+            // Pale accent chrome on interactive chrome props (SelectedFill, HoverFill, …).
+            if (self::isChromeColorProperty($property) && $lum >= 0.80 && $sat < 0.45 && $parsed['a'] >= 0.85) {
                 return true;
             }
 
@@ -462,6 +471,23 @@ final class ColorValue
         }
 
         return false;
+    }
+
+    /**
+     * Gallery/slider/input chrome properties that Studio seeds with pale slate/blue
+     * literals — treat as themeable defaults when force is off.
+     */
+    public static function isChromeColorProperty(string $property): bool
+    {
+        $p = strtolower($property);
+
+        return (bool) preg_match(
+            '/^(rail|handle|selected|selection|hover|pressed|item|template|inactive|disabled|chevron|iconbackground|falsefill|truefill|indicator|progress|valuefill|active|barcolor)/',
+            $p
+        ) || str_contains($p, 'itemfill')
+            || str_contains($p, 'itemborder')
+            || str_contains($p, 'hoveritem')
+            || str_contains($p, 'presseditem');
     }
 
     /**

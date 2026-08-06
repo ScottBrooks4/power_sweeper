@@ -126,11 +126,11 @@ final class WebAppIrBuilder
             'type' => $control->type,
             'role' => $role,
             'path' => $control->path,
+            // Round-trip anchor: web tooling / meaningful_names may rename `name`.
+            'previous_name' => $control->name,
         ];
         if ($isScreen) {
             $node['kind'] = 'screen';
-            // Round-trip anchor: web tooling may rename `name`; import matches via previous_name.
-            $node['previous_name'] = $control->name;
         }
         if ($labels !== []) {
             $node['labels'] = $labels;

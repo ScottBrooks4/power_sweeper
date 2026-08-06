@@ -1307,7 +1307,8 @@ if (is_file($repair2)) {
 $repair2PoweredProfile = include dirname(__DIR__) . '/profiles/repair_powered.php';
 if (is_file($repair2)) {
     $poweredTestOut = sys_get_temp_dir() . '/ps_powered_test_' . bin2hex(random_bytes(4)) . '.msapp';
-    (new Pipeline())->run($repair2, $repair2PoweredProfile['hops'], $poweredTestOut);
+    $poweredHops = (new ProfileLoader(POWER_SWEEPER_PROFILES))->resolveHops($repair2PoweredProfile);
+    (new Pipeline())->run($repair2, $poweredHops, $poweredTestOut);
     $poweredYaml = ZipTool::readEntry($poweredTestOut, 'Src/App.pa.yaml');
     $topbarYaml = ZipTool::readEntry($poweredTestOut, 'Src/Components/TopbarHeader.pa.yaml');
     $homeYaml = ZipTool::readEntry($poweredTestOut, 'Src/VCR Home Page.pa.yaml');
@@ -1474,23 +1475,43 @@ assert_true(in_array('Screen2', array_column($ir['navigation'], 'to'), true), 'w
 $html = (new \PowerSweeper\WebApp\WebAppHtmlPreview())->render($ir);
 assert_true(str_contains($html, 'Structural preview'), 'HTML preview scaffold mentions structural fidelity');
 
-// Mutate IR labels and document layout, then apply
+// Mutate IR labels, layout, and a renamed control (previous_name), then apply
+$ir['screens'][0]['children'][0]['children'][2]['name'] = 'LaunchButton';
+$ir['screens'][0]['children'][0]['children'][2]['previous_name'] = 'NewRequestButton';
 $ir['screens'][0]['children'][0]['children'][2]['labels']['Text'] = 'Launch';
+$ir['screens'][0]['children'][0]['children'][2]['layout'] = ['x' => 48, 'y' => 96, 'width' => 140, 'height' => 44];
 $ir['document']['layout']['scale_to_fit'] = false;
 $ir['document']['app_type'] = 'DesktopOrTablet';
 $applyReport = new Report();
 $applyResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$webDoc], $ir, $applyReport, $webExtract);
 assert_true($applyResult['changes'] > 0, 'web IR apply reported changes');
 $btnText = null;
+$btnX = null;
 foreach ($webDoc->controls() as $c) {
     if ($c->name === 'NewRequestButton') {
         $btnText = $c->getProperty('Text');
+        $btnX = $c->getProperty('X');
         break;
     }
 }
-assert_true(is_string($btnText) && str_contains($btnText, 'Launch'), 'web IR apply updated button Text');
+assert_true(is_string($btnText) && str_contains($btnText, 'Launch'), 'web IR apply updated button Text via previous_name');
+assert_true(is_string($btnX) && str_contains($btnX, '48'), 'web IR apply updated literal layout X');
 $propsAfter = json_decode((string) file_get_contents($webExtract . '/Properties.json'), true);
 assert_true(($propsAfter['DocumentLayoutScaleToFit'] ?? true) === false, 'web IR apply updated ScaleToFit');
+
+// ColorValue chrome heuristic — pale slate/blue Studio chrome is themeable
+assert_true(
+    \PowerSweeper\ColorValue::isStudioDefault('=RGBA(226, 232, 240, 1)', 'RailFill'),
+    'slate RailFill treated as Studio chrome default'
+);
+assert_true(
+    \PowerSweeper\ColorValue::isStudioDefault('=RGBA(219, 234, 254, 1)', 'SelectedFill'),
+    'pale SelectedFill treated as Studio chrome default'
+);
+assert_true(
+    !\PowerSweeper\ColorValue::isStudioDefault('=RGBA(220, 38, 38, 1)', 'Fill'),
+    'saturated brand red Fill is not a Studio default'
+);
 
 $exportReport = new Report();
 (new \PowerSweeper\Hops\ExportWebAppHop())->apply([$webDoc], $exportReport, ['_extract_dir' => $webExtract]);

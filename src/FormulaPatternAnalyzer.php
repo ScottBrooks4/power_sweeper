@@ -34,7 +34,9 @@ final class FormulaPatternAnalyzer
             }
 
             /** @var array<string, list<array{host:string,formula:string,ids:list<string>}>> */
-            $groups = [];
+            $screenGroups = [];
+            /** @var array<string, list<array{host:string,formula:string,ids:list<string>}>> */
+            $parentGroups = [];
 
             foreach ($doc->controls() as $control) {
                 foreach ($control->propertyNames() as $prop) {
@@ -52,64 +54,80 @@ final class FormulaPatternAnalyzer
                     }
 
                     $skeleton = self::skeleton($value, $ids);
-                    $key = strtolower($prop) . '|' . $skeleton;
-                    $groups[$key][] = [
+                    $propKey = strtolower($prop) . '|' . $skeleton;
+                    $entry = [
                         'host' => $control->name,
                         'formula' => $value,
                         'ids' => $ids,
                     ];
+                    // 3+ peers: screen-wide (duplicated sections often sit under different parents).
+                    $screenGroups[$propKey][] = $entry;
+                    // 2-peer pairs: parent-scoped to avoid cross-gallery false alignments.
+                    $parentGroups[self::parentPathKey($control->path) . '|' . $propKey][] = $entry;
                 }
             }
 
-            foreach ($groups as $entries) {
-                // Three+ siblings: strong copy-paste signal.
-                // Two siblings: only when both hosts carry numeric indexes and
-                // each produces a unique local alignment (avoids blind replace).
-                $minPeers = 3;
-                if (count($entries) === 2 && self::pairLooksIndexed($entries)) {
-                    $minPeers = 2;
-                }
-                if (count($entries) < $minPeers) {
-                    continue;
-                }
-
-                foreach ($entries as $entry) {
-                    $hostIndex = self::controlIndex($entry['host']);
-                    if ($hostIndex === null) {
-                        continue;
-                    }
-
-                    foreach ($entry['ids'] as $id) {
-                        if ($catalog->isReserved($id)) {
-                            continue;
-                        }
-                        if ($id === $entry['host']) {
-                            continue;
-                        }
-
-                        $aligned = self::alignToHostIndex($id, $hostIndex, $localNames, $catalog, $screen);
-                        if ($aligned === null || $aligned === $id) {
-                            continue;
-                        }
-
-                        $resolved = $catalog->resolveIdentifier($screen, $id);
-                        if ($resolved === $aligned) {
-                            continue;
-                        }
-
-                        // For 2-peer groups, require the aligned name to exist locally
-                        // (or be a single-screen qualify) before proposing.
-                        if ($minPeers === 2 && !isset($localNames[$aligned]) && !str_contains($aligned, '.')) {
-                            continue;
-                        }
-
-                        $map[$entry['host']][$id] = $aligned;
-                    }
-                }
-            }
+            self::collectAlignments($screenGroups, 3, $localNames, $catalog, $screen, $map);
+            self::collectAlignments($parentGroups, 2, $localNames, $catalog, $screen, $map);
         }
 
         return $map;
+    }
+
+    /**
+     * @param array<string, list<array{host:string,formula:string,ids:list<string>}>> $groups
+     * @param array<string, true> $localNames
+     * @param array<string, array<string, string>> $map
+     */
+    private static function collectAlignments(
+        array $groups,
+        int $minPeers,
+        array $localNames,
+        AppControlCatalog $catalog,
+        string $screen,
+        array &$map,
+    ): void {
+        foreach ($groups as $entries) {
+            if ($minPeers === 2) {
+                if (count($entries) !== 2 || !self::pairLooksIndexed($entries)) {
+                    continue;
+                }
+            } elseif (count($entries) < $minPeers) {
+                continue;
+            }
+
+            foreach ($entries as $entry) {
+                $hostIndex = self::controlIndex($entry['host']);
+                if ($hostIndex === null) {
+                    continue;
+                }
+
+                foreach ($entry['ids'] as $id) {
+                    if ($catalog->isReserved($id)) {
+                        continue;
+                    }
+                    if ($id === $entry['host']) {
+                        continue;
+                    }
+
+                    $aligned = self::alignToHostIndex($id, $hostIndex, $localNames, $catalog, $screen);
+                    if ($aligned === null || $aligned === $id) {
+                        continue;
+                    }
+
+                    $resolved = $catalog->resolveIdentifier($screen, $id);
+                    if ($resolved === $aligned) {
+                        continue;
+                    }
+
+                    if ($minPeers === 2 && !isset($localNames[$aligned]) && !str_contains($aligned, '.')) {
+                        continue;
+                    }
+
+                    $map[$entry['host']][$id] = $aligned;
+                }
+            }
+        }
     }
 
     /**
@@ -249,5 +267,17 @@ final class FormulaPatternAnalyzer
         $base = preg_replace('/\d+$/', '', $base) ?? $base;
 
         return $base;
+    }
+
+    /** Parent container path used to scope copy-paste peer groups. */
+    private static function parentPathKey(string $path): string
+    {
+        $path = str_replace('\\', '/', $path);
+        $pos = strrpos($path, '/');
+        if ($pos === false) {
+            return $path;
+        }
+
+        return substr($path, 0, $pos);
     }
 }

@@ -230,6 +230,9 @@ final class WebAppIrApplier
             $changes++;
         }
 
+        $layout = is_array($irNode['layout'] ?? null) ? $irNode['layout'] : [];
+        $changes += $this->applyLiteralLayout($node, $layout, $report);
+
         $irChildren = is_array($irNode['children'] ?? null) ? $irNode['children'] : [];
         $liveChildren = $node->children;
         $claimed = [];
@@ -250,7 +253,47 @@ final class WebAppIrApplier
     }
 
     /**
-     * Match an IR child to a live control: exact name → fuzzy name → role+label.
+     * Apply IR layout when both sides are literal numbers (skip formula-driven X/Y/Width/Height).
+     *
+     * @param array<string, mixed> $layout
+     */
+    private function applyLiteralLayout(ControlNode $node, array $layout, Report $report): int
+    {
+        $changes = 0;
+        $map = [
+            'x' => 'X',
+            'y' => 'Y',
+            'width' => 'Width',
+            'height' => 'Height',
+        ];
+        foreach ($map as $irKey => $prop) {
+            if (!isset($layout[$irKey]) || !is_numeric($layout[$irKey])) {
+                continue;
+            }
+            $desired = (int) round((float) $layout[$irKey]);
+            $current = $node->getProperty($prop);
+            if ($current === null) {
+                continue;
+            }
+            $clean = $this->unwrap($current);
+            if ($clean === '' || !is_numeric($clean) || $this->looksLikeFormula($clean)) {
+                continue;
+            }
+            $currentN = (int) round((float) $clean);
+            if ($currentN === $desired) {
+                continue;
+            }
+            $to = $node->format === 'yaml' ? ('=' . $desired) : (string) $desired;
+            $node->setProperty($prop, $to);
+            $report->add('import_web_ir', $node->path, $prop, (string) $currentN, (string) $desired);
+            $changes++;
+        }
+
+        return $changes;
+    }
+
+    /**
+     * Match an IR child to a live control: previous_name → exact name → fuzzy name → role+label.
      *
      * @param array<string, mixed> $irChild
      * @param list<ControlNode> $liveChildren
@@ -259,6 +302,7 @@ final class WebAppIrApplier
     private function matchChild(array $irChild, array $liveChildren, array $claimed): ?ControlNode
     {
         $cname = (string) ($irChild['name'] ?? '');
+        $prev = (string) ($irChild['previous_name'] ?? '');
         $byName = [];
         foreach ($liveChildren as $child) {
             if (isset($claimed[$child->name])) {
@@ -267,12 +311,22 @@ final class WebAppIrApplier
             $byName[$child->name] = $child;
         }
 
+        if ($prev !== '' && isset($byName[$prev])) {
+            return $byName[$prev];
+        }
+
         if ($cname !== '' && isset($byName[$cname])) {
             return $byName[$cname];
         }
 
         if ($cname !== '') {
             $hit = StringSimilarity::bestMatch($cname, array_keys($byName), 3);
+            if ($hit !== null && $hit['score'] >= 88.0) {
+                return $byName[$hit['match']];
+            }
+        }
+        if ($prev !== '') {
+            $hit = StringSimilarity::bestMatch($prev, array_keys($byName), 3);
             if ($hit !== null && $hit['score'] >= 88.0) {
                 return $byName[$hit['match']];
             }
@@ -388,7 +442,7 @@ final class WebAppIrApplier
         $changes = 0;
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
-                foreach (['OnSelect', 'OnChange', 'OnVisible', 'OnStart', 'OnTimerEnd'] as $prop) {
+                    foreach (['OnSelect', 'OnChange', 'OnCheck', 'OnUncheck', 'OnVisible', 'OnStart', 'OnTimerEnd'] as $prop) {
                     $from = $control->getProperty($prop);
                     if ($from === null || trim($from) === '') {
                         continue;

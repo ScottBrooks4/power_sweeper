@@ -12,5 +12,14 @@ declare(strict_types=1);
  */
 return array_merge(
     include __DIR__ . '/vcr_repair_hops.php',
-    (include dirname(__DIR__) . '/dark_mode.php')['hops'],
+    array_map(
+        static function (array $hop): array {
+            if (($hop['id'] ?? '') === 'enable_dark_mode') {
+                $hop['options'] = array_merge($hop['options'] ?? [], ['force' => true]);
+            }
+
+            return $hop;
+        },
+        (include dirname(__DIR__) . '/dark_mode.php')['hops'],
+    ),
 );

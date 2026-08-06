@@ -6,6 +6,7 @@ namespace PowerSweeper\Hops;
 
 use PowerSweeper\AppControlCatalog;
 use PowerSweeper\ControlDocument;
+use PowerSweeper\ControlRefCandidateGenerator;
 use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaReferenceExtractor;
 use PowerSweeper\PowerFxFormulaSegments;
@@ -43,13 +44,14 @@ final class RepairControlRefsHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Fix stale _1/_2 suffixed control names, cross-screen refs, component template bindings, and known identifier typos after screen duplication.';
+        return 'Fix stale _1/_2 suffixed control names, cross-screen refs, component template bindings, and identifier typos via catalog/fuzzy candidates (not blind replace).';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
     {
         $catalog = AppControlCatalog::build($documents);
         $screens = $catalog->screenNames();
+        $candidates = new ControlRefCandidateGenerator();
 
         foreach ($documents as $doc) {
             $localNames = $catalog->controlNamesForDocument($doc);
@@ -60,9 +62,11 @@ final class RepairControlRefsHop implements HopInterface
             $screen = $catalog->screenForDocument($doc);
             $isComponent = str_starts_with($doc->relativePath, 'Src/Components/');
 
-            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $localNames, $isComponent, $report): string {
+            $relativePath = $doc->relativePath;
+            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $localNames, $isComponent, $report, $candidates, $relativePath): string {
                 $new = $this->repairGhostLayoutBinding($formula, $localNames);
-                $map = $this->buildRenameMap($new, $screen, $catalog, $localNames);
+                $host = $this->hostControlFromPath($path, $relativePath);
+                $map = $this->buildRenameMap($new, $screen, $catalog, $localNames, $candidates, $host);
                 $new = $map === [] ? $new : $this->applyRenameMap($new, $map, $catalog);
                 $new = ScreenReferenceNormalizer::normalize($new, $screens);
                 if ($isComponent) {
@@ -135,8 +139,14 @@ final class RepairControlRefsHop implements HopInterface
      *
      * @return array<string, string>
      */
-    private function buildRenameMap(string $formula, ?string $screen, AppControlCatalog $catalog, array $localNames): array
-    {
+    private function buildRenameMap(
+        string $formula,
+        ?string $screen,
+        AppControlCatalog $catalog,
+        array $localNames,
+        ControlRefCandidateGenerator $candidates,
+        string $hostControl,
+    ): array {
         $map = [];
         $ids = FormulaReferenceExtractor::identifiers($formula);
         usort($ids, static fn(string $a, string $b): int => strlen($b) <=> strlen($a));
@@ -151,32 +161,6 @@ final class RepairControlRefsHop implements HopInterface
             if (isset($localNames[$id])) {
                 continue;
             }
-            if (isset(self::TYPO_MAP[$id])) {
-                $target = self::TYPO_MAP[$id];
-                if ($screen !== null && $catalog->hasOnScreen($screen, $id)) {
-                    continue;
-                }
-                if ($screen !== null && $catalog->hasOnScreen($screen, $target)) {
-                    $map[$id] = $target;
-                    continue;
-                }
-                if (isset($localNames[$target])) {
-                    $map[$id] = $target;
-                    continue;
-                }
-                if ($screen !== null) {
-                    $others = array_values(array_filter(
-                        $catalog->screensWith($target),
-                        static fn(string $s): bool => $s !== $screen
-                    ));
-                    if (count($others) === 1 && !$catalog->isComponentInstance($target)) {
-                        $map[$id] = $catalog->qualify($others[0], $target);
-                        continue;
-                    }
-                }
-                $map[$id] = $target;
-                continue;
-            }
 
             $local = $this->resolveInLocalScope($id, $localNames);
             if ($local !== null && $local !== $id) {
@@ -185,16 +169,81 @@ final class RepairControlRefsHop implements HopInterface
             }
 
             if ($screen === null) {
+                // Seed map still helps App.OnStart / component templates without a screen.
+                if (isset(self::TYPO_MAP[$id])) {
+                    $map[$id] = self::TYPO_MAP[$id];
+                }
                 continue;
             }
 
             $resolved = $catalog->resolveIdentifier($screen, $id);
             if ($resolved !== null && $resolved !== $id && !$this->wouldOverQualifyScreen($catalog, $id, $resolved)) {
                 $map[$id] = $resolved;
+                continue;
+            }
+
+            // Known typo seeds (still applied as renames; context-aware hop verifies cascades).
+            if (isset(self::TYPO_MAP[$id])) {
+                $target = self::TYPO_MAP[$id];
+                if ($catalog->hasOnScreen($screen, $target) || isset($localNames[$target])) {
+                    $map[$id] = $target;
+                    continue;
+                }
+                $others = array_values(array_filter(
+                    $catalog->screensWith($target),
+                    static fn(string $s): bool => $s !== $screen
+                ));
+                if (count($others) === 1 && !$catalog->isComponentInstance($target)) {
+                    $map[$id] = $catalog->qualify($others[0], $target);
+                    continue;
+                }
+                $map[$id] = $target;
+                continue;
+            }
+
+            // Token-stem only: accept a generator candidate when it is a near-identical
+            // spelling of a live control (Initiave/Initiative). Skip fuzzy long-shots.
+            foreach ($candidates->candidates($id, $screen, $hostControl, $localNames, $catalog) as $candidate) {
+                if (str_contains($candidate, '.') || $this->wouldOverQualifyScreen($catalog, $id, $candidate)) {
+                    continue;
+                }
+                if (!isset($localNames[$candidate]) && !$catalog->hasOnScreen($screen, $candidate)) {
+                    continue;
+                }
+                if ($this->nearIdenticalStem($id, $candidate)) {
+                    $map[$id] = $candidate;
+                    break;
+                }
             }
         }
 
         return $map;
+    }
+
+    private function nearIdenticalStem(string $from, string $to): bool
+    {
+        $norm = static function (string $s): string {
+            return strtolower(preg_replace('/[^a-z0-9]+/i', '', $s) ?? $s);
+        };
+        $a = $norm($from);
+        $b = $norm($to);
+        if ($a === '' || $b === '' || $a === $b) {
+            return $a !== '' && $a === $b;
+        }
+        similar_text($a, $b, $pct);
+        $lenDelta = abs(strlen($a) - strlen($b));
+
+        return $pct >= 94.0 && $lenDelta <= 2;
+    }
+
+    private function hostControlFromPath(string $path, string $relativePath): string
+    {
+        $prefix = $relativePath . '/';
+        $rest = str_starts_with($path, $prefix) ? substr($path, strlen($prefix)) : $path;
+        $rest = preg_replace('/\.[A-Za-z]\w*$/', '', $rest) ?? $rest;
+        $parts = explode('/', str_replace('\\', '/', $rest));
+
+        return (string) (end($parts) ?: '');
     }
 
     /**
