@@ -6,6 +6,7 @@ namespace PowerSweeper\Hops;
 
 use PowerSweeper\ControlDocument;
 use PowerSweeper\ControlNode;
+use PowerSweeper\HopOptions;
 use PowerSweeper\Report;
 
 final class AccessibilityLabelsHop implements HopInterface
@@ -27,6 +28,8 @@ final class AccessibilityLabelsHop implements HopInterface
 
     public function apply(array $documents, Report $report, array $options = []): void
     {
+        $force = HopOptions::force($options);
+
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
                 if (!$control->isInteractive()) {
@@ -34,7 +37,7 @@ final class AccessibilityLabelsHop implements HopInterface
                 }
 
                 $existing = $control->getProperty('AccessibleLabel');
-                if ($existing !== null && !$this->isBlank($existing)) {
+                if (!$force && $existing !== null && !$this->isBlank($existing)) {
                     continue;
                 }
 

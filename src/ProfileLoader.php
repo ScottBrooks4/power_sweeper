@@ -10,7 +10,7 @@ final class ProfileLoader
     {
     }
 
-    /** @return list<array{id:string,description:string,hops:list<array{id:string,options?:array<string,mixed>}>}> */
+    /** @return list<array{id:string,description:string,force?:bool,hops:list<array{id:string,options?:array<string,mixed>}>}> */
     public function all(): array
     {
         if (!is_dir($this->profilesDir)) {
@@ -31,18 +31,49 @@ final class ProfileLoader
             if (!is_array($config)) {
                 continue;
             }
-            $out[] = [
+            $entry = [
                 'id' => $id,
                 'description' => (string) ($config['description'] ?? ''),
-                'hops' => $config['hops'] ?? [],
+                'hops' => $this->resolveHops($config),
             ];
+            if (array_key_exists('force', $config)) {
+                $entry['force'] = (bool) $config['force'];
+            }
+            $out[] = $entry;
         }
 
         usort($out, static fn($a, $b) => $a['id'] <=> $b['id']);
         return $out;
     }
 
-    /** @return array{description?:string,hops:list<array{id:string,options?:array<string,mixed>}>}|null */
+    /**
+     * Merge profile-level options (e.g. force) into each hop. Hop-level options win.
+     *
+     * @param array{description?:string,force?:bool,hops:list<array{id:string,options?:array<string,mixed>}>} $config
+     * @return list<array{id:string,options:array<string,mixed>}>
+     */
+    public function resolveHops(array $config): array
+    {
+        $profileForce = (bool) ($config['force'] ?? false);
+        $out = [];
+        foreach ($config['hops'] as $hop) {
+            if (!is_array($hop) || empty($hop['id'])) {
+                continue;
+            }
+            $options = is_array($hop['options'] ?? null) ? $hop['options'] : [];
+            if (!array_key_exists('force', $options)) {
+                $options['force'] = $profileForce;
+            }
+            $out[] = [
+                'id' => (string) $hop['id'],
+                'options' => $options,
+            ];
+        }
+
+        return $out;
+    }
+
+    /** @return array{description?:string,force?:bool,hops:list<array{id:string,options?:array<string,mixed>}>}|null */
     public function loadByPath(string $path): ?array
     {
         if (!is_file($path)) {

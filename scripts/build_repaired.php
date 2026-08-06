@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use PowerSweeper\ProfileLoader;
+
 $input = $argv[1] ?? dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
 $output = $argv[2] ?? null;
 
@@ -27,7 +29,8 @@ if ($output === null) {
 }
 
 $profile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-(new PowerSweeper\Pipeline())->run($input, $profile['hops'], $output);
+$loader = new ProfileLoader(dirname(__DIR__) . '/profiles');
+(new PowerSweeper\Pipeline())->run($input, $loader->resolveHops($profile), $output);
 
 $arch = new PowerSweeper\MsappArchive($output);
 $arch->unpack();

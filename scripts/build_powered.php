@@ -41,7 +41,7 @@ $profileLabel = is_string($explicitProfile) && $explicitProfile !== ''
     ? basename($explicitProfile)
     : (preg_match('/THCEE/i', basename($input)) ? 'powered_thcee.php' : 'repair_powered.php');
 
-(new PowerSweeper\Pipeline())->run($input, $profile['hops'], $output);
+(new PowerSweeper\Pipeline())->run($input, $loader->resolveHops($profile), $output);
 
 $arch = new PowerSweeper\MsappArchive($output);
 $arch->unpack();

@@ -215,7 +215,8 @@
     }
     const hops = JSON.parse(opt.dataset.hops || '[]');
     const profile = (cfg.profiles || []).find((p) => p.id === opt.value);
-    profileHint.textContent = profile?.description || '';
+    const forceNote = profile?.force ? ' Force mode: overwrites existing hop values.' : '';
+    profileHint.textContent = (profile?.description || '') + forceNote;
     loadProfileHops(hops);
   });
 
