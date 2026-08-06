@@ -99,6 +99,12 @@ final class WebAppIrApplier
             }
         }
 
+        $n = $this->parkSetFocusAfterNavigate($documents, $ir, $report);
+        $changes += $n;
+        if ($n > 0) {
+            $notes[] = 'SetFocus park on OnVisible: ' . $n;
+        }
+
         return ['changes' => $changes, 'notes' => $notes];
     }
 
@@ -157,14 +163,22 @@ final class WebAppIrApplier
             }
 
             $oldRel = $doc->relativePath;
-            if ($extractDir !== null && $extractDir !== '' && str_starts_with($oldRel, 'Src/')) {
-                $newRel = dirname($oldRel) . '/' . ControlNaming::screenFileStem($name) . '.pa.yaml';
-                $newRel = str_replace('\\', '/', $newRel);
-                if ($newRel !== $oldRel) {
-                    $absOld = $extractDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $oldRel);
-                    $absNew = $extractDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $newRel);
-                    if (is_file($absOld) && !file_exists($absNew) && @rename($absOld, $absNew)) {
-                        $doc->relativePath = $newRel;
+            if ($extractDir !== null && $extractDir !== '') {
+                $stem = ControlNaming::screenFileStem($name);
+                $newRel = null;
+                if (str_starts_with($oldRel, 'Src/') && str_ends_with(strtolower($oldRel), '.pa.yaml')) {
+                    $newRel = dirname($oldRel) . '/' . $stem . '.pa.yaml';
+                } elseif (str_starts_with($oldRel, 'Controls/') && str_ends_with(strtolower($oldRel), '.json')) {
+                    $newRel = 'Controls/' . $stem . '.json';
+                }
+                if ($newRel !== null) {
+                    $newRel = str_replace('\\', '/', $newRel);
+                    if ($newRel !== $oldRel) {
+                        $absOld = $extractDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $oldRel);
+                        $absNew = $extractDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $newRel);
+                        if (is_file($absOld) && !file_exists($absNew) && @rename($absOld, $absNew)) {
+                            $doc->relativePath = $newRel;
+                        }
                     }
                 }
             }
@@ -738,6 +752,129 @@ final class WebAppIrApplier
         }
 
         return $map;
+    }
+
+    /**
+     * When a formula Navigates to screen B and SetFocus(X) where X lives on B,
+     * park SetFocus(X) on B.OnVisible (cross-screen SetFocus is ignored by Studio).
+     *
+     * @param list<ControlDocument> $documents
+     * @param array<string, mixed> $ir
+     */
+    private function parkSetFocusAfterNavigate(array $documents, array $ir, Report $report): int
+    {
+        $controlScreen = [];
+        $screenNodes = [];
+        // YAML/JSON walks list children before the screen root — map via each screen's subtree.
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $c) {
+                if (!$c->isScreen()) {
+                    continue;
+                }
+                $screenNodes[$c->name] = $c;
+                $stack = [$c];
+                while ($stack !== []) {
+                    $node = array_pop($stack);
+                    $controlScreen[$node->name] = $c->name;
+                    foreach ($node->children as $child) {
+                        $stack[] = $child;
+                    }
+                }
+            }
+        }
+
+        /** @var array<string, list<string>> screen => focus targets */
+        $parks = [];
+
+        // From live formulas: Navigate(B) + SetFocus(X) in the same property
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                foreach (['OnSelect', 'OnChange', 'OnTimerEnd', 'OnCheck'] as $prop) {
+                    $formula = $control->getProperty($prop);
+                    if ($formula === null || !str_contains($formula, 'Navigate') || !str_contains($formula, 'SetFocus')) {
+                        continue;
+                    }
+                    $navTargets = [];
+                    if (preg_match_all("/Navigate\\s*\\(\\s*('([^']+)'|\"([^\"]+)\"|([A-Za-z_][\\w]*))/i", $formula, $m, PREG_SET_ORDER)) {
+                        foreach ($m as $match) {
+                            $t = $match[2] !== '' ? $match[2] : ($match[3] !== '' ? $match[3] : ($match[4] ?? ''));
+                            if ($t !== '') {
+                                $navTargets[] = $t;
+                            }
+                        }
+                    }
+                    $focusTargets = [];
+                    if (preg_match_all("/SetFocus\\s*\\(\\s*('([^']+)'|\"([^\"]+)\"|([A-Za-z_][\\w]*))/i", $formula, $m, PREG_SET_ORDER)) {
+                        foreach ($m as $match) {
+                            $t = $match[2] !== '' ? $match[2] : ($match[3] !== '' ? $match[3] : ($match[4] ?? ''));
+                            if ($t !== '') {
+                                $focusTargets[] = $t;
+                            }
+                        }
+                    }
+                    foreach ($navTargets as $dest) {
+                        foreach ($focusTargets as $focus) {
+                            if (($controlScreen[$focus] ?? null) === $dest) {
+                                $parks[$dest][] = $focus;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // From IR edges: navigate A→B + setfocus A→X where X on B
+        $nav = is_array($ir['navigation'] ?? null) ? $ir['navigation'] : [];
+        $byFrom = [];
+        foreach ($nav as $edge) {
+            if (!is_array($edge)) {
+                continue;
+            }
+            $from = (string) ($edge['from'] ?? '');
+            $byFrom[$from][] = $edge;
+        }
+        foreach ($byFrom as $edges) {
+            $dests = [];
+            $focuses = [];
+            foreach ($edges as $edge) {
+                $kind = (string) ($edge['kind'] ?? 'navigate');
+                $to = (string) ($edge['to'] ?? '');
+                if ($to === '') {
+                    continue;
+                }
+                if ($kind === 'setfocus') {
+                    $focuses[] = $to;
+                } else {
+                    $dests[] = $to;
+                }
+            }
+            foreach ($dests as $dest) {
+                foreach ($focuses as $focus) {
+                    if (($controlScreen[$focus] ?? null) === $dest) {
+                        $parks[$dest][] = $focus;
+                    }
+                }
+            }
+        }
+
+        $changes = 0;
+        foreach ($parks as $screen => $targets) {
+            if (!isset($screenNodes[$screen])) {
+                continue;
+            }
+            foreach (array_values(array_unique($targets)) as $target) {
+                $stmt = 'SetFocus(' . (preg_match('/^[A-Za-z_][\w]*$/', $target) ? $target : ("'" . str_replace("'", "''", $target) . "'")) . ')';
+                $before = (string) ($screenNodes[$screen]->getProperty('OnVisible') ?? '');
+                $screenNodes[$screen]->appendStatement('OnVisible', $stmt);
+                $after = (string) ($screenNodes[$screen]->getProperty('OnVisible') ?? '');
+                if ($after !== $before) {
+                    $report->add('import_web_ir', $screenNodes[$screen]->path, 'OnVisible', 'SetFocus park', $stmt);
+                    $changes++;
+                }
+            }
+        }
+
+        return $changes;
     }
 
     /**

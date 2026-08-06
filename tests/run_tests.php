@@ -1737,6 +1737,182 @@ $stemCandidates = $stemGen->candidates(
 );
 assert_true(in_array('GovernmentInitiative', $stemCandidates, true), 'token-stem heuristic proposes GovernmentInitiative');
 
+// Catalog-driven SharePoint field fallbacks (VisitType / Level* / Initiative / Specification)
+$spFbExtract = sys_get_temp_dir() . '/ps_spfb_' . bin2hex(random_bytes(3));
+mkdir($spFbExtract . '/References', 0775, true);
+file_put_contents($spFbExtract . '/References/DataSources.json', json_encode([
+    'DataSources' => [[
+        'Name' => 'CDLS (L) VCR Tracking List',
+        'Type' => 'ConnectedDataSourceInfo',
+        'DatasetName' => 'https://contoso.sharepoint.com/sites/DND',
+        'TableName' => 'VCR',
+        'ApiId' => '/providers/microsoft.powerapps/apis/shared_sharepointonline',
+        'ConnectedDataSourceInfoNameMapping' => [
+            'VisitType' => 'VisitType',
+            'Confidential' => 'Confidential',
+            'UnclassifiedRestricted' => 'UnclassifiedRestricted',
+            'Government' => 'Government',
+            'InitiativeType' => 'InitiativeType',
+            'Initiation' => 'Initiation',
+            'Subject' => 'Subject',
+            'EmerContactCanadianPhone' => 'EmerContactCanadianPhone',
+        ],
+    ]],
+], JSON_PRETTY_PRINT));
+$spFbYaml = <<<'YAML'
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    OnVisible: |
+      =If(loadedRequest.OneTimeVisit, 1, 0);
+      If(loadedRequest.LevelConfidential, 1, 0);
+      If(loadedRequest.GovernmentInitiative, 1, 0);
+      If(loadedRequest.CommercialInitiative, 1, 0);
+      If(loadedRequest.InitiatedByRequestingAgency, 1, 0);
+      Set(x, loadedRequest.PertinenceSpecification);
+      Set(y, r.CanadianCellPhone);
+      Patch(list, Defaults(list), { AmendmentVisit: true, Title: "x" })
+YAML;
+$spFbPath = $spFbExtract . '/Screen1.pa.yaml';
+file_put_contents($spFbPath, $spFbYaml);
+$spFbDoc = ControlDocument::fromFile($spFbPath, 'Src/Screen1.pa.yaml');
+assert_true($spFbDoc !== null, 'SP fallback fixture loads');
+$spFbReport = new Report();
+(new \PowerSweeper\Hops\RepairSharePointFieldsHop())->apply([$spFbDoc], $spFbReport, ['_extract_dir' => $spFbExtract]);
+$spFbFormula = '';
+foreach ($spFbDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $spFbFormula = (string) $c->getProperty('OnVisible');
+    }
+}
+assert_true(str_contains($spFbFormula, 'VisitType.Value = "One-time"'), 'SP fallback maps OneTimeVisit via VisitType');
+assert_true(str_contains($spFbFormula, 'loadedRequest.Confidential'), 'SP fallback maps LevelConfidential → Confidential');
+assert_true(str_contains($spFbFormula, 'loadedRequest.Government'), 'SP fallback strips Initiative → Government');
+assert_true(str_contains($spFbFormula, 'loadedRequest.InitiativeType'), 'SP fallback maps CommercialInitiative → InitiativeType');
+assert_true(str_contains($spFbFormula, 'loadedRequest.Initiation'), 'SP fallback maps Initiated* → Initiation');
+assert_true(str_contains($spFbFormula, 'loadedRequest.Subject'), 'SP fallback maps *Specification → Subject');
+assert_true(str_contains($spFbFormula, 'EmerContactCanadianPhone'), 'SP fallback fuzzy-maps CanadianCellPhone');
+assert_true(!preg_match('/\bAmendmentVisit\s*:/', $spFbFormula), 'SP hop drops absent AmendmentVisit Patch field');
+@unlink($spFbPath);
+@unlink($spFbExtract . '/References/DataSources.json');
+@rmdir($spFbExtract . '/References');
+@rmdir($spFbExtract);
+
+// Host-screen discovery for App bootstrap (not hardcoded VASC screen name)
+$vascYaml = <<<'YAML'
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: |
+      =Set(x, 1);
+      'Bootstrap Host'.comExternalFunctions.loadUser();
+      If(
+          !IsBlank(Param("requestid")),
+          Set(varRequestID, Substitute(Param("requestid"),"-", " - "));
+          'Bootstrap Host'.comExternalFunctions.loadPackage(varRequestID),
+          Set(varRequestID,"-1")
+      )
+Bootstrap Host:
+  Control: Screen@2.0.0
+  Children:
+    - comExternalFunctions:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="host"
+YAML;
+$vascPath = sys_get_temp_dir() . '/ps_vasc_' . bin2hex(random_bytes(3)) . '.pa.yaml';
+file_put_contents($vascPath, $vascYaml);
+$vascDoc = ControlDocument::fromFile($vascPath, 'Src/App.pa.yaml');
+assert_true($vascDoc !== null, 'bootstrap host fixture loads');
+$vascReport = new Report();
+(new \PowerSweeper\Hops\RepairStudioSyntaxHop())->apply([$vascDoc], $vascReport);
+$vascOnStart = '';
+$vascOnVisible = '';
+foreach ($vascDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $vascOnStart = (string) $c->getProperty('OnStart');
+    }
+    if ($c->isScreen() && $c->name === 'Bootstrap Host') {
+        $vascOnVisible = (string) $c->getProperty('OnVisible');
+    }
+}
+assert_true(str_contains($vascOnStart, 'Set(varDeferredLoadUser, false)'), 'bootstrap inits varDeferredLoadUser false');
+assert_true(str_contains($vascOnStart, 'Set(varDeferredLoadUser, true)'), 'bootstrap defers loadUser from any host screen');
+assert_true(str_contains($vascOnStart, 'Set(varDeferredLoadPackage, true)'), 'bootstrap defers loadPackage from any host screen');
+assert_true(!str_contains($vascOnStart, 'comExternalFunctions.loadUser'), 'bootstrap removes cross-screen loadUser from App');
+assert_true(str_contains($vascOnVisible, 'ps-bootstrap:start'), 'bootstrap parks deferred load on discovered host OnVisible');
+@unlink($vascPath);
+
+// JSON Controls/*.json screen rename + SetFocus park onto destination OnVisible
+$jsonExtract = sys_get_temp_dir() . '/ps_jsonren_' . bin2hex(random_bytes(3));
+mkdir($jsonExtract . '/Controls', 0775, true);
+$jsonScreen = [
+    'TopParent' => [
+        'Name' => 'LegacyJson',
+        'Template' => ['Name' => 'screen', 'Version' => '2.0.0'],
+        'Rules' => [
+            ['Property' => 'OnVisible', 'InvariantScript' => ''],
+        ],
+        'Children' => [
+            [
+                'Name' => 'FocusTarget',
+                'Template' => ['Name' => 'label', 'Version' => '2.0.0'],
+                'Rules' => [
+                    ['Property' => 'Text', 'InvariantScript' => '"hi"'],
+                ],
+                'Children' => [],
+            ],
+        ],
+    ],
+];
+$jsonOld = $jsonExtract . '/Controls/LegacyJson.json';
+file_put_contents($jsonOld, json_encode($jsonScreen, JSON_PRETTY_PRINT));
+$jsonDoc = ControlDocument::fromFile($jsonOld, 'Controls/LegacyJson.json');
+assert_true($jsonDoc !== null, 'JSON screen fixture loads');
+$navYaml = "NavScreen:\n  Control: Screen@2.0.0\n  Children:\n    - GoBtn:\n        Control: Classic/Button@2.0.0\n        Properties:\n          OnSelect: \"=Navigate(LegacyJson); SetFocus(FocusTarget)\"\n";
+$navPath = $jsonExtract . '/NavScreen.pa.yaml';
+file_put_contents($navPath, $navYaml);
+$navDoc = ControlDocument::fromFile($navPath, 'Src/NavScreen.pa.yaml');
+assert_true($navDoc !== null, 'nav screen for SetFocus park loads');
+$irJson = [
+    'format' => 'power_sweeper_web_ir',
+    'screens' => [
+        ['name' => 'HomeJson', 'previous_name' => 'LegacyJson', 'kind' => 'screen', 'children' => []],
+        ['name' => 'NavScreen', 'kind' => 'screen', 'children' => []],
+    ],
+    'navigation' => [
+        ['from' => 'NavScreen', 'to' => 'HomeJson', 'kind' => 'navigate'],
+        ['from' => 'NavScreen', 'to' => 'FocusTarget', 'kind' => 'setfocus'],
+    ],
+];
+$jsonReport = new Report();
+$jsonResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$jsonDoc, $navDoc], $irJson, $jsonReport, $jsonExtract);
+assert_true(is_file($jsonExtract . '/Controls/HomeJson.json'), 'web IR renames Controls/*.json screen file');
+assert_true(!is_file($jsonExtract . '/Controls/LegacyJson.json'), 'web IR removes old Controls/*.json screen file');
+$jsonScreenNode = null;
+foreach ($jsonDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $jsonScreenNode = $c;
+        break;
+    }
+}
+assert_true($jsonScreenNode !== null && $jsonScreenNode->name === 'HomeJson', 'web IR renamed JSON screen Name');
+assert_true(
+    str_contains((string) $jsonScreenNode->getProperty('OnVisible'), 'SetFocus(FocusTarget)'),
+    'web IR parks SetFocus on destination OnVisible'
+);
+assert_true(
+    str_contains(implode(' ', $jsonResult['notes']), 'SetFocus park')
+    || str_contains(implode(' ', $jsonResult['notes']), 'screen renames'),
+    'web IR notes SetFocus park or screen renames'
+);
+$previewHtml = (new \PowerSweeper\WebApp\WebAppHtmlPreview())->render($irJson);
+assert_true(str_contains($previewHtml, "e.kind === 'setfocus'") || str_contains($previewHtml, 'setfocus'), 'HTML preview distinguishes setfocus edges');
+@unlink($jsonExtract . '/Controls/HomeJson.json');
+@unlink($navPath);
+@rmdir($jsonExtract . '/Controls');
+@rmdir($jsonExtract);
+
 // Cleanup temp extract
 array_map('unlink', glob($webExtract . '/WebApp/*') ?: []);
 @rmdir($webExtract . '/WebApp');

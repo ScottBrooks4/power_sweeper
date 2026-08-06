@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace PowerSweeper\Hops;
 
+use PowerSweeper\ControlDocument;
+use PowerSweeper\ControlNode;
 use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\Report;
 
 /**
  * Mechanical syntax and bootstrap repairs that are safe and idempotent (code only).
+ *
+ * App.OnStart must not call component methods on another screen; those calls are
+ * deferred onto the host screen's OnVisible. The host screen is discovered by
+ * locating the screen that owns `comExternalFunctions` (not a hardcoded name).
  */
 final class RepairStudioSyntaxHop implements HopInterface
 {
+    private const HOST_COMPONENT = 'comExternalFunctions';
+
     /** @var array<string, string> LookUp / record field aliases for VCR list schema drift. */
     private const RECORD_FIELD_ALIASES = [
         'Unclassified' => 'UnclassifiedRestricted',
@@ -39,11 +47,13 @@ final class RepairStudioSyntaxHop implements HopInterface
 
     public function apply(array $documents, Report $report, array $options = []): void
     {
+        $hostScreens = $this->discoverHostScreens($documents);
+
         foreach ($documents as $doc) {
-            $doc->transformFormulas(function (string $formula, string $path) use ($report): string {
+            $doc->transformFormulas(function (string $formula, string $path) use ($report, $hostScreens): string {
                 $new = $this->repairFormula($formula, $path, $report);
                 if ($this->isAppOnStartPath($path)) {
-                    $new = $this->repairAppOnStart($new, $path, $report);
+                    $new = $this->repairAppOnStart($new, $path, $report, $hostScreens);
                 }
 
                 return $new;
@@ -54,21 +64,69 @@ final class RepairStudioSyntaxHop implements HopInterface
             foreach ($doc->controls() as $control) {
                 if ($control->isApp()) {
                     $before = (string) ($control->getProperty('OnStart') ?? '');
-                    $after = $this->repairAppOnStart($before, $control->path . '.OnStart', $report);
+                    $after = $this->repairAppOnStart($before, $control->path . '.OnStart', $report, $hostScreens);
                     if ($after !== $before) {
                         $control->setProperty('OnStart', $after);
                     }
                 }
-                if ($control->name !== 'VASC Template Control Screen' || !$control->isScreen()) {
+                if (!$control->isScreen() || !isset($hostScreens[$control->name])) {
                     continue;
                 }
                 $before = (string) ($control->getProperty('OnVisible') ?? '');
-                $after = $this->ensureVascBootstrap($before, $control->path, $report);
+                $after = $this->ensureHostBootstrap($before, $control->path, $report);
                 if ($after !== $before) {
                     $control->setProperty('OnVisible', $after);
                 }
             }
         }
+    }
+
+    /**
+     * Screens that own the global external-functions component instance.
+     * YAML walk order lists children before the screen root, so we inspect
+     * each screen's child tree rather than relying on flat list order.
+     *
+     * @param list<ControlDocument> $documents
+     * @return array<string, true>
+     */
+    private function discoverHostScreens(array $documents): array
+    {
+        $hosts = [];
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$control->isScreen()) {
+                    continue;
+                }
+                if ($this->subtreeHasHostComponent($control)) {
+                    $hosts[$control->name] = true;
+                }
+            }
+        }
+
+        return $hosts;
+    }
+
+    private function subtreeHasHostComponent(ControlNode $node): bool
+    {
+        if ($this->isHostComponent($node)) {
+            return true;
+        }
+        foreach ($node->children as $child) {
+            if ($this->subtreeHasHostComponent($child)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isHostComponent(ControlNode $control): bool
+    {
+        // Instance suffixes: comExternalFunctions_1
+        return (bool) preg_match(
+            '/^' . preg_quote(self::HOST_COMPONENT, '/') . '(_\d+)?$/',
+            $control->name
+        );
     }
 
     private function isAppOnStartPath(string $path): bool
@@ -165,22 +223,33 @@ final class RepairStudioSyntaxHop implements HopInterface
         return $changed ? $out : $formula;
     }
 
-    private function repairAppOnStart(string $formula, string $path, Report $report): string
+    /**
+     * @param array<string, true> $hostScreens
+     */
+    private function repairAppOnStart(string $formula, string $path, Report $report, array $hostScreens): string
     {
         $new = $formula;
         $changed = false;
 
-        if (preg_match("/'VASC Template Control Screen'\\.comExternalFunctions\\.loadUser\\(\\)\\s*;?/", $new)) {
-            $new = preg_replace(
-                "/'VASC Template Control Screen'\\.comExternalFunctions\\.loadUser\\(\\)\\s*;?\s*/",
-                "Set(varDeferredLoadUser, true);\n",
-                $new
-            ) ?? $new;
+        // Any "'Screen Name'.comExternalFunctions.loadUser()" → deferred flag
+        $loadUserPattern = "/(?:'(?:[^']|'')+'|[A-Za-z_][\\w]*)\\."
+            . preg_quote(self::HOST_COMPONENT, '/')
+            . "(?:_\\d+)?\\.loadUser\\(\\)\\s*;?/";
+        if (preg_match($loadUserPattern, $new)) {
+            $new = preg_replace($loadUserPattern, "Set(varDeferredLoadUser, true);\n", $new) ?? $new;
+            // Collapse accidental double newlines from ;? optional
+            $new = preg_replace("/Set\\(varDeferredLoadUser, true\\);\\s*\n+/", "Set(varDeferredLoadUser, true);\n", $new) ?? $new;
             $report->add(self::id(), $path, 'loadUser', '(cross-screen from App)', 'varDeferredLoadUser');
             $changed = true;
         }
 
-        $loadPackagePattern = "/If\\(\\s*!IsBlank\\(Param\\(\"requestid\"\\)\\)\\s*,\\s*Set\\(varRequestID, Substitute\\(Param\\(\"requestid\"\\),\"-\", \" - \"\\)\\)\\s*;\\s*'VASC Template Control Screen'\\.comExternalFunctions\\.loadPackage\\(varRequestID\\)\\s*,\\s*Set\\(varRequestID,\"-1\"\\)\\s*\\)/s";
+        // Param("requestid") → Set(varRequestID); host.loadPackage(varRequestID) → deferred
+        $loadPackagePattern = "/If\\(\\s*!IsBlank\\(Param\\(\"requestid\"\\)\\)\\s*,\\s*"
+            . "Set\\(varRequestID, Substitute\\(Param\\(\"requestid\"\\),\"-\", \" - \"\\)\\)\\s*;\\s*"
+            . "(?:'(?:[^']|'')+'|[A-Za-z_][\\w]*)\\."
+            . preg_quote(self::HOST_COMPONENT, '/')
+            . "(?:_\\d+)?\\.loadPackage\\(varRequestID\\)\\s*,\\s*"
+            . "Set\\(varRequestID,\"-1\"\\)\\s*\\)/s";
         $loadPackageReplacement = 'If(
     !IsBlank(Param("requestid")),
     Set(varRequestID, Substitute(Param("requestid"),"-", " - "));
@@ -192,9 +261,23 @@ final class RepairStudioSyntaxHop implements HopInterface
             $new = $replaced;
             $report->add(self::id(), $path, 'loadPackage', '(cross-screen from App)', 'varDeferredLoadPackage');
             $changed = true;
+        } else {
+            // Broader: any remaining host.loadPackage(...) from App → defer
+            $broadPackage = "/(?:'(?:[^']|'')+'|[A-Za-z_][\\w]*)\\."
+                . preg_quote(self::HOST_COMPONENT, '/')
+                . "(?:_\\d+)?\\.loadPackage\\(([^)]*)\\)/";
+            if (preg_match($broadPackage, $new)) {
+                $new = preg_replace($broadPackage, 'Set(varDeferredLoadPackage, true)', $new) ?? $new;
+                $report->add(self::id(), $path, 'loadPackage', '(cross-screen from App)', 'varDeferredLoadPackage');
+                $changed = true;
+            }
         }
 
-        if ($changed) {
+        // If hosts were discovered but App still lacks deferred flags after a prior partial edit,
+        // ensure inits exist whenever we changed anything (or when host screens exist and flags already referenced).
+        if ($changed || ($hostScreens !== [] && (
+            str_contains($new, 'varDeferredLoadUser') || str_contains($new, 'varDeferredLoadPackage')
+        ))) {
             $new = $this->ensureDeferredVarInits($new);
         }
 
@@ -204,26 +287,28 @@ final class RepairStudioSyntaxHop implements HopInterface
     private function ensureDeferredVarInits(string $onStart): string
     {
         $new = $onStart;
-        if (!str_contains($new, 'Set(varDeferredLoadUser,')) {
+        // Match the false initializer specifically — Set(..., true) must not skip init.
+        if (!preg_match('/Set\s*\(\s*varDeferredLoadUser\s*,\s*false\s*\)/', $new)) {
             $new = "Set(varDeferredLoadUser, false);\n" . $new;
         }
-        if (!str_contains($new, 'Set(varDeferredLoadPackage,')) {
+        if (!preg_match('/Set\s*\(\s*varDeferredLoadPackage\s*,\s*false\s*\)/', $new)) {
             $new = "Set(varDeferredLoadPackage, false);\n" . $new;
         }
 
         return $new;
     }
 
-    private function ensureVascBootstrap(string $formula, string $path, Report $report): string
+    private function ensureHostBootstrap(string $formula, string $path, Report $report): string
     {
         $marker = '/* ps-bootstrap:start */';
         if (str_contains($formula, $marker)) {
             return $formula;
         }
 
+        $comp = self::HOST_COMPONENT;
         $block = $marker . ' '
-            . 'If(varDeferredLoadUser, comExternalFunctions.loadUser(); Set(varDeferredLoadUser, false)); '
-            . 'If(varDeferredLoadPackage, comExternalFunctions.loadPackage(varRequestID); Set(varDeferredLoadPackage, false)) '
+            . "If(varDeferredLoadUser, {$comp}.loadUser(); Set(varDeferredLoadUser, false)); "
+            . "If(varDeferredLoadPackage, {$comp}.loadPackage(varRequestID); Set(varDeferredLoadPackage, false)) "
             . '/* ps-bootstrap:end */';
 
         $trim = trim($formula);

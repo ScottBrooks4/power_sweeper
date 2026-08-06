@@ -98,10 +98,13 @@ final class WebAppHtmlPreview
       [...nav.querySelectorAll('.nav-btn')].forEach(b => b.classList.toggle('active', b.dataset.screen === name));
       const s = screens.find(x => x.name === name) || screens[0];
       if (!s) { main.innerHTML = '<p class="meta">No screens in IR.</p>'; return; }
-      const outs = navigation.filter(e => e.from === s.name).map(e => e.to);
+      const fromHere = navigation.filter(e => e.from === s.name);
+      const navTo = fromHere.filter(e => (e.kind || 'navigate') === 'navigate').map(e => e.to);
+      const focusTo = fromHere.filter(e => e.kind === 'setfocus').map(e => e.to);
       main.innerHTML = '<section class="card screen active"><h2>' + escapeHtml(s.name) + '</h2>' +
         '<div class="meta">role=' + escapeHtml(s.role || 'screen') +
-        (outs.length ? ' · navigates to: ' + outs.map(escapeHtml).join(', ') : '') + '</div>' +
+        (navTo.length ? ' · navigates to: ' + navTo.map(escapeHtml).join(', ') : '') +
+        (focusTo.length ? ' · setfocus: ' + focusTo.map(escapeHtml).join(', ') : '') + '</div>' +
         (s.children || []).map(c => renderControl(c, 0)).join('') +
         '</section>';
     }
