@@ -78,72 +78,100 @@ final class DelegationFormulaRewriter
      */
     private static function splitDateEmailFilters(string $formula): string
     {
-        $empty = '(?:\x00PFX\d+\x00|"")';
-        // Keep classic VCR shapes as high-confidence seeds (whitespace-tolerant via prior passes).
-        $seeds = [
-            '/Filter\(\s*\'CDLS \(L\) VCR Tracking List\'\s*,\s*request_user\.Email = User\(\)\.Email\s*&&\s*Lower\(Trim\(Destination\)\) = locDestination\s*&&\s*Lower\(Trim\(Requestor\)\) = locRequestor\s*&&\s*Date = locDate\s*&&\s*Lower\(Trim\(Coalesce\(ReferenceNumber, ' . $empty . '\)\)\) = locReferenceNumber\s*\)/s' =>
-                "Filter(\n                                Filter(\n                                    'CDLS (L) VCR Tracking List',\n                                    request_user.Email = User().Email && Date = locDate\n                                ),\n                                Lower(Trim(Destination)) = locDestination &&\n                                Lower(Trim(Requestor)) = locRequestor &&\n                                Lower(Trim(Coalesce(ReferenceNumber, \"\"))) = locReferenceNumber\n                            )",
-            '/Filter\(\s*\'CDLS \(L\) VCR Tracking List\'\s*,\s*request_user\.Email = User\(\)\.Email\s*&&\s*Lower\(Trim\(\'VCR \/ VCN Form\'\.Destination\)\) = locDestination\s*&&\s*Lower\(Trim\(\'VCR \/ VCN Form\'\.Requestor\)\) = locRequestor\s*&&\s*\'VCR \/ VCN Form\'\.Date = locDate\s*&&\s*Lower\(Trim\(Coalesce\(\'VCR \/ VCN Form\'\.ReferenceNumber, ' . $empty . '\)\)\) = locReferenceNumber\s*\)/s' =>
-                "Filter(\n                                Filter(\n                                    'CDLS (L) VCR Tracking List',\n                                    request_user.Email = User().Email && 'VCR / VCN Form'.Date = locDate\n                                ),\n                                Lower(Trim('VCR / VCN Form'.Destination)) = locDestination &&\n                                Lower(Trim('VCR / VCN Form'.Requestor)) = locRequestor &&\n                                Lower(Trim(Coalesce('VCR / VCN Form'.ReferenceNumber, \"\"))) = locReferenceNumber\n                            )",
-        ];
-        foreach ($seeds as $pattern => $replacement) {
-            $replaced = preg_replace($pattern, $replacement, $formula);
-            if (is_string($replaced)) {
-                $formula = $replaced;
+        $offset = 0;
+        $out = '';
+        $len = strlen($formula);
+        while ($offset < $len) {
+            if (!preg_match('/Filter\s*\(\s*(\'[^\']+\')\s*,/i', $formula, $m, PREG_OFFSET_CAPTURE, $offset)) {
+                $out .= substr($formula, $offset);
+                break;
+            }
+            $matchStart = (int) $m[0][1];
+            $list = $m[1][0];
+            $out .= substr($formula, $offset, $matchStart - $offset);
+            $predStart = $matchStart + strlen($m[0][0]);
+            $pred = self::readBalancedArgs($formula, $predStart);
+            if ($pred === null) {
+                $out .= substr($formula, $matchStart, $predStart - $matchStart);
+                $offset = $predStart;
+                continue;
+            }
+            [$predText, $endPos] = $pred;
+            $original = substr($formula, $matchStart, $endPos - $matchStart);
+            $replaced = self::tryNestFilter($list, trim($predText));
+            $out .= $replaced ?? $original;
+            $offset = $endPos;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Read arguments until the closing ')' of the Filter call (handles nested parens).
+     *
+     * @return null|array{0:string,1:int} [predicate text, position after closing paren]
+     */
+    private static function readBalancedArgs(string $formula, int $start): ?array
+    {
+        $depth = 1;
+        $len = strlen($formula);
+        for ($i = $start; $i < $len; $i++) {
+            $ch = $formula[$i];
+            if ($ch === '(') {
+                $depth++;
+            } elseif ($ch === ')') {
+                $depth--;
+                if ($depth === 0) {
+                    return [substr($formula, $start, $i - $start), $i + 1];
+                }
             }
         }
 
-        // General: Filter('List', email && … && date && Lower(Trim…)…)
-        $general = preg_replace_callback(
-            '/Filter\(\s*(\'[^\']+\')\s*,\s*((?:[^()]|\([^()]*\))+?)\)/s',
-            static function (array $m): string {
-                $list = $m[1];
-                $pred = trim($m[2]);
-                if (preg_match('/^\s*Filter\s*\(/i', $pred)) {
-                    return $m[0];
-                }
-                if (!preg_match('/\.Email\s*=\s*User\(\)\.Email/', $pred)) {
-                    return $m[0];
-                }
-                if (!preg_match('/(?:^|&&)\s*((?:\'[^\']+\'\.)?Date\s*=\s*locDate)/', $pred)) {
-                    return $m[0];
-                }
-                if (!preg_match('/Lower\s*\(\s*Trim\s*\(/i', $pred)) {
-                    return $m[0];
-                }
+        return null;
+    }
 
-                $parts = preg_split('/\s*&&\s*/', $pred) ?: [];
-                if (count($parts) < 3) {
-                    return $m[0];
-                }
+    private static function tryNestFilter(string $list, string $pred): ?string
+    {
+        if (preg_match('/^\s*Filter\s*\(/i', $pred)) {
+            return null;
+        }
+        if (!preg_match('/\.Email\s*=\s*User\(\)\.Email/', $pred)) {
+            return null;
+        }
+        if (!preg_match('/(?:\'[^\']+\'\.)?Date\s*=\s*locDate/', $pred)) {
+            return null;
+        }
+        if (!preg_match('/Lower\s*\(\s*Trim\s*\(/i', $pred)) {
+            return null;
+        }
 
-                $inner = [];
-                $outer = [];
-                foreach ($parts as $part) {
-                    $part = trim($part);
-                    if ($part === '') {
-                        continue;
-                    }
-                    if (preg_match('/\.Email\s*=\s*User\(\)\.Email/', $part)
-                        || preg_match('/(?:\'[^\']+\'\.)?Date\s*=\s*locDate/', $part)
-                    ) {
-                        $inner[] = $part;
-                    } else {
-                        $outer[] = $part;
-                    }
-                }
-                if ($inner === [] || $outer === []) {
-                    return $m[0];
-                }
+        $parts = preg_split('/\s*&&\s*/', $pred) ?: [];
+        if (count($parts) < 3) {
+            return null;
+        }
 
-                return 'Filter('
-                    . "Filter({$list}, " . implode(' && ', $inner) . '), '
-                    . implode(' && ', $outer)
-                    . ')';
-            },
-            $formula,
-        );
+        $inner = [];
+        $outer = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            if (preg_match('/\.Email\s*=\s*User\(\)\.Email/', $part)
+                || preg_match('/(?:\'[^\']+\'\.)?Date\s*=\s*locDate/', $part)
+            ) {
+                $inner[] = $part;
+            } else {
+                $outer[] = $part;
+            }
+        }
+        if ($inner === [] || $outer === []) {
+            return null;
+        }
 
-        return is_string($general) ? $general : $formula;
+        return 'Filter('
+            . "Filter({$list}, " . implode(' && ', $inner) . '), '
+            . implode(' && ', $outer)
+            . ')';
     }
 }

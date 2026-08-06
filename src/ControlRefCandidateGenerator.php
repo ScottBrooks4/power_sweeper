@@ -10,16 +10,6 @@ namespace PowerSweeper;
  */
 final class ControlRefCandidateGenerator
 {
-    /** @var array<string, string> */
-    private const TYPO_MAP = [
-        'GovernmentInitiave' => 'GovernmentInitiative',
-        'CommercialInitiave' => 'CommercialInitiative',
-        'PertinenceSpecification-' => 'PertinenceSpecification',
-        '8_Pertinence-' => '8_Pertinence',
-        'LeveLTopSecret' => 'LevelTopSecret',
-        'Restricted0' => 'UnclassifiedRestricted',
-    ];
-
     /**
      * @param array<string, true> $localNames
      * @param array<string, string> $patternMap
@@ -58,8 +48,9 @@ final class ControlRefCandidateGenerator
             $add($patternMap[$badId]);
         }
 
-        if (isset(self::TYPO_MAP[$badId])) {
-            $add($this->resolveTypo(self::TYPO_MAP[$badId], $screen, $localNames, $catalog));
+        $typo = ControlTypoMap::fix($badId);
+        if ($typo !== null) {
+            $add($this->resolveTypo($typo, $screen, $localNames, $catalog));
         }
 
         $add($catalog->resolveIdentifier($screen, $badId));

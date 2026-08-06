@@ -68,12 +68,23 @@ final class MsappArchive
             if (!$doc->isDirty()) {
                 continue;
             }
-            $abs = $this->documentPaths[$doc->relativePath] ?? null;
-            if ($abs === null) {
+            $abs = $this->documentPaths[$doc->relativePath]
+                ?? ($this->extractDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $doc->relativePath));
+            if (!is_dir(dirname($abs))) {
                 continue;
             }
             $doc->save($abs);
+            $this->documentPaths[$doc->relativePath] = $abs;
         }
+    }
+
+    /**
+     * Update path bookkeeping after a document file was renamed on disk (e.g. screen rename).
+     */
+    public function rebindDocumentPath(string $oldRelative, string $newRelative, string $absolutePath): void
+    {
+        unset($this->documentPaths[$oldRelative]);
+        $this->documentPaths[$newRelative] = $absolutePath;
     }
 
     public function pack(string $outputPath): void

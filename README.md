@@ -112,7 +112,7 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 | `sharepoint_correlate` | SharePoint schema correlate + typo repair |
 | `posix_zip_paths` / `windows_zip_paths` | Zip entry separator style |
 | `power_to_web` | **Structural** Power → web: meaningful names → IR + HTML preview + browser document layout |
-| `web_to_power` | **Structural** web IR → Power apply (labels / layout / state / renames / Navigate / document), then classic ScaleToFit |
+| `web_to_power` | **Structural** web IR → Power apply (labels / layout / state / screen+control renames / Navigate+SetFocus / document), then a11y/focus chrome + classic ScaleToFit |
 
 ### Power ↔ web conversion (structural, heuristic)
 

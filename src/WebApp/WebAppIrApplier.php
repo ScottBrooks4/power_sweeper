@@ -82,9 +82,17 @@ final class WebAppIrApplier
             $notes[] = 'control renames: ' . $n;
         }
 
-        $renames = $this->inferScreenRenames($irScreens, array_keys($screenMap));
-        if ($renames !== []) {
-            $n = $this->rewriteNavAndFocusTargets($documents, $renames, $report);
+        $screenRenames = $this->applyScreenRenames($documents, $irScreens, $extractDir, $report);
+        $changes += count($screenRenames);
+        if ($screenRenames !== []) {
+            $notes[] = 'screen renames: ' . count($screenRenames);
+        }
+
+        // Also rewrite Navigate/SetFocus when IR points at a screen that already existed under the new name.
+        $navRenames = $this->inferScreenRenames($irScreens, $this->liveScreenNames($documents));
+        $navRenames = array_merge($screenRenames, $navRenames);
+        if ($navRenames !== []) {
+            $n = $this->rewriteNavAndFocusTargets($documents, $navRenames, $report);
             $changes += $n;
             if ($n > 0) {
                 $notes[] = 'navigation/focus rewrites: ' . $n;
@@ -92,6 +100,91 @@ final class WebAppIrApplier
         }
 
         return ['changes' => $changes, 'notes' => $notes];
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @return list<string>
+     */
+    private function liveScreenNames(array $documents): array
+    {
+        return array_keys($this->indexScreens($documents));
+    }
+
+    /**
+     * Rename live screens when IR name ≠ previous_name and the new name is free.
+     *
+     * @param list<ControlDocument> $documents
+     * @param list<array<string, mixed>> $irScreens
+     * @return array<string, string> old => new
+     */
+    private function applyScreenRenames(
+        array $documents,
+        array $irScreens,
+        ?string $extractDir,
+        Report $report,
+    ): array {
+        $docByScreen = $this->indexScreenDocuments($documents);
+        $used = $this->collectUsedNames($documents);
+        $map = [];
+
+        foreach ($irScreens as $irScreen) {
+            if (!is_array($irScreen)) {
+                continue;
+            }
+            $name = (string) ($irScreen['name'] ?? '');
+            $prev = (string) ($irScreen['previous_name'] ?? '');
+            if ($name === '' || $prev === '' || $name === $prev) {
+                continue;
+            }
+            if (!isset($docByScreen[$prev]) || isset($used[$name])) {
+                continue;
+            }
+            if (!ControlNaming::isValidScreenName($name)) {
+                continue;
+            }
+
+            $doc = $docByScreen[$prev];
+            $screenNode = null;
+            foreach ($doc->controls() as $c) {
+                if ($c->isScreen() && $c->name === $prev) {
+                    $screenNode = $c;
+                    break;
+                }
+            }
+            if ($screenNode === null || !$doc->renameControl($screenNode, $name)) {
+                continue;
+            }
+
+            $oldRel = $doc->relativePath;
+            if ($extractDir !== null && $extractDir !== '' && str_starts_with($oldRel, 'Src/')) {
+                $newRel = dirname($oldRel) . '/' . ControlNaming::screenFileStem($name) . '.pa.yaml';
+                $newRel = str_replace('\\', '/', $newRel);
+                if ($newRel !== $oldRel) {
+                    $absOld = $extractDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $oldRel);
+                    $absNew = $extractDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $newRel);
+                    if (is_file($absOld) && !file_exists($absNew) && @rename($absOld, $absNew)) {
+                        $doc->relativePath = $newRel;
+                    }
+                }
+            }
+
+            $doc->reindex();
+            $map[$prev] = $name;
+            $used[$name] = true;
+            unset($used[$prev]);
+            $report->add('import_web_ir', $oldRel, 'Screen', $prev, $name);
+        }
+
+        if ($map !== []) {
+            foreach ($documents as $doc) {
+                $doc->transformFormulas(static function (string $formula) use ($map): string {
+                    return FormulaIdentifierRewriter::rename($formula, $map);
+                });
+            }
+        }
+
+        return $map;
     }
 
     /**
@@ -365,6 +458,7 @@ final class WebAppIrApplier
             'display_mode' => 'DisplayMode',
             'tab_index' => 'TabIndex',
             'focused_border_thickness' => 'FocusedBorderThickness',
+            'focused_border_color' => 'FocusedBorderColor',
         ];
         foreach ($map as $irKey => $prop) {
             if (!array_key_exists($irKey, $state)) {
@@ -373,8 +467,11 @@ final class WebAppIrApplier
             $desiredRaw = $state[$irKey];
             $current = $node->getProperty($prop);
             $clean = $current !== null ? $this->unwrap($current) : '';
-            // Allow creating DisplayMode when unset; skip other props if missing/formula-driven.
-            if ($current === null && !(is_string($desiredRaw) && preg_match('/^DisplayMode\.\w+$/i', (string) $desiredRaw))) {
+            $canCreate = (is_string($desiredRaw) && preg_match('/^DisplayMode\.\w+$/i', (string) $desiredRaw))
+                || ($prop === 'FocusedBorderColor' && is_string($desiredRaw) && \PowerSweeper\ColorValue::parse((string) $desiredRaw) !== null)
+                || ($prop === 'FocusedBorderThickness' && (is_int($desiredRaw) || (is_string($desiredRaw) && is_numeric($desiredRaw))));
+            // Allow creating DisplayMode / focus chrome when unset; skip other props if missing/formula-driven.
+            if ($current === null && !$canCreate) {
                 continue;
             }
             if ($clean !== '' && $this->looksLikeFormula($clean)) {
@@ -399,6 +496,12 @@ final class WebAppIrApplier
                 $desired = (string) $desiredN;
             } elseif (is_string($desiredRaw) && preg_match('/^DisplayMode\.\w+$/i', $desiredRaw)) {
                 if (strcasecmp($clean, $desiredRaw) === 0) {
+                    continue;
+                }
+                $to = $node->format === 'yaml' ? ('=' . $desiredRaw) : $desiredRaw;
+                $desired = $desiredRaw;
+            } elseif ($prop === 'FocusedBorderColor' && is_string($desiredRaw) && \PowerSweeper\ColorValue::parse($desiredRaw) !== null) {
+                if (strcasecmp(str_replace(' ', '', $clean), str_replace(' ', '', $desiredRaw)) === 0) {
                     continue;
                 }
                 $to = $node->format === 'yaml' ? ('=' . $desiredRaw) : $desiredRaw;

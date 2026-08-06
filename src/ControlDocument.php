@@ -23,7 +23,7 @@ final class ControlDocument
      * @param array<mixed>|object $data YAML trees are arrays; JSON trees are objects.
      */
     public function __construct(
-        public readonly string $relativePath,
+        public string $relativePath,
         public readonly string $format,
         private array|object $data,
         string $yamlHeader = '',
@@ -531,10 +531,18 @@ final class ControlDocument
 
     /**
      * Rename a control in the document tree (YAML key or JSON Name field).
+     * Screen roots are supported for YAML (key rename); caller may also rename the .pa.yaml file.
      */
     public function renameControl(ControlNode $control, string $newName): bool
     {
-        if ($newName === $control->name || !ControlNaming::isValidIdentifier($newName)) {
+        if ($newName === $control->name) {
+            return false;
+        }
+        if ($control->isScreen()) {
+            if (!ControlNaming::isValidScreenName($newName)) {
+                return false;
+            }
+        } elseif (!ControlNaming::isValidIdentifier($newName)) {
             return false;
         }
 
@@ -573,8 +581,20 @@ final class ControlDocument
         }
 
         if (count($segments) === 1) {
-            // Screen root key rename — rare; skip for safety
-            return false;
+            if (!array_key_exists($oldName, $this->data) || array_key_exists($newName, $this->data)) {
+                return false;
+            }
+            $rebuilt = [];
+            foreach ($this->data as $key => $value) {
+                if ($key === $oldName) {
+                    $rebuilt[$newName] = $value;
+                } else {
+                    $rebuilt[$key] = $value;
+                }
+            }
+            $this->data = $rebuilt;
+
+            return true;
         }
 
         $parent = &$this->findYamlNodeBySegments($segments, count($segments) - 1);

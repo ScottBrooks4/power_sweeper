@@ -63,6 +63,27 @@ final class ControlNaming
     }
 
     /**
+     * Canvas screen display names may include spaces and slashes (e.g. VCR / VCN Form).
+     */
+    public static function isValidScreenName(string $name): bool
+    {
+        if ($name === '' || strlen($name) > 100) {
+            return false;
+        }
+        if (str_contains($name, "\n") || str_contains($name, "\r") || str_contains($name, ':')) {
+            return false;
+        }
+
+        return preg_match('/^[A-Za-z_][A-Za-z0-9_ \\/\'.-]*$/', $name) === 1;
+    }
+
+    /** Studio .pa.yaml stem: "/" becomes " _ ". */
+    public static function screenFileStem(string $screenName): string
+    {
+        return str_replace(['/', '\\'], [' _ ', ' _ '], $screenName);
+    }
+
+    /**
      * Display text for naming — mirrors accessibility label derivation order.
      */
     public static function deriveDisplayText(ControlNode $control): ?string

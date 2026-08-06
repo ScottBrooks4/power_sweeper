@@ -1225,6 +1225,8 @@ $webToPower = include dirname(__DIR__) . '/profiles/web_to_power.php';
 assert_true(in_array('meaningful_names', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web renames generics before export');
 assert_true(in_array('export_web_ir', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web exports IR');
 assert_true(in_array('import_web_ir', array_column($webToPower['hops'], 'id'), true), 'web_to_power imports IR');
+assert_true(in_array('accessibility_labels', array_column($webToPower['hops'], 'id'), true), 'web_to_power fills a11y after import');
+assert_true(in_array('ensure_focus_visible', array_column($webToPower['hops'], 'id'), true), 'web_to_power ensures focus visible');
 assert_true($hopRegistry->has('export_web_ir'), 'export_web_ir hop registered');
 assert_true($hopRegistry->has('import_web_ir'), 'import_web_ir hop registered');
 assert_true($hopRegistry->has('configure_power_document'), 'configure_power_document hop registered');
@@ -1605,6 +1607,69 @@ assert_true(
     'web IR applies HtmlText markup without length bias'
 );
 @unlink($screen2Path);
+
+// Screen rename (YAML root key + Navigate rewrite) when new name is free
+$renameScreenDoc = loadFixtureDoc();
+foreach ($renameScreenDoc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', '=Navigate(Screen1)');
+        $c->setProperty('FocusedBorderColor', '=RGBA(37, 99, 235, 1)');
+        $c->setProperty('FocusedBorderThickness', '=2');
+        break;
+    }
+}
+$renameExtract = sys_get_temp_dir() . '/ps_screen_ren_' . bin2hex(random_bytes(3));
+mkdir($renameExtract . '/Src', 0775, true);
+$screenSrc = $renameExtract . '/Src/Screen1.pa.yaml';
+// Persist a minimal Src copy for file rename bookkeeping
+file_put_contents($screenSrc, file_get_contents(__DIR__ . '/fixtures/screen.pa.yaml'));
+$renameScreenDoc = ControlDocument::fromFile($screenSrc, 'Src/Screen1.pa.yaml');
+assert_true($renameScreenDoc !== null, 'screen rename fixture reloads from Src');
+foreach ($renameScreenDoc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', '=Navigate(Screen1)');
+        $c->setProperty('FocusedBorderColor', '=RGBA(37, 99, 235, 1)');
+        break;
+    }
+}
+$irRename = (new \PowerSweeper\WebApp\WebAppIrBuilder())->build([$renameScreenDoc], $renameExtract);
+assert_true(
+    isset($irRename['screens'][0]['children'][0]['children'][2]['state']['focused_border_color']),
+    'web IR captures FocusedBorderColor literal'
+);
+$irRename['screens'][0]['name'] = 'HomeScreen';
+$irRename['screens'][0]['previous_name'] = 'Screen1';
+$srReport = new Report();
+$srResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$renameScreenDoc], $irRename, $srReport, $renameExtract);
+assert_true(($srResult['notes'] !== [] && str_contains(implode(' ', $srResult['notes']), 'screen renames')), 'web IR screen rename noted');
+assert_true(is_file($renameExtract . '/Src/HomeScreen.pa.yaml'), 'web IR renamed screen .pa.yaml file');
+assert_true(!is_file($renameExtract . '/Src/Screen1.pa.yaml'), 'web IR removed old screen .pa.yaml file');
+$homeScreen = null;
+foreach ($renameScreenDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $homeScreen = $c;
+        break;
+    }
+}
+assert_true($homeScreen !== null && $homeScreen->name === 'HomeScreen', 'web IR renamed screen root key');
+$navAfter = null;
+foreach ($renameScreenDoc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $navAfter = $c->getProperty('OnSelect');
+        break;
+    }
+}
+assert_true(is_string($navAfter) && str_contains($navAfter, 'Navigate(HomeScreen)'), 'web IR rewrote Navigate after screen rename');
+@unlink($renameExtract . '/Src/HomeScreen.pa.yaml');
+@rmdir($renameExtract . '/Src');
+@rmdir($renameExtract);
+
+// General Filter nest (former VCR seed) still works via pattern splitter
+$delegNest = \PowerSweeper\DelegationFormulaRewriter::rewrite(
+    "Filter('CDLS (L) VCR Tracking List', request_user.Email = User().Email && Lower(Trim(Destination)) = locDestination && Date = locDate && Lower(Trim(Requestor)) = locRequestor)"
+);
+assert_true(str_contains($delegNest, 'Filter(Filter('), 'delegation nest splitter nests Filter without VCR seed table');
+assert_true(str_contains($delegNest, 'request_user.Email = User().Email && Date = locDate'), 'delegation nest keeps email+date in inner Filter');
 
 // Ghost patch discovery — unknown Field: Field.Prop line removed
 $ghostYaml = <<<'YAML'

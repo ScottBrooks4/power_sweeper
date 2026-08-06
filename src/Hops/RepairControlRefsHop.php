@@ -7,6 +7,7 @@ namespace PowerSweeper\Hops;
 use PowerSweeper\AppControlCatalog;
 use PowerSweeper\ControlDocument;
 use PowerSweeper\ControlRefCandidateGenerator;
+use PowerSweeper\ControlTypoMap;
 use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaReferenceExtractor;
 use PowerSweeper\PowerFxFormulaSegments;
@@ -19,16 +20,6 @@ use PowerSweeper\ScreenReferenceNormalizer;
  */
 final class RepairControlRefsHop implements HopInterface
 {
-    /** @var array<string, string> */
-    private const TYPO_MAP = [
-        'GovernmentInitiave' => 'GovernmentInitiative',
-        'CommercialInitiave' => 'CommercialInitiative',
-        'PertinenceSpecification-' => 'PertinenceSpecification',
-        '8_Pertinence-' => '8_Pertinence',
-        'LeveLTopSecret' => 'LevelTopSecret',
-        'Restricted0' => 'UnclassifiedRestricted',
-    ];
-
     /** Seed when discovery cannot find a form host (VCR-class apps). */
     private const FORM_HOST_SCREEN_SEED = 'VCR / VCN Form';
 
@@ -201,8 +192,9 @@ final class RepairControlRefsHop implements HopInterface
 
             if ($screen === null) {
                 // Seed map still helps App.OnStart / component templates without a screen.
-                if (isset(self::TYPO_MAP[$id])) {
-                    $map[$id] = self::TYPO_MAP[$id];
+                $typo = ControlTypoMap::fix($id);
+                if ($typo !== null) {
+                    $map[$id] = $typo;
                 }
                 continue;
             }
@@ -214,8 +206,9 @@ final class RepairControlRefsHop implements HopInterface
             }
 
             // Known typo seeds (still applied as renames; context-aware hop verifies cascades).
-            if (isset(self::TYPO_MAP[$id])) {
-                $target = self::TYPO_MAP[$id];
+            $typo = ControlTypoMap::fix($id);
+            if ($typo !== null) {
+                $target = $typo;
                 if ($catalog->hasOnScreen($screen, $target) || isset($localNames[$target])) {
                     $map[$id] = $target;
                     continue;

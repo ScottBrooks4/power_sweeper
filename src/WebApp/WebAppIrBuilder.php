@@ -29,7 +29,13 @@ final class WebAppIrBuilder
     private const NAV_PROPS = ['OnSelect', 'OnChange', 'OnCheck', 'OnUncheck', 'OnVisible', 'OnStart', 'OnTimerEnd'];
 
     /** Literal state props safe for structural round-trip (skip formula-driven values). */
-    private const STATE_PROPS = ['Visible', 'DisplayMode', 'TabIndex', 'FocusedBorderThickness'];
+    private const STATE_PROPS = [
+        'Visible',
+        'DisplayMode',
+        'TabIndex',
+        'FocusedBorderThickness',
+        'FocusedBorderColor',
+    ];
 
     /**
      * @param list<ControlDocument> $documents
@@ -128,7 +134,7 @@ final class WebAppIrBuilder
         }
 
         // Theme refs on color props
-        foreach (['Fill', 'Color', 'BorderColor', 'FontColor'] as $prop) {
+        foreach (['Fill', 'Color', 'BorderColor', 'FontColor', 'FocusedBorderColor'] as $prop) {
             $formula = $control->getProperty($prop);
             if ($formula !== null) {
                 $this->collectThemeTokens($formula, $themeTokens);
@@ -228,6 +234,7 @@ final class WebAppIrBuilder
             }
             $key = match ($prop) {
                 'FocusedBorderThickness' => 'focused_border_thickness',
+                'FocusedBorderColor' => 'focused_border_color',
                 'DisplayMode' => 'display_mode',
                 'TabIndex' => 'tab_index',
                 default => strtolower($prop),
@@ -237,6 +244,8 @@ final class WebAppIrBuilder
             } elseif (is_numeric($clean)) {
                 $out[$key] = (int) round((float) $clean);
             } elseif (preg_match('/^DisplayMode\.\w+$/i', $clean)) {
+                $out[$key] = $clean;
+            } elseif ($prop === 'FocusedBorderColor' && \PowerSweeper\ColorValue::parse($clean) !== null) {
                 $out[$key] = $clean;
             }
         }
