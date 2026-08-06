@@ -62,7 +62,14 @@ final class FormulaPatternAnalyzer
             }
 
             foreach ($groups as $entries) {
-                if (count($entries) < 3) {
+                // Three+ siblings: strong copy-paste signal.
+                // Two siblings: only when both hosts carry numeric indexes and
+                // each produces a unique local alignment (avoids blind replace).
+                $minPeers = 3;
+                if (count($entries) === 2 && self::pairLooksIndexed($entries)) {
+                    $minPeers = 2;
+                }
+                if (count($entries) < $minPeers) {
                     continue;
                 }
 
@@ -90,6 +97,12 @@ final class FormulaPatternAnalyzer
                             continue;
                         }
 
+                        // For 2-peer groups, require the aligned name to exist locally
+                        // (or be a single-screen qualify) before proposing.
+                        if ($minPeers === 2 && !isset($localNames[$aligned]) && !str_contains($aligned, '.')) {
+                            continue;
+                        }
+
                         $map[$entry['host']][$id] = $aligned;
                     }
                 }
@@ -97,6 +110,20 @@ final class FormulaPatternAnalyzer
         }
 
         return $map;
+    }
+
+    /**
+     * @param list<array{host:string,formula:string,ids:list<string>}> $entries
+     */
+    private static function pairLooksIndexed(array $entries): bool
+    {
+        if (count($entries) !== 2) {
+            return false;
+        }
+        $a = self::controlIndex($entries[0]['host']);
+        $b = self::controlIndex($entries[1]['host']);
+
+        return $a !== null && $b !== null && $a !== $b;
     }
 
     /**

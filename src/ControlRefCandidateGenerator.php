@@ -65,11 +65,69 @@ final class ControlRefCandidateGenerator
         $add($catalog->resolveIdentifier($screen, $badId));
         $add($this->resolveLocalSuffix($badId, $localNames));
         $add($this->resolveHostAligned($badId, $hostControl, $localNames));
+        $add($this->resolveTokenStem($badId, $localNames));
         $add($this->fuzzyLocal($badId, $localNames));
         $add($this->fuzzyAppWide($badId, $screen, $catalog));
         $add($this->crossScreenQualify($badId, $screen, $catalog));
 
         return $out;
+    }
+
+    /**
+     * CamelCase / token-stem heuristic: GovernmentInitiave ≈ GovernmentInitiative
+     * without relying solely on a hard-coded typo map.
+     *
+     * @param array<string, true> $localNames
+     */
+    private function resolveTokenStem(string $badId, array $localNames): ?string
+    {
+        $badTokens = $this->tokenizeIdentifier($badId);
+        if (count($badTokens) < 2) {
+            return null;
+        }
+        $badStem = implode('', $badTokens);
+        $best = null;
+        $bestScore = 0.0;
+
+        foreach (array_keys($localNames) as $name) {
+            // PHP may coerce numeric-looking control names to int array keys.
+            $tokens = $this->tokenizeIdentifier((string) $name);
+            if ($tokens === []) {
+                continue;
+            }
+            $stem = implode('', $tokens);
+            if ($stem === $badStem) {
+                return $name;
+            }
+            similar_text($badStem, $stem, $pct);
+            // Prefer same token count and shared prefix token
+            $bonus = 0.0;
+            if (count($tokens) === count($badTokens)) {
+                $bonus += 8.0;
+            }
+            if (($tokens[0] ?? '') === ($badTokens[0] ?? '')) {
+                $bonus += 10.0;
+            }
+            $score = $pct + $bonus;
+            if ($score > $bestScore && $pct >= 78.0) {
+                $bestScore = $score;
+                $best = $name;
+            }
+        }
+
+        return $bestScore >= 88.0 ? $best : null;
+    }
+
+    /** @return list<string> */
+    private function tokenizeIdentifier(string $name): array
+    {
+        $name = preg_replace('/[_\\-]+/', ' ', $name) ?? $name;
+        $name = preg_replace('/([a-z])([A-Z])/', '$1 $2', $name) ?? $name;
+        $name = preg_replace('/([A-Z]+)([A-Z][a-z])/', '$1 $2', $name) ?? $name;
+        $name = preg_replace('/(\\d+)/', ' $1 ', $name) ?? $name;
+        $parts = preg_split('/\\s+/', strtolower(trim($name))) ?: [];
+
+        return array_values(array_filter($parts, static fn(string $p): bool => $p !== ''));
     }
 
     /**

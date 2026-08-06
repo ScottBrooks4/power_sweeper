@@ -54,6 +54,7 @@ final class FormulaRepairConverger
             $roundRepairs += $this->repairReferences($documents, $dataContext, $options);
             $roundRepairs += $this->repairLocale($documents, $dataContext, $extractDir, $check['findings']);
             $roundRepairs += $this->repairBooleans($documents, $dataContext, $extractDir, $check['findings']);
+            $roundRepairs += $this->repairArityNoise($documents, $dataContext, $check['findings']);
 
             $totalRepairs += $roundRepairs;
             if ($roundRepairs === 0) {
@@ -272,6 +273,122 @@ final class FormulaRepairConverger
                     );
 
                     if ($after <= $before) {
+                        $control->setProperty($prop, $trial);
+                        $repairs++;
+                    }
+                }
+            }
+        }
+
+        return $repairs;
+    }
+
+    /**
+     * Checker-guided arity cleanup (trailing commas in Concatenate/argument lists).
+     * Only applies a trial when live findings include ErrBadArity* for that formula.
+     *
+     * @param list<ControlDocument> $documents
+     * @param list<array<string,mixed>> $findings
+     */
+    private function repairArityNoise(array $documents, AppDataContext $dataContext, array $findings): int
+    {
+        $arityLocations = [];
+        foreach ($findings as $finding) {
+            $rule = (string) ($finding['ruleId'] ?? '');
+            if (!str_starts_with($rule, 'app-ErrBadArity')) {
+                continue;
+            }
+            $loc = (string) ($finding['location'] ?? $finding['logicalLocation'] ?? '');
+            if ($loc !== '') {
+                $arityLocations[$loc] = true;
+            }
+        }
+        if ($arityLocations === []) {
+            // Still attempt global trailing-comma cleanup when any arity error exists without location.
+            $anyArity = false;
+            foreach ($findings as $finding) {
+                if (str_starts_with((string) ($finding['ruleId'] ?? ''), 'app-ErrBadArity')) {
+                    $anyArity = true;
+                    break;
+                }
+            }
+            if (!$anyArity) {
+                return 0;
+            }
+        }
+
+        $catalog = AppControlCatalog::build($documents);
+        $checker = new PowerFxFormulaChecker($catalog, $dataContext);
+        $repairs = 0;
+
+        foreach ($documents as $doc) {
+            $screen = $catalog->screenForDocument($doc);
+            if ($screen === null) {
+                continue;
+            }
+            $localNames = [];
+            foreach ($doc->controls() as $control) {
+                $localNames[(string) $control->name] = true;
+            }
+            $screenRecordVars = FormulaRefContext::recordVariableNames(
+                self::collectDocFormulas($doc)
+            );
+
+            foreach ($doc->controls() as $control) {
+                foreach ($control->propertyNames() as $prop) {
+                    $value = $control->getProperty($prop);
+                    if ($value === null || trim($value) === '') {
+                        continue;
+                    }
+                    if (!preg_match('/,\s*\)/', $value)) {
+                        continue;
+                    }
+
+                    $location = $screen . '.' . $control->name . '.' . $prop;
+                    if ($arityLocations !== [] && !isset($arityLocations[$location])) {
+                        // Location keys from SARIF vary; also accept path suffix match.
+                        $hit = false;
+                        foreach (array_keys($arityLocations) as $loc) {
+                            if (str_ends_with($loc, $control->name . '.' . $prop) || str_contains($loc, $control->path)) {
+                                $hit = true;
+                                break;
+                            }
+                        }
+                        if (!$hit) {
+                            continue;
+                        }
+                    }
+
+                    $trial = preg_replace('/""\s*,\s*\)/', '"")', $value) ?? $value;
+                    $trial = preg_replace('/\)\s*,\s*\)/', '))', $trial) ?? $trial;
+                    $trial = preg_replace('/,\s*\)/', ')', $trial) ?? $trial;
+                    if ($trial === $value) {
+                        continue;
+                    }
+
+                    $before = self::countFormulaErrors(
+                        $checker,
+                        $value,
+                        $screen,
+                        $location,
+                        $control->type,
+                        $prop,
+                        $control->name,
+                        $localNames,
+                        $screenRecordVars,
+                    );
+                    $after = self::countFormulaErrors(
+                        $checker,
+                        $trial,
+                        $screen,
+                        $location,
+                        $control->type,
+                        $prop,
+                        $control->name,
+                        $localNames,
+                        $screenRecordVars,
+                    );
+                    if ($after < $before) {
                         $control->setProperty($prop, $trial);
                         $repairs++;
                     }

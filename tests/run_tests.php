@@ -1177,6 +1177,8 @@ assert_true(in_array('powered_thcee', $profileIds, true), 'powered_thcee profile
 assert_true(in_array('repair_studio_errors_then_dark', $profileIds, true), 'repair_studio_errors_then_dark profile exists');
 assert_true(in_array('meaningful_names', $profileIds, true), 'meaningful_names profile exists');
 assert_true(in_array('repair_smart', $profileIds, true), 'repair_smart profile exists');
+assert_true(in_array('power_to_web', $profileIds, true), 'power_to_web profile exists');
+assert_true(in_array('web_to_power', $profileIds, true), 'web_to_power profile exists');
 $profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
 $vcrPowered = $profileLoader->resolvePoweredProfile('CDLS VCR App.msapp');
 $thceePowered = $profileLoader->resolvePoweredProfile('VCDS THCEE App.msapp');
@@ -1204,6 +1206,14 @@ assert_true(in_array('repair_context_aware_refs', $smartHopIds, true), 'repair_s
 assert_true(!in_array('meaningful_names', $repairHopIds, true), 'repair_studio_errors does not rename by default');
 
 assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'repair_studio_errors includes repair_studio_syntax');
+
+$powerToWeb = include dirname(__DIR__) . '/profiles/power_to_web.php';
+$webToPower = include dirname(__DIR__) . '/profiles/web_to_power.php';
+assert_true(in_array('export_web_ir', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web exports IR');
+assert_true(in_array('import_web_ir', array_column($webToPower['hops'], 'id'), true), 'web_to_power imports IR');
+assert_true($hopRegistry->has('export_web_ir'), 'export_web_ir hop registered');
+assert_true($hopRegistry->has('import_web_ir'), 'import_web_ir hop registered');
+assert_true($hopRegistry->has('configure_power_document'), 'configure_power_document hop registered');
 
 // repair_studio_syntax — trailing Concatenate comma and undefined var (code only)
 $syntaxIn = 'Concatenate(If(true, "a", ""), If(true, "b", ""), If(true, "c", ""),); Set(x, varNewRequest);';
@@ -1435,6 +1445,76 @@ if (is_file($vcrFridayPowered)) {
     $validateVcrFriday = shell_exec('php ' . escapeshellarg(dirname(__DIR__) . '/scripts/validate_powered.php') . ' ' . escapeshellarg($vcrFridayPowered) . ' 2>&1');
     assert_true(is_string($validateVcrFriday) && str_contains($validateVcrFriday, 'All powered validation checks passed'), 'validate_powered.php passes on VCR Friday sample');
 }
+
+// --- Web IR structural round-trip (heuristic, not full web runtime) ---
+$webDoc = loadFixtureDoc();
+foreach ($webDoc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', '=Navigate(Screen2)');
+        break;
+    }
+}
+$webExtract = sys_get_temp_dir() . '/ps_web_ir_' . bin2hex(random_bytes(4));
+mkdir($webExtract, 0775, true);
+file_put_contents($webExtract . '/Properties.json', json_encode([
+    'DocumentAppType' => 'Phone',
+    'DocumentLayoutWidth' => 640,
+    'DocumentLayoutHeight' => 1136,
+    'DocumentLayoutScaleToFit' => true,
+    'DocumentLayoutMaintainAspectRatio' => true,
+    'Name' => 'Fixture App',
+], JSON_PRETTY_PRINT));
+
+$ir = (new \PowerSweeper\WebApp\WebAppIrBuilder())->build([$webDoc], $webExtract);
+assert_true(($ir['format'] ?? '') === 'power_sweeper_web_ir', 'web IR format tag');
+assert_true(($ir['stats']['screens'] ?? 0) >= 1, 'web IR has screens');
+assert_true(($ir['screens'][0]['previous_name'] ?? '') === 'Screen1', 'web IR screen previous_name set');
+assert_true(in_array('Screen2', array_column($ir['navigation'], 'to'), true), 'web IR captured Navigate target');
+
+$html = (new \PowerSweeper\WebApp\WebAppHtmlPreview())->render($ir);
+assert_true(str_contains($html, 'Structural preview'), 'HTML preview scaffold mentions structural fidelity');
+
+// Mutate IR labels and document layout, then apply
+$ir['screens'][0]['children'][0]['children'][2]['labels']['Text'] = 'Launch';
+$ir['document']['layout']['scale_to_fit'] = false;
+$ir['document']['app_type'] = 'DesktopOrTablet';
+$applyReport = new Report();
+$applyResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$webDoc], $ir, $applyReport, $webExtract);
+assert_true($applyResult['changes'] > 0, 'web IR apply reported changes');
+$btnText = null;
+foreach ($webDoc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $btnText = $c->getProperty('Text');
+        break;
+    }
+}
+assert_true(is_string($btnText) && str_contains($btnText, 'Launch'), 'web IR apply updated button Text');
+$propsAfter = json_decode((string) file_get_contents($webExtract . '/Properties.json'), true);
+assert_true(($propsAfter['DocumentLayoutScaleToFit'] ?? true) === false, 'web IR apply updated ScaleToFit');
+
+$exportReport = new Report();
+(new \PowerSweeper\Hops\ExportWebAppHop())->apply([$webDoc], $exportReport, ['_extract_dir' => $webExtract]);
+assert_true(is_file($webExtract . '/WebApp/power_sweeper_ir.json'), 'export_web_ir wrote IR file');
+assert_true(is_file($webExtract . '/WebApp/index.html'), 'export_web_ir wrote HTML preview');
+
+// Token-stem candidate heuristic (Initiave → Initiative) without hard-coded-only path
+$stemGen = new \PowerSweeper\ControlRefCandidateGenerator();
+$stemCatalog = \PowerSweeper\AppControlCatalog::build([$webDoc]);
+// Inject a fake local name into a minimal scenario via reflection-free localNames array
+$stemCandidates = $stemGen->candidates(
+    'GovernmentInitiave',
+    'Screen1',
+    'Host_2',
+    ['GovernmentInitiative' => true, 'NewRequestButton' => true],
+    $stemCatalog,
+);
+assert_true(in_array('GovernmentInitiative', $stemCandidates, true), 'token-stem heuristic proposes GovernmentInitiative');
+
+// Cleanup temp extract
+array_map('unlink', glob($webExtract . '/WebApp/*') ?: []);
+@rmdir($webExtract . '/WebApp');
+@unlink($webExtract . '/Properties.json');
+@rmdir($webExtract);
 
 echo "\n";
 if ($failed > 0) {

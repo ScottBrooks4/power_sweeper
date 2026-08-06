@@ -83,6 +83,9 @@ Order matters: the same hops in a different sequence can produce different resul
 | `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` palettes, add or reuse a dark-mode toggle, and point literal colors at `gblTheme.*` tokens |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
 | `set_zip_path_style` | Force zip entry separators to `windows` (`\\`) or `posix` (`/`). Default is to **preserve** the source style (almost always Windows) |
+| `export_web_ir` | Build structural web IR (`WebApp/power_sweeper_ir.json`) + static HTML scaffold; optional browser document layout |
+| `import_web_ir` | Apply IR heuristics back onto the `.msapp` (document layout, label sync, Navigate renames) — not a full web runtime import |
+| `configure_power_document` | Switch `Properties.json` toward classic Power (`mode=power`) or browser (`mode=web`) ScaleToFit defaults |
 
 ## Profiles
 
@@ -108,6 +111,18 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 | `dark_mode` | `gblTheme` palettes and dark-mode toggle |
 | `sharepoint_correlate` | SharePoint schema correlate + typo repair |
 | `posix_zip_paths` / `windows_zip_paths` | Zip entry separator style |
+| `power_to_web` | **Structural** Power → web export (IR + HTML preview + browser document layout) |
+| `web_to_power` | **Structural** web IR → Power apply (labels / Navigate / document), then classic ScaleToFit |
+
+### Power ↔ web conversion (structural, heuristic)
+
+These profiles are intentionally **not** a 100% Power App ↔ arbitrary web-app compiler. They move structure through an intermediate representation:
+
+1. **`power_to_web`** — extract screens, roles, labels, navigation edges, theme token names, and document layout into `WebApp/power_sweeper_ir.json`, plus a static HTML scaffold for review.
+2. Edit the IR (or regenerate it) outside Studio when needed.
+3. **`web_to_power`** — re-apply safe deltas: document meta, literal labels when they look intentional, and `Navigate` renames when `previous_name` → `name` and the new screen already exists.
+
+Power Fx formulas remain authoritative inside the `.msapp`. Error-correction profiles (`repair_studio_errors`, `repair_smart`) use context-aware reference repair and a live-checker converge loop — not blind find/replace.
 
 For apps like **CDLS VCR** / **VCDS THCEE**, you can either:
 

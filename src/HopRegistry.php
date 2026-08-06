@@ -7,11 +7,14 @@ namespace PowerSweeper;
 use PowerSweeper\Hops\AccessibilityLabelsHop;
 use PowerSweeper\Hops\AlignNearMissHop;
 use PowerSweeper\Hops\AnalyzeAppCheckerHop;
+use PowerSweeper\Hops\ConfigurePowerDocumentHop;
 use PowerSweeper\Hops\CorrelateSharePointHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\EnsureTabIndexHop;
+use PowerSweeper\Hops\ExportWebAppHop;
 use PowerSweeper\Hops\HopInterface;
+use PowerSweeper\Hops\ImportWebAppHop;
 use PowerSweeper\Hops\MeaningfulNamesHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
@@ -68,6 +71,9 @@ final class HopRegistry
             EnableDarkModeHop::class,
             CorrelateSharePointHop::class,
             SetZipPathStyleHop::class,
+            ExportWebAppHop::class,
+            ImportWebAppHop::class,
+            ConfigurePowerDocumentHop::class,
         ] as $class) {
             /** @var class-string<HopInterface> $class */
             $this->hops[$class::id()] = $class;
