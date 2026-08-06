@@ -29,8 +29,8 @@ final class RepairControlRefsHop implements HopInterface
         'Restricted0' => 'UnclassifiedRestricted',
     ];
 
-    /** Canvas screen that hosts form section containers referenced from topNav. */
-    private const FORM_HOST_SCREEN = 'VCR / VCN Form';
+    /** Seed when discovery cannot find a form host (VCR-class apps). */
+    private const FORM_HOST_SCREEN_SEED = 'VCR / VCN Form';
 
     public static function id(): string
     {
@@ -52,6 +52,7 @@ final class RepairControlRefsHop implements HopInterface
         $catalog = AppControlCatalog::build($documents);
         $screens = $catalog->screenNames();
         $candidates = new ControlRefCandidateGenerator();
+        $formHost = $this->discoverFormHostScreen($catalog);
 
         foreach ($documents as $doc) {
             $localNames = $catalog->controlNamesForDocument($doc);
@@ -63,14 +64,14 @@ final class RepairControlRefsHop implements HopInterface
             $isComponent = str_starts_with($doc->relativePath, 'Src/Components/');
 
             $relativePath = $doc->relativePath;
-            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $localNames, $isComponent, $report, $candidates, $relativePath): string {
+            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $localNames, $isComponent, $report, $candidates, $relativePath, $formHost): string {
                 $new = $this->repairGhostLayoutBinding($formula, $localNames);
                 $host = $this->hostControlFromPath($path, $relativePath);
                 $map = $this->buildRenameMap($new, $screen, $catalog, $localNames, $candidates, $host);
                 $new = $map === [] ? $new : $this->applyRenameMap($new, $map, $catalog);
                 $new = ScreenReferenceNormalizer::normalize($new, $screens);
-                if ($isComponent) {
-                    $new = $this->qualifyFormSectionRefs($new, $catalog);
+                if ($isComponent && $formHost !== null) {
+                    $new = $this->qualifyFormSectionRefs($new, $catalog, $formHost);
                 }
                 if ($new !== $formula) {
                     $report->add(
@@ -87,13 +88,12 @@ final class RepairControlRefsHop implements HopInterface
         }
     }
 
-    private function qualifyFormSectionRefs(string $formula, AppControlCatalog $catalog): string
+    private function qualifyFormSectionRefs(string $formula, AppControlCatalog $catalog, string $host): string
     {
         if (!str_contains($formula, '_') && !str_contains($formula, 'Annex')) {
             return $formula;
         }
 
-        $host = self::FORM_HOST_SCREEN;
         if (!$catalog->isScreenName($host)) {
             return $formula;
         }
@@ -132,6 +132,37 @@ final class RepairControlRefsHop implements HopInterface
         }
 
         return $out;
+    }
+
+    /**
+     * Prefer the seed form screen when present; otherwise pick the screen that
+     * owns the most numbered section containers / Annex* / EmergencyContact hosts.
+     */
+    private function discoverFormHostScreen(AppControlCatalog $catalog): ?string
+    {
+        if ($catalog->isScreenName(self::FORM_HOST_SCREEN_SEED)) {
+            return self::FORM_HOST_SCREEN_SEED;
+        }
+
+        $best = null;
+        $bestScore = 0;
+        foreach ($catalog->screenNames() as $screen) {
+            $score = 0;
+            foreach ($catalog->controlNamesOnScreen($screen) as $name) {
+                if (preg_match('/^\d+_/', $name) === 1
+                    || preg_match('/^Annex\d+$/i', $name) === 1
+                    || strcasecmp($name, 'EmergencyContact') === 0
+                ) {
+                    $score++;
+                }
+            }
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $screen;
+            }
+        }
+
+        return $bestScore >= 2 ? $best : null;
     }
 
     /**

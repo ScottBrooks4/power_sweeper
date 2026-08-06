@@ -99,7 +99,7 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 | `meaningful_names` | Rename generic Studio control names from visible/accessible text, then fill a11y labels and tooltips |
 | `transparent_buttons` | Strip default button chrome |
 | `unwhack_locale` | Locale separator repair only |
-| `repair_formula_refs` | Control refs, SharePoint fields, package shape, ghost Patch fields (+ SARIF) |
+| `repair_formula_refs` | Control refs (context-aware + converge), SharePoint fields, package shape, ghost Patch fields (+ SARIF) |
 | `repair_delegation` | SharePoint delegation fixes (+ SARIF) |
 | `repair_studio_errors` | **Full Studio checker repair** (locale, context-aware refs, booleans, a11y, delegation, SARIF) |
 | `repair_smart` | **Meaningful names + full repair** — rename generic controls first, then `repair_studio_errors` chain |

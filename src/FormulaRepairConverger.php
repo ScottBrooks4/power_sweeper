@@ -55,6 +55,7 @@ final class FormulaRepairConverger
             $roundRepairs += $this->repairLocale($documents, $dataContext, $extractDir, $check['findings']);
             $roundRepairs += $this->repairBooleans($documents, $dataContext, $extractDir, $check['findings']);
             $roundRepairs += $this->repairArityNoise($documents, $dataContext, $check['findings']);
+            $roundRepairs += $this->repairMissingColumns($documents, $extractDir, $check['findings']);
 
             $totalRepairs += $roundRepairs;
             if ($roundRepairs === 0) {
@@ -281,6 +282,34 @@ final class FormulaRepairConverger
         }
 
         return $repairs;
+    }
+
+    /**
+     * When live checker reports missing SharePoint columns (ErrColDNE), run the
+     * SharePoint field hop (union columns + fuzzy rename + fallbacks).
+     *
+     * @param list<ControlDocument> $documents
+     * @param list<array<string,mixed>> $findings
+     */
+    private function repairMissingColumns(array $documents, ?string $extractDir, array $findings): int
+    {
+        $needs = false;
+        foreach ($findings as $finding) {
+            if (($finding['ruleId'] ?? '') === 'app-ErrColDNE-Name') {
+                $needs = true;
+                break;
+            }
+        }
+        if (!$needs || $extractDir === null || $extractDir === '' || !is_dir($extractDir)) {
+            return 0;
+        }
+
+        $report = new Report();
+        (new Hops\RepairSharePointFieldsHop())->apply($documents, $report, [
+            '_extract_dir' => $extractDir,
+        ]);
+
+        return $report->count();
     }
 
     /**

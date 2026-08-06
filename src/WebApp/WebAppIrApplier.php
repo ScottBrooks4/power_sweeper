@@ -84,10 +84,10 @@ final class WebAppIrApplier
 
         $renames = $this->inferScreenRenames($irScreens, array_keys($screenMap));
         if ($renames !== []) {
-            $n = $this->rewriteNavigateTargets($documents, $renames, $report);
+            $n = $this->rewriteNavAndFocusTargets($documents, $renames, $report);
             $changes += $n;
             if ($n > 0) {
-                $notes[] = 'navigation rewrites: ' . $n;
+                $notes[] = 'navigation/focus rewrites: ' . $n;
             }
         }
 
@@ -280,12 +280,23 @@ final class WebAppIrApplier
             if ($currentClean === $desired) {
                 continue;
             }
-            // Heuristic: only overwrite when current is blank/generic or IR label is longer/more specific
-            if (
+            if ($prop === 'HtmlText') {
+                // Markup: allow apply when blank/generic or both sides look like HTML (ignore length bias).
+                if (
+                    $currentClean !== ''
+                    && !$this->isGenericLabel($currentClean)
+                    && !str_contains($currentClean, '<')
+                    && !str_contains($desired, '<')
+                    && strlen($desired) < strlen($currentClean)
+                ) {
+                    continue;
+                }
+            } elseif (
                 $currentClean !== ''
                 && !$this->isGenericLabel($currentClean)
                 && strlen($desired) < strlen($currentClean)
             ) {
+                // Plain labels: only overwrite when IR text is longer/more specific
                 continue;
             }
             $to = $node->format === 'yaml'
@@ -361,11 +372,12 @@ final class WebAppIrApplier
             }
             $desiredRaw = $state[$irKey];
             $current = $node->getProperty($prop);
-            if ($current === null) {
+            $clean = $current !== null ? $this->unwrap($current) : '';
+            // Allow creating DisplayMode when unset; skip other props if missing/formula-driven.
+            if ($current === null && !(is_string($desiredRaw) && preg_match('/^DisplayMode\.\w+$/i', (string) $desiredRaw))) {
                 continue;
             }
-            $clean = $this->unwrap($current);
-            if ($clean === '' || $this->looksLikeFormula($clean)) {
+            if ($clean !== '' && $this->looksLikeFormula($clean)) {
                 continue;
             }
 
@@ -377,10 +389,10 @@ final class WebAppIrApplier
                 $to = $node->format === 'yaml' ? ('=' . $desired) : $desired;
             } elseif (is_int($desiredRaw) || (is_string($desiredRaw) && is_numeric($desiredRaw))) {
                 $desiredN = (int) $desiredRaw;
-                if (is_numeric($clean) && (int) round((float) $clean) === $desiredN) {
+                if ($clean !== '' && is_numeric($clean) && (int) round((float) $clean) === $desiredN) {
                     continue;
                 }
-                if (!is_numeric($clean)) {
+                if ($clean !== '' && !is_numeric($clean)) {
                     continue;
                 }
                 $to = $node->format === 'yaml' ? ('=' . $desiredN) : (string) $desiredN;
@@ -396,7 +408,7 @@ final class WebAppIrApplier
             }
 
             $node->setProperty($prop, $to);
-            $report->add('import_web_ir', $node->path, $prop, $clean, $desired);
+            $report->add('import_web_ir', $node->path, $prop, $clean !== '' ? $clean : '(unset)', $desired);
             $changes++;
         }
 
@@ -629,35 +641,37 @@ final class WebAppIrApplier
      * @param list<ControlDocument> $documents
      * @param array<string, string> $renames
      */
-    private function rewriteNavigateTargets(array $documents, array $renames, Report $report): int
+    private function rewriteNavAndFocusTargets(array $documents, array $renames, Report $report): int
     {
         $changes = 0;
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
-                    foreach (['OnSelect', 'OnChange', 'OnCheck', 'OnUncheck', 'OnVisible', 'OnStart', 'OnTimerEnd'] as $prop) {
+                foreach (['OnSelect', 'OnChange', 'OnCheck', 'OnUncheck', 'OnVisible', 'OnStart', 'OnTimerEnd'] as $prop) {
                     $from = $control->getProperty($prop);
                     if ($from === null || trim($from) === '') {
                         continue;
                     }
                     $to = $from;
                     foreach ($renames as $old => $new) {
-                        $patterns = [
-                            "/Navigate\\s*\\(\\s*'" . preg_quote($old, '/') . "'/" => "Navigate('" . $new . "'",
-                            '/Navigate\\s*\\(\\s*"' . preg_quote($old, '/') . '"/' => 'Navigate("' . $new . '"',
-                        ];
-                        if (preg_match('/^[A-Za-z_][\w]*$/', $old) && preg_match('/^[A-Za-z_][\w]*$/', $new)) {
-                            $patterns['/Navigate\\s*\\(\\s*' . preg_quote($old, '/') . '\\b/'] = 'Navigate(' . $new;
-                        }
-                        foreach ($patterns as $pattern => $replacement) {
-                            $replaced = preg_replace($pattern, $replacement, $to);
-                            if (is_string($replaced)) {
-                                $to = $replaced;
+                        foreach (['Navigate', 'SetFocus'] as $fn) {
+                            $patterns = [
+                                '/' . $fn . '\\s*\\(\\s*\'' . preg_quote($old, '/') . '\'/' => $fn . "('" . $new . "'",
+                                '/' . $fn . '\\s*\\(\\s*"' . preg_quote($old, '/') . '"/' => $fn . '("' . $new . '"',
+                            ];
+                            if (preg_match('/^[A-Za-z_][\w]*$/', $old) && preg_match('/^[A-Za-z_][\w]*$/', $new)) {
+                                $patterns['/' . $fn . '\\s*\\(\\s*' . preg_quote($old, '/') . '\\b/'] = $fn . '(' . $new;
+                            }
+                            foreach ($patterns as $pattern => $replacement) {
+                                $replaced = preg_replace($pattern, $replacement, $to);
+                                if (is_string($replaced)) {
+                                    $to = $replaced;
+                                }
                             }
                         }
                     }
                     if ($to !== $from) {
                         $control->setProperty($prop, $to);
-                        $report->add('import_web_ir', $control->path, $prop, 'Navigate targets', 'renamed via IR');
+                        $report->add('import_web_ir', $control->path, $prop, 'Navigate/SetFocus targets', 'renamed via IR');
                         $changes++;
                     }
                 }

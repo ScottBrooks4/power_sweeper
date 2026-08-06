@@ -1098,6 +1098,15 @@ assert_true(
     str_contains($delegRewritten, 'CountRows(Filter(colAnnex1, !IsBlank(AgencyName)))'),
     'delegation rewriter fixes live CountIf below comment'
 );
+// Generalized patterns (any collection / email ref)
+$delegGeneral = \PowerSweeper\DelegationFormulaRewriter::rewrite(
+    'CountIf(colItems, !IsBlank(Trim(Title))); Lower(owner.Email) = Lower(User().Email); Lower(User().Email) = Lower(\'Other Screen\'.Contact.Email)'
+);
+assert_true(str_contains($delegGeneral, 'CountRows(Filter(colItems, !IsBlank(Title)))'), 'delegation CountIf generalizes to any col/field');
+assert_true(str_contains($delegGeneral, 'owner.Email = User().Email'), 'delegation Lower(email) generalizes beyond request_user');
+assert_true(str_contains($delegGeneral, "'Other Screen'.Contact.Email = User().Email"), 'delegation Lower(email) handles quoted screen refs');
+$delegSub = \PowerSweeper\DelegationFormulaRewriter::rewrite('Filter(list, Substitute(SearchBox.Text, " ", "") in Substitute(Title, " ", ""))');
+assert_true(str_contains($delegSub, 'StartsWith(Title, SearchBox.Text)'), 'delegation Substitute→StartsWith generalizes control name');
 
 $varPkgTmp = sys_get_temp_dir() . '/ps_varpkg_' . bin2hex(random_bytes(4)) . '.pa.yaml';
 file_put_contents($varPkgTmp, <<<'YAML'
@@ -1172,6 +1181,10 @@ assert_true(in_array('repair_studio_errors', $profileIds, true), 'repair_studio_
 assert_true(in_array('repair_delegation', $profileIds, true), 'repair_delegation profile exists');
 assert_true(in_array('regenerate_sarif', $profileIds, true), 'regenerate_sarif profile exists');
 assert_true(in_array('repair_formula_refs', $profileIds, true), 'repair_formula_refs profile exists');
+$formulaRefsProfile = include dirname(__DIR__) . '/profiles/repair_formula_refs.php';
+$formulaRefsIds = array_column($formulaRefsProfile['hops'], 'id');
+assert_true(in_array('repair_context_aware_refs', $formulaRefsIds, true), 'repair_formula_refs includes context-aware refs');
+assert_true(in_array('repair_converge_formulas', $formulaRefsIds, true), 'repair_formula_refs includes converge');
 assert_true(in_array('repair_powered', $profileIds, true), 'repair_powered profile exists');
 assert_true(in_array('powered_thcee', $profileIds, true), 'powered_thcee profile exists');
 assert_true(in_array('repair_studio_errors_then_dark', $profileIds, true), 'repair_studio_errors_then_dark profile exists');
@@ -1529,6 +1542,69 @@ foreach ($webDoc2->controls() as $c) {
 assert_true($stateBtn !== null, 'state apply keeps control name');
 assert_true(str_contains((string) $stateBtn->getProperty('Visible'), 'false'), 'web IR applied Visible state');
 assert_true(str_contains((string) $stateBtn->getProperty('TabIndex'), '1'), 'web IR applied TabIndex state');
+
+// DisplayMode create when unset + SetFocus edge capture + HtmlText apply
+$webDoc3 = loadFixtureDoc();
+foreach ($webDoc3->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', "=SetFocus(NewRequestTitle); Navigate(Screen2)");
+        break;
+    }
+    if ($c->name === 'LogoImage') {
+        $c->setProperty('HtmlText', '="<p>old</p>"');
+    }
+}
+$ir3 = (new \PowerSweeper\WebApp\WebAppIrBuilder())->build([$webDoc3], $webExtract);
+$setFocusKinds = array_column(array_filter($ir3['navigation'], static fn($e) => ($e['kind'] ?? '') === 'setfocus'), 'to');
+assert_true(in_array('NewRequestTitle', $setFocusKinds, true), 'web IR captures SetFocus targets');
+$ir3['screens'][0]['children'][0]['children'][2]['state'] = ['display_mode' => 'DisplayMode.Disabled'];
+$ir3['screens'][0]['children'][0]['children'][3]['labels']['HtmlText'] = '<p>new</p>';
+// Screen rename already present under new name → rewrite SetFocus/Navigate from previous
+$ir3['screens'][] = ['name' => 'Screen2', 'previous_name' => 'LegacyScreen', 'kind' => 'screen', 'children' => []];
+// Ensure Screen2 exists as live name via Navigate target only; rewrite LegacyScreen→Screen2 when Screen2 live
+foreach ($webDoc3->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', "=SetFocus(NewRequestTitle); Navigate(LegacyScreen)");
+        break;
+    }
+}
+// Add a second screen doc so Screen2 is a live screen name
+$screen2Yaml = "Screen2:\n  Control: Screen@2.0.0\n  Properties:\n    Fill: =RGBA(255, 255, 255, 1)\n";
+$screen2Path = $webExtract . '/Screen2.pa.yaml';
+file_put_contents($screen2Path, $screen2Yaml);
+$screen2Doc = ControlDocument::fromFile($screen2Path, 'Src/Screen2.pa.yaml');
+assert_true($screen2Doc !== null, 'Screen2 fixture loads');
+$ir3['screens'][1] = [
+    'name' => 'Screen2',
+    'previous_name' => 'LegacyScreen',
+    'kind' => 'screen',
+    'children' => [],
+];
+$dmReport = new Report();
+(new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$webDoc3, $screen2Doc], $ir3, $dmReport, $webExtract);
+$dmBtn = null;
+$htmlCtrl = null;
+foreach ($webDoc3->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $dmBtn = $c;
+    }
+    if ($c->name === 'LogoImage') {
+        $htmlCtrl = $c;
+    }
+}
+assert_true(
+    $dmBtn !== null && str_contains((string) $dmBtn->getProperty('DisplayMode'), 'DisplayMode.Disabled'),
+    'web IR creates DisplayMode when previously unset'
+);
+assert_true(
+    $dmBtn !== null && str_contains((string) $dmBtn->getProperty('OnSelect'), 'Navigate(Screen2)'),
+    'web IR rewrites Navigate old→new when new screen exists'
+);
+assert_true(
+    $htmlCtrl !== null && str_contains((string) $htmlCtrl->getProperty('HtmlText'), '<p>new</p>'),
+    'web IR applies HtmlText markup without length bias'
+);
+@unlink($screen2Path);
 
 // Ghost patch discovery — unknown Field: Field.Prop line removed
 $ghostYaml = <<<'YAML'

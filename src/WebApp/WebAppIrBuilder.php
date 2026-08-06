@@ -113,6 +113,16 @@ final class WebAppIrBuilder
                     'to' => $target,
                     'via' => $control->path . '.' . $prop,
                     'control' => $control->name,
+                    'kind' => 'navigate',
+                ];
+            }
+            foreach ($this->extractSetFocusTargets($formula) as $target) {
+                $navEdges[] = [
+                    'from' => $this->screenHint($control),
+                    'to' => $target,
+                    'via' => $control->path . '.' . $prop,
+                    'control' => $control->name,
+                    'kind' => 'setfocus',
                 ];
             }
         }
@@ -261,6 +271,22 @@ final class WebAppIrBuilder
     {
         $targets = [];
         if (preg_match_all("/Navigate\\s*\\(\\s*('([^']+)'|\"([^\"]+)\"|([A-Za-z_][\\w]*))/i", $formula, $m, PREG_SET_ORDER)) {
+            foreach ($m as $match) {
+                $t = $match[2] !== '' ? $match[2] : ($match[3] !== '' ? $match[3] : ($match[4] ?? ''));
+                if ($t !== '') {
+                    $targets[] = $t;
+                }
+            }
+        }
+
+        return $targets;
+    }
+
+    /** @return list<string> */
+    private function extractSetFocusTargets(string $formula): array
+    {
+        $targets = [];
+        if (preg_match_all("/SetFocus\\s*\\(\\s*('([^']+)'|\"([^\"]+)\"|([A-Za-z_][\\w]*))/i", $formula, $m, PREG_SET_ORDER)) {
             foreach ($m as $match) {
                 $t = $match[2] !== '' ? $match[2] : ($match[3] !== '' ? $match[3] : ($match[4] ?? ''));
                 if ($t !== '') {
