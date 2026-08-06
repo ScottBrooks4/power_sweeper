@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace PowerSweeper\WebApp;
 
 use PowerSweeper\ControlDocument;
+use PowerSweeper\ControlNaming;
 use PowerSweeper\ControlNode;
+use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\Report;
 use PowerSweeper\StringSimilarity;
 
@@ -14,7 +16,8 @@ use PowerSweeper\StringSimilarity;
  *
  * Safe updates only:
  * - Document layout / DocumentAppType in Properties.json
- * - Control Text / AccessibleLabel / Tooltip when IR labels differ and look intentional
+ * - Labels, literal layout, literal Visible/DisplayMode/TabIndex
+ * - Non-screen control renames via previous_name → name (+ formula identifier rewrite)
  * - Navigate() target renames when IR navigation maps old→new screen names
  * - Does NOT invent Power Fx or recreate missing controls (explicit non-goal)
  */
@@ -44,7 +47,11 @@ final class WebAppIrApplier
         }
 
         $screenMap = $this->indexScreens($documents);
+        $docByScreen = $this->indexScreenDocuments($documents);
         $irScreens = is_array($ir['screens'] ?? null) ? $ir['screens'] : [];
+        $usedNames = $this->collectUsedNames($documents);
+        /** @var list<array{doc:ControlDocument,control:ControlNode,new:string,old:string}> */
+        $pendingRenames = [];
 
         foreach ($irScreens as $irScreen) {
             if (!is_array($irScreen)) {
@@ -54,8 +61,25 @@ final class WebAppIrApplier
             if ($liveName === null || !isset($screenMap[$liveName])) {
                 continue;
             }
-            $n = $this->applyControlTree($screenMap[$liveName], $irScreen, $report);
+            $doc = $docByScreen[$liveName] ?? null;
+            if ($doc === null) {
+                continue;
+            }
+            $n = $this->applyControlTree(
+                $screenMap[$liveName],
+                $irScreen,
+                $report,
+                $doc,
+                $usedNames,
+                $pendingRenames,
+            );
             $changes += $n;
+        }
+
+        $n = $this->applyPendingRenames($pendingRenames, $documents, $report);
+        $changes += $n;
+        if ($n > 0) {
+            $notes[] = 'control renames: ' . $n;
         }
 
         $renames = $this->inferScreenRenames($irScreens, array_keys($screenMap));
@@ -68,6 +92,40 @@ final class WebAppIrApplier
         }
 
         return ['changes' => $changes, 'notes' => $notes];
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @return array<string, ControlDocument>
+     */
+    private function indexScreenDocuments(array $documents): array
+    {
+        $out = [];
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $c) {
+                if ($c->isScreen()) {
+                    $out[$c->name] = $doc;
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @return array<string, true>
+     */
+    private function collectUsedNames(array $documents): array
+    {
+        $used = [];
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $c) {
+                $used[$c->name] = true;
+            }
+        }
+
+        return $used;
     }
 
     /**
@@ -196,12 +254,20 @@ final class WebAppIrApplier
 
     /**
      * @param array<string, mixed> $irNode
+     * @param array<string, true> $usedNames
+     * @param list<array{doc:ControlDocument,control:ControlNode,new:string,old:string}> $pendingRenames
      */
-    private function applyControlTree(ControlNode $node, array $irNode, Report $report): int
-    {
+    private function applyControlTree(
+        ControlNode $node,
+        array $irNode,
+        Report $report,
+        ControlDocument $doc,
+        array &$usedNames,
+        array &$pendingRenames,
+    ): int {
         $changes = 0;
         $labels = is_array($irNode['labels'] ?? null) ? $irNode['labels'] : [];
-        foreach (['Text', 'AccessibleLabel', 'Tooltip'] as $prop) {
+        foreach (['Text', 'AccessibleLabel', 'Tooltip', 'HintText', 'HtmlText'] as $prop) {
             if (!isset($labels[$prop]) || !is_string($labels[$prop])) {
                 continue;
             }
@@ -233,6 +299,31 @@ final class WebAppIrApplier
         $layout = is_array($irNode['layout'] ?? null) ? $irNode['layout'] : [];
         $changes += $this->applyLiteralLayout($node, $layout, $report);
 
+        $state = is_array($irNode['state'] ?? null) ? $irNode['state'] : [];
+        $changes += $this->applyLiteralState($node, $state, $report);
+
+        // Queue non-screen renames when IR name diverged from previous_name.
+        if (!$node->isScreen() && !$node->isApp()) {
+            $irName = (string) ($irNode['name'] ?? '');
+            $prev = (string) ($irNode['previous_name'] ?? '');
+            if (
+                $irName !== ''
+                && $prev !== ''
+                && $prev === $node->name
+                && $irName !== $prev
+                && ControlNaming::isValidIdentifier($irName)
+                && !isset($usedNames[$irName])
+            ) {
+                $pendingRenames[] = [
+                    'doc' => $doc,
+                    'control' => $node,
+                    'new' => $irName,
+                    'old' => $prev,
+                ];
+                $usedNames[$irName] = true;
+            }
+        }
+
         $irChildren = is_array($irNode['children'] ?? null) ? $irNode['children'] : [];
         $liveChildren = $node->children;
         $claimed = [];
@@ -246,7 +337,108 @@ final class WebAppIrApplier
                 continue;
             }
             $claimed[$match->name] = true;
-            $changes += $this->applyControlTree($match, $irChild, $report);
+            $changes += $this->applyControlTree($match, $irChild, $report, $doc, $usedNames, $pendingRenames);
+        }
+
+        return $changes;
+    }
+
+    /**
+     * @param array<string, mixed> $state
+     */
+    private function applyLiteralState(ControlNode $node, array $state, Report $report): int
+    {
+        $changes = 0;
+        $map = [
+            'visible' => 'Visible',
+            'display_mode' => 'DisplayMode',
+            'tab_index' => 'TabIndex',
+            'focused_border_thickness' => 'FocusedBorderThickness',
+        ];
+        foreach ($map as $irKey => $prop) {
+            if (!array_key_exists($irKey, $state)) {
+                continue;
+            }
+            $desiredRaw = $state[$irKey];
+            $current = $node->getProperty($prop);
+            if ($current === null) {
+                continue;
+            }
+            $clean = $this->unwrap($current);
+            if ($clean === '' || $this->looksLikeFormula($clean)) {
+                continue;
+            }
+
+            if (is_bool($desiredRaw)) {
+                $desired = $desiredRaw ? 'true' : 'false';
+                if (strcasecmp($clean, $desired) === 0) {
+                    continue;
+                }
+                $to = $node->format === 'yaml' ? ('=' . $desired) : $desired;
+            } elseif (is_int($desiredRaw) || (is_string($desiredRaw) && is_numeric($desiredRaw))) {
+                $desiredN = (int) $desiredRaw;
+                if (is_numeric($clean) && (int) round((float) $clean) === $desiredN) {
+                    continue;
+                }
+                if (!is_numeric($clean)) {
+                    continue;
+                }
+                $to = $node->format === 'yaml' ? ('=' . $desiredN) : (string) $desiredN;
+                $desired = (string) $desiredN;
+            } elseif (is_string($desiredRaw) && preg_match('/^DisplayMode\.\w+$/i', $desiredRaw)) {
+                if (strcasecmp($clean, $desiredRaw) === 0) {
+                    continue;
+                }
+                $to = $node->format === 'yaml' ? ('=' . $desiredRaw) : $desiredRaw;
+                $desired = $desiredRaw;
+            } else {
+                continue;
+            }
+
+            $node->setProperty($prop, $to);
+            $report->add('import_web_ir', $node->path, $prop, $clean, $desired);
+            $changes++;
+        }
+
+        return $changes;
+    }
+
+    /**
+     * @param list<array{doc:ControlDocument,control:ControlNode,new:string,old:string}> $pending
+     * @param list<ControlDocument> $documents
+     */
+    private function applyPendingRenames(array $pending, array $documents, Report $report): int
+    {
+        if ($pending === []) {
+            return 0;
+        }
+
+        usort($pending, static function (array $a, array $b): int {
+            return substr_count($b['control']->path, '/') <=> substr_count($a['control']->path, '/');
+        });
+
+        $map = [];
+        $changes = 0;
+        foreach ($pending as $item) {
+            $old = $item['old'];
+            $new = $item['new'];
+            if (!$item['doc']->renameControl($item['control'], $new)) {
+                continue;
+            }
+            $map[$old] = $new;
+            $report->add('import_web_ir', $item['control']->path, 'Name', $old, $new);
+            $changes++;
+            $item['doc']->reindex();
+        }
+
+        if ($map === []) {
+            return 0;
+        }
+
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(static function (string $formula) use ($map): string {
+                return FormulaIdentifierRewriter::rename($formula, $map);
+            });
         }
 
         return $changes;

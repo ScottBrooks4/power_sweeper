@@ -111,16 +111,16 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 | `dark_mode` | `gblTheme` palettes and dark-mode toggle |
 | `sharepoint_correlate` | SharePoint schema correlate + typo repair |
 | `posix_zip_paths` / `windows_zip_paths` | Zip entry separator style |
-| `power_to_web` | **Structural** Power → web export (IR + HTML preview + browser document layout) |
-| `web_to_power` | **Structural** web IR → Power apply (labels / Navigate / document), then classic ScaleToFit |
+| `power_to_web` | **Structural** Power → web: meaningful names → IR + HTML preview + browser document layout |
+| `web_to_power` | **Structural** web IR → Power apply (labels / layout / state / renames / Navigate / document), then classic ScaleToFit |
 
 ### Power ↔ web conversion (structural, heuristic)
 
 These profiles are intentionally **not** a 100% Power App ↔ arbitrary web-app compiler. They move structure through an intermediate representation:
 
-1. **`power_to_web`** — extract screens, roles, labels, navigation edges, theme token names, and document layout into `WebApp/power_sweeper_ir.json`, plus a static HTML scaffold for review.
+1. **`power_to_web`** — rename generic Studio controls, then extract screens, roles, labels, layout, literal state, navigation edges, theme tokens, and datasources into `WebApp/power_sweeper_ir.json`, plus a static HTML scaffold.
 2. Edit the IR (or regenerate it) outside Studio when needed.
-3. **`web_to_power`** — re-apply safe deltas: document meta, literal labels when they look intentional, and `Navigate` renames when `previous_name` → `name` and the new screen already exists.
+3. **`web_to_power`** — re-apply safe deltas: document meta, labels, literal layout/state, non-screen renames via `previous_name`, and `Navigate` renames when the destination already exists.
 
 Power Fx formulas remain authoritative inside the `.msapp`. Error-correction profiles (`repair_studio_errors`, `repair_smart`) use context-aware reference repair and a live-checker converge loop — not blind find/replace.
 

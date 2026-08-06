@@ -28,6 +28,9 @@ final class WebAppIrBuilder
 
     private const NAV_PROPS = ['OnSelect', 'OnChange', 'OnCheck', 'OnUncheck', 'OnVisible', 'OnStart', 'OnTimerEnd'];
 
+    /** Literal state props safe for structural round-trip (skip formula-driven values). */
+    private const STATE_PROPS = ['Visible', 'DisplayMode', 'TabIndex', 'FocusedBorderThickness'];
+
     /**
      * @param list<ControlDocument> $documents
      * @return array<string, mixed>
@@ -47,6 +50,7 @@ final class WebAppIrBuilder
             }
             $this->collectDatasourceHints($doc, $datasources);
         }
+        $this->enrichDatasourcesFromPackage($extractDir, $datasources);
 
         usort($screens, static fn(array $a, array $b): int => ($a['name'] ?? '') <=> ($b['name'] ?? ''));
 
@@ -141,6 +145,11 @@ final class WebAppIrBuilder
             $node['layout'] = $layout;
         }
 
+        $state = $this->stateSnapshot($control);
+        if ($state !== []) {
+            $node['state'] = $state;
+        }
+
         $children = [];
         foreach ($control->children as $child) {
             $children[] = $this->serializeControl($child, $themeTokens, $navEdges, false);
@@ -188,6 +197,37 @@ final class WebAppIrBuilder
             $n = $this->unwrapLiteral($val);
             if ($n !== '' && is_numeric($n)) {
                 $out[strtolower($prop)] = (int) round((float) $n);
+            }
+        }
+
+        return $out;
+    }
+
+    /** @return array<string, bool|int|string> */
+    private function stateSnapshot(ControlNode $control): array
+    {
+        $out = [];
+        foreach (self::STATE_PROPS as $prop) {
+            $val = $control->getProperty($prop);
+            if ($val === null || trim($val) === '') {
+                continue;
+            }
+            $clean = $this->unwrapLiteral($val);
+            if ($clean === '' || preg_match('/\b(If|Switch|LookUp|Filter|Navigate|Set)\s*\(/i', $clean)) {
+                continue;
+            }
+            $key = match ($prop) {
+                'FocusedBorderThickness' => 'focused_border_thickness',
+                'DisplayMode' => 'display_mode',
+                'TabIndex' => 'tab_index',
+                default => strtolower($prop),
+            };
+            if (strcasecmp($clean, 'true') === 0 || strcasecmp($clean, 'false') === 0) {
+                $out[$key] = strcasecmp($clean, 'true') === 0;
+            } elseif (is_numeric($clean)) {
+                $out[$key] = (int) round((float) $clean);
+            } elseif (preg_match('/^DisplayMode\.\w+$/i', $clean)) {
+                $out[$key] = $clean;
             }
         }
 
@@ -294,14 +334,6 @@ final class WebAppIrBuilder
     /** @param array<string, string> $datasources */
     private function collectDatasourceHints(ControlDocument $doc, array &$datasources): void
     {
-        $blob = '';
-        try {
-            $ref = new \ReflectionClass($doc);
-            // Prefer scanning formulas we already walk; also peek relative path for Src name
-            $blob = $doc->relativePath;
-        } catch (\Throwable) {
-            $blob = $doc->relativePath;
-        }
         foreach ($doc->controls() as $c) {
             foreach (['Items', 'DataSource', 'Default', 'OnSelect'] as $prop) {
                 $v = $c->getProperty($prop);
@@ -314,7 +346,26 @@ final class WebAppIrBuilder
                 }
             }
         }
-        unset($blob);
+    }
+
+    /**
+     * Prefer live SharePoint catalog names from the package when available.
+     *
+     * @param array<string, string> $datasources
+     */
+    private function enrichDatasourcesFromPackage(?string $extractDir, array &$datasources): void
+    {
+        if ($extractDir === null || $extractDir === '' || !is_dir($extractDir)) {
+            return;
+        }
+        try {
+            $catalog = \PowerSweeper\SharePoint\SharePointCatalog::loadFromExtractDir($extractDir);
+        } catch (\Throwable) {
+            return;
+        }
+        foreach ($catalog->sharePointListNames() as $name) {
+            $datasources[$name] = $name;
+        }
     }
 
     /** @return array<string, mixed> */

@@ -7,9 +7,11 @@ namespace PowerSweeper\Hops;
 use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\Report;
 use PowerSweeper\SharePoint\SharePointCatalog;
+use PowerSweeper\StringSimilarity;
 
 /**
- * Fix known SharePoint record field typos and drop fields that do not exist on the list.
+ * Fix SharePoint record field typos and drop fields that do not exist on known lists.
+ * Columns are unioned across every SharePoint list in the package (not a single VCR name).
  * Code segments only — comments and strings are never modified.
  */
 final class RepairSharePointFieldsHop implements HopInterface
@@ -96,7 +98,7 @@ final class RepairSharePointFieldsHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Rename mistyped SharePoint column references and remove fields known to be absent from the VCR tracking list (code only).';
+        return 'Rename mistyped SharePoint column references (seed map + fuzzy vs live columns) and remove fields known to be absent (code only).';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -104,18 +106,32 @@ final class RepairSharePointFieldsHop implements HopInterface
         $extractDir = isset($options['_extract_dir']) && is_string($options['_extract_dir'])
             ? $options['_extract_dir']
             : '';
+        $columnList = [];
         if ($extractDir !== '' && is_dir($extractDir)) {
             $catalog = SharePointCatalog::loadFromExtractDir($extractDir);
-            $cols = $catalog->columnNamesFor('CDLS (L) VCR Tracking List');
-            $this->listColumns = $cols !== [] ? array_flip($cols) : null;
+            $columnList = $this->unionColumns($catalog);
+            $this->listColumns = $columnList !== [] ? array_flip($columnList) : null;
         }
 
         foreach ($documents as $doc) {
-            $doc->transformFormulas(function (string $formula, string $path) use ($report): string {
+            $doc->transformFormulas(function (string $formula, string $path) use ($report, $columnList): string {
                 $changed = false;
-                $out = PowerFxFormulaSegments::transformCode($formula, static function (string $code) use ($report, $path, &$changed): string {
+                $out = PowerFxFormulaSegments::transformCode($formula, function (string $code) use ($report, $path, &$changed, $columnList): string {
                     $new = $code;
-                    foreach (self::FIELD_RENAMES as $old => $replacement) {
+                    $renames = self::FIELD_RENAMES;
+                    // Heuristic: mistyped record fields → nearest live column (token distance).
+                    if ($columnList !== [] && $this->listColumns !== null) {
+                        foreach ($this->discoverUnknownRecordFields($new) as $field) {
+                            if (isset($renames[$field]) || isset($this->listColumns[$field])) {
+                                continue;
+                            }
+                            $hit = StringSimilarity::bestMatch($field, $columnList, 2);
+                            if ($hit !== null && ($hit['score'] ?? 0) >= 88.0) {
+                                $renames[$field] = $hit['match'];
+                            }
+                        }
+                    }
+                    foreach ($renames as $old => $replacement) {
                         $pattern = '/\b([A-Za-z_][\w]*)\.' . preg_quote($old, '/') . '\b/';
                         $replaced = preg_replace($pattern, '$1.' . $replacement, $new);
                         if ($replaced !== null && $replaced !== $new) {
@@ -187,5 +203,48 @@ final class RepairSharePointFieldsHop implements HopInterface
         });
 
         return $changed ? $out : $formula;
+    }
+
+    /** @return list<string> */
+    private function unionColumns(SharePointCatalog $catalog): array
+    {
+        $cols = [];
+        $lists = $catalog->sharePointListNames();
+        // Prefer the classic VCR tracking list when present, but still union others.
+        usort($lists, static function (string $a, string $b): int {
+            $score = static fn(string $n): int => str_contains($n, 'VCR Tracking') ? 0 : 1;
+
+            return $score($a) <=> $score($b) ?: strcasecmp($a, $b);
+        });
+        foreach ($lists as $list) {
+            foreach ($catalog->columnNamesFor($list) as $col) {
+                $cols[$col] = true;
+            }
+        }
+        // Also ingest non-SharePoint tabular sources when SharePoint lists are empty.
+        if ($cols === []) {
+            foreach ($catalog->sources as $src) {
+                foreach (array_keys($src['columns'] ?? []) as $col) {
+                    if (is_string($col) && $col !== '') {
+                        $cols[$col] = true;
+                    }
+                }
+            }
+        }
+
+        return array_keys($cols);
+    }
+
+    /** @return list<string> */
+    private function discoverUnknownRecordFields(string $code): array
+    {
+        $fields = [];
+        if (preg_match_all('/\b(?:loadedRequest|r)\.([A-Za-z_][\w]*)\b/', $code, $m)) {
+            foreach ($m[1] as $field) {
+                $fields[$field] = true;
+            }
+        }
+
+        return array_keys($fields);
     }
 }

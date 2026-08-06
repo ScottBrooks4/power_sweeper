@@ -1209,6 +1209,7 @@ assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'repair_studi
 
 $powerToWeb = include dirname(__DIR__) . '/profiles/power_to_web.php';
 $webToPower = include dirname(__DIR__) . '/profiles/web_to_power.php';
+assert_true(in_array('meaningful_names', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web renames generics before export');
 assert_true(in_array('export_web_ir', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web exports IR');
 assert_true(in_array('import_web_ir', array_column($webToPower['hops'], 'id'), true), 'web_to_power imports IR');
 assert_true($hopRegistry->has('export_web_ir'), 'export_web_ir hop registered');
@@ -1487,17 +1488,82 @@ $applyResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$webDoc], $i
 assert_true($applyResult['changes'] > 0, 'web IR apply reported changes');
 $btnText = null;
 $btnX = null;
+$btnName = null;
 foreach ($webDoc->controls() as $c) {
-    if ($c->name === 'NewRequestButton') {
+    if ($c->name === 'LaunchButton' || $c->name === 'NewRequestButton') {
+        $btnName = $c->name;
         $btnText = $c->getProperty('Text');
         $btnX = $c->getProperty('X');
         break;
     }
 }
+assert_true($btnName === 'LaunchButton', 'web IR renamed control via previous_name');
 assert_true(is_string($btnText) && str_contains($btnText, 'Launch'), 'web IR apply updated button Text via previous_name');
 assert_true(is_string($btnX) && str_contains($btnX, '48'), 'web IR apply updated literal layout X');
 $propsAfter = json_decode((string) file_get_contents($webExtract . '/Properties.json'), true);
 assert_true(($propsAfter['DocumentLayoutScaleToFit'] ?? true) === false, 'web IR apply updated ScaleToFit');
+
+// Fresh doc for literal state apply (no rename)
+$webDoc2 = loadFixtureDoc();
+foreach ($webDoc2->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', '=Navigate(Screen1)');
+        $c->setProperty('Visible', '=true');
+        $c->setProperty('TabIndex', '=0');
+        break;
+    }
+}
+$ir2 = (new \PowerSweeper\WebApp\WebAppIrBuilder())->build([$webDoc2], $webExtract);
+assert_true(isset($ir2['screens'][0]['children'][0]['children'][2]['state']['visible']), 'web IR captures literal Visible state');
+$ir2['screens'][0]['children'][0]['children'][2]['state'] = ['visible' => false, 'tab_index' => 1];
+$stateReport = new Report();
+$stateResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$webDoc2], $ir2, $stateReport, $webExtract);
+assert_true($stateResult['changes'] > 0, 'web IR state apply reported changes');
+$stateBtn = null;
+foreach ($webDoc2->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $stateBtn = $c;
+        break;
+    }
+}
+assert_true($stateBtn !== null, 'state apply keeps control name');
+assert_true(str_contains((string) $stateBtn->getProperty('Visible'), 'false'), 'web IR applied Visible state');
+assert_true(str_contains((string) $stateBtn->getProperty('TabIndex'), '1'), 'web IR applied TabIndex state');
+
+// Ghost patch discovery — unknown Field: Field.Prop line removed
+$ghostYaml = <<<'YAML'
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    OnVisible: |
+      =Patch(
+          colTemp,
+          Defaults(colTemp),
+          {
+              Title: "x",
+              MissingGhostControl: MissingGhostControl.Text,
+              MissingGhostControl: MissingGhostControl
+          }
+      );
+YAML;
+$ghostPath = sys_get_temp_dir() . '/ps_ghost_' . bin2hex(random_bytes(4)) . '.pa.yaml';
+file_put_contents($ghostPath, $ghostYaml);
+$ghostDoc = ControlDocument::fromFile($ghostPath, 'Src/Screen1.pa.yaml');
+assert_true($ghostDoc !== null, 'ghost fixture loads');
+$ghostReport = new Report();
+(new \PowerSweeper\Hops\RepairGhostPatchFieldsHop())->apply([$ghostDoc], $ghostReport);
+$ghostOnVisible = null;
+foreach ($ghostDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $ghostOnVisible = $c->getProperty('OnVisible');
+        break;
+    }
+}
+assert_true(
+    is_string($ghostOnVisible) && !str_contains($ghostOnVisible, 'MissingGhostControl'),
+    'ghost hop discovers and removes absent Field: Field.Prop lines'
+);
+@unlink($ghostPath);
 
 // ColorValue chrome heuristic — pale slate/blue Studio chrome is themeable
 assert_true(
@@ -1521,7 +1587,6 @@ assert_true(is_file($webExtract . '/WebApp/index.html'), 'export_web_ir wrote HT
 // Token-stem candidate heuristic (Initiave → Initiative) without hard-coded-only path
 $stemGen = new \PowerSweeper\ControlRefCandidateGenerator();
 $stemCatalog = \PowerSweeper\AppControlCatalog::build([$webDoc]);
-// Inject a fake local name into a minimal scenario via reflection-free localNames array
 $stemCandidates = $stemGen->candidates(
     'GovernmentInitiave',
     'Screen1',

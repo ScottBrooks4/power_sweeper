@@ -24,7 +24,7 @@ final class ImportWebAppHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Apply WebApp/power_sweeper_ir.json heuristics onto the .msapp: document layout, label sync, Navigate target renames. Does not invent missing controls or rewrite arbitrary Power Fx.';
+        return 'Apply WebApp/power_sweeper_ir.json heuristics onto the .msapp: document layout, labels, literal layout/state, control renames via previous_name, Navigate renames. Does not invent missing controls or rewrite arbitrary Power Fx.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
