@@ -28,5 +28,7 @@ return [
     ['id' => 'repair_maintainability', 'options' => []],
     ['id' => 'repair_delegation', 'options' => []],
     ['id' => 'repair_converge_formulas', 'options' => []],
+    // Converge can re-touch Navigate/StartScreen; normalize any over-quotes.
+    ['id' => 'repair_double_qualified_refs', 'options' => []],
     ['id' => 'regenerate_sarif', 'options' => []],
 ];

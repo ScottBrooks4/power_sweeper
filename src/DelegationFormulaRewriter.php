@@ -17,11 +17,42 @@ final class DelegationFormulaRewriter
             $out = $code;
             $out = self::rewriteLowerEmailCompare($out);
             $out = self::rewriteCountIfTrimBlank($out);
+            $out = self::rewriteLocalTrimInStartsWith($out);
+            $out = self::rewriteLocalTrimIsBlank($out);
             $out = self::rewriteSubstituteInFilter($out);
             $out = self::splitDateEmailFilters($out);
 
             return $out;
         }, false);
+    }
+
+    /**
+     * StartsWith(Column, Trim(Control.Text)) → StartsWith(Column, Control.Text)
+     * Trim on a local control argument is unnecessary and trips remote-execution hints.
+     */
+    private static function rewriteLocalTrimInStartsWith(string $formula): string
+    {
+        $replaced = preg_replace(
+            '/StartsWith\s*\(\s*((?:\'[^\']+\'|[A-Za-z_][\w]*))\s*,\s*Trim\s*\(\s*([A-Za-z_][\w]*\.(?:Text|SearchText|Value))\s*\)\s*\)/i',
+            'StartsWith($1, $2)',
+            $formula,
+        );
+
+        return is_string($replaced) ? $replaced : $formula;
+    }
+
+    /**
+     * IsBlank(Trim(Control.Text)) → IsBlank(Control.Text) for local control refs.
+     */
+    private static function rewriteLocalTrimIsBlank(string $formula): string
+    {
+        $replaced = preg_replace(
+            '/IsBlank\s*\(\s*Trim\s*\(\s*([A-Za-z_][\w]*\.(?:Text|SearchText|Value))\s*\)\s*\)/i',
+            'IsBlank($1)',
+            $formula,
+        );
+
+        return is_string($replaced) ? $replaced : $formula;
     }
 
     /**

@@ -280,6 +280,15 @@ assert_true(
     FormulaLocaleNormalizer::toInvariant($twoArgInvariant) === $twoArgInvariant,
     'GetInfoData(0,0) invariant left unchanged (no 0.0 / comma-chaining corruption)'
 );
+// Already-quoted screen replacements must not become '''Screen'''
+$quotedScreenRewrite = \PowerSweeper\FormulaIdentifierRewriter::rename(
+    "Navigate('PACS Homepage')",
+    ['PACS Homepage' => "'PACS Homepage'"]
+);
+assert_true(
+    $quotedScreenRewrite === "Navigate('PACS Homepage')",
+    'identifier rewriter does not triple-quote already-quoted screen names'
+);
 
 // Half-converted color alphas (list commas + locale decimal) → BadArity in Studio
 $halfAlpha = 'RGBA(240, 240, 240, 0,2)';
@@ -1114,6 +1123,15 @@ assert_true(str_contains($delegGeneral, 'owner.Email = User().Email'), 'delegati
 assert_true(str_contains($delegGeneral, "'Other Screen'.Contact.Email = User().Email"), 'delegation Lower(email) handles quoted screen refs');
 $delegSub = \PowerSweeper\DelegationFormulaRewriter::rewrite('Filter(list, Substitute(SearchBox.Text, " ", "") in Substitute(Title, " ", ""))');
 assert_true(str_contains($delegSub, 'StartsWith(Title, SearchBox.Text)'), 'delegation Substitute→StartsWith generalizes control name');
+$delegTrimLocal = \PowerSweeper\DelegationFormulaRewriter::rewrite(
+    'Filter(list, StartsWith(Task, Trim(txtSearch_1.Text)) || IsBlank(Trim(txtSearch_1.Text)))'
+);
+assert_true(
+    str_contains($delegTrimLocal, 'StartsWith(Task, txtSearch_1.Text)')
+        && str_contains($delegTrimLocal, 'IsBlank(txtSearch_1.Text)')
+        && !str_contains($delegTrimLocal, 'Trim('),
+    'delegation strips Trim() around local control Text args'
+);
 
 $varPkgTmp = sys_get_temp_dir() . '/ps_varpkg_' . bin2hex(random_bytes(4)) . '.pa.yaml';
 file_put_contents($varPkgTmp, <<<'YAML'

@@ -69,6 +69,7 @@ final class RepairStudioSyntaxHop implements HopInterface
                         $control->setProperty('OnStart', $after);
                     }
                 }
+                $this->dropUnsupportedToggleTextPosition($control, $report);
                 if (!$control->isScreen() || !isset($hostScreens[$control->name])) {
                     continue;
                 }
@@ -79,6 +80,23 @@ final class RepairStudioSyntaxHop implements HopInterface
                 }
             }
         }
+    }
+
+    /**
+     * Modern/classic toggle controls do not accept TextPosition (Studio: ErrInvalidName).
+     */
+    private function dropUnsupportedToggleTextPosition(ControlNode $control, Report $report): void
+    {
+        $type = strtolower($control->type);
+        if (!str_contains($type, 'toggle')) {
+            return;
+        }
+        if ($control->getProperty('TextPosition') === null) {
+            return;
+        }
+        $from = (string) $control->getProperty('TextPosition');
+        $control->removeProperty('TextPosition');
+        $report->add(self::id(), $control->path, 'TextPosition', $from, '(removed unsupported)');
     }
 
     /**

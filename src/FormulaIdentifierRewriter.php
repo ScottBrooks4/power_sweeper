@@ -64,11 +64,18 @@ final class FormulaIdentifierRewriter
             return $segment;
         }
 
-        if (str_contains($new, '.')) {
+        // Already a member path or a fully quoted Power Fx name — do not wrap again
+        // (wrapping "'PACS Homepage'" would produce '''PACS Homepage''').
+        if (str_contains($new, '.') || self::isQuotedName($new)) {
             return $new;
         }
 
         return "'" . str_replace("'", "''", $new) . "'";
+    }
+
+    private static function isQuotedName(string $value): bool
+    {
+        return str_starts_with($value, "'") && str_ends_with($value, "'") && strlen($value) >= 2;
     }
 
     private static function replaceIdentifier(string $code, string $old, string $new): string
