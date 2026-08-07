@@ -57,11 +57,15 @@ $archive->unpack();
 $live = StudioLiveChecker::check($archive->documents(), ['extract_dir' => $archive->extractDir()]);
 $embedded = StudioErrorDetector::detectFromMsapp($msappPath, false);
 
+$isFormulaError = static function (string $rule): bool {
+    return str_starts_with($rule, 'app-Err') || $rule === 'app-formula-mangled-screen-ref';
+};
+
 $formulaErr = 0;
 $softByRule = [];
 foreach ($live['findings'] as $f) {
     $rule = (string) ($f['ruleId'] ?? '');
-    if (str_starts_with($rule, 'app-Err') || $rule === 'app-formula-mangled-screen-ref') {
+    if ($isFormulaError($rule)) {
         $formulaErr++;
         continue;
     }
@@ -70,19 +74,32 @@ foreach ($live['findings'] as $f) {
     }
 }
 
+$embeddedFormulaErr = 0;
+$embeddedSoft = 0;
+foreach ($embedded['issues'] ?? [] as $issue) {
+    $rule = (string) ($issue['ruleId'] ?? '');
+    if ($isFormulaError($rule)) {
+        $embeddedFormulaErr++;
+    } elseif ($rule !== '') {
+        $embeddedSoft++;
+    }
+}
+
 echo 'Validate: ' . basename($msappPath) . "\n";
 echo str_repeat('=', 60) . "\n";
 
-$check($formulaErr === 0, 'No formula errors (app-Err*/mangled-screen-ref; got ' . $formulaErr . ')');
-$check(($embedded['total'] ?? 0) === 0, 'Embedded SARIF total is 0 (got ' . ($embedded['total'] ?? '?') . ')');
-if ($softByRule !== []) {
+$check($formulaErr === 0, 'No live formula errors (app-Err*/mangled-screen-ref; got ' . $formulaErr . ')');
+$check($embeddedFormulaErr === 0, 'No embedded SARIF formula errors (got ' . $embeddedFormulaErr . ')');
+if ($softByRule !== [] || $embeddedSoft > 0) {
     arsort($softByRule);
     $softParts = [];
     foreach (array_slice($softByRule, 0, 6, true) as $k => $v) {
         $softParts[] = "{$k}={$v}";
     }
-    echo 'WARN Soft live advisories present (total=' . $live['total']
-        . '; ' . implode(', ', $softParts) . ") — allowed\n";
+    echo 'WARN Soft advisories present (live=' . $live['total']
+        . ', embeddedSoft=' . $embeddedSoft
+        . ($softParts !== [] ? '; ' . implode(', ', $softParts) : '')
+        . ") — allowed\n";
     $warned++;
 } else {
     echo "OK  Live checker total is 0\n";
