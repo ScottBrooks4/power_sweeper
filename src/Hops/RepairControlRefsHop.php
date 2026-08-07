@@ -185,20 +185,15 @@ final class RepairControlRefsHop implements HopInterface
             }
 
             if ($screen === null) {
-                // App.OnStart / component templates: typo seeds + global component host aliases.
+                // App.OnStart / component templates: typo seeds + com* host aliases only.
                 $typo = ControlTypoMap::fix($id);
                 if ($typo !== null) {
                     $map[$id] = $typo;
                     continue;
                 }
-                foreach ($candidates->candidates($id, '', $hostControl, $localNames, $catalog) as $candidate) {
-                    if (str_contains($candidate, '.')) {
-                        continue;
-                    }
-                    if ($catalog->isComponentInstance($candidate)) {
-                        $map[$id] = $candidate;
-                        break;
-                    }
+                $hostAlias = $this->componentHostAlias($id, $candidates, $hostControl, $localNames, $catalog);
+                if ($hostAlias !== null) {
+                    $map[$id] = $hostAlias;
                 }
                 continue;
             }
@@ -231,16 +226,9 @@ final class RepairControlRefsHop implements HopInterface
 
             // Prefer global component-host aliases (comTranslations → TranslationComponent_1)
             // before the stricter near-identical stem gate used for typo repairs.
-            foreach ($candidates->candidates($id, $screen, $hostControl, $localNames, $catalog) as $candidate) {
-                if (str_contains($candidate, '.') || $this->wouldOverQualifyScreen($catalog, $id, $candidate)) {
-                    continue;
-                }
-                if ($catalog->isComponentInstance($candidate)) {
-                    $map[$id] = $candidate;
-                    break;
-                }
-            }
-            if (isset($map[$id])) {
+            $hostAlias = $this->componentHostAlias($id, $candidates, $hostControl, $localNames, $catalog, $screen);
+            if ($hostAlias !== null) {
+                $map[$id] = $hostAlias;
                 continue;
             }
 
@@ -261,6 +249,35 @@ final class RepairControlRefsHop implements HopInterface
         }
 
         return $map;
+    }
+
+    /**
+     * Only accept com* → live canvas component host rewrites (not arbitrary
+     * component instances like Agency_1 matching RequestingAgencyName).
+     *
+     * @param array<string, true> $localNames
+     */
+    private function componentHostAlias(
+        string $id,
+        ControlRefCandidateGenerator $candidates,
+        string $hostControl,
+        array $localNames,
+        AppControlCatalog $catalog,
+        string $screen = '',
+    ): ?string {
+        if (!preg_match('/^com[A-Z]/', $id)) {
+            return null;
+        }
+        foreach ($candidates->candidates($id, $screen, $hostControl, $localNames, $catalog) as $candidate) {
+            if (str_contains($candidate, '.')) {
+                continue;
+            }
+            if ($catalog->isComponentInstance($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     private function nearIdenticalStem(string $from, string $to): bool
@@ -307,6 +324,7 @@ final class RepairControlRefsHop implements HopInterface
 
             $candidates = [];
             foreach (array_keys($localNames) as $name) {
+                $name = (string) $name;
                 if (!preg_match('/^' . preg_quote($base, '/') . '_(\d+)$/', $name, $mm)) {
                     continue;
                 }
