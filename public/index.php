@@ -102,7 +102,7 @@ $basePath = $basePath === '' ? '' : $basePath;
       <p class="status" id="status" role="status"></p>
       <div class="run-progress hidden" id="runProgress" aria-live="polite" aria-atomic="true">
         <div class="progress-meta">
-          <span class="progress-phase" id="progressPhase">Starting…</span>
+          <span class="progress-phase" id="progressPhase">Ready</span>
           <span class="progress-count" id="progressCount"></span>
         </div>
         <div class="progress-bar" id="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Run progress">

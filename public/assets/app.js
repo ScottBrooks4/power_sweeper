@@ -362,40 +362,72 @@
     refreshProgressTimes();
   }
 
-  function applyResult(data) {
+  function markRunFinished(data = {}) {
     const total = data.report?.total ?? 0;
-    const byHop = data.report?.by_hop || {};
-    const parts = Object.entries(byHop).map(([k, v]) => `${k}: ${v}`);
-    const elapsedMs = typeof data.elapsed_ms === 'number' ? data.elapsed_ms : (Date.now() - runStartedAt);
-    reportSummary.textContent = `${total} change${total === 1 ? '' : 's'}`
-      + ` in ${formatDuration(elapsedMs)}`
-      + (parts.length ? ` — ${parts.join(' · ')}` : '');
-
-    reportTable.innerHTML = '';
-    (data.report?.entries || []).forEach((row) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escapeHtml(row.hop)}</td>
-        <td>${escapeHtml(row.control)}</td>
-        <td>${escapeHtml(row.property)}</td>
-        <td>${escapeHtml(row.from)}</td>
-        <td>${escapeHtml(row.to)}</td>
-      `;
-      reportTable.appendChild(tr);
-    });
-
-    downloadLink.href = `${cfg.apiDownload}?token=${encodeURIComponent(data.download_token)}`;
-    downloadLink.download = data.filename || 'cleaned.msapp';
-    resultPanel.classList.remove('hidden');
-    status.textContent = 'Done.';
-    progressPhase.textContent = 'Finished';
-    progressCount.textContent = `${total} change${total === 1 ? '' : 's'}`;
+    const elapsedMs = typeof data.elapsed_ms === 'number'
+      ? data.elapsed_ms
+      : (runStartedAt ? Date.now() - runStartedAt : 0);
+    if (progressPhase) {
+      progressPhase.textContent = 'Finished';
+    }
+    if (progressCount) {
+      progressCount.textContent = `${total} change${total === 1 ? '' : 's'}`;
+    }
+    if (progressLast && (!progressLast.textContent || /waiting for first/i.test(progressLast.textContent))) {
+      progressLast.textContent = 'Sweep complete';
+    }
     setProgressFraction(1);
     hopsRemaining = 0;
     packingPending = false;
     stopProgressClock();
     refreshProgressTimes({ finalMs: elapsedMs });
-    resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return elapsedMs;
+  }
+
+  function applyResult(data) {
+    // Update progress chrome first so we never remain on "Starting…" after success.
+    const elapsedMs = markRunFinished(data);
+    const total = data.report?.total ?? 0;
+    const byHop = data.report?.by_hop || {};
+    const parts = Object.entries(byHop).map(([k, v]) => `${k}: ${v}`);
+    if (reportSummary) {
+      reportSummary.textContent = `${total} change${total === 1 ? '' : 's'}`
+        + ` in ${formatDuration(elapsedMs)}`
+        + (parts.length ? ` — ${parts.join(' · ')}` : '');
+    }
+
+    if (reportTable) {
+      reportTable.innerHTML = '';
+      (data.report?.entries || []).forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(row.hop)}</td>
+          <td>${escapeHtml(row.control)}</td>
+          <td>${escapeHtml(row.property)}</td>
+          <td>${escapeHtml(row.from)}</td>
+          <td>${escapeHtml(row.to)}</td>
+        `;
+        reportTable.appendChild(tr);
+      });
+    }
+
+    if (downloadLink && data.download_token) {
+      downloadLink.href = `${cfg.apiDownload}?token=${encodeURIComponent(data.download_token)}`;
+      downloadLink.download = data.filename || 'cleaned.msapp';
+    }
+    resultPanel?.classList.remove('hidden');
+    if (status) {
+      status.textContent = 'Done.';
+    }
+    resultPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function parseEventLine(line) {
+    try {
+      return JSON.parse(line);
+    } catch {
+      return null;
+    }
   }
 
   async function readNdjsonStream(res, onEvent) {
@@ -408,6 +440,7 @@
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let sawEvent = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -418,13 +451,31 @@
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
-        onEvent(JSON.parse(trimmed));
+        const ev = parseEventLine(trimmed);
+        if (!ev) continue;
+        sawEvent = true;
+        onEvent(ev);
       }
     }
 
     const tail = buffer.trim();
     if (tail) {
-      onEvent(JSON.parse(tail));
+      const ev = parseEventLine(tail);
+      if (ev) {
+        sawEvent = true;
+        onEvent(ev);
+        return;
+      }
+      // Proxies sometimes deliver one JSON object with no newlines.
+      const whole = parseEventLine(tail);
+      if (whole) {
+        onEvent(whole.type ? whole : { type: whole.ok ? 'done' : 'error', ...whole });
+        return;
+      }
+    }
+
+    if (!sawEvent && tail === '') {
+      // Empty body — caller handles missing done.
     }
   }
 
@@ -447,6 +498,7 @@
       body.append('sharepoint_schema', schemaFile);
     }
 
+    let finished = null;
     try {
       const res = await fetch(cfg.apiRun, {
         method: 'POST',
@@ -454,28 +506,71 @@
         headers: { Accept: 'application/x-ndjson, application/json' },
       });
 
+      // Leave "Starting…" as soon as the server responds (even if the body is buffered).
+      if (progressPhase && /^starting/i.test(progressPhase.textContent || '')) {
+        progressPhase.textContent = res.ok ? 'Running…' : 'Failed';
+      }
+      if (progressLast && /waiting for first/i.test(progressLast.textContent || '')) {
+        progressLast.textContent = res.ok ? 'Processing hops…' : (res.statusText || 'Request failed');
+      }
+      setProgressFraction(Math.max(runProgressFraction, 0.02));
+
+      if (!res.ok) {
+        let errMsg = `HTTP ${res.status}`;
+        try {
+          const errBody = await res.text();
+          const parsed = parseEventLine(errBody.trim().split('\n').pop() || '');
+          if (parsed?.error) errMsg = parsed.error;
+        } catch {
+          /* keep status text */
+        }
+        throw new Error(errMsg);
+      }
+
       const contentType = res.headers.get('content-type') || '';
-      let finished = null;
       let failed = null;
 
-      if (contentType.includes('ndjson')) {
-        await readNdjsonStream(res, (ev) => {
-          if (ev.type === 'done') {
-            finished = ev;
-            return;
-          }
-          if (ev.type === 'error') {
-            failed = ev;
-            return;
-          }
-          applyProgressEvent(ev);
-        });
-      } else {
-        const data = await res.json();
-        if (!data.ok) {
-          failed = data;
+      if (contentType.includes('ndjson') || contentType.includes('json')) {
+        // Prefer line-stream when ndjson; also works if a proxy buffers the whole body.
+        if (contentType.includes('ndjson')) {
+          await readNdjsonStream(res, (ev) => {
+            if (ev.type === 'done' || (ev.ok === true && ev.download_token)) {
+              finished = { type: 'done', ok: true, ...ev };
+              return;
+            }
+            if (ev.type === 'error' || ev.ok === false) {
+              failed = ev;
+              return;
+            }
+            applyProgressEvent(ev);
+          });
         } else {
-          finished = { type: 'done', ...data };
+          const data = await res.json();
+          if (!data.ok) {
+            failed = data;
+          } else {
+            finished = { type: 'done', ok: true, ...data };
+          }
+        }
+      } else {
+        // Unexpected content-type: try NDJSON lines, then plain JSON.
+        const text = await res.text();
+        const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+        for (const line of lines) {
+          const ev = parseEventLine(line);
+          if (!ev) continue;
+          if (ev.type === 'done' || (ev.ok === true && ev.download_token)) {
+            finished = { type: 'done', ok: true, ...ev };
+          } else if (ev.type === 'error' || ev.ok === false) {
+            failed = ev;
+          } else {
+            applyProgressEvent(ev);
+          }
+        }
+        if (!finished && !failed && lines.length === 1) {
+          const ev = parseEventLine(lines[0]);
+          if (ev?.ok) finished = { type: 'done', ok: true, ...ev };
+          else if (ev) failed = ev;
         }
       }
 
@@ -488,11 +583,19 @@
       applyResult(finished);
     } catch (err) {
       status.textContent = err.message || String(err);
-      progressPhase.textContent = 'Failed';
-      progressLast.textContent = err.message || String(err);
-      stopProgressClock();
-      refreshProgressTimes({ failed: true });
+      if (finished?.ok) {
+        // Result landed but UI follow-up threw — still show finished state.
+        markRunFinished(finished);
+      } else {
+        progressPhase.textContent = 'Failed';
+        progressLast.textContent = err.message || String(err);
+        stopProgressClock();
+        refreshProgressTimes({ failed: true });
+      }
     } finally {
+      if (finished?.ok && progressPhase && /^starting/i.test(progressPhase.textContent || '')) {
+        markRunFinished(finished);
+      }
       updateRunEnabled();
     }
   });
