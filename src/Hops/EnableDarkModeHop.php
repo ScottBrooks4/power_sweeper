@@ -105,8 +105,8 @@ final class EnableDarkModeHop implements HopInterface
     /** Tokens guaranteed in gblThemeLight/gblThemeDark — all control colors map here. */
     private const CORE_THEME_TOKENS = [
         'Page', 'Surface', 'SurfaceMuted', 'InputFill', 'Text', 'TextMuted', 'TextOnAccent',
-        'Border', 'BorderStrong', 'Accent', 'Focus', 'Rail', 'Link', 'LinkHover', 'Disabled',
-        'Success', 'Warning',
+        'TextOnLight', 'Border', 'BorderStrong', 'Accent', 'Focus', 'Rail', 'Link', 'LinkHover',
+        'Disabled', 'Success', 'Warning',
     ];
 
     /** @var array<string, string> Power Apps Color enum → gblTheme token */
@@ -214,6 +214,7 @@ final class EnableDarkModeHop implements HopInterface
                     'Text' => ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0],
                     'TextMuted' => ['r' => 100, 'g' => 116, 'b' => 139, 'a' => 1.0],
                     'TextOnAccent' => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
+                    'TextOnLight' => ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0],
                     'Border' => ['r' => 200, 'g' => 200, 'b' => 200, 'a' => 1.0],
                     'BorderStrong' => ['r' => 0, 'g' => 0, 'b' => 0, 'a' => 1.0],
                     'Accent' => ['r' => 0, 'g' => 18, 'b' => 107, 'a' => 1.0],
@@ -226,6 +227,9 @@ final class EnableDarkModeHop implements HopInterface
             ];
             if ($core === 'Text') {
                 $palette[$core]['dark'] = ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0];
+            }
+            if ($core === 'TextOnLight') {
+                $palette[$core]['dark'] = ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0];
             }
         }
 
@@ -301,6 +305,22 @@ final class EnableDarkModeHop implements HopInterface
                     if ($from === null || trim($from) === '') {
                         continue;
                     }
+                    // Pure gblTheme.Token refs are done; mixed formulas may still embed RGBA literals.
+                    if ($this->isPureThemeReference($from, $theme)) {
+                        continue;
+                    }
+                    if ($this->usesActiveThemeToken($from, $theme) && preg_match('/RGBA\s*\(|\bColor\.(White|Yellow|Green|Red|Blue)\b/i', $from)) {
+                        $embedded = $this->rewriteEmbeddedRgba($from, $prop, $theme, $var, true);
+                        if ($embedded !== $from) {
+                            $to = $control->format === 'yaml' && !str_starts_with(trim($embedded), '=')
+                                && str_starts_with(trim($from), '=')
+                                ? '=' . ltrim($embedded, '=')
+                                : $embedded;
+                            $control->setProperty($prop, $to);
+                            $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($to));
+                        }
+                        continue;
+                    }
                     if ($this->usesActiveThemeToken($from, $theme)) {
                         continue;
                     }
@@ -309,12 +329,16 @@ final class EnableDarkModeHop implements HopInterface
                     }
                     $enumRewritten = $this->rewriteColorEnums($from, $theme);
                     if ($enumRewritten !== $from) {
+                        // Color.Red → Accent may leave sibling RGBA(...) literals in the same If().
+                        if (preg_match('/RGBA\s*\(|\bColor\.White\b/i', $enumRewritten)) {
+                            $enumRewritten = $this->rewriteEmbeddedRgba($enumRewritten, $prop, $theme, $var, true);
+                        }
                         $to = $control->format === 'yaml' && !str_starts_with(trim($enumRewritten), '=')
                             && str_starts_with(trim($from), '=')
                             ? '=' . ltrim($enumRewritten, '=')
                             : $enumRewritten;
                         $control->setProperty($prop, $to);
-                        $report->add(self::id(), $control->path, $prop, $from, $to);
+                        $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($to));
                         continue;
                     }
                     if ($this->usesStaticThemePalette($from, $themeLight, $themeDark)) {
@@ -329,7 +353,7 @@ final class EnableDarkModeHop implements HopInterface
 
                     $parsed = ColorValue::parse($from);
                     if ($parsed === null) {
-                        $embedded = $this->rewriteEmbeddedRgba($from, $prop, $theme, $var);
+                        $embedded = $this->rewriteEmbeddedRgba($from, $prop, $theme, $var, false);
                         if ($embedded !== $from) {
                             $to = $control->format === 'yaml' && !str_starts_with(trim($embedded), '=')
                                 && str_starts_with(trim($from), '=')
@@ -500,7 +524,7 @@ final class EnableDarkModeHop implements HopInterface
                     $parsed = ColorValue::parse($from);
                     if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
                         $token = $this->coreTokenForLiteral($parsed, 'Color');
-                        if ($token !== 'Text' && $token !== 'TextMuted' && $token !== 'TextOnAccent' && $token !== 'Link') {
+                        if ($token !== 'Text' && $token !== 'TextMuted' && $token !== 'TextOnAccent' && $token !== 'TextOnLight' && $token !== 'Link') {
                             $token = ColorValue::luminance($parsed) > 0.55 ? 'TextMuted' : 'Text';
                         }
                     }
@@ -514,36 +538,56 @@ final class EnableDarkModeHop implements HopInterface
             }
         }
 
-        // Pass 6: input surfaces (white / legacy gray fills) use InputFill token
+        // Pass 5b: dark ink on pastel ColorFade chips / bright Warning|Success banners
+        $this->applyTextOnLightSurfaces($documents, $theme, $report);
+
+        // Pass 6: input surfaces (white / legacy gray fills) use InputFill token + readable Color
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
                 if (!$this->isInputControl($control)) {
                     continue;
                 }
                 $from = $control->getProperty('Fill');
-                if ($from !== null && $this->alreadyThemed($from, $var, $theme)) {
-                    continue;
-                }
-                $useToken = 'InputFill';
-                if ($from !== null && trim($from) !== '') {
-                    if (str_contains($from, self::LEGACY_SURFACE)) {
-                        $useToken = 'Surface';
-                    } elseif ($this->shouldPreserveUserValue($from, 'Fill', $force, $theme, $var, $themeLight, $themeDark)) {
-                        continue;
-                    } else {
-                        $parsed = ColorValue::parse($from);
-                        $isWhite = $parsed !== null && ColorValue::luminance($parsed) >= 0.92;
-                        if (!$isWhite && !preg_match('/^[=]?\s*Color\.White\b/i', trim($from))) {
-                            continue;
+                $fromStr = $from !== null ? (string) $from : '';
+                // White literals often become Page/Surface in Pass 2 — promote inputs to InputFill.
+                if ($this->isPureThemeReference($fromStr, $theme)) {
+                    $trim = trim($fromStr);
+                    if (str_starts_with($trim, '=')) {
+                        $trim = trim(substr($trim, 1));
+                    }
+                    $token = substr($trim, strlen($theme) + 1);
+                    if (in_array($token, ['Page', 'Surface', 'SurfaceMuted'], true)) {
+                        $to = $this->themeFormula($control, $theme, 'InputFill');
+                        if ($to !== $fromStr) {
+                            $control->setProperty('Fill', $to);
+                            $report->add(self::id(), $control->path, 'Fill', $fromStr, $to);
+                        }
+                    }
+                } elseif ($fromStr === '' || !$this->alreadyThemed($fromStr, $var, $theme)) {
+                    $useToken = 'InputFill';
+                    $skipFill = false;
+                    if ($fromStr !== '') {
+                        if (str_contains($fromStr, self::LEGACY_SURFACE)) {
+                            $useToken = 'Surface';
+                        } elseif ($this->shouldPreserveUserValue($fromStr, 'Fill', $force, $theme, $var, $themeLight, $themeDark)) {
+                            $skipFill = true;
+                        } else {
+                            $parsed = ColorValue::parse($fromStr);
+                            $isWhite = $parsed !== null && ColorValue::luminance($parsed) >= 0.92;
+                            if (!$isWhite && !preg_match('/^[=]?\s*Color\.White\b/i', trim($fromStr))) {
+                                $skipFill = true;
+                            }
+                        }
+                    }
+                    if (!$skipFill) {
+                        $to = $this->themeFormula($control, $theme, $useToken);
+                        if ($to !== $fromStr) {
+                            $control->setProperty('Fill', $to);
+                            $report->add(self::id(), $control->path, 'Fill', $fromStr !== '' ? $fromStr : '(unset)', $to);
                         }
                     }
                 }
-                $to = $this->themeFormula($control, $theme, $useToken);
-                if ($to === $from) {
-                    continue;
-                }
-                $control->setProperty('Fill', $to);
-                $report->add(self::id(), $control->path, 'Fill', $from ?? '(unset)', $to);
+                $this->ensureInputReadableChrome($control, $theme, $var, $themeLight, $themeDark, $force, $report);
             }
         }
 
@@ -970,6 +1014,168 @@ final class EnableDarkModeHop implements HopInterface
         return false;
     }
 
+    /**
+     * Status pills often use ColorFade(BorderColor, 80%) — a pastel that stays light in dark mode.
+     * White gblTheme.Text on those chips fails contrast; switch child labels to TextOnLight.
+     *
+     * @param list<ControlDocument> $documents
+     */
+    private function applyTextOnLightSurfaces(array $documents, string $theme, Report $report): void
+    {
+        /** @var array<string, string> $fillByPath */
+        $fillByPath = [];
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                $fillByPath[$control->path] = (string) ($control->getProperty('Fill') ?? '');
+            }
+        }
+
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$this->isTextControl($control) && !$this->isIconControl($control)) {
+                    continue;
+                }
+                $ownFill = (string) ($control->getProperty('Fill') ?? '');
+                // ColorFade chips stay pastel/light in both themes — need dark ink.
+                // Solid Warning/Success banners use darkened palette + white Text instead.
+                $needsDarkInk = $this->isPastelChipFill($ownFill);
+                if (!$needsDarkInk) {
+                    foreach ($this->ancestorFills($control->path, $fillByPath) as $parentFill) {
+                        if ($this->isPastelChipFill($parentFill)) {
+                            $needsDarkInk = true;
+                            break;
+                        }
+                    }
+                }
+                if (!$needsDarkInk) {
+                    continue;
+                }
+                $colorProp = $this->isIconControl($control) && $control->getProperty('IconColor') !== null
+                    ? 'IconColor'
+                    : 'Color';
+                $from = $control->getProperty($colorProp);
+                // Only rewrite light/white theme text — leave explicit Accent/Link alone.
+                if ($from !== null && trim($from) !== '' && !$this->isLightInkCandidate((string) $from, $theme)) {
+                    continue;
+                }
+                $to = $this->themeFormula($control, $theme, 'TextOnLight');
+                if ($to === $from) {
+                    continue;
+                }
+                $control->setProperty($colorProp, $to);
+                $report->add(self::id(), $control->path, $colorProp, $from ?? '(unset)', $to);
+            }
+        }
+    }
+
+    /** @param array<string, string> $fillByPath @return list<string> */
+    private function ancestorFills(string $path, array $fillByPath): array
+    {
+        $fills = [];
+        $parts = explode('/', $path);
+        while (count($parts) > 1) {
+            array_pop($parts);
+            $parent = implode('/', $parts);
+            if (array_key_exists($parent, $fillByPath)) {
+                $fills[] = $fillByPath[$parent];
+            }
+        }
+
+        return $fills;
+    }
+
+    private function isPastelChipFill(string $fill): bool
+    {
+        return (bool) preg_match('/ColorFade\s*\(/i', $fill);
+    }
+
+    private function isLightInkCandidate(string $colorFormula, string $theme): bool
+    {
+        if ($this->isPureThemeReference($colorFormula, $theme)) {
+            $trim = trim($colorFormula);
+            if (str_starts_with($trim, '=')) {
+                $trim = trim(substr($trim, 1));
+            }
+            $token = substr($trim, strlen($theme) + 1);
+
+            return in_array($token, ['Text', 'TextMuted', 'TextOnAccent'], true);
+        }
+        $parsed = ColorValue::parse($colorFormula);
+        if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
+            return ColorValue::luminance($parsed) > 0.55;
+        }
+
+        // Mixed If(...) with gblTheme.Text — still a light-ink candidate.
+        return str_contains($colorFormula, $theme . '.Text')
+            || str_contains($colorFormula, $theme . '.TextOnAccent');
+    }
+
+    private function isIconControl(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+
+        return str_contains($t, 'icon') && !str_contains($t, 'button');
+    }
+
+    private function ensureInputReadableChrome(
+        ControlNode $control,
+        string $theme,
+        string $var,
+        string $themeLight,
+        string $themeDark,
+        bool $force,
+        Report $report,
+    ): void {
+        $color = $control->getProperty('Color');
+        $colorStr = $color !== null ? trim((string) $color) : '';
+        // Only fill missing / simple literal colors — do not clobber If(...) formulas.
+        if ($colorStr === '' || ColorValue::parse($colorStr) !== null || preg_match('/^[=]?\s*Color\.\w+\s*$/i', $colorStr)) {
+            $this->applyThemedControlProperty(
+                $control,
+                'Color',
+                'Text',
+                $theme,
+                $var,
+                $themeLight,
+                $themeDark,
+                $force,
+                $report,
+                'Data',
+                false
+            );
+        }
+
+        $base = $control->getProperty('BasePaletteColor');
+        if ($base !== null && trim((string) $base) !== '') {
+            $baseStr = (string) $base;
+            // TextMuted-as-brand washes out Fluent FilledDarker inputs in dark mode.
+            if (
+                str_contains($baseStr, $theme . '.TextMuted')
+                || preg_match('/RGBA\s*\(\s*1\d{2}\s*,\s*1\d{2}\s*,\s*1\d{2}/i', $baseStr)
+            ) {
+                $to = $this->themeFormula($control, $theme, 'Accent');
+                if ($to !== $baseStr) {
+                    $control->setProperty('BasePaletteColor', $to, 'Design');
+                    $report->add(self::id(), $control->path, 'BasePaletteColor', $baseStr, $to);
+                }
+            }
+        }
+
+        $appearance = trim((string) ($control->getProperty('Appearance') ?? ''));
+        $type = strtolower($control->type);
+        if (
+            $appearance !== ''
+            && (str_contains($type, 'moderntextinput') || (str_contains($type, 'textinput') && str_contains($type, 'modern')))
+            && preg_match('/Appearance\.Outline\b/i', $appearance)
+        ) {
+            $to = $control->format === 'yaml' ? '=Appearance.FilledDarker' : 'Appearance.FilledDarker';
+            if ($to !== $appearance) {
+                $control->setProperty('Appearance', $to, 'Design');
+                $report->add(self::id(), $control->path, 'Appearance', $appearance, $to);
+            }
+        }
+    }
+
     private function isNumberInput(ControlNode $control): bool
     {
         $t = strtolower($control->type);
@@ -1277,9 +1483,9 @@ final class EnableDarkModeHop implements HopInterface
         );
     }
 
-    private function rewriteEmbeddedRgba(string $formula, string $property, string $theme, string $var): string
+    private function rewriteEmbeddedRgba(string $formula, string $property, string $theme, string $var, bool $allowMixedTheme = false): string
     {
-        if ($this->usesActiveThemeToken($formula, $theme)) {
+        if (!$allowMixedTheme && $this->usesActiveThemeToken($formula, $theme)) {
             return $formula;
         }
         $changed = false;
@@ -1301,7 +1507,7 @@ final class EnableDarkModeHop implements HopInterface
 
             return is_string($replaced) ? $replaced : $code;
         });
-        if (!$changed) {
+        if (!$changed && !$allowMixedTheme) {
             $pair = $this->parseLegacyIfPair($formula, $var);
             if ($pair !== null && !ColorValue::isTransparent($pair['light'])) {
                 return $theme . '.' . $this->coreTokenForLiteral($pair['light'], $property);
@@ -1342,6 +1548,20 @@ final class EnableDarkModeHop implements HopInterface
         return str_contains($formula, $theme . '.');
     }
 
+    /** True when the formula is only a gblTheme.Token reference (optional leading =). */
+    private function isPureThemeReference(string $formula, string $theme): bool
+    {
+        $trim = trim($formula);
+        if (str_starts_with($trim, '=')) {
+            $trim = trim(substr($trim, 1));
+        }
+
+        return (bool) preg_match(
+            '/^' . preg_quote($theme, '/') . '\.[A-Za-z_][\w]*$/',
+            $trim
+        );
+    }
+
     private function usesStaticThemePalette(string $formula, string $themeLight, string $themeDark): bool
     {
         return str_contains($formula, $themeLight . '.') || str_contains($formula, $themeDark . '.');
@@ -1376,6 +1596,9 @@ final class EnableDarkModeHop implements HopInterface
 
         return match (true) {
             str_contains($token, 'Link') => str_contains($token, 'Hover') ? 'LinkHover' : 'Link',
+            // Semantic *Text tokens are ink-on-bright-fill → TextOnLight (not white Text).
+            $token === 'WarningText' || $token === 'SuccessText' || $token === 'DangerText' => 'TextOnLight',
+            str_contains($token, 'OnLight') => 'TextOnLight',
             str_contains($token, 'Text') || str_ends_with($token, 'Text') => 'Text',
             str_contains($token, 'Border') || $token === 'Focus' => str_contains($token, 'Strong') ? 'BorderStrong' : 'Border',
             str_contains($token, 'Success') => 'Success',

@@ -524,6 +524,45 @@ assert_true(
     'theme_defaults option edits Accent in central palette'
 );
 
+// Contrast: ColorFade status chips, mixed RGBA, input Color, darkened Warning
+$contrastDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_contrast.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($contrastDoc !== null, 'dark mode contrast fixture loads');
+$contrastReport = new Report();
+(new EnableDarkModeHop())->apply([$contrastDoc], $contrastReport, ['force' => true]);
+$contrastDoc->reindex();
+$chipInk = $bannerFill = $mixedColor = $inputColor = $inputFill = $onStartContrast = '';
+foreach ($contrastDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $onStartContrast = (string) ($c->getProperty('OnStart') ?? '');
+    }
+    if ($c->name === 'StatusLabel') {
+        $chipInk = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'WarningBanner') {
+        $bannerFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'MixedGrayLabel') {
+        $mixedColor = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'TitleInput') {
+        $inputColor = (string) ($c->getProperty('Color') ?? '');
+        $inputFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true(str_contains($chipInk, 'gblTheme.TextOnLight'), 'ColorFade status chip label uses TextOnLight ink');
+assert_true(str_contains($bannerFill, 'gblTheme.Warning'), 'warning banner Fill maps to Warning token');
+assert_true(
+    str_contains($onStartContrast, 'TextOnLight:')
+        && str_contains($onStartContrast, 'Warning: RGBA(161, 98, 7, 1)'),
+    'dark palette includes TextOnLight and darkened Warning for white banner text'
+);
+assert_true(
+    str_contains($mixedColor, 'gblTheme.') && !preg_match('/RGBA\s*\(\s*117\s*,\s*117\s*,\s*117/i', $mixedColor),
+    'mixed If(...) formula rewrites leftover mid-gray RGBA'
+);
+assert_true(str_contains($inputFill, 'gblTheme.InputFill'), 'text input Fill uses InputFill');
+assert_true(str_contains($inputColor, 'gblTheme.Text'), 'text input Color set for readable typed text');
+
 $linkHex = ColorValue::toHex(['r' => 45, 'g' => 212, 'b' => 191, 'a' => 1.0]);
 assert_true($linkHex === '#2DD4BF', 'ColorValue::toHex for dark link teal');
 
