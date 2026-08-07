@@ -149,6 +149,7 @@ final class ControlRefCandidateGenerator
                 continue;
             }
             $stem = implode('', $tokens);
+            $name = (string) $name;
             if ($stem === $badStem) {
                 return $name;
             }
@@ -218,6 +219,8 @@ final class ControlRefCandidateGenerator
             $best = null;
             $bestDist = PHP_INT_MAX;
             foreach (array_keys($localNames) as $name) {
+                // PHP may coerce numeric-looking control names to int array keys.
+                $name = (string) $name;
                 if (!preg_match('/^' . preg_quote($base, '/') . '_(\d+)$/', $name, $mm)) {
                     continue;
                 }
