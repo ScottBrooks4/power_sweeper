@@ -11,9 +11,11 @@ declare(strict_types=1);
  * not a Power Fx → JavaScript compiler.
  */
 return [
-    'description' => 'Rename generic controls, export structural web IR + HTML preview, configure document layout for browser (ScaleToFit off). Formulas stay in the .msapp.',
+    'description' => 'Rename generic screen controls (not component templates), clean any over-quoted screen refs, export structural web IR + HTML preview, configure document layout for browser (ScaleToFit off). Formulas stay in the .msapp.',
     'hops' => [
         ['id' => 'meaningful_names', 'options' => ['only_generic' => true]],
+        // meaningful_names can surface pre-existing over-quotes; normalize before export.
+        ['id' => 'repair_double_qualified_refs', 'options' => []],
         ['id' => 'export_web_ir', 'options' => ['configure_document' => true]],
         ['id' => 'configure_power_document', 'options' => ['mode' => 'web']],
     ],

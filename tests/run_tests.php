@@ -1264,8 +1264,10 @@ assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'repair_studi
 $powerToWeb = include dirname(__DIR__) . '/profiles/power_to_web.php';
 $webToPower = include dirname(__DIR__) . '/profiles/web_to_power.php';
 assert_true(in_array('meaningful_names', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web renames generics before export');
+assert_true(in_array('repair_double_qualified_refs', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web cleans screen refs after rename');
 assert_true(in_array('export_web_ir', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web exports IR');
 assert_true(in_array('import_web_ir', array_column($webToPower['hops'], 'id'), true), 'web_to_power imports IR');
+assert_true(in_array('repair_double_qualified_refs', array_column($webToPower['hops'], 'id'), true), 'web_to_power cleans screen refs after import');
 assert_true(in_array('accessibility_labels', array_column($webToPower['hops'], 'id'), true), 'web_to_power fills a11y after import');
 assert_true(in_array('ensure_focus_visible', array_column($webToPower['hops'], 'id'), true), 'web_to_power ensures focus visible');
 assert_true($hopRegistry->has('export_web_ir'), 'export_web_ir hop registered');
@@ -1909,6 +1911,120 @@ if (is_file($ascTemplate)) {
     assert_true($ascErr === 0, 'ASC Template repair clears app-Err* findings (got ' . $ascErr . ')');
     $ascArch->cleanup();
     @unlink($ascOut);
+}
+
+// meaningful_names must not rename JSON Components/* template children
+$compNameYaml = <<<'YAML'
+Screen1:
+  Control: Screen@2.0.0
+  Children:
+    - Label1:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Screen Label"
+YAML;
+$compNameExtract = sys_get_temp_dir() . '/ps_compname_' . bin2hex(random_bytes(3));
+mkdir($compNameExtract . '/Src', 0775, true);
+mkdir($compNameExtract . '/Components', 0775, true);
+file_put_contents($compNameExtract . '/Src/Screen1.pa.yaml', $compNameYaml);
+file_put_contents($compNameExtract . '/Components/4.json', json_encode([
+    'TopParent' => [
+        'Name' => 'TopbarHeader',
+        'Template' => ['Name' => 'http://microsoft.com/appmagic/ComponentDefinitionInfo'],
+        'Children' => [[
+            'Name' => 'Label1',
+            'Template' => ['Name' => 'label'],
+            'Rules' => [
+                ['Property' => 'Text', 'InvariantScript' => '"Header"'],
+                ['Property' => 'X', 'InvariantScript' => 'Label1.X'],
+            ],
+        ]],
+    ],
+], JSON_PRETTY_PRINT));
+$compDocs = [];
+$compScreenDoc = ControlDocument::fromFile($compNameExtract . '/Src/Screen1.pa.yaml', 'Src/Screen1.pa.yaml');
+$compJsonDoc = ControlDocument::fromFile($compNameExtract . '/Components/4.json', 'Components/4.json');
+assert_true($compScreenDoc !== null && $compJsonDoc !== null, 'component-safe rename fixtures load');
+$compDocs[] = $compScreenDoc;
+$compDocs[] = $compJsonDoc;
+$compNameReport = new Report();
+(new MeaningfulNamesHop())->apply($compDocs, $compNameReport, ['only_generic' => true]);
+$compLabelStill = false;
+$screenLabelRenamed = false;
+foreach ($compDocs as $doc) {
+    foreach ($doc->controls() as $c) {
+        if (str_contains($c->path, 'Components/') && $c->name === 'Label1') {
+            $compLabelStill = true;
+        }
+        if (str_contains($c->path, 'Screen1') && $c->name !== 'Label1' && $c->name !== 'Screen1') {
+            $screenLabelRenamed = true;
+        }
+    }
+}
+assert_true($compLabelStill, 'meaningful_names leaves JSON Components/* Label1 untouched');
+assert_true($screenLabelRenamed, 'meaningful_names still renames screen-level generic Label1');
+// Component formula must not be rewritten to the screen's new name
+$compFormula = '';
+foreach ($compJsonDoc->controls() as $c) {
+    if ($c->name === 'Label1' || str_ends_with($c->path, 'Label1')) {
+        // parent TopbarHeader may hold X on child — check Rules via transform
+    }
+}
+$compJsonDoc->transformFormulas(static function (string $f) use (&$compFormula): string {
+    if (str_contains($f, 'Label1') || str_contains($f, 'Screen')) {
+        $compFormula .= $f . "\n";
+    }
+    return $f;
+});
+assert_true(str_contains($compFormula, 'Label1.X'), 'component formulas keep local Label1 refs after screen rename');
+
+// Multi-app power↔web round-trip on repaired TDR (fast) — formula errors must stay 0
+$tdrWebSample = dirname(__DIR__) . '/samples/import_debug/TDR - THCEE Directory App.msapp';
+if (is_file($tdrWebSample)) {
+    $tdrWebDir = sys_get_temp_dir() . '/ps_tdr_web_' . bin2hex(random_bytes(3));
+    mkdir($tdrWebDir, 0775, true);
+    $tdrRepaired = $tdrWebDir . '/repaired.msapp';
+    $tdrWeb = $tdrWebDir . '/web.msapp';
+    $tdrRound = $tdrWebDir . '/round.msapp';
+    $repairProfWeb = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
+    $p2wProf = include dirname(__DIR__) . '/profiles/power_to_web.php';
+    $w2pProf = include dirname(__DIR__) . '/profiles/web_to_power.php';
+    (new Pipeline())->run($tdrWebSample, $repairProfWeb['hops'], $tdrRepaired);
+    (new Pipeline())->run($tdrRepaired, $p2wProf['hops'], $tdrWeb);
+    (new Pipeline())->run($tdrWeb, $w2pProf['hops'], $tdrRound);
+    $tdrWebArch = new \PowerSweeper\MsappArchive($tdrWeb);
+    $tdrWebArch->unpack();
+    assert_true(is_file($tdrWebArch->extractDir() . '/WebApp/power_sweeper_ir.json'), 'TDR power_to_web writes IR');
+    assert_true(is_file($tdrWebArch->extractDir() . '/WebApp/index.html'), 'TDR power_to_web writes HTML');
+    $tdrWebProps = json_decode((string) file_get_contents($tdrWebArch->extractDir() . '/Properties.json'), true);
+    assert_true(($tdrWebProps['DocumentLayoutScaleToFit'] ?? true) === false, 'TDR power_to_web sets ScaleToFit false');
+    $tdrWebLive = \PowerSweeper\StudioLiveChecker::check($tdrWebArch->documents(), ['extract_dir' => $tdrWebArch->extractDir()]);
+    $tdrWebErr = 0;
+    foreach ($tdrWebLive['findings'] as $f) {
+        $r = (string) ($f['ruleId'] ?? '');
+        if (str_starts_with($r, 'app-Err') || $r === 'app-formula-mangled-screen-ref') {
+            $tdrWebErr++;
+        }
+    }
+    $tdrWebArch->cleanup();
+    $tdrRoundArch = new \PowerSweeper\MsappArchive($tdrRound);
+    $tdrRoundArch->unpack();
+    $tdrRoundProps = json_decode((string) file_get_contents($tdrRoundArch->extractDir() . '/Properties.json'), true);
+    assert_true(($tdrRoundProps['DocumentLayoutScaleToFit'] ?? false) === true, 'TDR web_to_power restores ScaleToFit true');
+    $tdrRoundLive = \PowerSweeper\StudioLiveChecker::check($tdrRoundArch->documents(), ['extract_dir' => $tdrRoundArch->extractDir()]);
+    $tdrRoundErr = 0;
+    foreach ($tdrRoundLive['findings'] as $f) {
+        $r = (string) ($f['ruleId'] ?? '');
+        if (str_starts_with($r, 'app-Err') || $r === 'app-formula-mangled-screen-ref') {
+            $tdrRoundErr++;
+        }
+    }
+    $tdrRoundArch->cleanup();
+    assert_true($tdrWebErr === 0, 'TDR power_to_web introduces no formula errors (got ' . $tdrWebErr . ')');
+    assert_true($tdrRoundErr === 0, 'TDR web↔power round-trip introduces no formula errors (got ' . $tdrRoundErr . ')');
+    @unlink($tdrRepaired);
+    @unlink($tdrWeb);
+    @unlink($tdrRound);
 }
 
 // Catalog-driven SharePoint field fallbacks (VisitType / Level* / Initiative / Specification)

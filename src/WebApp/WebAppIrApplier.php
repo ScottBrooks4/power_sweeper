@@ -421,7 +421,8 @@ final class WebAppIrApplier
         $changes += $this->applyLiteralState($node, $state, $report);
 
         // Queue non-screen renames when IR name diverged from previous_name.
-        if (!$node->isScreen() && !$node->isApp()) {
+        // Never rename inside canvas component templates (YAML/JSON copies diverge).
+        if (!$node->isScreen() && !$node->isApp() && !self::isComponentPath($node->path)) {
             $irName = (string) ($irNode['name'] ?? '');
             $prev = (string) ($irNode['previous_name'] ?? '');
             if (
@@ -565,12 +566,23 @@ final class WebAppIrApplier
         }
 
         foreach ($documents as $doc) {
-            $doc->transformFormulas(static function (string $formula) use ($map): string {
+            $doc->transformFormulas(static function (string $formula, string $path) use ($map): string {
+                if (self::isComponentPath($path)) {
+                    return $formula;
+                }
+
                 return FormulaIdentifierRewriter::rename($formula, $map);
             });
         }
 
         return $changes;
+    }
+
+    private static function isComponentPath(string $path): bool
+    {
+        return str_contains($path, 'ComponentDefinitions')
+            || str_contains($path, 'Components/')
+            || str_contains($path, '\\Components\\');
     }
 
     /**

@@ -374,7 +374,13 @@ final class WebAppIrBuilder
                 $v = $c->getProperty($prop);
                 if ($v !== null && preg_match_all("/'([^']+)'/", $v, $m)) {
                     foreach ($m[1] as $name) {
-                        if (preg_match('/\b(List|Tracking|User|Version|SharePoint)\b/i', $name) || str_contains($name, '(L)')) {
+                        // Broad heuristic for canvas list names across VCR / THCEE / ASC / TDR.
+                        if (
+                            preg_match('/\b(List|Tracking|User|Version|SharePoint|Package|PACS|THCEE|TDR|Approvals?|Directory|Pass|Incident)\b/i', $name)
+                            || str_contains($name, '(L)')
+                            || str_contains($name, 'VCDS')
+                            || str_contains($name, 'CDLS')
+                        ) {
                             $datasources[$name] = $name;
                         }
                     }

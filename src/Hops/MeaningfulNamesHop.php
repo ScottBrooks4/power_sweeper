@@ -46,6 +46,9 @@ final class MeaningfulNamesHop implements HopInterface
         foreach ($documents as $doc) {
             $toRename = [];
             foreach ($doc->controls() as $control) {
+                if (self::isComponentPath($control->path)) {
+                    continue;
+                }
                 if (isset($renameMap[$control->name])) {
                     $toRename[] = $control;
                 }
@@ -71,8 +74,14 @@ final class MeaningfulNamesHop implements HopInterface
             return;
         }
 
+        // Never rewrite component-definition formulas with screen-level rename maps —
+        // JSON Components/*.json and YAML ComponentDefinitions can diverge otherwise.
         foreach ($documents as $doc) {
-            $doc->transformFormulas(static function (string $formula) use ($finalMap): string {
+            $doc->transformFormulas(static function (string $formula, string $path) use ($finalMap): string {
+                if (self::isComponentPath($path)) {
+                    return $formula;
+                }
+
                 return FormulaIdentifierRewriter::rename($formula, $finalMap);
             });
         }
@@ -94,6 +103,15 @@ final class MeaningfulNamesHop implements HopInterface
                 $used[$name] = true;
             }
         }
+        // Reserve component-internal names so screen renames cannot collide with
+        // TopbarHeader/SidebarMenu children (Label1, Icon2, …).
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (self::isComponentPath($control->path)) {
+                    $used[$control->name] = true;
+                }
+            }
+        }
 
         $candidates = [];
         foreach ($documents as $doc) {
@@ -104,7 +122,7 @@ final class MeaningfulNamesHop implements HopInterface
                 if ($control->isScreen() && !$renameScreens) {
                     continue;
                 }
-                if (str_contains($control->path, 'ComponentDefinitions')) {
+                if (self::isComponentPath($control->path)) {
                     continue;
                 }
 
@@ -170,5 +188,16 @@ final class MeaningfulNamesHop implements HopInterface
         }
 
         return null;
+    }
+
+    /**
+     * Canvas component templates (YAML ComponentDefinitions and JSON Components/*.json).
+     * These must stay out of screen-level rename maps — YAML/JSON copies can otherwise diverge.
+     */
+    private static function isComponentPath(string $path): bool
+    {
+        return str_contains($path, 'ComponentDefinitions')
+            || str_contains($path, 'Components/')
+            || str_contains($path, '\\Components\\');
     }
 }
