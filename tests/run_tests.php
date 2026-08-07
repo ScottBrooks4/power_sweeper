@@ -1236,6 +1236,17 @@ assert_true(in_array('web_to_power', $profileIds, true), 'web_to_power profile e
 $profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
 $vcrPowered = $profileLoader->resolvePoweredProfile('CDLS VCR App.msapp');
 $thceePowered = $profileLoader->resolvePoweredProfile('VCDS THCEE App.msapp');
+assert_true(($vcrPowered['app_class'] ?? '') === 'shared', 'resolvePoweredProfile returns shared app_class');
+assert_true(($thceePowered['app_class'] ?? '') === 'shared', 'THCEE-named input still uses shared powered chain');
+$poweredThceeAlias = include dirname(__DIR__) . '/profiles/powered_thcee.php';
+assert_true(($poweredThceeAlias['app_class'] ?? '') === 'thcee', 'powered_thcee alias keeps thcee app_class');
+$sharedPoweredListed = false;
+foreach ($allProfiles as $profile) {
+    if ($profile['id'] === 'repair_powered') {
+        $sharedPoweredListed = ($profile['app_class'] ?? '') === 'shared';
+    }
+}
+assert_true($sharedPoweredListed, 'ProfileLoader::all exposes repair_powered app_class');
 assert_true(in_array('repair_control_refs', array_column($vcrPowered['hops'], 'id'), true), 'VCR powered profile includes repair_control_refs');
 assert_true(in_array('repair_control_refs', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes repair_control_refs (component-safe)');
 assert_true(in_array('regenerate_sarif', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes regenerate_sarif');
