@@ -1,16 +1,23 @@
 (() => {
   const cfg = window.POWER_SWEEPER || {};
   const hopMeta = Object.fromEntries((cfg.hops || []).map((h) => [h.id, h]));
+  const forceableHops = new Set(cfg.forceable_hops || [
+    'accessibility_labels',
+    'tooltip_from_label',
+    'enable_dark_mode',
+    'unwhack_locale_formulas',
+    'normalize_containers',
+  ]);
 
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
   const browseBtn = document.getElementById('browseBtn');
   const fileLabel = document.getElementById('fileLabel');
-  const schemaInput = document.getElementById('schemaInput');
-  const schemaBrowseBtn = document.getElementById('schemaBrowseBtn');
-  const schemaLabel = document.getElementById('schemaLabel');
-  const profileSelect = document.getElementById('profileSelect');
-  const profileHint = document.getElementById('profileHint');
+  const planPanel = document.getElementById('planPanel');
+  const planHint = document.getElementById('planHint');
+  const forceHint = document.getElementById('forceHint');
+  const planReasons = document.getElementById('planReasons');
+  const forceModeSelect = document.getElementById('forceModeSelect');
   const palette = document.getElementById('palette');
   const sequenceEl = document.getElementById('sequence');
   const emptySeq = document.getElementById('emptySeq');
@@ -31,10 +38,12 @@
   const downloadLink = document.getElementById('downloadLink');
 
   let file = null;
-  let schemaFile = null;
   /** @type {{id:string,options:object,uid:string}[]} */
   let sequence = [];
   let dragUid = null;
+  /** @type {'all'|'missing_only'} */
+  let forceMode = 'missing_only';
+  let analyzeAbort = null;
   /** @type {ReturnType<typeof setInterval>|null} */
   let progressTimer = null;
   let runStartedAt = 0;
@@ -69,11 +78,37 @@
     }
   }
 
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+  }
+
+  function withForceOptions(id, options = {}) {
+    const opts = { ...(options || {}) };
+    if (forceableHops.has(id)) {
+      opts.force = forceMode === 'all';
+    }
+    return opts;
+  }
+
+  function applyForceModeToSequence() {
+    sequence = sequence.map((step) => ({
+      ...step,
+      options: withForceOptions(step.id, step.options),
+    }));
+  }
+
   function renderSequence() {
     sequenceEl.innerHTML = '';
     emptySeq.classList.toggle('hidden', sequence.length > 0);
     sequence.forEach((step, index) => {
       const meta = hopMeta[step.id] || { label: step.id, description: '' };
+      const forced = forceableHops.has(step.id)
+        ? (step.options?.force ? ' · all' : ' · missing only')
+        : '';
       const li = document.createElement('li');
       li.className = 'seq-item';
       li.draggable = true;
@@ -81,14 +116,13 @@
       li.innerHTML = `
         <span class="seq-num">${index + 1}</span>
         <span>
-          <span class="seq-label">${escapeHtml(meta.label)}</span>
+          <span class="seq-label">${escapeHtml(meta.label)}${escapeHtml(forced)}</span>
           <span class="seq-desc">${escapeHtml(meta.description)}</span>
         </span>
         <button type="button" class="seq-remove" aria-label="Remove hop">&times;</button>
       `;
       li.querySelector('.seq-remove').addEventListener('click', () => {
         sequence = sequence.filter((s) => s.uid !== step.uid);
-        profileSelect.value = '';
         renderSequence();
         updateRunEnabled();
       });
@@ -117,27 +151,80 @@
 
   function addHop(id, options = {}) {
     if (!hopMeta[id]) return;
-    sequence.push({ id, options: options || {}, uid: uid() });
+    sequence.push({ id, options: withForceOptions(id, options), uid: uid() });
     renderSequence();
     updateRunEnabled();
   }
 
-  function loadProfileHops(hops) {
+  function loadHops(hops) {
     sequence = (hops || []).map((h) => ({
       id: h.id,
-      options: h.options || {},
+      options: withForceOptions(h.id, h.options || {}),
       uid: uid(),
     }));
     renderSequence();
     updateRunEnabled();
   }
 
-  function escapeHtml(str) {
-    return String(str)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;');
+  function showPlan(data) {
+    planPanel?.classList.remove('hidden');
+    const profile = data.recommended_profile || 'custom';
+    planHint.textContent = `Auto-selected “${profile}” (${(data.hops || []).length} hop${(data.hops || []).length === 1 ? '' : 's'}). You can still edit the sequence.`;
+    forceHint.textContent = data.force_mode_reason || '';
+    forceMode = data.force_mode === 'all' ? 'all' : 'missing_only';
+    if (forceModeSelect) {
+      forceModeSelect.value = forceMode;
+    }
+    if (planReasons) {
+      planReasons.innerHTML = '';
+      (data.reasons || []).forEach((reason) => {
+        const li = document.createElement('li');
+        li.textContent = reason;
+        planReasons.appendChild(li);
+      });
+    }
+    (data.forceable_hops || []).forEach((id) => forceableHops.add(id));
+    loadHops(data.hops || []);
+  }
+
+  async function analyzeFile(selected) {
+    if (!selected || !cfg.apiAnalyze) return;
+    if (analyzeAbort) {
+      analyzeAbort.abort();
+    }
+    analyzeAbort = new AbortController();
+    planPanel?.classList.remove('hidden');
+    if (planHint) planHint.textContent = 'Scanning app for recommended hops…';
+    if (forceHint) forceHint.textContent = '';
+    if (planReasons) planReasons.innerHTML = '';
+    status.textContent = '';
+    sequence = [];
+    renderSequence();
+    updateRunEnabled();
+
+    const body = new FormData();
+    body.append('msapp', selected);
+    try {
+      const res = await fetch(cfg.apiAnalyze, {
+        method: 'POST',
+        body,
+        signal: analyzeAbort.signal,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `Analyze failed (HTTP ${res.status})`);
+      }
+      showPlan(data);
+    } catch (err) {
+      if (err?.name === 'AbortError') return;
+      if (planHint) {
+        planHint.textContent = 'Could not auto-select hops — add them manually from the left.';
+      }
+      if (forceHint) {
+        forceHint.textContent = err.message || String(err);
+      }
+      status.textContent = err.message || String(err);
+    }
   }
 
   function setFile(f) {
@@ -153,6 +240,7 @@
     status.textContent = '';
     warnIfOverUploadLimit(f);
     updateRunEnabled();
+    analyzeFile(f);
   }
 
   browseBtn.addEventListener('click', (e) => {
@@ -167,24 +255,6 @@
     }
   });
   fileInput.addEventListener('change', () => setFile(fileInput.files?.[0]));
-
-  function setSchemaFile(f) {
-    if (!f) {
-      schemaFile = null;
-      schemaLabel.innerHTML = 'Optional. Used by <code>correlate_sharepoint</code> to validate lists/columns and repair typos against your real SharePoint lists.';
-      return;
-    }
-    if (!f.name.toLowerCase().endsWith('.json')) {
-      status.textContent = 'SharePoint schema must be a .json file.';
-      return;
-    }
-    schemaFile = f;
-    schemaLabel.textContent = `Schema: ${f.name}`;
-    status.textContent = '';
-  }
-
-  schemaBrowseBtn?.addEventListener('click', () => schemaInput?.click());
-  schemaInput?.addEventListener('change', () => setSchemaFile(schemaInput.files?.[0]));
 
   ['dragenter', 'dragover'].forEach((evt) => {
     dropZone.addEventListener(evt, (e) => {
@@ -205,31 +275,25 @@
 
   palette.querySelectorAll('.hop-card').forEach((btn) => {
     btn.addEventListener('click', () => {
-      profileSelect.value = '';
-      profileHint.textContent = 'Custom sequence';
       addHop(btn.dataset.hopId);
     });
   });
 
   clearSequence.addEventListener('click', () => {
     sequence = [];
-    profileSelect.value = '';
-    profileHint.textContent = 'Profiles fill the hop sequence; you can still edit afterward.';
     renderSequence();
     updateRunEnabled();
   });
 
-  profileSelect.addEventListener('change', () => {
-    const opt = profileSelect.selectedOptions[0];
-    if (!opt || !opt.value) {
-      profileHint.textContent = 'Custom sequence';
-      return;
+  forceModeSelect?.addEventListener('change', () => {
+    forceMode = forceModeSelect.value === 'all' ? 'all' : 'missing_only';
+    applyForceModeToSequence();
+    renderSequence();
+    if (forceHint) {
+      forceHint.textContent = forceMode === 'all'
+        ? 'All: overwrite existing labels, theme colors, and container chrome where those hops apply.'
+        : 'Missing only: fill gaps and preserve existing values on force-aware hops.';
     }
-    const hops = JSON.parse(opt.dataset.hops || '[]');
-    const profile = (cfg.profiles || []).find((p) => p.id === opt.value);
-    const forceNote = profile?.force ? ' Force mode: overwrites existing hop values.' : '';
-    profileHint.textContent = (profile?.description || '') + forceNote;
-    loadProfileHops(hops);
   });
 
   function showProgress(show) {
@@ -367,12 +431,8 @@
     const elapsedMs = typeof data.elapsed_ms === 'number'
       ? data.elapsed_ms
       : (runStartedAt ? Date.now() - runStartedAt : 0);
-    if (progressPhase) {
-      progressPhase.textContent = 'Finished';
-    }
-    if (progressCount) {
-      progressCount.textContent = `${total} change${total === 1 ? '' : 's'}`;
-    }
+    if (progressPhase) progressPhase.textContent = 'Finished';
+    if (progressCount) progressCount.textContent = `${total} change${total === 1 ? '' : 's'}`;
     if (progressLast && (!progressLast.textContent || /waiting for first/i.test(progressLast.textContent))) {
       progressLast.textContent = 'Sweep complete';
     }
@@ -385,7 +445,6 @@
   }
 
   function applyResult(data) {
-    // Update progress chrome first so we never remain on "Starting…" after success.
     const elapsedMs = markRunFinished(data);
     const total = data.report?.total ?? 0;
     const byHop = data.report?.by_hop || {};
@@ -395,7 +454,6 @@
         + ` in ${formatDuration(elapsedMs)}`
         + (parts.length ? ` — ${parts.join(' · ')}` : '');
     }
-
     if (reportTable) {
       reportTable.innerHTML = '';
       (data.report?.entries || []).forEach((row) => {
@@ -410,15 +468,12 @@
         reportTable.appendChild(tr);
       });
     }
-
     if (downloadLink && data.download_token) {
       downloadLink.href = `${cfg.apiDownload}?token=${encodeURIComponent(data.download_token)}`;
       downloadLink.download = data.filename || 'cleaned.msapp';
     }
     resultPanel?.classList.remove('hidden');
-    if (status) {
-      status.textContent = 'Done.';
-    }
+    if (status) status.textContent = 'Done.';
     resultPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -436,12 +491,9 @@
       onEvent(data.type ? data : { type: data.ok ? 'done' : 'error', ...data });
       return;
     }
-
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    let sawEvent = false;
-
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -452,35 +504,19 @@
         const trimmed = line.trim();
         if (!trimmed) continue;
         const ev = parseEventLine(trimmed);
-        if (!ev) continue;
-        sawEvent = true;
-        onEvent(ev);
+        if (ev) onEvent(ev);
       }
     }
-
     const tail = buffer.trim();
     if (tail) {
       const ev = parseEventLine(tail);
-      if (ev) {
-        sawEvent = true;
-        onEvent(ev);
-        return;
-      }
-      // Proxies sometimes deliver one JSON object with no newlines.
-      const whole = parseEventLine(tail);
-      if (whole) {
-        onEvent(whole.type ? whole : { type: whole.ok ? 'done' : 'error', ...whole });
-        return;
-      }
-    }
-
-    if (!sawEvent && tail === '') {
-      // Empty body — caller handles missing done.
+      if (ev) onEvent(ev);
     }
   }
 
   runBtn.addEventListener('click', async () => {
     if (!file || !sequence.length) return;
+    applyForceModeToSequence();
     status.textContent = '';
     resultPanel.classList.add('hidden');
     runBtn.disabled = true;
@@ -494,9 +530,6 @@
     body.append('msapp', file);
     body.append('hops', JSON.stringify(sequence.map(({ id, options }) => ({ id, options }))));
     body.append('stream', '1');
-    if (schemaFile) {
-      body.append('sharepoint_schema', schemaFile);
-    }
 
     let finished = null;
     try {
@@ -506,7 +539,6 @@
         headers: { Accept: 'application/x-ndjson, application/json' },
       });
 
-      // Leave "Starting…" as soon as the server responds (even if the body is buffered).
       if (progressPhase && /^starting/i.test(progressPhase.textContent || '')) {
         progressPhase.textContent = res.ok ? 'Running…' : 'Failed';
       }
@@ -522,7 +554,7 @@
           const parsed = parseEventLine(errBody.trim().split('\n').pop() || '');
           if (parsed?.error) errMsg = parsed.error;
         } catch {
-          /* keep status text */
+          /* keep */
         }
         throw new Error(errMsg);
       }
@@ -530,30 +562,23 @@
       const contentType = res.headers.get('content-type') || '';
       let failed = null;
 
-      if (contentType.includes('ndjson') || contentType.includes('json')) {
-        // Prefer line-stream when ndjson; also works if a proxy buffers the whole body.
-        if (contentType.includes('ndjson')) {
-          await readNdjsonStream(res, (ev) => {
-            if (ev.type === 'done' || (ev.ok === true && ev.download_token)) {
-              finished = { type: 'done', ok: true, ...ev };
-              return;
-            }
-            if (ev.type === 'error' || ev.ok === false) {
-              failed = ev;
-              return;
-            }
-            applyProgressEvent(ev);
-          });
-        } else {
-          const data = await res.json();
-          if (!data.ok) {
-            failed = data;
-          } else {
-            finished = { type: 'done', ok: true, ...data };
+      if (contentType.includes('ndjson')) {
+        await readNdjsonStream(res, (ev) => {
+          if (ev.type === 'done' || (ev.ok === true && ev.download_token)) {
+            finished = { type: 'done', ok: true, ...ev };
+            return;
           }
-        }
+          if (ev.type === 'error' || ev.ok === false) {
+            failed = ev;
+            return;
+          }
+          applyProgressEvent(ev);
+        });
+      } else if (contentType.includes('json')) {
+        const data = await res.json();
+        if (!data.ok) failed = data;
+        else finished = { type: 'done', ok: true, ...data };
       } else {
-        // Unexpected content-type: try NDJSON lines, then plain JSON.
         const text = await res.text();
         const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
         for (const line of lines) {
@@ -567,24 +592,14 @@
             applyProgressEvent(ev);
           }
         }
-        if (!finished && !failed && lines.length === 1) {
-          const ev = parseEventLine(lines[0]);
-          if (ev?.ok) finished = { type: 'done', ok: true, ...ev };
-          else if (ev) failed = ev;
-        }
       }
 
-      if (failed) {
-        throw new Error(failed.error || 'Run failed');
-      }
-      if (!finished?.ok) {
-        throw new Error('Run failed');
-      }
+      if (failed) throw new Error(failed.error || 'Run failed');
+      if (!finished?.ok) throw new Error('Run failed');
       applyResult(finished);
     } catch (err) {
       status.textContent = err.message || String(err);
       if (finished?.ok) {
-        // Result landed but UI follow-up threw — still show finished state.
         markRunFinished(finished);
       } else {
         progressPhase.textContent = 'Failed';
@@ -600,12 +615,5 @@
     }
   });
 
-  // Default profile
-  const defaultOpt = [...profileSelect.options].find((o) => o.value === 'default');
-  if (defaultOpt) {
-    profileSelect.value = 'default';
-    profileSelect.dispatchEvent(new Event('change'));
-  } else {
-    renderSequence();
-  }
+  renderSequence();
 })();

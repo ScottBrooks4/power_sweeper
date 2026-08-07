@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use PowerSweeper\AppProfileAdvisor;
 use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
 use PowerSweeper\ControlNaming;
@@ -2219,6 +2220,54 @@ array_map('unlink', glob($webExtract . '/WebApp/*') ?: []);
 @rmdir($webExtract . '/WebApp');
 @unlink($webExtract . '/Properties.json');
 @rmdir($webExtract);
+
+// --- AppProfileAdvisor: auto hop sequence + force mode ---
+$advisor = new AppProfileAdvisor();
+$forced = $advisor->applyForceMode(
+    [
+        ['id' => 'accessibility_labels', 'options' => []],
+        ['id' => 'meaningful_names', 'options' => ['only_generic' => true]],
+        ['id' => 'enable_dark_mode', 'options' => ['x' => 1]],
+    ],
+    'all'
+);
+assert_true(($forced[0]['options']['force'] ?? null) === true, 'applyForceMode all sets force on a11y');
+assert_true(!array_key_exists('force', $forced[1]['options']), 'applyForceMode leaves non-forceable hops alone');
+assert_true(($forced[2]['options']['force'] ?? null) === true, 'applyForceMode all sets force on dark mode');
+assert_true(($forced[2]['options']['x'] ?? null) === 1, 'applyForceMode preserves other options');
+$missing = $advisor->applyForceMode(
+    [['id' => 'normalize_containers', 'options' => []], ['id' => 'tooltip_from_label', 'options' => ['force' => true]]],
+    'missing_only'
+);
+assert_true(($missing[0]['options']['force'] ?? null) === false, 'applyForceMode missing_only clears container force');
+assert_true(($missing[1]['options']['force'] ?? null) === false, 'applyForceMode missing_only overrides prior force');
+
+$kmsAdvisePath = dirname(__DIR__) . '/samples/dark_mode_kitchen_sink/dark_mode_kitchen_sink.msapp';
+if (is_file($kmsAdvisePath)) {
+    $plan = $advisor->recommend($kmsAdvisePath);
+    assert_true(($plan['ok'] ?? false) === true, 'advisor recommend ok for kitchen sink');
+    assert_true(in_array($plan['force_mode'], ['all', 'missing_only'], true), 'advisor force_mode is valid');
+    $planIds = array_map(static fn(array $h): string => (string) $h['id'], $plan['hops'] ?? []);
+    assert_true(in_array('accessibility_labels', $planIds, true), 'kitchen sink plan includes accessibility_labels');
+    assert_true(in_array('enable_dark_mode', $planIds, true), 'kitchen sink plan includes enable_dark_mode');
+    foreach ($plan['hops'] as $step) {
+        if (!in_array($step['id'], AppProfileAdvisor::FORCEABLE_HOPS, true)) {
+            continue;
+        }
+        assert_true(array_key_exists('force', $step['options'] ?? []), 'forceable hop carries force option');
+        assert_true(($step['options']['force'] ?? null) === ($plan['force_mode'] === 'all'), 'force option matches force_mode');
+    }
+}
+
+$poweredAdvise = dirname(__DIR__) . '/samples/import_debug/CDLS_VCR_App_Friday.powered.msapp';
+if (is_file($poweredAdvise)) {
+    $poweredPlan = $advisor->recommend($poweredAdvise);
+    assert_true(($poweredPlan['ok'] ?? false) === true, 'advisor recommend ok for powered VCR');
+    assert_true(($poweredPlan['force_mode'] ?? '') === 'missing_only', 'powered app prefers missing_only force');
+    assert_true(($poweredPlan['signals']['has_theme'] ?? false) === true, 'powered app signals has_theme');
+    $poweredIds = array_map(static fn(array $h): string => (string) $h['id'], $poweredPlan['hops'] ?? []);
+    assert_true(!in_array('enable_dark_mode', $poweredIds, true), 'powered app skips enable_dark_mode');
+}
 
 echo "\n";
 if ($failed > 0) {

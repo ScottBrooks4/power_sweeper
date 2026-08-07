@@ -117,10 +117,20 @@ body::before {
   border-color: rgba(198, 242, 109, 0.35);
 }
 
-.schema-panel .hint code {
-  font-family: var(--mono);
-  font-size: 0.9em;
-  color: var(--accent);
+.plan-panel .force-hint {
+  margin-top: 0.35rem;
+  color: color-mix(in srgb, var(--accent) 55%, var(--muted));
+}
+
+.plan-reasons {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.plan-reasons li {
+  margin: 0.25rem 0;
 }
 
 .drop-title {

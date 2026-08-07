@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use PowerSweeper\AppProfileAdvisor;
 use PowerSweeper\HopRegistry;
-use PowerSweeper\ProfileLoader;
 
 $hops = (new HopRegistry())->catalog();
-$profiles = (new ProfileLoader(POWER_SWEEPER_PROFILES))->all();
+$forceable = AppProfileAdvisor::FORCEABLE_HOPS;
 
 // Base URL for /power_sweeper/ under Apache, or / under php -S router.php
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
@@ -36,7 +36,7 @@ $basePath = $basePath === '' ? '' : $basePath;
     <header class="hero">
       <p class="brand">Power Sweeper</p>
       <h1>Clean a canvas app in hops</h1>
-      <p class="lede">Drop an <code>.msapp</code>, choose operations, reorder the sequence, and download a cleaned app with a change report.</p>
+      <p class="lede">Drop an <code>.msapp</code> — Power Sweeper scans it, picks the hop sequence and overwrite mode, then you can tweak and run.</p>
     </header>
 
     <section class="panel drop-panel" id="dropZone" tabindex="0">
@@ -47,30 +47,17 @@ $basePath = $basePath === '' ? '' : $basePath;
       </div>
     </section>
 
-    <section class="panel schema-panel">
+    <section class="panel plan-panel hidden" id="planPanel">
       <div class="row between">
-        <h2>SharePoint schema</h2>
-        <button type="button" class="ghost" id="schemaBrowseBtn">Choose JSON</button>
-      </div>
-      <input type="file" id="schemaInput" accept=".json,application/json" hidden>
-      <p class="hint" id="schemaLabel">Optional. Used by <code>correlate_sharepoint</code> to validate lists/columns and repair typos against your real SharePoint lists.</p>
-    </section>
-
-    <section class="panel">
-      <div class="row between">
-        <h2>Profile</h2>
-        <select id="profileSelect" aria-label="Profile preset">
-          <option value="">Custom sequence</option>
-          <?php foreach ($profiles as $profile): ?>
-            <option value="<?= htmlspecialchars($profile['id'], ENT_QUOTES) ?>"
-              title="<?= htmlspecialchars($profile['description'], ENT_QUOTES) ?>"
-              data-hops="<?= htmlspecialchars(json_encode($profile['hops'], JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
-              <?= htmlspecialchars($profile['id']) ?>
-            </option>
-          <?php endforeach; ?>
+        <h2>Recommended plan</h2>
+        <select id="forceModeSelect" aria-label="Overwrite mode for selected hops">
+          <option value="missing_only">Missing only</option>
+          <option value="all">All</option>
         </select>
       </div>
-      <p class="hint" id="profileHint">Profiles fill the hop sequence; you can still edit afterward.</p>
+      <p class="hint" id="planHint">Scanning…</p>
+      <p class="hint force-hint" id="forceHint"></p>
+      <ul class="plan-reasons" id="planReasons"></ul>
     </section>
 
     <section class="panel hops-layout">
@@ -93,7 +80,7 @@ $basePath = $basePath === '' ? '' : $basePath;
           <button type="button" class="ghost" id="clearSequence">Clear</button>
         </div>
         <ol class="sequence" id="sequence" aria-label="Hop sequence"></ol>
-        <p class="hint empty-seq" id="emptySeq">Add hops from the left. Order matters.</p>
+        <p class="hint empty-seq" id="emptySeq">Drop an app to auto-fill hops, or add them from the left. Order matters.</p>
       </div>
     </section>
 
@@ -142,8 +129,9 @@ $basePath = $basePath === '' ? '' : $basePath;
   <script>
     window.POWER_SWEEPER = {
       hops: <?= json_encode($hops, JSON_UNESCAPED_SLASHES) ?>,
-      profiles: <?= json_encode($profiles, JSON_UNESCAPED_SLASHES) ?>,
+      forceable_hops: <?= json_encode(array_values($forceable), JSON_UNESCAPED_SLASHES) ?>,
       apiRun: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/run.php', JSON_UNESCAPED_SLASHES) ?>,
+      apiAnalyze: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/analyze.php', JSON_UNESCAPED_SLASHES) ?>,
       apiDownload: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/download.php', JSON_UNESCAPED_SLASHES) ?>,
       upload_limits: {
         upload_max_filesize: <?= json_encode((string) ini_get('upload_max_filesize'), JSON_UNESCAPED_SLASHES) ?>,
