@@ -84,10 +84,17 @@ final class FormulaIdentifierRewriter
             return $code;
         }
 
+        // Bare-identifier slot: quote replacements that are not bare ids
+        // (e.g. "TDR Trips_ TopMenu_1" must become 'TDR Trips_ TopMenu_1').
+        $replacement = $new;
+        if (!str_contains($new, '.') && !self::isQuotedName($new) && !preg_match('/^[A-Za-z_][\w]*$/', $new)) {
+            $replacement = "'" . str_replace("'", "''", $new) . "'";
+        }
+
         // Unquoted identifier — skip member access (preceded by '.') so
         // 'Screen'.Date is not re-qualified to 'Screen'.'Screen'.Date.
         $pattern = '/(?<![\w.])' . preg_quote($old, '/') . '(?![\w])/';
 
-        return preg_replace($pattern, $new, $code) ?? $code;
+        return preg_replace($pattern, $replacement, $code) ?? $code;
     }
 }

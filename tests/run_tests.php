@@ -289,6 +289,14 @@ assert_true(
     $quotedScreenRewrite === "Navigate('PACS Homepage')",
     'identifier rewriter does not triple-quote already-quoted screen names'
 );
+$spacedRename = \PowerSweeper\FormulaIdentifierRewriter::rename(
+    "SideMenuFirstTable = [{ x: 1 }];",
+    ['SideMenuFirstTable' => 'TDR Trips_ TopMenu_1']
+);
+assert_true(
+    str_contains($spacedRename, "'TDR Trips_ TopMenu_1'"),
+    'identifier rewriter quotes spaced rename targets in bare-identifier slots'
+);
 
 // Half-converted color alphas (list commas + locale decimal) → BadArity in Studio
 $halfAlpha = 'RGBA(240, 240, 240, 0,2)';
