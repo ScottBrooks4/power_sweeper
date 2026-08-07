@@ -84,7 +84,9 @@ final class RepairGhostPatchFieldsHop implements HopInterface
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($ghosts, $report): string {
                 $changed = false;
-                $out = PowerFxFormulaSegments::transformCode($formula, static function (string $code) use ($ghosts, $report, $path, &$changed): string {
+                // Preserving literals keeps LookUp(... "Field" ...).Child contiguous —
+                // transformCode alone splits on "..." and breaks paren balancing.
+                $out = PowerFxFormulaSegments::transformCodePreservingLiterals($formula, static function (string $code) use ($ghosts, $report, $path, &$changed): string {
                     $new = $code;
                     foreach (array_keys($ghosts) as $ghost) {
                         $linePatterns = [
@@ -109,6 +111,13 @@ final class RepairGhostPatchFieldsHop implements HopInterface
                                 $new = $replaced;
                                 $changed = true;
                             }
+                        }
+                        // LookUp(Ghost.AllItems, …).Child.Prop → Blank() when gallery is gone.
+                        $neutralized = self::neutralizeGhostLookups($new, $ghost);
+                        if ($neutralized !== $new) {
+                            $report->add(self::id(), $path, $ghost . '.AllItems', '(ghost LookUp)', 'Blank()');
+                            $new = $neutralized;
+                            $changed = true;
                         }
                     }
 
@@ -148,6 +157,12 @@ final class RepairGhostPatchFieldsHop implements HopInterface
                                 $candidates[$name] = true;
                             }
                         }
+                        // Gallery3.AllItems / MissingList.AllItems — deleted data hosts.
+                        if (preg_match_all('/\b([A-Za-z_][\w]*)\.AllItems\b/', $code, $m)) {
+                            foreach ($m[1] as $name) {
+                                $candidates[$name] = true;
+                            }
+                        }
 
                         return $code;
                     });
@@ -166,9 +181,69 @@ final class RepairGhostPatchFieldsHop implements HopInterface
             if ($catalog->screensWith($name) !== []) {
                 continue;
             }
+            if ($catalog->isComponentInstance($name)) {
+                continue;
+            }
             $ghosts[$name] = true;
         }
 
         return $ghosts;
+    }
+
+    /**
+     * LookUp(Ghost.AllItems, pred).Child.Prop → Blank()
+     */
+    private static function neutralizeGhostLookups(string $code, string $ghost): string
+    {
+        $needle = 'LookUp';
+        $out = '';
+        $offset = 0;
+        $len = strlen($code);
+        $ghostAll = $ghost . '.AllItems';
+        while ($offset < $len) {
+            $pos = stripos($code, $needle, $offset);
+            if ($pos === false) {
+                $out .= substr($code, $offset);
+                break;
+            }
+            $out .= substr($code, $offset, $pos - $offset);
+            $open = strpos($code, '(', $pos);
+            if ($open === false) {
+                $out .= substr($code, $pos, strlen($needle));
+                $offset = $pos + strlen($needle);
+                continue;
+            }
+            $depth = 0;
+            $i = $open;
+            for (; $i < $len; $i++) {
+                if ($code[$i] === '(') {
+                    $depth++;
+                } elseif ($code[$i] === ')') {
+                    $depth--;
+                    if ($depth === 0) {
+                        break;
+                    }
+                }
+            }
+            if ($depth !== 0) {
+                $out .= substr($code, $pos, strlen($needle));
+                $offset = $pos + strlen($needle);
+                continue;
+            }
+            $call = substr($code, $pos, $i - $pos + 1);
+            $end = $i + 1;
+            while ($end < $len && preg_match('/\G\.\w+/', $code, $mm, 0, $end) === 1) {
+                $end += strlen($mm[0]);
+            }
+            $full = substr($code, $pos, $end - $pos);
+            if (str_contains($call, $ghostAll)) {
+                $out .= 'Blank()';
+            } else {
+                $out .= $full;
+            }
+            $offset = $end;
+        }
+
+        return $out;
     }
 }

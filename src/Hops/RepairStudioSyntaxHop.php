@@ -68,6 +68,13 @@ final class RepairStudioSyntaxHop implements HopInterface
                     if ($after !== $before) {
                         $control->setProperty('OnStart', $after);
                     }
+                    $formulas = (string) ($control->getProperty('Formulas') ?? '');
+                    if ($formulas !== '') {
+                        $quoted = $this->quoteSpacedNamedFormulas($formulas, $control->path . '.Formulas', $report);
+                        if ($quoted !== $formulas) {
+                            $control->setProperty('Formulas', $quoted);
+                        }
+                    }
                 }
                 $this->dropUnsupportedToggleTextPosition($control, $report);
                 if (!$control->isScreen() || !isset($hostScreens[$control->name])) {
@@ -97,6 +104,33 @@ final class RepairStudioSyntaxHop implements HopInterface
         $from = (string) $control->getProperty('TextPosition');
         $control->removeProperty('TextPosition');
         $report->add(self::id(), $control->path, 'TextPosition', $from, '(removed unsupported)');
+    }
+
+    /**
+     * App.Formulas named bindings with spaces must be quoted:
+     * TDR Trips_ TopMenu_1 = […] → 'TDR Trips_ TopMenu_1' = […]
+     */
+    private function quoteSpacedNamedFormulas(string $formulas, string $path, Report $report): string
+    {
+        $changed = false;
+        $out = PowerFxFormulaSegments::transformCode($formulas, function (string $code) use ($report, $path, &$changed): string {
+            $replaced = preg_replace_callback(
+                '/^([A-Za-z_][\w]*(?:\s+[A-Za-z_][\w]*)+)\s*=/m',
+                function (array $m) use ($report, $path, &$changed): string {
+                    $name = $m[1];
+                    $quoted = "'" . str_replace("'", "''", $name) . "' =";
+                    $report->add(self::id(), $path, 'named formula', $name, "'" . $name . "'");
+                    $changed = true;
+
+                    return $quoted;
+                },
+                $code,
+            );
+
+            return is_string($replaced) ? $replaced : $code;
+        });
+
+        return $changed ? $out : $formulas;
     }
 
     /**

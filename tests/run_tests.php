@@ -1140,6 +1140,14 @@ assert_true(
         && !str_contains($delegTrimLocal, 'Trim('),
     'delegation strips Trim() around local control Text args'
 );
+$delegInLower = \PowerSweeper\DelegationFormulaRewriter::rewrite(
+    'With({searchText: Lower(Trim(txtSearch.Text))}, Filter(list, searchText in Lower(Coalesce(\'Pass Holder Details\', ""))))'
+);
+assert_true(
+    str_contains($delegInLower, 'searchText in Coalesce(')
+        && !preg_match('/\bin\s+Lower\s*\(/i', $delegInLower),
+    'delegation strips Lower() on in-operator column side'
+);
 
 $varPkgTmp = sys_get_temp_dir() . '/ps_varpkg_' . bin2hex(random_bytes(4)) . '.pa.yaml';
 file_put_contents($varPkgTmp, <<<'YAML'
@@ -1288,6 +1296,36 @@ $dateRepair = $dateRef->getMethod('repairFormula');
 $dateRepair->setAccessible(true);
 $dateFixed = $dateRepair->invoke($dateHop, "='VCR / VCN Form'.Date(1900, 1, 1)", 'test', $dateReport);
 assert_true(str_contains($dateFixed, 'Date(1900') && !str_contains($dateFixed, "'VCR / VCN Form'.Date"), 'syntax repair unwraps screen-qualified Date()');
+
+// repair_studio_syntax — quote spaced App.Formulas named-formula keys
+$spacedFormulaYaml = <<<'YAML'
+App:
+  Control: App@1.0.0
+  Properties:
+    Formulas: |-
+      TDR Trips_ TopMenu_1 = [{ Value: 1 }];
+      SideMenuSecondTable = [{ Value: 2 }];
+YAML;
+$spacedFormulaPath = sys_get_temp_dir() . '/ps_spaced_nf_' . bin2hex(random_bytes(4)) . '.pa.yaml';
+file_put_contents($spacedFormulaPath, $spacedFormulaYaml);
+$spacedFormulaDoc = ControlDocument::fromFile($spacedFormulaPath, 'Src/App.pa.yaml');
+assert_true($spacedFormulaDoc !== null, 'spaced named-formula fixture loads');
+$spacedFormulaReport = new Report();
+(new \PowerSweeper\Hops\RepairStudioSyntaxHop())->apply([$spacedFormulaDoc], $spacedFormulaReport);
+$spacedFormulas = null;
+foreach ($spacedFormulaDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $spacedFormulas = $c->getProperty('Formulas');
+        break;
+    }
+}
+assert_true(
+    is_string($spacedFormulas)
+        && str_contains($spacedFormulas, "'TDR Trips_ TopMenu_1' =")
+        && str_contains($spacedFormulas, 'SideMenuSecondTable ='),
+    'syntax repair quotes spaced App.Formulas named-formula keys only'
+);
+@unlink($spacedFormulaPath);
 
 // locale — LookUp with ; after quoted table name inside concatenation
 $lookupLocale = '"Version #: " & AppVersion & LookUp(\'VASC App Versions\'; ID = 1).AppVersion';
@@ -1738,6 +1776,44 @@ assert_true(
     'ghost hop discovers and removes absent Field: Field.Prop lines'
 );
 @unlink($ghostPath);
+
+// Ghost gallery LookUp(...AllItems...).Child → Blank() across string-literal splits
+$ghostLookupYaml = <<<'YAML'
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    OnSelect: |-
+      =Patch(
+          colTemp,
+          Defaults(colTemp),
+          {
+              Title: LookUp(
+                  Gallery3.AllItems,
+                  FieldName = "MP File Number"
+              ).TextInput4.Text
+          }
+      );
+YAML;
+$ghostLookupPath = sys_get_temp_dir() . '/ps_ghost_lookup_' . bin2hex(random_bytes(4)) . '.pa.yaml';
+file_put_contents($ghostLookupPath, $ghostLookupYaml);
+$ghostLookupDoc = ControlDocument::fromFile($ghostLookupPath, 'Src/Screen1.pa.yaml');
+assert_true($ghostLookupDoc !== null, 'ghost LookUp fixture loads');
+$ghostLookupReport = new Report();
+(new \PowerSweeper\Hops\RepairGhostPatchFieldsHop())->apply([$ghostLookupDoc], $ghostLookupReport);
+$ghostLookupOnSelect = null;
+foreach ($ghostLookupDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $ghostLookupOnSelect = $c->getProperty('OnSelect');
+        break;
+    }
+}
+assert_true(
+    is_string($ghostLookupOnSelect)
+        && str_contains($ghostLookupOnSelect, 'Title: Blank()')
+        && !str_contains($ghostLookupOnSelect, 'Gallery3'),
+    'ghost hop neutralizes LookUp(Ghost.AllItems, …).Child to Blank()'
+);
+@unlink($ghostLookupPath);
 
 // ColorValue chrome heuristic — pale slate/blue Studio chrome is themeable
 assert_true(

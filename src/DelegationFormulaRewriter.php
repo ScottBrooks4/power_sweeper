@@ -19,11 +19,73 @@ final class DelegationFormulaRewriter
             $out = self::rewriteCountIfTrimBlank($out);
             $out = self::rewriteLocalTrimInStartsWith($out);
             $out = self::rewriteLocalTrimIsBlank($out);
+            $out = self::rewriteInLowerColumn($out);
             $out = self::rewriteSubstituteInFilter($out);
             $out = self::splitDateEmailFilters($out);
 
             return $out;
         }, false);
+    }
+
+    /**
+     * localVar in Lower(columnExpr) → localVar in columnExpr
+     *
+     * Common when searchText is already Lower(Trim(SearchBox.Text)) in a With().
+     * Lower() on the datasource side is non-delegable.
+     */
+    private static function rewriteInLowerColumn(string $formula): string
+    {
+        $replaced = preg_replace(
+            '/\b([A-Za-z_][\w]*)\s+in\s+Lower\s*\(\s*((?:\'[^\']+\'|[A-Za-z_][\w]*)(?:\s*,\s*(?:\'[^\']+\'|[A-Za-z_][\w]*|"[^"]*"|""))*|(?:Coalesce|Concatenate)\s*\([^()]*(?:\([^()]*\)[^()]*)*\))\s*\)/i',
+            '$1 in $2',
+            $formula,
+        );
+        if (is_string($replaced) && $replaced !== $formula) {
+            return $replaced;
+        }
+
+        // Simpler / nested-tolerant: localIdent in Lower( …balanced… )
+        return self::replaceInLowerBalanced($formula);
+    }
+
+    private static function replaceInLowerBalanced(string $formula): string
+    {
+        $out = '';
+        $offset = 0;
+        $len = strlen($formula);
+        while ($offset < $len) {
+            if (!preg_match('/\b([A-Za-z_][\w]*)\s+in\s+Lower\s*\(/i', $formula, $m, PREG_OFFSET_CAPTURE, $offset)) {
+                $out .= substr($formula, $offset);
+                break;
+            }
+            $matchStart = (int) $m[0][1];
+            $ident = $m[1][0];
+            $openParen = $matchStart + strlen($m[0][0]) - 1;
+            $depth = 0;
+            $i = $openParen;
+            for (; $i < $len; $i++) {
+                $ch = $formula[$i];
+                if ($ch === '(') {
+                    $depth++;
+                } elseif ($ch === ')') {
+                    $depth--;
+                    if ($depth === 0) {
+                        break;
+                    }
+                }
+            }
+            if ($depth !== 0) {
+                $out .= substr($formula, $offset, $matchStart - $offset + strlen($m[0][0]));
+                $offset = $matchStart + strlen($m[0][0]);
+                continue;
+            }
+            $inner = substr($formula, $openParen + 1, $i - $openParen - 1);
+            $out .= substr($formula, $offset, $matchStart - $offset);
+            $out .= $ident . ' in ' . trim($inner);
+            $offset = $i + 1;
+        }
+
+        return $out;
     }
 
     /**
