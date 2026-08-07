@@ -205,26 +205,38 @@ final class FormulaLocaleNormalizer
     }
 
     /**
-     * True when masked code has a decimal comma that is not just a multi-arg
-     * numeric list (RGBA(0,0,0,1), etc.).
+     * True when masked code has a decimal comma outside function/record argument
+     * lists (e.g. Parent.Width * 0,5). Two-arg calls like GetInfoData(0,0) are
+     * valid invariant Power Fx and must not be treated as locale decimals.
      */
     private static function hasStandaloneDecimalComma(string $masked): bool
     {
+        $outsideCalls = self::stripBalancedCalls($masked);
         $withoutLists = preg_replace(
             '/(?<![A-Za-z_.])\d+(?:\s*,\s*\d+){2,}/',
             ' ',
-            $masked
-        ) ?? $masked;
+            $outsideCalls
+        ) ?? $outsideCalls;
 
         return preg_match('/(?<![A-Za-z_.])\d+,\d+/', $withoutLists) === 1;
     }
 
     /**
      * Convert 12,5 → 12.5 while leaving comma-separated numeric lists intact.
+     *
+     * Inside function calls, `\d+,\d+` is almost always two integer args
+     * (GetInfoData(0,0)) unless the segment already has locale list separators
+     * (`;` / `;;`), in which case `\d+,\d+` is a locale decimal (If(a; 0,5; 1)).
      */
     private static function convertStandaloneDecimalCommas(string $code): string
     {
+        $localeListSep = str_contains($code, ';;')
+            || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $code) === 1
+            || preg_match("/'(?:[^']|'')+'\\s*;/", $code) === 1
+            || preg_match('/\{[^}"\']*;/', $code) === 1;
+
         $protected = [];
+        // Always protect 3+ numeric arg lists: RGBA(0,0,0,1)
         $code = preg_replace_callback(
             '/(?<![A-Za-z_.])\d+(?:\s*,\s*\d+){2,}/',
             static function (array $m) use (&$protected): string {
@@ -234,6 +246,11 @@ final class FormulaLocaleNormalizer
             },
             $code
         ) ?? $code;
+
+        if (!$localeListSep) {
+            // Protect 2-arg numeric pairs inside (...) so GetInfoData(0,0) stays intact.
+            $code = self::protectNumericPairsInsideCalls($code, $protected);
+        }
 
         $code = preg_replace_callback(
             '/(?<![A-Za-z_.])\d+,\d+(?!\d)/',
@@ -246,6 +263,49 @@ final class FormulaLocaleNormalizer
         }
 
         return $code;
+    }
+
+    /**
+     * Replace balanced (...) / [...] regions with spaces (strings already masked).
+     */
+    private static function stripBalancedCalls(string $s): string
+    {
+        $out = $s;
+        // Iterate to handle nesting: innermost first.
+        for ($pass = 0; $pass < 8; $pass++) {
+            $next = preg_replace('/\([^()]*\)/', ' ', $out) ?? $out;
+            $next = preg_replace('/\[[^\[\]]*\]/', ' ', $next) ?? $next;
+            if ($next === $out) {
+                break;
+            }
+            $out = $next;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, string> $protected
+     */
+    private static function protectNumericPairsInsideCalls(string $code, array &$protected): string
+    {
+        return preg_replace_callback(
+            '/\(([^()]*)\)/',
+            static function (array $m) use (&$protected): string {
+                $inner = preg_replace_callback(
+                    '/(?<![A-Za-z_.])\d+\s*,\s*\d+(?!\d)/',
+                    static function (array $pair) use (&$protected): string {
+                        $key = "\x00NUMLIST" . count($protected) . "\x00";
+                        $protected[$key] = $pair[0];
+                        return $key;
+                    },
+                    $m[1]
+                ) ?? $m[1];
+
+                return '(' . $inner . ')';
+            },
+            $code
+        ) ?? $code;
     }
 
     private static function maskProtected(string $s): string

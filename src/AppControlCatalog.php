@@ -97,7 +97,7 @@ final class AppControlCatalog
                 $cat->controlsByScreen[$screen][$controlName] = true;
                 $cat->screensByControl[$controlName][] = $screen;
 
-                if (str_contains($control->type, 'CanvasComponent')) {
+                if ($cat->looksLikeComponentInstance($control)) {
                     $cat->componentInstances[$controlName] = true;
                     $def = $cat->componentNameFromInstance($controlName);
                     $children = $cat->componentDefChildren[$def] ?? [];
@@ -156,6 +156,12 @@ final class AppControlCatalog
     public function isComponentInstance(string $name): bool
     {
         return isset($this->componentInstances[$name]);
+    }
+
+    /** @return list<string> */
+    public function componentInstanceNames(): array
+    {
+        return array_keys($this->componentInstances);
     }
 
     public function quoteScreen(string $screen): string
@@ -341,6 +347,23 @@ final class AppControlCatalog
             return $m[1];
         }
         return $instanceName;
+    }
+
+    /**
+     * YAML uses CanvasComponent; JSON packs often store a GUID template id.
+     * Treat known definition names / com* hosts as instances too.
+     */
+    private function looksLikeComponentInstance(ControlNode $control): bool
+    {
+        if (str_contains($control->type, 'CanvasComponent')) {
+            return true;
+        }
+        $def = $this->componentNameFromInstance($control->name);
+        if (isset($this->componentDefPaths[$def]) || isset($this->componentDefChildren[$def])) {
+            return true;
+        }
+        // Shared chrome hosts: comTranslations, comExternalFunctions, …
+        return (bool) preg_match('/^com[A-Z]/', $control->name);
     }
 
     public function isReserved(string $identifier): bool

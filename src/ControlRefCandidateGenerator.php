@@ -56,12 +56,74 @@ final class ControlRefCandidateGenerator
         $add($catalog->resolveIdentifier($screen, $badId));
         $add($this->resolveLocalSuffix($badId, $localNames));
         $add($this->resolveHostAligned($badId, $hostControl, $localNames));
+        $add($this->resolveComponentHostAlias($badId, $catalog));
         $add($this->resolveTokenStem($badId, $localNames));
         $add($this->fuzzyLocal($badId, $localNames));
         $add($this->fuzzyAppWide($badId, $screen, $catalog));
         $add($this->crossScreenQualify($badId, $screen, $catalog));
 
         return $out;
+    }
+
+    /**
+     * Map missing comTranslations / comExternalFunctions hosts onto the live
+     * canvas component instance (e.g. TranslationComponent_1) by token overlap.
+     */
+    private function resolveComponentHostAlias(string $badId, AppControlCatalog $catalog): ?string
+    {
+        if ($catalog->isComponentInstance($badId)) {
+            return null;
+        }
+        $instances = $catalog->componentInstanceNames();
+        if ($instances === []) {
+            return null;
+        }
+
+        $badTokens = $this->tokenizeIdentifier($badId);
+        // Strip leading "com" host prefix for comparison (comTranslations → translations).
+        if (($badTokens[0] ?? '') === 'com' && count($badTokens) >= 2) {
+            $badTokens = array_slice($badTokens, 1);
+        }
+        if ($badTokens === []) {
+            return null;
+        }
+        $norm = static fn(string $t): string => rtrim($t, 's');
+        $badNorm = array_values(array_filter(array_map($norm, $badTokens), static fn(string $t): bool => strlen($t) >= 4));
+        if ($badNorm === []) {
+            return null;
+        }
+        $badStem = implode('', $badNorm);
+
+        $best = null;
+        $bestScore = 0.0;
+        foreach ($instances as $inst) {
+            $base = preg_replace('/_\d+$/', '', $inst) ?? $inst;
+            $tokens = $this->tokenizeIdentifier($base);
+            if (($tokens[0] ?? '') === 'com' && count($tokens) >= 2) {
+                $tokens = array_slice($tokens, 1);
+            }
+            $tokNorm = array_values(array_filter(array_map($norm, $tokens), static fn(string $t): bool => strlen($t) >= 4));
+            $stem = implode('', $tokNorm);
+            if ($stem === '') {
+                continue;
+            }
+            $shared = count(array_intersect($badNorm, $tokNorm));
+            // comTranslations ↔ TranslationComponent: shared "translation" token.
+            if ($shared >= 1) {
+                return $inst;
+            }
+            if ($stem === $badStem || str_contains($stem, $badStem) || str_contains($badStem, $stem)) {
+                return $inst;
+            }
+            similar_text($badStem, $stem, $pct);
+            $score = $pct;
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $inst;
+            }
+        }
+
+        return $bestScore >= 72.0 ? $best : null;
     }
 
     /**

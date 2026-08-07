@@ -101,15 +101,14 @@ final class ProfileLoader
             }
         }
 
-        $basename = basename($inputMsapp);
-        if (preg_match('/THCEE/i', $basename)) {
-            $config = $this->loadByPath($this->profilesDir . '/powered_thcee.php');
-            if ($config !== null) {
-                return $config;
-            }
+        // One powered chain for all app classes (VCR / THCEE / ASC / TDR / …).
+        // powered_thcee.php remains as an explicit alias when callers ask for it.
+        $config = $this->loadByPath($this->profilesDir . '/repair_powered.php');
+        if ($config !== null) {
+            return $config;
         }
 
-        $config = $this->loadByPath($this->profilesDir . '/repair_powered.php');
+        $config = $this->loadByPath($this->profilesDir . '/powered_thcee.php');
         if ($config !== null) {
             return $config;
         }

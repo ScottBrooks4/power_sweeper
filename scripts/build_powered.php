@@ -11,8 +11,7 @@ declare(strict_types=1);
  *
  * Profile auto-selection:
  *   - explicit profile.php when provided
- *   - powered_thcee for *THCEE* inputs
- *   - repair_powered (VCR-class full repair + dark mode) otherwise
+ *   - repair_powered (shared full repair + dark mode) otherwise
  */
 
 require_once dirname(__DIR__) . '/bootstrap.php';
@@ -39,7 +38,7 @@ $loader = new ProfileLoader($profilesDir);
 $profile = $loader->resolvePoweredProfile($input, is_string($explicitProfile) && $explicitProfile !== '' ? $explicitProfile : null);
 $profileLabel = is_string($explicitProfile) && $explicitProfile !== ''
     ? basename($explicitProfile)
-    : (preg_match('/THCEE/i', basename($input)) ? 'powered_thcee.php' : 'repair_powered.php');
+    : 'repair_powered.php';
 
 (new PowerSweeper\Pipeline())->run($input, $loader->resolveHops($profile), $output);
 

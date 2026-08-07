@@ -305,10 +305,12 @@ final class RepairSharePointFieldsHop implements HopInterface
     {
         $cols = [];
         $lists = $catalog->sharePointListNames();
-        usort($lists, static function (string $a, string $b): int {
-            $score = static fn(string $n): int => str_contains($n, 'VCR Tracking') ? 0 : 1;
+        // Prefer lists with the richest column sets (no app-specific name seeds).
+        usort($lists, function (string $a, string $b) use ($catalog): int {
+            $ca = count($catalog->columnNamesFor($a));
+            $cb = count($catalog->columnNamesFor($b));
 
-            return $score($a) <=> $score($b) ?: strcasecmp($a, $b);
+            return $cb <=> $ca ?: strcasecmp($a, $b);
         });
         foreach ($lists as $list) {
             foreach ($catalog->columnNamesFor($list) as $col) {

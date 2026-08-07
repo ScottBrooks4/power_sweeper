@@ -3,11 +3,10 @@
 declare(strict_types=1);
 
 /**
- * Combined pass for Studio App checker errors seen after locale/language switches
- * and screen duplication (CDLS VCR App class).
+ * Combined pass for Studio App checker errors (locale switches, screen duplication,
+ * control/SharePoint refs, a11y, delegation). Works across VCR / THCEE / ASC / TDR apps.
  */
 return [
-    'description' => 'Full Studio App checker repair for VCR-class apps: locale separators, control/SharePoint refs, booleans, accessibility, maintainability, delegation, and live SARIF regeneration.',
-    'app_class' => 'vcr',
-    'hops' => include __DIR__ . '/includes/vcr_repair_hops.php',
+    'description' => 'Full Studio App checker repair: locale separators, control/SharePoint refs, booleans, accessibility, maintainability, delegation, and live SARIF regeneration.',
+    'hops' => include __DIR__ . '/includes/studio_repair_hops.php',
 ];

@@ -138,7 +138,8 @@ final class DelegationFormulaRewriter
         if (!preg_match('/\.Email\s*=\s*User\(\)\.Email/', $pred)) {
             return null;
         }
-        if (!preg_match('/(?:\'[^\']+\'\.)?Date\s*=\s*locDate/', $pred)) {
+        // Date = <local ident> (locDate, varDate, selectedDate, …)
+        if (!preg_match('/(?:\'[^\']+\'\.)?Date\s*=\s*[A-Za-z_][\w]*/', $pred)) {
             return null;
         }
         if (!preg_match('/Lower\s*\(\s*Trim\s*\(/i', $pred)) {
@@ -158,7 +159,7 @@ final class DelegationFormulaRewriter
                 continue;
             }
             if (preg_match('/\.Email\s*=\s*User\(\)\.Email/', $part)
-                || preg_match('/(?:\'[^\']+\'\.)?Date\s*=\s*locDate/', $part)
+                || preg_match('/(?:\'[^\']+\'\.)?Date\s*=\s*[A-Za-z_][\w]*/', $part)
             ) {
                 $inner[] = $part;
             } else {

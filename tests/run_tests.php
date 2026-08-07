@@ -273,6 +273,13 @@ $localeRgbaTight = 'RGBA(0;0;0;1)';
 assert_true(FormulaLocaleNormalizer::toInvariant($localeRgbaTight) === 'RGBA(0,0,0,1)', 'tight locale RGBA keeps four args');
 $standaloneDec = '=Parent.Width * 0,5';
 assert_true(FormulaLocaleNormalizer::toInvariant($standaloneDec) === '=Parent.Width * 0.5', 'standalone decimal comma still fixed');
+// Two-arg invariant calls must NOT be treated as locale decimals (ASC/THCEE GetInfoData).
+$twoArgInvariant = "comTranslations.GetInfoData(0,0);\nSet(varInfoContainer, !varInfoContainer);";
+assert_true(!FormulaLocaleNormalizer::looksLocaleCorrupted($twoArgInvariant), 'GetInfoData(0,0) invariant not flagged as locale');
+assert_true(
+    FormulaLocaleNormalizer::toInvariant($twoArgInvariant) === $twoArgInvariant,
+    'GetInfoData(0,0) invariant left unchanged (no 0.0 / comma-chaining corruption)'
+);
 
 // Half-converted color alphas (list commas + locale decimal) → BadArity in Studio
 $halfAlpha = 'RGBA(240, 240, 240, 0,2)';
@@ -1736,6 +1743,71 @@ $stemCandidates = $stemGen->candidates(
     $stemCatalog,
 );
 assert_true(in_array('GovernmentInitiative', $stemCandidates, true), 'token-stem heuristic proposes GovernmentInitiative');
+
+// Multi-app: TDR comTranslations → TranslationComponent_1 host alias
+$tdrSample = dirname(__DIR__) . '/samples/import_debug/TDR - THCEE Directory App.msapp';
+if (is_file($tdrSample)) {
+    $tdrOut = sys_get_temp_dir() . '/ps_tdr_repair_' . bin2hex(random_bytes(3)) . '.msapp';
+    $tdrProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
+    (new Pipeline())->run($tdrSample, $tdrProfile['hops'], $tdrOut);
+    $tdrArch = new \PowerSweeper\MsappArchive($tdrOut);
+    $tdrArch->unpack();
+    $tdrLive = \PowerSweeper\StudioLiveChecker::check($tdrArch->documents(), ['extract_dir' => $tdrArch->extractDir()]);
+    $tdrComLeft = 0;
+    $tdrFormulaErr = 0;
+    foreach ($tdrArch->documents() as $doc) {
+        $doc->transformFormulas(static function (string $f) use (&$tdrComLeft): string {
+            if (preg_match('/\bcomTranslations\b/', $f)) {
+                $tdrComLeft++;
+            }
+            return $f;
+        });
+    }
+    foreach ($tdrLive['findings'] as $f) {
+        if (str_starts_with((string) $f['ruleId'], 'app-Err')) {
+            $tdrFormulaErr++;
+        }
+    }
+    assert_true($tdrComLeft === 0, 'TDR repair rewrites comTranslations host alias');
+    assert_true($tdrFormulaErr === 0, 'TDR repair clears app-Err* findings (got ' . $tdrFormulaErr . ')');
+    $tdrArch->cleanup();
+    @unlink($tdrOut);
+}
+
+// Multi-app: ASC Template locale pass must not corrupt GetInfoData(0,0)
+$ascTemplate = dirname(__DIR__) . '/samples/import_debug/VCDS ASC —Template with Approvals.msapp';
+if (is_file($ascTemplate)) {
+    $ascOut = sys_get_temp_dir() . '/ps_asc_repair_' . bin2hex(random_bytes(3)) . '.msapp';
+    $ascProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
+    (new Pipeline())->run($ascTemplate, $ascProfile['hops'], $ascOut);
+    $ascArch = new \PowerSweeper\MsappArchive($ascOut);
+    $ascArch->unpack();
+    $ascBad = 0;
+    $ascGood = 0;
+    $ascLive = \PowerSweeper\StudioLiveChecker::check($ascArch->documents(), ['extract_dir' => $ascArch->extractDir()]);
+    foreach ($ascArch->documents() as $doc) {
+        $doc->transformFormulas(static function (string $f) use (&$ascBad, &$ascGood): string {
+            if (str_contains($f, 'GetInfoData(0.0)')) {
+                $ascBad++;
+            }
+            if (preg_match('/GetInfoData\(\s*0\s*,\s*0\s*\)/', $f)) {
+                $ascGood++;
+            }
+            return $f;
+        });
+    }
+    $ascErr = 0;
+    foreach ($ascLive['findings'] as $f) {
+        if (str_starts_with((string) $f['ruleId'], 'app-Err')) {
+            $ascErr++;
+        }
+    }
+    assert_true($ascBad === 0, 'ASC Template repair does not corrupt GetInfoData(0,0)→0.0');
+    assert_true($ascGood > 0, 'ASC Template keeps invariant GetInfoData(0,0)');
+    assert_true($ascErr === 0, 'ASC Template repair clears app-Err* findings (got ' . $ascErr . ')');
+    $ascArch->cleanup();
+    @unlink($ascOut);
+}
 
 // Catalog-driven SharePoint field fallbacks (VisitType / Level* / Initiative / Specification)
 $spFbExtract = sys_get_temp_dir() . '/ps_spfb_' . bin2hex(random_bytes(3));

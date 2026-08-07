@@ -20,9 +20,6 @@ use PowerSweeper\ScreenReferenceNormalizer;
  */
 final class RepairControlRefsHop implements HopInterface
 {
-    /** Seed when discovery cannot find a form host (VCR-class apps). */
-    private const FORM_HOST_SCREEN_SEED = 'VCR / VCN Form';
-
     public static function id(): string
     {
         return 'repair_control_refs';
@@ -126,15 +123,11 @@ final class RepairControlRefsHop implements HopInterface
     }
 
     /**
-     * Prefer the seed form screen when present; otherwise pick the screen that
-     * owns the most numbered section containers / Annex* / EmergencyContact hosts.
+     * Pick the screen that looks most like a multi-section form host:
+     * numbered section containers, Annex*, EmergencyContact, or dense Form/Gallery trees.
      */
     private function discoverFormHostScreen(AppControlCatalog $catalog): ?string
     {
-        if ($catalog->isScreenName(self::FORM_HOST_SCREEN_SEED)) {
-            return self::FORM_HOST_SCREEN_SEED;
-        }
-
         $best = null;
         $bestScore = 0;
         foreach ($catalog->screenNames() as $screen) {
@@ -143,6 +136,7 @@ final class RepairControlRefsHop implements HopInterface
                 if (preg_match('/^\d+_/', $name) === 1
                     || preg_match('/^Annex\d+$/i', $name) === 1
                     || strcasecmp($name, 'EmergencyContact') === 0
+                    || preg_match('/(Form|DataCard|Gallery|Section)/i', $name) === 1
                 ) {
                     $score++;
                 }
@@ -191,10 +185,20 @@ final class RepairControlRefsHop implements HopInterface
             }
 
             if ($screen === null) {
-                // Seed map still helps App.OnStart / component templates without a screen.
+                // App.OnStart / component templates: typo seeds + global component host aliases.
                 $typo = ControlTypoMap::fix($id);
                 if ($typo !== null) {
                     $map[$id] = $typo;
+                    continue;
+                }
+                foreach ($candidates->candidates($id, '', $hostControl, $localNames, $catalog) as $candidate) {
+                    if (str_contains($candidate, '.')) {
+                        continue;
+                    }
+                    if ($catalog->isComponentInstance($candidate)) {
+                        $map[$id] = $candidate;
+                        break;
+                    }
                 }
                 continue;
             }
@@ -222,6 +226,21 @@ final class RepairControlRefsHop implements HopInterface
                     continue;
                 }
                 $map[$id] = $target;
+                continue;
+            }
+
+            // Prefer global component-host aliases (comTranslations → TranslationComponent_1)
+            // before the stricter near-identical stem gate used for typo repairs.
+            foreach ($candidates->candidates($id, $screen, $hostControl, $localNames, $catalog) as $candidate) {
+                if (str_contains($candidate, '.') || $this->wouldOverQualifyScreen($catalog, $id, $candidate)) {
+                    continue;
+                }
+                if ($catalog->isComponentInstance($candidate)) {
+                    $map[$id] = $candidate;
+                    break;
+                }
+            }
+            if (isset($map[$id])) {
                 continue;
             }
 
