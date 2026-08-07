@@ -84,22 +84,27 @@ $basePath = $basePath === '' ? '' : $basePath;
       </div>
     </section>
 
-    <section class="actions">
-      <button type="button" class="primary" id="runBtn" disabled>Run sweeper</button>
-      <p class="status" id="status" role="status"></p>
-      <div class="run-progress hidden" id="runProgress" aria-live="polite" aria-atomic="true">
-        <div class="progress-meta">
-          <span class="progress-phase" id="progressPhase">Ready</span>
-          <span class="progress-count" id="progressCount"></span>
+    <section class="actions-dock" id="actionsDock" aria-label="Run controls">
+      <div class="actions-dock-inner">
+        <div class="actions-row">
+          <button type="button" class="primary" id="runBtn" disabled>Run sweeper</button>
+          <p class="run-estimate" id="runEstimate" aria-live="polite">Add hops to estimate runtime</p>
+          <p class="status" id="status" role="status"></p>
         </div>
-        <div class="progress-bar" id="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Run progress">
-          <div class="progress-bar-fill" id="progressBarFill"></div>
+        <div class="run-progress hidden" id="runProgress" aria-live="polite" aria-atomic="true">
+          <div class="progress-meta">
+            <span class="progress-phase" id="progressPhase">Ready</span>
+            <span class="progress-count" id="progressCount"></span>
+          </div>
+          <div class="progress-bar" id="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Run progress">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+          </div>
+          <div class="progress-times">
+            <span class="progress-elapsed" id="progressElapsed">Elapsed 0:00</span>
+            <span class="progress-eta" id="progressEta">Estimating…</span>
+          </div>
+          <p class="progress-last" id="progressLast"></p>
         </div>
-        <div class="progress-times">
-          <span class="progress-elapsed" id="progressElapsed">Elapsed 0:00</span>
-          <span class="progress-eta" id="progressEta">Estimating…</span>
-        </div>
-        <p class="progress-last" id="progressLast"></p>
       </div>
     </section>
 

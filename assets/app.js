@@ -24,6 +24,7 @@
   const clearSequence = document.getElementById('clearSequence');
   const runBtn = document.getElementById('runBtn');
   const status = document.getElementById('status');
+  const runEstimate = document.getElementById('runEstimate');
   const runProgress = document.getElementById('runProgress');
   const progressPhase = document.getElementById('progressPhase');
   const progressCount = document.getElementById('progressCount');
@@ -37,9 +38,50 @@
   const reportTable = document.querySelector('#reportTable tbody');
   const downloadLink = document.getElementById('downloadLink');
 
+  /** Baseline ms per hop before file-size scaling (tuned from typical runs). */
+  const HOP_COST_MS = {
+    enable_dark_mode: 4500,
+    meaningful_names: 3500,
+    unwhack_locale_formulas: 2800,
+    accessibility_labels: 2200,
+    tooltip_from_label: 1400,
+    normalize_containers: 1800,
+    strip_default_fill: 900,
+    normalize_classic_button_chrome: 1100,
+    align_near_miss: 1000,
+    ensure_focus_visible: 1100,
+    ensure_tab_index: 900,
+    repair_control_refs: 2600,
+    repair_context_aware_refs: 2400,
+    repair_converge_formulas: 2200,
+    repair_double_qualified_refs: 2000,
+    repair_studio_syntax: 2100,
+    repair_sharepoint_fields: 1700,
+    repair_ghost_patch_fields: 1600,
+    repair_delegation: 1500,
+    repair_maintainability: 1400,
+    repair_checked_booleans: 1200,
+    repair_var_current_package: 1300,
+    correlate_sharepoint: 2000,
+    regenerate_sarif: 1300,
+    analyze_app_checker: 1600,
+    scan_studio_issues: 1400,
+    export_web_ir: 3200,
+    import_web_ir: 3200,
+    configure_power_document: 900,
+    set_zip_path_style: 700,
+  };
+  const DEFAULT_HOP_MS = 900;
+  const OVERHEAD_MS = 700;
+  const UNPACK_MS = 1100;
+  const PACK_MS = 1400;
+  const LEARNED_COSTS_KEY = 'ps_hop_costs_v1';
+
   let file = null;
   /** @type {{id:string,options:object,uid:string}[]} */
   let sequence = [];
+  /** Snapshot of sequence for the active run (for weighted remaining ETA). */
+  let runSequence = [];
   let dragUid = null;
   /** @type {'all'|'missing_only'} */
   let forceMode = 'missing_only';
@@ -50,8 +92,11 @@
   let runProgressFraction = 0;
   /** @type {number[]} */
   let hopDurationsMs = [];
+  /** @type {Record<string, number>} */
+  let hopDurationById = {};
   let hopsRemaining = 0;
   let packingPending = false;
+  let plannedTotalMs = 0;
 
   function uid() {
     return Math.random().toString(36).slice(2, 10);
@@ -65,6 +110,80 @@
     if (n < 1024) return `${n} B`;
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
     return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function fileSizeFactor(bytes) {
+    if (!bytes || bytes <= 0) return 1;
+    const mb = bytes / (1024 * 1024);
+    return Math.max(0.75, Math.min(2.6, 0.7 + Math.sqrt(mb) * 0.42));
+  }
+
+  function learnedHopCosts() {
+    try {
+      const raw = localStorage.getItem(LEARNED_COSTS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function rememberHopCost(id, ms) {
+    if (!id || !(ms >= 80) || !(ms < 15 * 60 * 1000)) return;
+    const costs = learnedHopCosts();
+    const prev = Number(costs[id]);
+    costs[id] = Number.isFinite(prev) && prev > 0
+      ? Math.round(prev * 0.62 + ms * 0.38)
+      : Math.round(ms);
+    try {
+      localStorage.setItem(LEARNED_COSTS_KEY, JSON.stringify(costs));
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }
+
+  function hopBaseCostMs(id, options = {}) {
+    const learned = Number(learnedHopCosts()[id]);
+    let base = Number.isFinite(learned) && learned > 0
+      ? learned
+      : (HOP_COST_MS[id] ?? DEFAULT_HOP_MS);
+    if (options?.force === true && forceableHops.has(id)) {
+      base *= 1.28;
+    }
+    return base;
+  }
+
+  function hopCostMs(id, options = {}) {
+    return hopBaseCostMs(id, options) * fileSizeFactor(file?.size || 0);
+  }
+
+  function estimateSequenceMs(hops = sequence) {
+    if (!hops.length) return 0;
+    const scale = fileSizeFactor(file?.size || 0);
+    const hopsMs = hops.reduce((sum, step) => sum + hopCostMs(step.id, step.options), 0);
+    return OVERHEAD_MS + (UNPACK_MS + PACK_MS) * scale + hopsMs;
+  }
+
+  function formatEstimateFriendly(ms) {
+    if (!(ms > 0)) return '—';
+    if (ms < 2500) return 'a few seconds';
+    if (ms < 55_000) return `~${Math.max(1, Math.round(ms / 1000))}s`;
+    return `~${formatDuration(ms)}`;
+  }
+
+  function updateRunEstimate() {
+    if (!runEstimate) return;
+    if (!sequence.length) {
+      runEstimate.textContent = 'Add hops to estimate runtime';
+      runEstimate.classList.add('is-empty');
+      plannedTotalMs = 0;
+      return;
+    }
+    plannedTotalMs = estimateSequenceMs();
+    const hopWord = sequence.length === 1 ? 'hop' : 'hops';
+    const sizeNote = file ? ` · ${humanBytes(file.size)}` : '';
+    runEstimate.textContent = `Est. ${formatEstimateFriendly(plannedTotalMs)} for ${sequence.length} ${hopWord}${sizeNote}`;
+    runEstimate.classList.remove('is-empty');
   }
 
   function warnIfOverUploadLimit(selected) {
@@ -147,6 +266,7 @@
       });
       sequenceEl.appendChild(li);
     });
+    updateRunEstimate();
   }
 
   function addHop(id, options = {}) {
@@ -240,6 +360,7 @@
     status.textContent = '';
     warnIfOverUploadLimit(f);
     updateRunEnabled();
+    updateRunEstimate();
     analyzeFile(f);
   }
 
@@ -323,17 +444,44 @@
     progressBarFill.style.width = `${pct}%`;
   }
 
+  function remainingHopSteps() {
+    if (!runSequence.length || hopsRemaining <= 0) return [];
+    const start = Math.max(0, runSequence.length - hopsRemaining);
+    return runSequence.slice(start);
+  }
+
   function estimateRemainingMs() {
     if (runProgressFraction >= 0.999) return 0;
     const elapsed = Date.now() - runStartedAt;
+    const scale = fileSizeFactor(file?.size || 0);
     let eta = null;
+
+    const remaining = remainingHopSteps();
+    if (remaining.length || packingPending) {
+      let weighted = remaining.reduce((sum, step) => {
+        const learned = hopDurationById[step.id];
+        if (Number.isFinite(learned) && learned > 0) {
+          return sum + learned;
+        }
+        return sum + hopCostMs(step.id, step.options);
+      }, 0);
+      if (packingPending) {
+        weighted += PACK_MS * scale;
+      }
+      eta = weighted;
+    }
+
     if (hopDurationsMs.length > 0 && (hopsRemaining > 0 || packingPending)) {
       const avg = hopDurationsMs.reduce((a, b) => a + b, 0) / hopDurationsMs.length;
-      eta = avg * hopsRemaining + (packingPending ? Math.max(avg * 0.35, 800) : 0);
+      const fromAvg = avg * hopsRemaining + (packingPending ? Math.max(avg * 0.35, 800) : 0);
+      eta = eta == null ? fromAvg : (eta * 0.7 + fromAvg * 0.3);
     }
+
     if (runProgressFraction >= 0.04) {
       const fromFraction = (elapsed / runProgressFraction) * (1 - runProgressFraction);
-      eta = eta == null ? fromFraction : (eta * 0.55 + fromFraction * 0.45);
+      eta = eta == null ? fromFraction : (eta * 0.6 + fromFraction * 0.4);
+    } else if (eta == null && plannedTotalMs > 0 && runStartedAt) {
+      eta = Math.max(0, plannedTotalMs - elapsed);
     }
     return eta;
   }
@@ -361,11 +509,18 @@
   function startProgressClock() {
     stopProgressClock();
     runStartedAt = Date.now();
+    runSequence = sequence.map((step) => ({ ...step, options: { ...(step.options || {}) } }));
     hopDurationsMs = [];
-    hopsRemaining = sequence.length;
+    hopDurationById = {};
+    hopsRemaining = runSequence.length;
     packingPending = true;
+    plannedTotalMs = estimateSequenceMs(runSequence);
     runProgressFraction = 0;
     setProgressFraction(0, { indeterminate: true });
+    if (runEstimate && plannedTotalMs > 0) {
+      runEstimate.textContent = `Plan ${formatEstimateFriendly(plannedTotalMs)} · running…`;
+      runEstimate.classList.remove('is-empty');
+    }
     refreshProgressTimes();
     progressTimer = setInterval(() => refreshProgressTimes(), 250);
   }
@@ -411,9 +566,15 @@
     } else if (ev.type === 'hop_done') {
       if (typeof ev.duration_ms === 'number' && ev.duration_ms >= 0) {
         hopDurationsMs.push(ev.duration_ms);
+        if (ev.hop) {
+          hopDurationById[ev.hop] = ev.duration_ms;
+          rememberHopCost(ev.hop, ev.duration_ms);
+        }
       }
       if (typeof ev.total === 'number' && typeof ev.index === 'number') {
         hopsRemaining = Math.max(0, ev.total - ev.index);
+      } else if (hopsRemaining > 0) {
+        hopsRemaining -= 1;
       }
       progressPhase.textContent = ev.message || `Finished ${ev.label || ev.hop || 'hop'}`;
       if (typeof ev.count === 'number') {
@@ -441,6 +602,7 @@
     packingPending = false;
     stopProgressClock();
     refreshProgressTimes({ finalMs: elapsedMs });
+    updateRunEstimate();
     return elapsedMs;
   }
 
@@ -606,6 +768,7 @@
         progressLast.textContent = err.message || String(err);
         stopProgressClock();
         refreshProgressTimes({ failed: true });
+        updateRunEstimate();
       }
     } finally {
       if (finished?.ok && progressPhase && /^starting/i.test(progressPhase.textContent || '')) {
