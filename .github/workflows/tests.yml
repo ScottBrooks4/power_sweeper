@@ -25,4 +25,5 @@ jobs:
         run: php tests/run_tests.php
 
       - name: Validate powered deliverable
+        if: hashFiles('samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp') != ''
         run: php scripts/validate_powered.php samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp

@@ -39,6 +39,7 @@ $profile = $loader->resolvePoweredProfile($input, is_string($explicitProfile) &&
 $profileLabel = is_string($explicitProfile) && $explicitProfile !== ''
     ? basename($explicitProfile)
     : 'repair_powered.php';
+$appClass = (string) ($profile['app_class'] ?? 'shared');
 
 (new PowerSweeper\Pipeline())->run($input, $loader->resolveHops($profile), $output);
 
@@ -47,28 +48,35 @@ $arch->unpack();
 $live = PowerSweeper\StudioLiveChecker::check($arch->documents(), ['extract_dir' => $arch->extractDir()]);
 $hasTheme = false;
 $themeRadioWired = false;
+$formulaErr = 0;
 foreach ($arch->documents() as $doc) {
     foreach ($doc->controls() as $c) {
         if ($c->isApp() && str_contains((string) $c->getProperty('OnStart'), 'gblThemeLight')) {
             $hasTheme = true;
         }
-        if ($c->name === 'ThemeRadio' && str_contains((string) $c->getProperty('OnChange'), 'gblThemeDark')) {
-            $themeRadioWired = true;
-        }
+        $onChange = (string) $c->getProperty('OnChange');
         if (
-            !$themeRadioWired
-            && str_contains($c->path, 'TopbarHeader')
-            && str_contains(strtolower($c->type), 'radio')
-            && str_contains((string) $c->getProperty('OnChange'), 'gblThemeDark')
+            str_contains($onChange, 'gblThemeDark')
+            && str_contains($onChange, 'gblDarkMode')
+            && (
+                $c->name === 'ThemeRadio'
+                || str_contains(strtolower($c->type), 'radio')
+            )
         ) {
             $themeRadioWired = true;
         }
     }
 }
+foreach ($live['findings'] as $f) {
+    $rule = (string) ($f['ruleId'] ?? '');
+    if (str_starts_with($rule, 'app-Err') || $rule === 'app-formula-mangled-screen-ref') {
+        $formulaErr++;
+    }
+}
 $arch->cleanup();
 
 echo "Built: {$output}\n";
-echo "Profile: {$profileLabel}\n";
-echo "Live checker total: {$live['total']}\n";
+echo "Profile: {$profileLabel} (app_class={$appClass})\n";
+echo "Live checker total: {$live['total']} (formulaErr={$formulaErr})\n";
 echo "Theme palettes in App.OnStart: " . ($hasTheme ? 'yes' : 'no') . "\n";
-echo "ThemeRadio wired: " . ($themeRadioWired ? 'yes' : 'no') . "\n";
+echo "Theme radio wired: " . ($themeRadioWired ? 'yes' : 'no') . "\n";

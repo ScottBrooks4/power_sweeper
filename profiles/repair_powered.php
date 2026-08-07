@@ -8,7 +8,8 @@ declare(strict_types=1);
  * Output convention: *.powered.msapp (repairs + gblThemeLight/gblThemeDark in App.OnStart).
  */
 return [
-    'description' => 'Powered preset: full Studio repair (locale, refs, syntax, a11y, delegation) then enable_dark_mode with editable gblThemeLight/gblThemeDark palettes. force=true re-themes Studio chrome and remaining literals for a complete powered deliverable.',
+    'description' => 'Powered preset for all app classes (VCR / THCEE / ASC / TDR / …): full Studio repair then enable_dark_mode with editable gblThemeLight/gblThemeDark palettes. force=true re-themes Studio chrome and remaining literals for a complete powered deliverable.',
+    'app_class' => 'shared',
     'force' => true,
     'hops' => include __DIR__ . '/includes/thcee_powered_hops.php',
 ];

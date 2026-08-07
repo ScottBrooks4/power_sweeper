@@ -191,10 +191,8 @@ foreach ($selected as $appId) {
     }
 
     $powered = $loader->resolvePoweredProfile($path);
-    $profileName = basename((string) ($powered['id'] ?? 'repair_powered'));
-    if ($profileName === 'repair_powered' || !isset($powered['id'])) {
-        $profileName = 'repair_powered';
-    }
+    $appClass = (string) ($powered['app_class'] ?? 'shared');
+    $profileName = 'repair_powered';
     $out2 = $outDir . '/' . $appId . '.powered.msapp';
     $t0 = microtime(true);
     try {
@@ -212,15 +210,18 @@ foreach ($selected as $appId) {
             }
         }
         $a3->cleanup();
-        echo "powered ({$profileName}): {$secs}s live={$after['total']} theme="
-            . ($hasTheme ? 'Y' : 'N') . ' | ' . $fmtRules($after['by_rule']) . "\n";
+        echo "powered ({$profileName}/{$appClass}): {$secs}s live={$after['total']} formulaErr="
+            . $formulaErrCount($after) . ' theme=' . ($hasTheme ? 'Y' : 'N')
+            . ' | ' . $fmtRules($after['by_rule']) . "\n";
         $summary[$appId]['powered'] = [
             'before' => $before['total'],
             'after' => $after['total'],
+            'formula_err' => $formulaErrCount($after),
             'secs' => $secs,
             'theme' => $hasTheme,
             'rules' => $after['by_rule'],
             'profile' => $profileName,
+            'app_class' => $appClass,
         ];
     } catch (Throwable $e) {
         echo 'powered FAIL: ' . $e->getMessage() . "\n";

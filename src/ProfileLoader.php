@@ -39,6 +39,9 @@ final class ProfileLoader
             if (array_key_exists('force', $config)) {
                 $entry['force'] = (bool) $config['force'];
             }
+            if (isset($config['app_class']) && is_string($config['app_class']) && $config['app_class'] !== '') {
+                $entry['app_class'] = $config['app_class'];
+            }
             $out[] = $entry;
         }
 

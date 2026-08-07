@@ -103,9 +103,9 @@ PHP files in [`profiles/`](profiles/) return a description and ordered hop list 
 | `repair_delegation` | SharePoint delegation fixes (+ SARIF) |
 | `repair_studio_errors` | **Full Studio checker repair** (locale, context-aware refs, booleans, a11y, delegation, SARIF) |
 | `repair_smart` | **Meaningful names + full repair** — rename generic controls first, then `repair_studio_errors` chain |
-| `repair_powered` | **Full repair + dark mode** — outputs `*.powered.msapp` with `gblTheme` toggle (CDLS VCR preset) |
-| `powered_thcee` | **THCEE full repair + dark mode** — same repair chain, preserves global component hosts |
-| `repair_studio_errors_then_dark` | Full repair + dark mode (CDLS VCR one-shot) |
+| `repair_powered` | **Full repair + dark mode** — shared `*.powered.msapp` chain for VCR / THCEE / ASC / TDR |
+| `powered_thcee` | Alias of `repair_powered` (kept for scripts/UI compatibility) |
+| `repair_studio_errors_then_dark` | Full repair + dark mode one-shot |
 | `scan_studio_issues` | Report-only verify pass (no formula edits) |
 | `regenerate_sarif` | Refresh `AppCheckerResult.sarif` from live checker only |
 | `dark_mode` | `gblTheme` palettes and dark-mode toggle |
@@ -124,13 +124,21 @@ These profiles are intentionally **not** a 100% Power App ↔ arbitrary web-app 
 
 Power Fx formulas remain authoritative inside the `.msapp`. Error-correction profiles (`repair_studio_errors`, `repair_smart`) use context-aware reference repair and a live-checker converge loop — not blind find/replace.
 
-For apps like **CDLS VCR** / **VCDS THCEE**, you can either:
+For **CDLS VCR**, **VCDS THCEE**, **TDR**, **ASC PACS**, and **ASC Template**, you can either:
 
-1. Profile **`repair_powered`** or **`powered_thcee`** (or `php scripts/build_powered.php input.msapp`) → `*.powered.msapp` with full repair + `gblTheme` toggle  
+1. Profile **`repair_powered`** (or `php scripts/build_powered.php input.msapp`) → `*.powered.msapp` with full repair + `gblTheme` toggle  
 2. Profile **`repair_studio_errors`** → download → verify in Studio  
 3. Profile **`dark_mode`** on that cleaned `.msapp` (or use **`repair_studio_errors_then_dark`** for both in one run)
+4. Profile **`power_to_web`** / **`web_to_power`** for structural IR export/import (after repair when formulas are dirty)
 
-Friday deliverables (repair + dark mode, live checker 0):
+Multi-app matrix (repair, optional powered, optional web round-trip):
+
+```bash
+php scripts/matrix_profiles.php --apps=vcr,thcee,tdr,pacs,template
+php scripts/matrix_profiles.php --web --skip-powered
+```
+
+Friday deliverables (repair + dark mode):
 
 ```bash
 php scripts/build_friday_deliverables.php
@@ -140,7 +148,7 @@ php scripts/validate_powered.php samples/import_debug/VCDS_THCEE_Friday.powered.
 
 Download: [GitHub release `friday-deliverable-20260731`](https://github.com/freementls/power_sweeper/releases/tag/friday-deliverable-20260731)
 
-Validate a powered deliverable:
+Validate a powered deliverable (formula errors fail; soft advisories warn):
 
 ```bash
 php scripts/validate_powered.php samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp
