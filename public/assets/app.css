@@ -284,7 +284,7 @@ select {
   flex: 1 1 100%;
   min-width: 0;
   margin: 0;
-  padding: 0.65rem 0.85rem;
+  padding: 0.75rem 0.9rem;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: color-mix(in srgb, var(--panel) 88%, transparent);
@@ -297,7 +297,7 @@ select {
   justify-content: space-between;
   gap: 1rem;
   align-items: baseline;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.45rem;
 }
 
 .progress-phase {
@@ -311,6 +311,48 @@ select {
   font-family: var(--mono);
   font-size: 0.8rem;
   white-space: nowrap;
+}
+
+.progress-bar {
+  position: relative;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: rgba(214, 232, 198, 0.12);
+  overflow: hidden;
+  margin-bottom: 0.45rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8fbf4a, var(--accent));
+  transition: width 0.35s ease;
+  box-shadow: 0 0 16px rgba(198, 242, 109, 0.35);
+}
+
+.progress-bar[data-indeterminate="1"] .progress-bar-fill {
+  width: 28% !important;
+  animation: progress-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(360%); }
+}
+
+.progress-times {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.progress-eta {
+  color: color-mix(in srgb, var(--accent) 70%, var(--muted));
 }
 
 .progress-last {

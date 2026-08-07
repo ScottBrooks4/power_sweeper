@@ -281,6 +281,8 @@ try {
         'download_token' => $token,
         'filename' => $downloadName,
         'report' => $result['report'],
+        'elapsed_ms' => (int) ($result['elapsed_ms'] ?? 0),
+        'progress' => 1.0,
     ];
 
     if ($wantsStream) {
@@ -291,6 +293,7 @@ try {
             'download_token' => $token,
             'filename' => $downloadName,
             'report' => $result['report'],
+            'elapsed_ms' => (int) ($result['elapsed_ms'] ?? 0),
         ], JSON_UNESCAPED_SLASHES);
     }
 } catch (Throwable $e) {

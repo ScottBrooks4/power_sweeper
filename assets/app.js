@@ -21,6 +21,10 @@
   const progressPhase = document.getElementById('progressPhase');
   const progressCount = document.getElementById('progressCount');
   const progressLast = document.getElementById('progressLast');
+  const progressBar = document.getElementById('progressBar');
+  const progressBarFill = document.getElementById('progressBarFill');
+  const progressElapsed = document.getElementById('progressElapsed');
+  const progressEta = document.getElementById('progressEta');
   const resultPanel = document.getElementById('resultPanel');
   const reportSummary = document.getElementById('reportSummary');
   const reportTable = document.querySelector('#reportTable tbody');
@@ -31,6 +35,14 @@
   /** @type {{id:string,options:object,uid:string}[]} */
   let sequence = [];
   let dragUid = null;
+  /** @type {ReturnType<typeof setInterval>|null} */
+  let progressTimer = null;
+  let runStartedAt = 0;
+  let runProgressFraction = 0;
+  /** @type {number[]} */
+  let hopDurationsMs = [];
+  let hopsRemaining = 0;
+  let packingPending = false;
 
   function uid() {
     return Math.random().toString(36).slice(2, 10);
@@ -215,12 +227,90 @@
     }
     const hops = JSON.parse(opt.dataset.hops || '[]');
     const profile = (cfg.profiles || []).find((p) => p.id === opt.value);
-    profileHint.textContent = profile?.description || '';
+    const forceNote = profile?.force ? ' Force mode: overwrites existing hop values.' : '';
+    profileHint.textContent = (profile?.description || '') + forceNote;
     loadProfileHops(hops);
   });
 
   function showProgress(show) {
     runProgress.classList.toggle('hidden', !show);
+  }
+
+  function formatDuration(ms) {
+    const totalSec = Math.max(0, Math.round(Number(ms) / 1000));
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function setProgressFraction(fraction, { indeterminate = false } = {}) {
+    const clamped = Math.max(0, Math.min(1, Number(fraction) || 0));
+    runProgressFraction = clamped;
+    if (!progressBar || !progressBarFill) return;
+    if (indeterminate) {
+      progressBar.dataset.indeterminate = '1';
+      progressBar.setAttribute('aria-valuenow', '0');
+      progressBarFill.style.width = '28%';
+      return;
+    }
+    delete progressBar.dataset.indeterminate;
+    const pct = Math.round(clamped * 100);
+    progressBar.setAttribute('aria-valuenow', String(pct));
+    progressBarFill.style.width = `${pct}%`;
+  }
+
+  function estimateRemainingMs() {
+    if (runProgressFraction >= 0.999) return 0;
+    const elapsed = Date.now() - runStartedAt;
+    let eta = null;
+    if (hopDurationsMs.length > 0 && (hopsRemaining > 0 || packingPending)) {
+      const avg = hopDurationsMs.reduce((a, b) => a + b, 0) / hopDurationsMs.length;
+      eta = avg * hopsRemaining + (packingPending ? Math.max(avg * 0.35, 800) : 0);
+    }
+    if (runProgressFraction >= 0.04) {
+      const fromFraction = (elapsed / runProgressFraction) * (1 - runProgressFraction);
+      eta = eta == null ? fromFraction : (eta * 0.55 + fromFraction * 0.45);
+    }
+    return eta;
+  }
+
+  function refreshProgressTimes({ finalMs = null, failed = false } = {}) {
+    if (!progressElapsed || !progressEta) return;
+    const elapsed = finalMs != null ? finalMs : (runStartedAt ? Date.now() - runStartedAt : 0);
+    progressElapsed.textContent = `Elapsed ${formatDuration(elapsed)}`;
+    if (failed) {
+      progressEta.textContent = 'Stopped';
+      return;
+    }
+    if (finalMs != null || runProgressFraction >= 0.999) {
+      progressEta.textContent = `Total ${formatDuration(elapsed)}`;
+      return;
+    }
+    const eta = estimateRemainingMs();
+    if (eta == null) {
+      progressEta.textContent = 'Estimating…';
+      return;
+    }
+    progressEta.textContent = eta < 1500 ? 'Almost done…' : `~${formatDuration(eta)} left`;
+  }
+
+  function startProgressClock() {
+    stopProgressClock();
+    runStartedAt = Date.now();
+    hopDurationsMs = [];
+    hopsRemaining = sequence.length;
+    packingPending = true;
+    runProgressFraction = 0;
+    setProgressFraction(0, { indeterminate: true });
+    refreshProgressTimes();
+    progressTimer = setInterval(() => refreshProgressTimes(), 250);
+  }
+
+  function stopProgressClock() {
+    if (progressTimer != null) {
+      clearInterval(progressTimer);
+      progressTimer = null;
+    }
   }
 
   function formatChangeLine(ev) {
@@ -231,11 +321,55 @@
     return `${hop}: ${control}.${property} → ${to}`;
   }
 
+  function applyProgressEvent(ev) {
+    if (typeof ev.progress === 'number') {
+      setProgressFraction(ev.progress);
+    }
+    if (ev.type === 'phase') {
+      progressPhase.textContent = ev.message || ev.label || ev.phase || 'Working…';
+      if (typeof ev.count === 'number') {
+        progressCount.textContent = `${ev.count} change${ev.count === 1 ? '' : 's'}`;
+      }
+      if (ev.phase === 'hop' && typeof ev.total === 'number' && typeof ev.index === 'number') {
+        hopsRemaining = Math.max(0, ev.total - ev.index + 1);
+        packingPending = true;
+        if (typeof ev.progress !== 'number' && ev.total > 0) {
+          setProgressFraction((ev.index - 1) / (ev.total + 2));
+        }
+      }
+      if (ev.phase === 'pack') {
+        hopsRemaining = 0;
+        packingPending = true;
+      }
+      if (ev.phase === 'pack_done' || ev.phase === 'unpack_done') {
+        packingPending = ev.phase !== 'pack_done';
+      }
+    } else if (ev.type === 'hop_done') {
+      if (typeof ev.duration_ms === 'number' && ev.duration_ms >= 0) {
+        hopDurationsMs.push(ev.duration_ms);
+      }
+      if (typeof ev.total === 'number' && typeof ev.index === 'number') {
+        hopsRemaining = Math.max(0, ev.total - ev.index);
+      }
+      progressPhase.textContent = ev.message || `Finished ${ev.label || ev.hop || 'hop'}`;
+      if (typeof ev.count === 'number') {
+        progressCount.textContent = `${ev.count} change${ev.count === 1 ? '' : 's'}`;
+      }
+    } else if (ev.type === 'change') {
+      progressCount.textContent = `${ev.count} change${ev.count === 1 ? '' : 's'}`;
+      progressLast.textContent = formatChangeLine(ev);
+    }
+    refreshProgressTimes();
+  }
+
   function applyResult(data) {
     const total = data.report?.total ?? 0;
     const byHop = data.report?.by_hop || {};
     const parts = Object.entries(byHop).map(([k, v]) => `${k}: ${v}`);
-    reportSummary.textContent = `${total} change${total === 1 ? '' : 's'}` + (parts.length ? ` — ${parts.join(' · ')}` : '');
+    const elapsedMs = typeof data.elapsed_ms === 'number' ? data.elapsed_ms : (Date.now() - runStartedAt);
+    reportSummary.textContent = `${total} change${total === 1 ? '' : 's'}`
+      + ` in ${formatDuration(elapsedMs)}`
+      + (parts.length ? ` — ${parts.join(' · ')}` : '');
 
     reportTable.innerHTML = '';
     (data.report?.entries || []).forEach((row) => {
@@ -256,6 +390,11 @@
     status.textContent = 'Done.';
     progressPhase.textContent = 'Finished';
     progressCount.textContent = `${total} change${total === 1 ? '' : 's'}`;
+    setProgressFraction(1);
+    hopsRemaining = 0;
+    packingPending = false;
+    stopProgressClock();
+    refreshProgressTimes({ finalMs: elapsedMs });
     resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -298,6 +437,7 @@
     progressPhase.textContent = 'Starting…';
     progressCount.textContent = '';
     progressLast.textContent = 'Waiting for first change…';
+    startProgressClock();
 
     const body = new FormData();
     body.append('msapp', file);
@@ -320,19 +460,15 @@
 
       if (contentType.includes('ndjson')) {
         await readNdjsonStream(res, (ev) => {
-          if (ev.type === 'phase') {
-            progressPhase.textContent = ev.message || ev.label || ev.phase || 'Working…';
-            if (typeof ev.count === 'number') {
-              progressCount.textContent = `${ev.count} change${ev.count === 1 ? '' : 's'}`;
-            }
-          } else if (ev.type === 'change') {
-            progressCount.textContent = `${ev.count} change${ev.count === 1 ? '' : 's'}`;
-            progressLast.textContent = formatChangeLine(ev);
-          } else if (ev.type === 'done') {
+          if (ev.type === 'done') {
             finished = ev;
-          } else if (ev.type === 'error') {
-            failed = ev;
+            return;
           }
+          if (ev.type === 'error') {
+            failed = ev;
+            return;
+          }
+          applyProgressEvent(ev);
         });
       } else {
         const data = await res.json();
@@ -354,6 +490,8 @@
       status.textContent = err.message || String(err);
       progressPhase.textContent = 'Failed';
       progressLast.textContent = err.message || String(err);
+      stopProgressClock();
+      refreshProgressTimes({ failed: true });
     } finally {
       updateRunEnabled();
     }

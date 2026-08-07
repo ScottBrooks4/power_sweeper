@@ -105,6 +105,13 @@ $basePath = $basePath === '' ? '' : $basePath;
           <span class="progress-phase" id="progressPhase">Starting…</span>
           <span class="progress-count" id="progressCount"></span>
         </div>
+        <div class="progress-bar" id="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Run progress">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        <div class="progress-times">
+          <span class="progress-elapsed" id="progressElapsed">Elapsed 0:00</span>
+          <span class="progress-eta" id="progressEta">Estimating…</span>
+        </div>
         <p class="progress-last" id="progressLast"></p>
       </div>
     </section>

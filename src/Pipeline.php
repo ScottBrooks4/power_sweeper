@@ -13,14 +13,19 @@ final class Pipeline
     /**
      * @param list<array{id:string,options?:array<string,mixed>}> $hops
      * @param null|callable(array<string,mixed>):void $onProgress
-     * @return array{report: array<string,mixed>, output_path: string}
+     * @return array{report: array<string,mixed>, output_path: string, elapsed_ms: int}
      */
     public function run(string $inputMsapp, array $hops, string $outputMsapp, ?callable $onProgress = null): array
     {
-        $emit = static function (array $event) use ($onProgress): void {
-            if ($onProgress !== null) {
-                $onProgress($event);
+        $startedAt = microtime(true);
+        $emit = static function (array $event) use ($onProgress, $startedAt): void {
+            if ($onProgress === null) {
+                return;
             }
+            if (!isset($event['elapsed_ms'])) {
+                $event['elapsed_ms'] = (int) round((microtime(true) - $startedAt) * 1000);
+            }
+            $onProgress($event);
         };
 
         $archive = new MsappArchive($inputMsapp);
@@ -36,15 +41,38 @@ final class Pipeline
             ]);
         });
 
+        $hopTotal = count($hops);
+        // unpack + each hop + pack
+        $units = max(1, $hopTotal + 2);
+        $completedUnits = 0;
+
         try {
             $emit([
                 'type' => 'phase',
                 'phase' => 'unpack',
                 'message' => 'Unpacking .msapp…',
+                'index' => 0,
+                'total' => $hopTotal,
+                'unit' => 1,
+                'units' => $units,
+                'progress' => 0.0,
             ]);
+            $unpackStarted = microtime(true);
             $archive->unpack();
+            $completedUnits = 1;
+            $emit([
+                'type' => 'phase',
+                'phase' => 'unpack_done',
+                'message' => 'Unpacked .msapp',
+                'duration_ms' => (int) round((microtime(true) - $unpackStarted) * 1000),
+                'index' => 0,
+                'total' => $hopTotal,
+                'unit' => $completedUnits,
+                'units' => $units,
+                'progress' => $completedUnits / $units,
+                'count' => $report->count(),
+            ]);
 
-            $hopTotal = count($hops);
             foreach ($hops as $index => $step) {
                 $id = $step['id'] ?? '';
                 if ($id === '' || !$this->registry->has($id)) {
@@ -65,26 +93,64 @@ final class Pipeline
                     'label' => $hop::label(),
                     'index' => $index + 1,
                     'total' => $hopTotal,
+                    'unit' => $completedUnits,
+                    'units' => $units,
+                    'progress' => $completedUnits / $units,
                     'message' => sprintf('Hop %d of %d: %s', $index + 1, $hopTotal, $hop::label()),
                     'count' => $report->count(),
                 ]);
+                $hopStarted = microtime(true);
                 $hop->apply($archive->documents(), $report, $options);
+                $completedUnits++;
+                $emit([
+                    'type' => 'hop_done',
+                    'hop' => $id,
+                    'label' => $hop::label(),
+                    'index' => $index + 1,
+                    'total' => $hopTotal,
+                    'duration_ms' => (int) round((microtime(true) - $hopStarted) * 1000),
+                    'unit' => $completedUnits,
+                    'units' => $units,
+                    'progress' => $completedUnits / $units,
+                    'count' => $report->count(),
+                    'message' => sprintf('Finished hop %d of %d: %s', $index + 1, $hopTotal, $hop::label()),
+                ]);
             }
 
             $emit([
                 'type' => 'phase',
                 'phase' => 'pack',
                 'message' => 'Packing cleaned .msapp…',
+                'index' => $hopTotal,
+                'total' => $hopTotal,
+                'unit' => $completedUnits,
+                'units' => $units,
+                'progress' => $completedUnits / $units,
                 'count' => $report->count(),
             ]);
+            $packStarted = microtime(true);
             $archive->pack($outputMsapp);
+            $completedUnits = $units;
+            $emit([
+                'type' => 'phase',
+                'phase' => 'pack_done',
+                'message' => 'Packed cleaned .msapp',
+                'duration_ms' => (int) round((microtime(true) - $packStarted) * 1000),
+                'unit' => $completedUnits,
+                'units' => $units,
+                'progress' => 1.0,
+                'count' => $report->count(),
+            ]);
         } finally {
             $archive->cleanup();
         }
 
+        $elapsedMs = (int) round((microtime(true) - $startedAt) * 1000);
+
         return [
             'report' => $report->toArray(),
             'output_path' => $outputMsapp,
+            'elapsed_ms' => $elapsedMs,
         ];
     }
 }
