@@ -21,6 +21,7 @@ use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\MeaningfulNamesHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
+use PowerSweeper\Hops\PreferClassicThemeControlsHop;
 use PowerSweeper\Hops\RepairContextAwareRefsHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
 use PowerSweeper\Hops\ScanStudioIssuesHop;
@@ -344,6 +345,45 @@ foreach ($jsonDoc->controls() as $c) {
     }
 }
 assert_true(is_string($jsonX) && str_contains($jsonX, '40.5') && str_contains($jsonX, ','), 'internal InvariantScript unwhacked');
+
+// --- prefer classic controls for theming (modern lacking Fill/Color) ---
+$classicPrepDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/theme_classic_prep.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($classicPrepDoc !== null, 'classic theme prep fixture loads');
+$classicPrepReport = new Report();
+(new PreferClassicThemeControlsHop())->apply([$classicPrepDoc], $classicPrepReport);
+$classicPrepDoc->reindex();
+$byName = [];
+foreach ($classicPrepDoc->controls() as $c) {
+    $byName[$c->name] = $c;
+}
+assert_true(str_starts_with((string) ($byName['TitleModern']->type ?? ''), 'Label@'), 'ModernText → Label for Fill/Color');
+assert_true(str_starts_with((string) ($byName['SaveModern']->type ?? ''), 'Classic/Button@'), 'ModernButton → Classic/Button');
+assert_true(str_starts_with((string) ($byName['CanvasBtn']->type ?? ''), 'Classic/Button@'), 'ButtonCanvas → Classic/Button');
+assert_true(str_starts_with((string) ($byName['NameInput']->type ?? ''), 'Classic/TextInput@'), 'ModernTextInput → Classic/TextInput');
+assert_true(str_starts_with((string) ($byName['AlreadyClassic']->type ?? ''), 'Classic/Button@'), 'existing Classic/Button left alone');
+assert_true(str_starts_with((string) ($byName['Sites']->type ?? ''), 'ModernNumberInput@'), 'ModernNumberInput skipped by default');
+assert_true(str_contains((string) ($byName['SaveModern']->getProperty('Fill') ?? ''), 'RGBA(37, 99, 235'), 'BasePaletteColor remapped to Fill');
+assert_true(str_contains((string) ($byName['SaveModern']->getProperty('Color') ?? ''), 'RGBA(255, 255, 255'), 'FontColor remapped to Color');
+assert_true($byName['SaveModern']->getProperty('Appearance') === null, 'Appearance removed after classic swap');
+assert_true($classicPrepReport->count() > 0, 'classic theme prep reported changes');
+
+$classicPrepOpt = ControlDocument::fromFile(__DIR__ . '/fixtures/theme_classic_prep.pa.yaml', 'Src/Screen1.pa.yaml');
+(new PreferClassicThemeControlsHop())->apply([$classicPrepOpt], new Report(), [
+    'include_modern_number_input' => true,
+]);
+$classicPrepOpt->reindex();
+$sitesType = null;
+foreach ($classicPrepOpt->controls() as $c) {
+    if ($c->name === 'Sites') {
+        $sitesType = $c->type;
+    }
+}
+assert_true(is_string($sitesType) && str_starts_with($sitesType, 'Classic/TextInput@'), 'opt-in ModernNumberInput → Classic/TextInput');
+
+$darkModeProfile = include dirname(__DIR__) . '/profiles/dark_mode.php';
+$darkModeHopIds = array_column($darkModeProfile['hops'], 'id');
+assert_true($darkModeHopIds[0] === 'prefer_classic_theme_controls', 'dark_mode profile prepares classic controls first');
+assert_true(in_array('enable_dark_mode', $darkModeHopIds, true), 'dark_mode profile still runs enable_dark_mode');
 
 // --- dark mode ---
 $doc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');

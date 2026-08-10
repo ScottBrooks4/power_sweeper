@@ -1,0 +1,65 @@
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - TitleModern:
+        Control: ModernText@1.0.0
+        Properties:
+          Text: ="Title"
+          Color: =RGBA(20, 20, 20, 1)
+          X: =20
+          Y: =20
+          Width: =200
+          Height: =40
+    - SaveModern:
+        Control: ModernButton@1.0.0
+        Properties:
+          Text: ="Save"
+          Appearance: =Appearance.Primary
+          BasePaletteColor: =RGBA(37, 99, 235, 1)
+          FontColor: =RGBA(255, 255, 255, 1)
+          X: =20
+          Y: =80
+          Width: =120
+          Height: =40
+    - NameInput:
+        Control: ModernTextInput@1.1.1
+        Properties:
+          Default: ="Ada"
+          Appearance: =Appearance.Outline
+          Fill: =RGBA(255, 255, 255, 1)
+          X: =20
+          Y: =140
+          Width: =240
+          Height: =40
+    - CanvasBtn:
+        Control: Button@0.0.45
+        Properties:
+          Text: ="Canvas"
+          Appearance: =Appearance.Primary
+          BasePaletteColor: =RGBA(16, 185, 129, 1)
+          FontColor: =RGBA(255, 255, 255, 1)
+          X: =160
+          Y: =80
+          Width: =120
+          Height: =40
+    - AlreadyClassic:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Stay"
+          Fill: =RGBA(100, 116, 139, 1)
+          Color: =RGBA(255, 255, 255, 1)
+          X: =20
+          Y: =200
+          Width: =120
+          Height: =40
+    - Sites:
+        Control: ModernNumberInput@1.1.1
+        Properties:
+          Value: =3
+          Appearance: =Appearance.FilledDarker
+          X: =20
+          Y: =260
+          Width: =120
+          Height: =40

@@ -153,6 +153,45 @@ final class ControlNode
         $this->touch();
     }
 
+    /**
+     * Change this control's template (classic ↔ modern prep).
+     *
+     * YAML writes the Control: field. JSON updates Template.Id/Name/Version.
+     * Callers should ControlDocument::reindex() after structural batch edits.
+     *
+     * @param array{Id?:string,Name?:string,Version?:string} $jsonTemplate
+     */
+    public function setControlType(string $yamlControl, array $jsonTemplate = []): void
+    {
+        if ($this->format === 'yaml') {
+            if (!is_array($this->node)) {
+                return;
+            }
+            $this->node['Control'] = $yamlControl;
+            $this->type = $yamlControl;
+            $this->touch();
+            return;
+        }
+
+        $node = $this->jsonNode();
+        if (!isset($node->Template) || !is_object($node->Template)) {
+            $node->Template = (object) [];
+        }
+        if (isset($jsonTemplate['Id'])) {
+            $node->Template->Id = (string) $jsonTemplate['Id'];
+        }
+        if (isset($jsonTemplate['Name'])) {
+            $node->Template->Name = (string) $jsonTemplate['Name'];
+        }
+        if (isset($jsonTemplate['Version'])) {
+            $node->Template->Version = (string) $jsonTemplate['Version'];
+        }
+        $this->type = isset($jsonTemplate['Name'])
+            ? (string) $jsonTemplate['Name']
+            : $yamlControl;
+        $this->touch();
+    }
+
     public function removeProperty(string $name): void
     {
         if ($this->format === 'yaml') {

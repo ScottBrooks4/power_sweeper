@@ -18,6 +18,7 @@ use PowerSweeper\Hops\ImportWebAppHop;
 use PowerSweeper\Hops\MeaningfulNamesHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
+use PowerSweeper\Hops\PreferClassicThemeControlsHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
 use PowerSweeper\Hops\RepairConvergeFormulasHop;
 use PowerSweeper\Hops\RepairContextAwareRefsHop;
@@ -68,6 +69,7 @@ final class HopRegistry
             ScanStudioIssuesHop::class,
             RegenerateSarifHop::class,
             AnalyzeAppCheckerHop::class,
+            PreferClassicThemeControlsHop::class,
             EnableDarkModeHop::class,
             CorrelateSharePointHop::class,
             SetZipPathStyleHop::class,
