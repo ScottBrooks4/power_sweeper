@@ -493,6 +493,12 @@
         signal: analyzeAbort.signal,
         headers: { Accept: 'application/x-ndjson, application/json' },
       });
+      if (res.status === 413) {
+        throw new Error(
+          `Upload too large for the web server (HTTP 413). File is ${humanBytes(selected.size)}. `
+          + 'Nginx/PHP body limits need to be raised on the host (Power Sweeper targets 512M).'
+        );
+      }
       const data = await readAnalyzeStream(res);
       if (!data.ok) {
         throw new Error(data.error || `Analyze failed (HTTP ${res.status})`);
