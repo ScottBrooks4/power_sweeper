@@ -117,11 +117,57 @@ foreach ($doc->controls() as $c) {
     }
 }
 
+// Dynamic Text binds AccessibleLabel to Self.Text (not a stringified formula)
+$doc = loadFixtureDoc();
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('Text', '=If(varLang, "Save", "Enregistrer")');
+        $c->removeProperty('AccessibleLabel');
+        break;
+    }
+}
+$report = new Report();
+(new AccessibilityLabelsHop())->apply([$doc], $report);
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        assert_true(
+            preg_match('/^=?Self\.Text\s*$/', trim((string) $c->getProperty('AccessibleLabel'))) === 1,
+            'AccessibleLabel binds Self.Text for dynamic Text'
+        );
+    }
+}
+// Stringified-formula labels are repaired even when force=false
+$doc = loadFixtureDoc();
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('Text', '=If(varLang, "Save", "Enregistrer")');
+        $c->setProperty('AccessibleLabel', '="If(varLang,""Save"",""Enregistrer"")"');
+        break;
+    }
+}
+$report = new Report();
+(new AccessibilityLabelsHop())->apply([$doc], $report, ['force' => false]);
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        assert_true(
+            preg_match('/^=?Self\.Text\s*$/', trim((string) $c->getProperty('AccessibleLabel'))) === 1,
+            'stringified formula AccessibleLabel repaired to Self.Text'
+        );
+    }
+}
+$jsonTextNode = (object) ['Name' => 'Hint', 'Template' => (object) ['Name' => 'text'], 'Rules' => []];
+$jsonTextControl = new \PowerSweeper\ControlNode('Hint', 'text', 'Controls/x.json/Hint', 'json', $jsonTextNode);
+assert_true($jsonTextControl->isInteractive(), 'JSON classic TextInput template name "text" is interactive');
+
 // --- profile force propagation ---
 $profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
 $a11yConfig = include POWER_SWEEPER_PROFILES . '/a11y_pass.php';
 $resolved = $profileLoader->resolveHops(array_merge($a11yConfig, ['force' => true]));
 assert_true(($resolved[0]['options']['force'] ?? false) === true, 'profile force merges into hop options');
+$a11yIds = array_map(static fn(array $h): string => (string) $h['id'], $profileLoader->resolveHops($a11yConfig));
+assert_true(in_array('ensure_tab_index', $a11yIds, true), 'a11y_pass includes ensure_tab_index');
+assert_true(in_array('ensure_focus_visible', $a11yIds, true), 'a11y_pass includes ensure_focus_visible');
+assert_true(in_array('regenerate_sarif', $a11yIds, true), 'a11y_pass regenerates App checker SARIF');
 $resolvedHopOverride = $profileLoader->resolveHops([
     'force' => true,
     'hops' => [['id' => 'accessibility_labels', 'options' => ['force' => false]]],

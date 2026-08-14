@@ -226,7 +226,16 @@ final class ControlNode
     public function isInteractive(): bool
     {
         $t = strtolower($this->type);
-        foreach (['button', 'icon', 'image', 'toggle', 'checkbox', 'dropdown', 'combobox', 'textinput', 'datepicker', 'slider', 'radio', 'link', 'modernbutton'] as $needle) {
+        // JSON classic TextInput templates are named "text" (not "textinput").
+        // Galleries are flagged by App checker for AccessibleLabel / TabIndex / focus.
+        if ($t === 'text' || $t === 'textarea') {
+            return true;
+        }
+        foreach ([
+            'button', 'icon', 'image', 'toggle', 'checkbox', 'dropdown', 'combobox',
+            'textinput', 'datepicker', 'slider', 'radio', 'link', 'modernbutton',
+            'gallery', 'listbox', 'attachments', 'comboboxcanvas', 'buttoncanvas',
+        ] as $needle) {
             if (str_contains($t, $needle)) {
                 return true;
             }

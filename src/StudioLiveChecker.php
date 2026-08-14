@@ -148,7 +148,7 @@ final class StudioLiveChecker
         $locationBase = self::qualifiedLocation($screen, $control->path, '');
 
         $label = $control->getProperty('AccessibleLabel');
-        if ($label === null || trim($label) === '') {
+        if ($label === null || self::isBlankAccessibleLabel($label)) {
             $findings[] = self::structFinding(
                 'acc-AccessibleLabelNeeded',
                 'Medium',
@@ -504,5 +504,26 @@ final class StudioLiveChecker
     {
         $v = strtolower(trim(ltrim(trim($value), '=')));
         return $v === '' || $v === '0' || $v === '0.0' || $v === 'false';
+    }
+
+    /** Treat "", Blank(), and quote-only values as missing AccessibleLabel. */
+    private static function isBlankAccessibleLabel(string $value): bool
+    {
+        $v = trim($value);
+        if (str_starts_with($v, '=')) {
+            $v = trim(substr($v, 1));
+        }
+        if ($v === '' || strcasecmp($v, 'Blank()') === 0) {
+            return true;
+        }
+        if (
+            (str_starts_with($v, '"') && str_ends_with($v, '"'))
+            || (str_starts_with($v, "'") && str_ends_with($v, "'"))
+        ) {
+            $inner = substr($v, 1, -1);
+            return trim(str_replace('""', '', $inner)) === '';
+        }
+
+        return false;
     }
 }
