@@ -1,7 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Power Sweeper">
-  <rect width="64" height="64" rx="14" fill="#14200a"/>
-  <path fill="#c6f26d" d="M18 44c6-10 14-18 26-24l2 4c-11 5-18 12-24 22l-4-2z"/>
-  <path fill="#e7f0df" d="M42 16l6 3-9 16-6-3 9-16z"/>
-  <path fill="#9aaf95" d="M14 48h20c1 3-1 6-4 6H18c-3 0-5-3-4-6z"/>
-  <circle cx="46" cy="18" r="3" fill="#c6f26d"/>
+  <rect width="64" height="64" rx="14" fill="#1a1400"/>
+  <!-- motion / vector action lines -->
+  <path d="M8 22h14" stroke="#F5D547" stroke-width="2.4" stroke-linecap="round" opacity=".95"/>
+  <path d="M6 30h18" stroke="#F5D547" stroke-width="2.4" stroke-linecap="round" opacity=".75"/>
+  <path d="M10 38h12" stroke="#F5D547" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
+  <!-- broom handle -->
+  <path d="M40 12l8 8" stroke="#E8C547" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- ferrule -->
+  <circle cx="41.5" cy="22.5" r="3.2" fill="#F7E27A"/>
+  <!-- broom head -->
+  <path fill="#FFD84D" d="M28 24c8 2 14 8 18 18-6 1-12 0-18-4-4-3-7-8-8-12 2-1 5-2 8-2z"/>
+  <path fill="#E8B923" d="M30 28c6 2 11 7 14 14-4 .6-8 0-12-2.5-3.2-2-5.5-6-6.5-9.5 1.4-.8 3-1.5 4.5-2z"/>
+  <!-- bristle tips -->
+  <path d="M44 40l4 8M40 42l2.5 8M36 42l1 8M32 40l-.5 7.5" stroke="#C9A227" stroke-width="1.6" stroke-linecap="round"/>
 </svg>

@@ -7,19 +7,17 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 use PowerSweeper\AppProfileAdvisor;
 use PowerSweeper\ZipTool;
 
-// Avoid HTML error pages leaking into the JSON/NDJSON client parser.
+// Keep the NDJSON stream clean — no HTML notices/warnings in the body.
 ini_set('display_errors', '0');
+ini_set('html_errors', '0');
 error_reporting(E_ALL);
+while (ob_get_level() > 0) {
+    ob_end_clean();
+}
 
 header('Content-Type: application/x-ndjson; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Accel-Buffering: no');
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['type' => 'error', 'ok' => false, 'error' => 'Method not allowed'], JSON_UNESCAPED_SLASHES) . "\n";
-    exit;
-}
 
 $emit = static function (array $event): void {
     echo json_encode($event, JSON_UNESCAPED_SLASHES) . "\n";
@@ -28,6 +26,43 @@ $emit = static function (array $event): void {
     }
     @flush();
 };
+
+set_error_handler(static function (int $severity, string $message, string $file, int $line) use ($emit): bool {
+    // Never print warnings into the response body; surface severe ones as NDJSON.
+    if ($severity === E_ERROR || $severity === E_USER_ERROR || $severity === E_RECOVERABLE_ERROR) {
+        $emit([
+            'type' => 'progress',
+            'phase' => 'warn',
+            'message' => 'Server warning: ' . $message,
+        ]);
+    }
+    return true;
+});
+
+register_shutdown_function(static function () use ($emit): void {
+    $err = error_get_last();
+    if ($err === null) {
+        return;
+    }
+    $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if (!in_array($err['type'], $fatalTypes, true)) {
+        return;
+    }
+    // If headers already sent as NDJSON, append a final error event.
+    http_response_code(500);
+    $emit([
+        'type' => 'error',
+        'ok' => false,
+        'error' => 'Analyze crashed: ' . ($err['message'] ?? 'fatal error'),
+        'forceable_hops' => AppProfileAdvisor::FORCEABLE_HOPS,
+    ]);
+});
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    $emit(['type' => 'error', 'ok' => false, 'error' => 'Method not allowed']);
+    exit;
+}
 
 try {
     if (!isset($_FILES['msapp']) || !is_array($_FILES['msapp'])) {

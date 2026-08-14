@@ -356,7 +356,43 @@
     if (planHint && message) planHint.textContent = 'Scanning…';
   }
 
+  function analyzeParseError(status, sample) {
+    const preview = String(sample || '').replace(/\s+/g, ' ').trim().slice(0, 180);
+    if (!preview) {
+      return new Error(`Analyze failed (HTTP ${status}) — empty response from ${cfg.apiAnalyze || '/api/analyze.php'}`);
+    }
+    if (preview.startsWith('<')) {
+      return new Error(`Analyze returned HTML (HTTP ${status}) — PHP may not be executing at ${cfg.apiAnalyze || '/api/analyze.php'}`);
+    }
+    return new Error(`Analyze returned non-JSON (HTTP ${status}): ${preview}`);
+  }
+
+  function applyAnalyzeEvent(event, state) {
+    if (event.type === 'progress') {
+      setScanProgress(event.message || 'Scanning…');
+    } else if (event.type === 'result' || event.ok === true) {
+      state.result = event;
+    } else if (event.type === 'error' || event.ok === false) {
+      state.error = event;
+    }
+  }
+
+  function parseAnalyzeLine(line, status) {
+    const trimmed = String(line || '').replace(/^\uFEFF/, '').trim();
+    if (!trimmed) return null;
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      throw analyzeParseError(status, trimmed);
+    }
+  }
+
   async function readAnalyzeStream(res) {
+    const ctype = (res.headers.get('content-type') || '').toLowerCase();
+    if (ctype.includes('text/html')) {
+      const text = await res.text();
+      throw analyzeParseError(res.status, text);
+    }
     if (!res.body || typeof res.body.getReader !== 'function') {
       const text = await res.text();
       return parseAnalyzePayload(text, res.status);
@@ -364,8 +400,7 @@
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    let result = null;
-    let error = null;
+    const state = { result: null, error: null };
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -373,70 +408,62 @@
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        let event;
-        try {
-          event = JSON.parse(trimmed);
-        } catch {
-          throw new Error('Analyze returned non-JSON. Is /api/analyze.php reachable on this host?');
-        }
-        if (event.type === 'progress') {
-          setScanProgress(event.message || 'Scanning…');
-        } else if (event.type === 'result' || event.ok === true) {
-          result = event;
-        } else if (event.type === 'error' || event.ok === false) {
-          error = event;
-        }
+        const event = parseAnalyzeLine(line, res.status);
+        if (event) applyAnalyzeEvent(event, state);
       }
     }
-    const tail = buffer.trim();
+    const tail = buffer.replace(/^\uFEFF/, '').trim();
     if (tail) {
+      // Single JSON object body (non-streaming) or final NDJSON line
       try {
-        const event = JSON.parse(tail);
-        if (event.type === 'progress') setScanProgress(event.message || 'Scanning…');
-        else if (event.type === 'result' || event.ok === true) result = event;
-        else if (event.type === 'error' || event.ok === false) error = event;
+        applyAnalyzeEvent(JSON.parse(tail), state);
       } catch {
-        throw new Error('Analyze returned non-JSON. Is /api/analyze.php reachable on this host?');
+        if (!state.result && !state.error) {
+          return parseAnalyzePayload(tail, res.status);
+        }
+        throw analyzeParseError(res.status, tail);
       }
     }
-    if (error) {
-      const err = new Error(error.error || `Analyze failed (HTTP ${res.status})`);
+    if (state.error) {
+      const err = new Error(state.error.error || `Analyze failed (HTTP ${res.status})`);
       err.status = res.status;
       throw err;
     }
-    if (!result) {
-      throw new Error(`Analyze failed (HTTP ${res.status})`);
+    if (!state.result) {
+      throw new Error(`Analyze failed (HTTP ${res.status}) — no result event from ${cfg.apiAnalyze || '/api/analyze.php'}`);
     }
-    return result;
+    return state.result;
   }
 
   function parseAnalyzePayload(text, status) {
-    const trimmed = (text || '').trim();
+    const trimmed = String(text || '').replace(/^\uFEFF/, '').trim();
     if (!trimmed) {
       throw new Error(`Analyze failed (HTTP ${status})`);
     }
     if (trimmed.startsWith('<')) {
-      throw new Error('Analyze endpoint returned HTML instead of JSON — /api/analyze.php is not executing PHP on this host.');
+      throw analyzeParseError(status, trimmed);
+    }
+    // Legacy single-object JSON
+    if (trimmed.startsWith('{') && !trimmed.includes('\n')) {
+      try {
+        const event = JSON.parse(trimmed);
+        if (event.type === 'error' || event.ok === false) {
+          throw new Error(event.error || `Analyze failed (HTTP ${status})`);
+        }
+        if (event.type === 'result' || event.ok === true) return event;
+      } catch (err) {
+        if (err instanceof Error && !err.message.startsWith('Analyze returned')) throw err;
+      }
     }
     const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
-    let result = null;
-    let error = null;
+    const state = { result: null, error: null };
     for (const line of lines) {
-      let event;
-      try {
-        event = JSON.parse(line);
-      } catch {
-        throw new Error('Analyze returned non-JSON. Is /api/analyze.php reachable on this host?');
-      }
-      if (event.type === 'progress') setScanProgress(event.message || 'Scanning…');
-      else if (event.type === 'result' || event.ok === true) result = event;
-      else if (event.type === 'error' || event.ok === false) error = event;
+      const event = parseAnalyzeLine(line, status);
+      if (event) applyAnalyzeEvent(event, state);
     }
-    if (error) throw new Error(error.error || `Analyze failed (HTTP ${status})`);
-    if (!result) throw new Error(`Analyze failed (HTTP ${status})`);
-    return result;
+    if (state.error) throw new Error(state.error.error || `Analyze failed (HTTP ${status})`);
+    if (!state.result) throw new Error(`Analyze failed (HTTP ${status})`);
+    return state.result;
   }
 
   async function analyzeFile(selected) {
