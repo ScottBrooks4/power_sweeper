@@ -155,6 +155,37 @@ foreach ($doc->controls() as $c) {
         );
     }
 }
+
+// Neighbor-aware accessibility labels (inputs use nearby Label text)
+$neighborDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/a11y_neighbors.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($neighborDoc !== null, 'a11y neighbors fixture loads');
+$neighborReport = new Report();
+(new AccessibilityLabelsHop())->apply([$neighborDoc], $neighborReport);
+$neighborLabels = [];
+foreach ($neighborDoc->controls() as $c) {
+    $neighborLabels[$c->name] = $c->getProperty('AccessibleLabel');
+}
+assert_true(
+    is_string($neighborLabels['EmailInput'] ?? null)
+        && str_contains(strtolower((string) $neighborLabels['EmailInput']), 'email'),
+    'EmailInput AccessibleLabel from label above'
+);
+assert_true(
+    is_string($neighborLabels['PhoneInput'] ?? null)
+        && str_contains(strtolower((string) $neighborLabels['PhoneInput']), 'phone'),
+    'PhoneInput AccessibleLabel from label to the left'
+);
+assert_true(
+    is_string($neighborLabels['txtDepartment'] ?? null)
+        && preg_match('/^=?lblDepartment\.Text\s*$/', trim((string) $neighborLabels['txtDepartment'])) === 1,
+    'txtDepartment AccessibleLabel binds paired lblDepartment.Text'
+);
+assert_true(
+    is_string($neighborLabels['SaveIcon'] ?? null)
+        && str_contains(strtolower((string) $neighborLabels['SaveIcon']), 'save'),
+    'SaveIcon AccessibleLabel from caption to the right'
+);
+
 $jsonTextNode = (object) ['Name' => 'Hint', 'Template' => (object) ['Name' => 'text'], 'Rules' => []];
 $jsonTextControl = new \PowerSweeper\ControlNode('Hint', 'text', 'Controls/x.json/Hint', 'json', $jsonTextNode);
 assert_true($jsonTextControl->isInteractive(), 'JSON classic TextInput template name "text" is interactive');
