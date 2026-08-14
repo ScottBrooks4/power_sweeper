@@ -4,7 +4,7 @@
 declare(strict_types=1);
 
 /**
- * Build *.repaired.msapp deliverables (repair_studio_errors only, fresh SARIF).
+ * Build *.repaired.msapp deliverables (studio repair only, fresh SARIF).
  *
  * Usage:
  *   php scripts/build_repaired.php [input.msapp] [output.msapp]
@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use PowerSweeper\ProfileLoader;
+use PowerSweeper\HopChains;
 
 $input = $argv[1] ?? dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
 $output = $argv[2] ?? null;
@@ -28,9 +28,7 @@ if ($output === null) {
     $output = dirname($input) . '/' . preg_replace('/[^A-Za-z0-9_]+/', '_', $base) . '.repaired.msapp';
 }
 
-$profile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-$loader = new ProfileLoader(dirname(__DIR__) . '/profiles');
-(new PowerSweeper\Pipeline())->run($input, $loader->resolveHops($profile), $output);
+(new PowerSweeper\Pipeline())->run($input, HopChains::studioRepair(), $output);
 
 $arch = new PowerSweeper\MsappArchive($output);
 $arch->unpack();

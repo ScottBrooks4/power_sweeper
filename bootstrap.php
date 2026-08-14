@@ -6,7 +6,6 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 const POWER_SWEEPER_ROOT = __DIR__;
 const POWER_SWEEPER_STORAGE = __DIR__ . '/storage';
-const POWER_SWEEPER_PROFILES = __DIR__ . '/profiles';
 
 function ps_ini_bytes(string $val): int
 {

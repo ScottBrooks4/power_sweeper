@@ -293,9 +293,8 @@
   function showPlan(data) {
     planPanel?.classList.remove('hidden');
     planPanel?.classList.add('plan-ready');
-    const profile = data.recommended_profile || 'custom';
     const hopCount = (data.hops || []).length;
-    planHint.textContent = `Auto-selected “${profile}” (${hopCount} hop${hopCount === 1 ? '' : 's'}). You can still edit the sequence.`;
+    planHint.textContent = `Detected ${hopCount} hop${hopCount === 1 ? '' : 's'}. You can still edit the sequence.`;
     if (scanLive) scanLive.textContent = '';
     forceHint.textContent = data.force_mode_reason || '';
     forceMode = data.force_mode === 'all' ? 'all' : 'missing_only';

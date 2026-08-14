@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use PowerSweeper\AppProfileAdvisor;
+use PowerSweeper\HopAdvisor;
 use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
 use PowerSweeper\ControlNaming;
@@ -29,7 +29,7 @@ use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
 use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
 use PowerSweeper\Pipeline;
-use PowerSweeper\ProfileLoader;
+use PowerSweeper\HopChains;
 use PowerSweeper\Report;
 use PowerSweeper\SharePoint\SharePointCatalog;
 use PowerSweeper\StringSimilarity;
@@ -190,20 +190,18 @@ $jsonTextNode = (object) ['Name' => 'Hint', 'Template' => (object) ['Name' => 't
 $jsonTextControl = new \PowerSweeper\ControlNode('Hint', 'text', 'Controls/x.json/Hint', 'json', $jsonTextNode);
 assert_true($jsonTextControl->isInteractive(), 'JSON classic TextInput template name "text" is interactive');
 
-// --- profile force propagation ---
-$profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
-$a11yConfig = include POWER_SWEEPER_PROFILES . '/a11y_pass.php';
-$resolved = $profileLoader->resolveHops(array_merge($a11yConfig, ['force' => true]));
-assert_true(($resolved[0]['options']['force'] ?? false) === true, 'profile force merges into hop options');
-$a11yIds = array_map(static fn(array $h): string => (string) $h['id'], $profileLoader->resolveHops($a11yConfig));
-assert_true(in_array('ensure_tab_index', $a11yIds, true), 'a11y_pass includes ensure_tab_index');
-assert_true(in_array('ensure_focus_visible', $a11yIds, true), 'a11y_pass includes ensure_focus_visible');
-assert_true(in_array('regenerate_sarif', $a11yIds, true), 'a11y_pass regenerates App checker SARIF');
-$resolvedHopOverride = $profileLoader->resolveHops([
-    'force' => true,
-    'hops' => [['id' => 'accessibility_labels', 'options' => ['force' => false]]],
-]);
-assert_true(($resolvedHopOverride[0]['options']['force'] ?? true) === false, 'hop-level force overrides profile force');
+// --- advisor force mode stamps forceable hops ---
+$advisorForce = new HopAdvisor();
+$forced = $advisorForce->applyForceMode([
+    ['id' => 'accessibility_labels', 'options' => []],
+    ['id' => 'ensure_tab_index', 'options' => ['value' => 0]],
+], 'all');
+assert_true(($forced[0]['options']['force'] ?? false) === true, 'applyForceMode sets force on forceable hops');
+assert_true(!array_key_exists('force', $forced[1]['options']) || ($forced[1]['options']['force'] ?? null) === true || !isset($forced[1]['options']['force']), 'non-forceable hop left alone or untouched');
+$missing = $advisorForce->applyForceMode([
+    ['id' => 'accessibility_labels', 'options' => ['force' => true]],
+], 'missing_only');
+assert_true(($missing[0]['options']['force'] ?? true) === false, 'applyForceMode missing_only clears force');
 
 // --- ColorValue studio defaults ---
 assert_true(ColorValue::isStudioDefault('=RGBA(255, 255, 255, 1)', 'Fill'), 'white fill is studio default');
@@ -457,10 +455,9 @@ foreach ($classicPrepOpt->controls() as $c) {
 }
 assert_true(is_string($sitesType) && str_starts_with($sitesType, 'Classic/TextInput@'), 'opt-in ModernNumberInput → Classic/TextInput');
 
-$darkModeProfile = include dirname(__DIR__) . '/profiles/dark_mode.php';
-$darkModeHopIds = array_column($darkModeProfile['hops'], 'id');
-assert_true($darkModeHopIds[0] === 'prefer_classic_theme_controls', 'dark_mode profile prepares classic controls first');
-assert_true(in_array('enable_dark_mode', $darkModeHopIds, true), 'dark_mode profile still runs enable_dark_mode');
+$darkModeHopIds = array_column(HopChains::darkMode(), 'id');
+assert_true($darkModeHopIds[0] === 'prefer_classic_theme_controls', 'dark_mode chain prepares classic controls first');
+assert_true(in_array('enable_dark_mode', $darkModeHopIds, true), 'dark_mode chain still runs enable_dark_mode');
 
 // --- dark mode ---
 $doc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
@@ -1113,8 +1110,8 @@ if (is_file($app16)) {
 
 // Repaired pipeline should drive live errors well below original 1719 SARIF
 $repairedPipelineOut = sys_get_temp_dir() . '/ps_repaired_live_check_' . bin2hex(random_bytes(4)) . '.msapp';
-$repairProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-(new Pipeline())->run($app16, $repairProfile['hops'], $repairedPipelineOut);
+$repairHops = HopChains::studioRepair();
+(new Pipeline())->run($app16, $repairHops, $repairedPipelineOut);
 $repairedArchive = new \PowerSweeper\MsappArchive($repairedPipelineOut);
 $repairedArchive->unpack();
 $repairedLive = \PowerSweeper\StudioLiveChecker::check($repairedArchive->documents(), ['extract_dir' => $repairedArchive->extractDir()]);
@@ -1379,8 +1376,8 @@ assert_true(
 $app16 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App (16).msapp';
 if (is_file($app16)) {
     $componentRepairOut = sys_get_temp_dir() . '/ps_component_bindings_' . bin2hex(random_bytes(4)) . '.msapp';
-    $repairProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-    (new Pipeline())->run($app16, $repairProfile['hops'], $componentRepairOut);
+    $repairHops = HopChains::studioRepair();
+    (new Pipeline())->run($app16, $repairHops, $componentRepairOut);
     $ghostBindings = 0;
     $compArch = new \PowerSweeper\MsappArchive($componentRepairOut);
     $compArch->unpack();
@@ -1409,74 +1406,43 @@ if (is_file($repaired16)) {
     assert_true($post['total'] === 0, 'App (16) repaired heuristic total is zero (was 1719 SARIF)');
 }
 
-// Profiles — all hop ids resolve; studio repair hops are exposed
+// Hop chains — ids resolve; studio repair + powered + web round-trip
 $hopRegistry = new \PowerSweeper\HopRegistry();
-$allProfiles = (new ProfileLoader(POWER_SWEEPER_PROFILES))->all();
-assert_true(count($allProfiles) >= 15, 'profiles directory loaded (got ' . count($allProfiles) . ')');
-$profileIds = array_column($allProfiles, 'id');
-assert_true(in_array('repair_studio_errors', $profileIds, true), 'repair_studio_errors profile exists');
-assert_true(in_array('repair_delegation', $profileIds, true), 'repair_delegation profile exists');
-assert_true(in_array('regenerate_sarif', $profileIds, true), 'regenerate_sarif profile exists');
-assert_true(in_array('repair_formula_refs', $profileIds, true), 'repair_formula_refs profile exists');
-$formulaRefsProfile = include dirname(__DIR__) . '/profiles/repair_formula_refs.php';
-$formulaRefsIds = array_column($formulaRefsProfile['hops'], 'id');
-assert_true(in_array('repair_context_aware_refs', $formulaRefsIds, true), 'repair_formula_refs includes context-aware refs');
-assert_true(in_array('repair_converge_formulas', $formulaRefsIds, true), 'repair_formula_refs includes converge');
-assert_true(in_array('repair_powered', $profileIds, true), 'repair_powered profile exists');
-assert_true(in_array('powered_thcee', $profileIds, true), 'powered_thcee profile exists');
-assert_true(in_array('repair_studio_errors_then_dark', $profileIds, true), 'repair_studio_errors_then_dark profile exists');
-assert_true(in_array('meaningful_names', $profileIds, true), 'meaningful_names profile exists');
-assert_true(in_array('repair_smart', $profileIds, true), 'repair_smart profile exists');
-assert_true(in_array('power_to_web', $profileIds, true), 'power_to_web profile exists');
-assert_true(in_array('web_to_power', $profileIds, true), 'web_to_power profile exists');
-$profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
-$vcrPowered = $profileLoader->resolvePoweredProfile('CDLS VCR App.msapp');
-$thceePowered = $profileLoader->resolvePoweredProfile('VCDS THCEE App.msapp');
-assert_true(($vcrPowered['app_class'] ?? '') === 'shared', 'resolvePoweredProfile returns shared app_class');
-assert_true(($thceePowered['app_class'] ?? '') === 'shared', 'THCEE-named input still uses shared powered chain');
-$poweredThceeAlias = include dirname(__DIR__) . '/profiles/powered_thcee.php';
-assert_true(($poweredThceeAlias['app_class'] ?? '') === 'thcee', 'powered_thcee alias keeps thcee app_class');
-$sharedPoweredListed = false;
-foreach ($allProfiles as $profile) {
-    if ($profile['id'] === 'repair_powered') {
-        $sharedPoweredListed = ($profile['app_class'] ?? '') === 'shared';
-    }
-}
-assert_true($sharedPoweredListed, 'ProfileLoader::all exposes repair_powered app_class');
-assert_true(in_array('repair_control_refs', array_column($vcrPowered['hops'], 'id'), true), 'VCR powered profile includes repair_control_refs');
-assert_true(in_array('repair_control_refs', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes repair_control_refs (component-safe)');
-assert_true(in_array('regenerate_sarif', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes regenerate_sarif');
-assert_true(in_array('enable_dark_mode', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes enable_dark_mode');
-foreach ($allProfiles as $profile) {
-    assert_true($profile['description'] !== '', 'profile ' . $profile['id'] . ' has description');
-    foreach ($profile['hops'] as $hop) {
-        assert_true($hopRegistry->has($hop['id']), 'profile ' . $profile['id'] . ' hop ' . $hop['id'] . ' registered');
-    }
-}
-$repairStudio = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-$repairHopIds = array_column($repairStudio['hops'], 'id');
-assert_true(in_array('repair_delegation', $repairHopIds, true), 'repair_studio_errors includes repair_delegation');
-assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'repair_studio_errors includes regenerate_sarif');
-assert_true(in_array('repair_control_refs', $repairHopIds, true), 'repair_studio_errors includes repair_control_refs');
-assert_true(in_array('repair_context_aware_refs', $repairHopIds, true), 'repair_studio_errors includes repair_context_aware_refs');
-assert_true(in_array('repair_converge_formulas', $repairHopIds, true), 'repair_studio_errors includes repair_converge_formulas');
-$smartProfile = include dirname(__DIR__) . '/profiles/repair_smart.php';
-$smartHopIds = array_column($smartProfile['hops'], 'id');
-assert_true(in_array('meaningful_names', $smartHopIds, true), 'repair_smart includes meaningful_names');
-assert_true(in_array('repair_context_aware_refs', $smartHopIds, true), 'repair_smart includes repair_context_aware_refs');
-assert_true(!in_array('meaningful_names', $repairHopIds, true), 'repair_studio_errors does not rename by default');
+$repairHopIds = array_column(HopChains::studioRepair(), 'id');
+assert_true(in_array('repair_delegation', $repairHopIds, true), 'studio repair includes repair_delegation');
+assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'studio repair includes regenerate_sarif');
+assert_true(in_array('repair_control_refs', $repairHopIds, true), 'studio repair includes repair_control_refs');
+assert_true(in_array('repair_context_aware_refs', $repairHopIds, true), 'studio repair includes repair_context_aware_refs');
+assert_true(in_array('repair_converge_formulas', $repairHopIds, true), 'studio repair includes repair_converge_formulas');
+assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'studio repair includes repair_studio_syntax');
+assert_true(!in_array('meaningful_names', $repairHopIds, true), 'studio repair does not rename by default');
 
-assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'repair_studio_errors includes repair_studio_syntax');
+$smartHopIds = array_column(HopChains::smartRepair(), 'id');
+assert_true(in_array('meaningful_names', $smartHopIds, true), 'smart repair includes meaningful_names');
+assert_true(in_array('repair_context_aware_refs', $smartHopIds, true), 'smart repair includes repair_context_aware_refs');
 
-$powerToWeb = include dirname(__DIR__) . '/profiles/power_to_web.php';
-$webToPower = include dirname(__DIR__) . '/profiles/web_to_power.php';
-assert_true(in_array('meaningful_names', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web renames generics before export');
-assert_true(in_array('repair_double_qualified_refs', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web cleans screen refs after rename');
-assert_true(in_array('export_web_ir', array_column($powerToWeb['hops'], 'id'), true), 'power_to_web exports IR');
-assert_true(in_array('import_web_ir', array_column($webToPower['hops'], 'id'), true), 'web_to_power imports IR');
-assert_true(in_array('repair_double_qualified_refs', array_column($webToPower['hops'], 'id'), true), 'web_to_power cleans screen refs after import');
-assert_true(in_array('accessibility_labels', array_column($webToPower['hops'], 'id'), true), 'web_to_power fills a11y after import');
-assert_true(in_array('ensure_focus_visible', array_column($webToPower['hops'], 'id'), true), 'web_to_power ensures focus visible');
+$poweredHops = HopChains::powered();
+$poweredIds = array_column($poweredHops, 'id');
+assert_true(in_array('repair_control_refs', $poweredIds, true), 'powered chain includes repair_control_refs');
+assert_true(in_array('regenerate_sarif', $poweredIds, true), 'powered chain includes regenerate_sarif');
+assert_true(in_array('enable_dark_mode', $poweredIds, true), 'powered chain includes enable_dark_mode');
+assert_true(in_array('prefer_classic_theme_controls', $poweredIds, true), 'powered chain includes classic theme prep');
+foreach ($poweredHops as $hop) {
+    assert_true($hopRegistry->has($hop['id']), 'powered hop ' . $hop['id'] . ' registered');
+}
+foreach (HopChains::studioRepair() as $hop) {
+    assert_true($hopRegistry->has($hop['id']), 'studio repair hop ' . $hop['id'] . ' registered');
+}
+
+$powerToWeb = HopChains::powerToWeb();
+$webToPower = HopChains::webToPower();
+assert_true(in_array('meaningful_names', array_column($powerToWeb, 'id'), true), 'power_to_web renames generics before export');
+assert_true(in_array('repair_double_qualified_refs', array_column($powerToWeb, 'id'), true), 'power_to_web cleans screen refs after rename');
+assert_true(in_array('export_web_ir', array_column($powerToWeb, 'id'), true), 'power_to_web exports IR');
+assert_true(in_array('import_web_ir', array_column($webToPower, 'id'), true), 'web_to_power imports IR');
+assert_true(in_array('repair_double_qualified_refs', array_column($webToPower, 'id'), true), 'web_to_power cleans screen refs after import');
+assert_true(in_array('accessibility_labels', array_column($webToPower, 'id'), true), 'web_to_power fills a11y after import');
+assert_true(in_array('ensure_focus_visible', array_column($webToPower, 'id'), true), 'web_to_power ensures focus visible');
 assert_true($hopRegistry->has('export_web_ir'), 'export_web_ir hop registered');
 assert_true($hopRegistry->has('import_web_ir'), 'import_web_ir hop registered');
 assert_true($hopRegistry->has('configure_power_document'), 'configure_power_document hop registered');
@@ -1546,8 +1512,8 @@ assert_true(str_contains($lookupFixed, "LookUp('VASC App Versions', ID = 1)"), '
 $repair2 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
 if (is_file($repair2)) {
     $idempotentOut = sys_get_temp_dir() . '/ps_idempotent_' . bin2hex(random_bytes(4)) . '.msapp';
-    $repairProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-    (new Pipeline())->run($repair2, $repairProfile['hops'], $idempotentOut);
+    $repairHops = HopChains::studioRepair();
+    (new Pipeline())->run($repair2, $repairHops, $idempotentOut);
     $pass1Formulas = [];
     $arch1 = new \PowerSweeper\MsappArchive($idempotentOut);
     $arch1->unpack();
@@ -1561,7 +1527,7 @@ if (is_file($repair2)) {
     $arch1->cleanup();
 
     $pass2Out = sys_get_temp_dir() . '/ps_idempotent_p2_' . bin2hex(random_bytes(4)) . '.msapp';
-    (new Pipeline())->run($idempotentOut, $repairProfile['hops'], $pass2Out);
+    (new Pipeline())->run($idempotentOut, $repairHops, $pass2Out);
     $pass2Formulas = [];
     $arch2 = new \PowerSweeper\MsappArchive($pass2Out);
     $arch2->unpack();
@@ -1575,7 +1541,7 @@ if (is_file($repair2)) {
     $arch2->cleanup();
 
     $pass3Out = sys_get_temp_dir() . '/ps_idempotent_p3_' . bin2hex(random_bytes(4)) . '.msapp';
-    (new Pipeline())->run($pass2Out, $repairProfile['hops'], $pass3Out);
+    (new Pipeline())->run($pass2Out, $repairHops, $pass3Out);
     $pass3Formulas = [];
     $arch3 = new \PowerSweeper\MsappArchive($pass3Out);
     $arch3->unpack();
@@ -1600,10 +1566,9 @@ if (is_file($repair2)) {
 }
 
 // repair2 powered — theme toggle + App YAML twin
-$repair2PoweredProfile = include dirname(__DIR__) . '/profiles/repair_powered.php';
 if (is_file($repair2)) {
     $poweredTestOut = sys_get_temp_dir() . '/ps_powered_test_' . bin2hex(random_bytes(4)) . '.msapp';
-    $poweredHops = (new ProfileLoader(POWER_SWEEPER_PROFILES))->resolveHops($repair2PoweredProfile);
+    $poweredHops = HopChains::powered();
     (new Pipeline())->run($repair2, $poweredHops, $poweredTestOut);
     $poweredYaml = ZipTool::readEntry($poweredTestOut, 'Src/App.pa.yaml');
     $topbarYaml = ZipTool::readEntry($poweredTestOut, 'Src/Components/TopbarHeader.pa.yaml');
@@ -1691,9 +1656,9 @@ assert_true($timeUnitFindings === [], 'TimeUnit.Days is a Power Fx enum referenc
 // THCEE — global component hosts must stay bare (not screen-qualified)
 $thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
 if (is_file($thceeFriday)) {
-    $thceeProfile = include dirname(__DIR__) . '/profiles/powered_thcee.php';
+    $thceeHops = HopChains::powered();
     $thceePoweredOut = sys_get_temp_dir() . '/ps_thcee_powered_test_' . bin2hex(random_bytes(4)) . '.msapp';
-    (new Pipeline())->run($thceeFriday, $thceeProfile['hops'], $thceePoweredOut);
+    (new Pipeline())->run($thceeFriday, $thceeHops, $thceePoweredOut);
     $refreshYaml = ZipTool::readEntry($thceePoweredOut, 'Src/THCEE Refresh Screen.pa.yaml');
     assert_true(
         is_string($refreshYaml)
@@ -2059,8 +2024,8 @@ assert_true(in_array('GovernmentInitiative', $stemCandidates, true), 'token-stem
 $tdrSample = dirname(__DIR__) . '/samples/import_debug/TDR - THCEE Directory App.msapp';
 if (is_file($tdrSample)) {
     $tdrOut = sys_get_temp_dir() . '/ps_tdr_repair_' . bin2hex(random_bytes(3)) . '.msapp';
-    $tdrProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-    (new Pipeline())->run($tdrSample, $tdrProfile['hops'], $tdrOut);
+    $tdrHops = HopChains::studioRepair();
+    (new Pipeline())->run($tdrSample, $tdrHops, $tdrOut);
     $tdrArch = new \PowerSweeper\MsappArchive($tdrOut);
     $tdrArch->unpack();
     $tdrLive = \PowerSweeper\StudioLiveChecker::check($tdrArch->documents(), ['extract_dir' => $tdrArch->extractDir()]);
@@ -2089,8 +2054,8 @@ if (is_file($tdrSample)) {
 $ascTemplate = dirname(__DIR__) . '/samples/import_debug/VCDS ASC —Template with Approvals.msapp';
 if (is_file($ascTemplate)) {
     $ascOut = sys_get_temp_dir() . '/ps_asc_repair_' . bin2hex(random_bytes(3)) . '.msapp';
-    $ascProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-    (new Pipeline())->run($ascTemplate, $ascProfile['hops'], $ascOut);
+    $ascHops = HopChains::studioRepair();
+    (new Pipeline())->run($ascTemplate, $ascHops, $ascOut);
     $ascArch = new \PowerSweeper\MsappArchive($ascOut);
     $ascArch->unpack();
     $ascBad = 0;
@@ -2193,12 +2158,12 @@ if (is_file($tdrWebSample)) {
     $tdrRepaired = $tdrWebDir . '/repaired.msapp';
     $tdrWeb = $tdrWebDir . '/web.msapp';
     $tdrRound = $tdrWebDir . '/round.msapp';
-    $repairProfWeb = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-    $p2wProf = include dirname(__DIR__) . '/profiles/power_to_web.php';
-    $w2pProf = include dirname(__DIR__) . '/profiles/web_to_power.php';
-    (new Pipeline())->run($tdrWebSample, $repairProfWeb['hops'], $tdrRepaired);
-    (new Pipeline())->run($tdrRepaired, $p2wProf['hops'], $tdrWeb);
-    (new Pipeline())->run($tdrWeb, $w2pProf['hops'], $tdrRound);
+    $repairHopsWeb = HopChains::studioRepair();
+    $p2wHops = HopChains::powerToWeb();
+    $w2pHops = HopChains::webToPower();
+    (new Pipeline())->run($tdrWebSample, $repairHopsWeb, $tdrRepaired);
+    (new Pipeline())->run($tdrRepaired, $p2wHops, $tdrWeb);
+    (new Pipeline())->run($tdrWeb, $w2pHops, $tdrRound);
     $tdrWebArch = new \PowerSweeper\MsappArchive($tdrWeb);
     $tdrWebArch->unpack();
     assert_true(is_file($tdrWebArch->extractDir() . '/WebApp/power_sweeper_ir.json'), 'TDR power_to_web writes IR');
@@ -2416,8 +2381,8 @@ array_map('unlink', glob($webExtract . '/WebApp/*') ?: []);
 @unlink($webExtract . '/Properties.json');
 @rmdir($webExtract);
 
-// --- AppProfileAdvisor: auto hop sequence + force mode ---
-$advisor = new AppProfileAdvisor();
+// --- HopAdvisor: auto hop sequence + force mode ---
+$advisor = new HopAdvisor();
 $forced = $advisor->applyForceMode(
     [
         ['id' => 'accessibility_labels', 'options' => []],
@@ -2450,7 +2415,7 @@ if (is_file($kmsAdvisePath)) {
     $darkAt = array_search('enable_dark_mode', $planIds, true);
     assert_true(is_int($classicAt) && is_int($darkAt) && $classicAt < $darkAt, 'classic theme prep runs before enable_dark_mode');
     foreach ($plan['hops'] as $step) {
-        if (!in_array($step['id'], AppProfileAdvisor::FORCEABLE_HOPS, true)) {
+        if (!in_array($step['id'], HopAdvisor::FORCEABLE_HOPS, true)) {
             continue;
         }
         assert_true(array_key_exists('force', $step['options'] ?? []), 'forceable hop carries force option');

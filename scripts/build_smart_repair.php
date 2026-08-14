@@ -4,13 +4,15 @@
 declare(strict_types=1);
 
 /**
- * Build a smart-repaired .msapp (meaningful names + full repair + converge loop).
+ * Build a smart-repaired .msapp (meaningful names + full repair).
  *
  * Usage:
  *   php scripts/build_smart_repair.php [input.msapp] [output.msapp]
  */
 
 require_once dirname(__DIR__) . '/bootstrap.php';
+
+use PowerSweeper\HopChains;
 
 $input = $argv[1] ?? null;
 $output = $argv[2] ?? null;
@@ -26,27 +28,20 @@ if ($output === null) {
     $output = dirname($input) . '/' . preg_replace('/[^A-Za-z0-9_]+/', '_', $base) . '.smart.msapp';
 }
 
-$profile = include dirname(__DIR__) . '/profiles/repair_smart.php';
-(new PowerSweeper\Pipeline())->run($input, $profile['hops'], $output);
+(new PowerSweeper\Pipeline())->run($input, HopChains::smartRepair(), $output);
 
 $arch = new PowerSweeper\MsappArchive($output);
 $arch->unpack();
 $live = PowerSweeper\StudioLiveChecker::check($arch->documents(), ['extract_dir' => $arch->extractDir()]);
 $arch->cleanup();
 
-echo "Built: {$output}\n";
-echo "Live checker total: {$live['total']} (formula errors: " . self::formulaErrors($live) . ")\n";
-
-/** @param array<string,mixed> $live */
-function formulaErrors(array $live): int
-{
-    $n = 0;
-    foreach ($live['findings'] as $finding) {
-        $rule = (string) ($finding['ruleId'] ?? '');
-        if (str_starts_with($rule, 'app-Err') || $rule === 'app-formula-mangled-screen-ref') {
-            $n++;
-        }
+$formulaErr = 0;
+foreach ($live['findings'] as $f) {
+    $rule = (string) ($f['ruleId'] ?? '');
+    if (str_starts_with($rule, 'app-Err') || $rule === 'app-formula-mangled-screen-ref') {
+        $formulaErr++;
     }
-
-    return $n;
 }
+
+echo "Built: {$output}\n";
+echo "Live checker total: {$live['total']} (formula errors: {$formulaErr})\n";

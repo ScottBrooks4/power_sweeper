@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace PowerSweeper;
 
-/** Shared hop option helpers (profile defaults merged in ProfileLoader::resolveHops). */
+/** Shared hop option helpers (e.g. options.force). */
 final class HopOptions
 {
     /** @param array<string, mixed> $options */

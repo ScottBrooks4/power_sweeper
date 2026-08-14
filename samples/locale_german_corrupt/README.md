@@ -2,7 +2,7 @@
 
 Simulates a canvas app damaged by authoring under a **comma-decimal locale** (e.g. German), where Studio persisted locale separators into formulas — including classic JSON `InvariantScript` the formula bar may not expose.
 
-This is the stress case for the **`unwhack_locale`** profile (thousands of errors, similar class to the ~23k German format incident).
+This is the stress case for the **`unwhack_locale_formulas`** hop (thousands of errors, similar class to the ~23k German format incident).
 
 ## Corruption patterns baked in
 
@@ -44,7 +44,7 @@ Outputs:
 ## Test in the UI
 
 1. Drop `locale_german_corrupt.msapp` into Power Sweeper  
-2. Choose profile **`unwhack_locale`** (locale only) or **`repair_studio_errors`** (locale + Checked booleans + focus/a11y)  
+2. Let Analyze pick hops (or add `unwhack_locale_formulas` alone / full studio repair)  
 3. Run → review the change report (thousands of formula fixes)  
 4. Open the cleaned `.msapp` in Studio (**File → Open → Browse**) and save once  
 

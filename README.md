@@ -2,7 +2,7 @@
 
 Normalize and clean Power Apps canvas `.msapp` files with an ordered **hop** pipeline.
 
-Drop an app, choose operations (or load a profile preset), reorder the sequence, run, then download the cleaned `.msapp` and a change report.
+Drop an app — Power Sweeper scans it, picks which hops are needed and in what order, then you can tweak the sequence, run, and download the cleaned `.msapp` plus a change report.
 
 ## Local path
 
@@ -65,10 +65,10 @@ See [`samples/import_debug/from_plain/HOW_TO_TEST.txt`](samples/import_debug/fro
 ## How it works
 
 1. Upload an `.msapp` (ZIP archive of canvas sources).
-2. Build a hop sequence — or pick a **profile** to fill one.
-3. Power Sweeper unpacks the archive, edits `Src/**/*.pa.yaml` (and control JSON when present), repacks, and returns the file plus a report.
+2. **Analyze** scans for locale damage, formula errors, a11y gaps, generic names, container chrome, and theme presence — then proposes an ordered hop list and write mode (`missing_only` vs `all`).
+3. Tweak hops if you want, then run. Power Sweeper unpacks the archive, edits `Src/**/*.pa.yaml` (and control JSON when present), repacks, and returns the file plus a report.
 
-Order matters: the same hops in a different sequence can produce different results.
+Order matters: the same hops in a different sequence can produce different results. There are no named “profiles” — only hops, detection, and optional CLI convenience chains in [`config/hop_chains/`](config/hop_chains/).
 
 ## Built-in hops
 
@@ -105,56 +105,39 @@ Order matters: the same hops in a different sequence can produce different resul
 | `import_web_ir` | Apply IR heuristics back onto the `.msapp` (document layout, label sync, Navigate renames) — not a full web runtime import |
 | `configure_power_document` | Switch `Properties.json` toward classic Power (`mode=power`) or browser (`mode=web`) ScaleToFit defaults |
 
-## Profiles
+## Auto-detect and CLI hop chains
 
-PHP files in [`profiles/`](profiles/) return a description and ordered hop list (same idea as sweeper profiles).
+The UI does **not** use named profiles. Drop an `.msapp` and **Analyze** (`HopAdvisor`) decides which hops to run and in which order, plus write mode (`missing_only` vs `all` for hops that honor `force`).
 
-| Profile | Purpose |
-|---------|---------|
-| `default` | Balanced cleanup: containers, align, accessibility labels |
-| `containers_only` | Container normalization only |
-| `a11y_pass` | Accessibility labels and tooltips |
-| `meaningful_names` | Rename generic Studio control names from visible/accessible text, then fill a11y labels and tooltips |
-| `transparent_buttons` | Strip default button chrome |
-| `unwhack_locale` | Locale separator repair only |
-| `repair_formula_refs` | Control refs (context-aware + converge), SharePoint fields, package shape, ghost Patch fields (+ SARIF) |
-| `repair_delegation` | SharePoint delegation fixes (+ SARIF) |
-| `repair_studio_errors` | **Full Studio checker repair** (locale, context-aware refs, booleans, a11y, delegation, SARIF) |
-| `repair_smart` | **Meaningful names + full repair** — rename generic controls first, then `repair_studio_errors` chain |
-| `repair_powered` | **Full repair + dark mode** — shared `*.powered.msapp` chain for VCR / THCEE / ASC / TDR |
-| `powered_thcee` | Alias of `repair_powered` (kept for scripts/UI compatibility) |
-| `repair_studio_errors_then_dark` | Full repair + dark mode one-shot |
-| `scan_studio_issues` | Report-only verify pass (no formula edits) |
-| `regenerate_sarif` | Refresh `AppCheckerResult.sarif` from live checker only |
-| `dark_mode` | `gblTheme` palettes and dark-mode toggle |
-| `sharepoint_correlate` | SharePoint schema correlate + typo repair |
-| `posix_zip_paths` / `windows_zip_paths` | Zip entry separator style |
-| `power_to_web` | **Structural** Power → web: meaningful names → IR + HTML preview + browser document layout |
-| `web_to_power` | **Structural** web IR → Power apply (labels / layout / state / screen+control renames / Navigate+SetFocus / document), then a11y/focus chrome + classic ScaleToFit |
+For scripts and batch builds, thin named sequences live in [`config/hop_chains/`](config/hop_chains/) and are exposed via `HopChains`:
+
+| Chain | Purpose |
+|-------|---------|
+| `studio_repair` | Full Studio checker repair order (locale → refs → booleans → a11y → delegation → SARIF) |
+| `dark_mode` | Classic theme prep + `enable_dark_mode` |
+| `powered` | `studio_repair` + forced dark mode (deliverable builds) |
+| `smart_repair` | `meaningful_names` then `studio_repair` |
+| `power_to_web` / `web_to_power` | Structural IR export / import (not a full compiler) |
+
+```bash
+php scripts/build_repaired.php input.msapp
+php scripts/build_powered.php input.msapp
+php scripts/build_smart_repair.php input.msapp
+php scripts/matrix_hops.php --apps=vcr,thcee,tdr,pacs,template
+php scripts/matrix_hops.php --web --skip-powered
+```
+
+Compose individual hops in the UI anytime — add, remove, and reorder freely.
 
 ### Power ↔ web conversion (structural, heuristic)
 
-These profiles are intentionally **not** a 100% Power App ↔ arbitrary web-app compiler. They move structure through an intermediate representation:
+These chains are intentionally **not** a 100% Power App ↔ arbitrary web-app compiler. They move structure through an intermediate representation:
 
 1. **`power_to_web`** — rename generic Studio controls, then extract screens, roles, labels, layout, literal state, navigation edges, theme tokens, and datasources into `WebApp/power_sweeper_ir.json`, plus a static HTML scaffold.
 2. Edit the IR (or regenerate it) outside Studio when needed.
 3. **`web_to_power`** — re-apply safe deltas: document meta, labels, literal layout/state, non-screen renames via `previous_name`, and `Navigate` renames when the destination already exists.
 
-Power Fx formulas remain authoritative inside the `.msapp`. Error-correction profiles (`repair_studio_errors`, `repair_smart`) use context-aware reference repair and a live-checker converge loop — not blind find/replace.
-
-For **CDLS VCR**, **VCDS THCEE**, **TDR**, **ASC PACS**, and **ASC Template**, you can either:
-
-1. Profile **`repair_powered`** (or `php scripts/build_powered.php input.msapp`) → `*.powered.msapp` with full repair + `gblTheme` toggle  
-2. Profile **`repair_studio_errors`** → download → verify in Studio  
-3. Profile **`dark_mode`** on that cleaned `.msapp` (or use **`repair_studio_errors_then_dark`** for both in one run)
-4. Profile **`power_to_web`** / **`web_to_power`** for structural IR export/import (after repair when formulas are dirty)
-
-Multi-app matrix (repair, optional powered, optional web round-trip):
-
-```bash
-php scripts/matrix_profiles.php --apps=vcr,thcee,tdr,pacs,template
-php scripts/matrix_profiles.php --web --skip-powered
-```
+Power Fx formulas remain authoritative inside the `.msapp`. Studio repair uses context-aware reference repair and a live-checker converge loop — not blind find/replace.
 
 Friday deliverables (repair + dark mode):
 
@@ -172,24 +155,15 @@ Validate a powered deliverable (formula errors fail; soft advisories warn):
 php scripts/validate_powered.php samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp
 ```
 
-Or in the UI: load `repair_studio_errors`, run; then load `dark_mode` on the result. Order should still be repair hops first, then `enable_dark_mode`.
-
-**Modular repair profiles** (compose or run standalone):
-
-- **`repair_formula_refs`** — when formulas break after screen duplication (unqualified refs, double qualification, SharePoint typos)  
-- **`repair_delegation`** — when performance/delegation hints are the only remaining issues  
-- **`regenerate_sarif`** — refresh embedded App checker counts without editing formulas  
-- **`scan_studio_issues`** — report-only verification after any repair pass
-
-Dark mode alone does **not** fix locale/formula corruption; run repair first when App checker is noisy.
+Dark mode alone does **not** fix locale/formula corruption; run repair hops first when App checker is noisy.
 
 ### Locale unwhack
 
-When an app is edited under a comma-decimal locale (German, French, …), Studio can persist locale separators into formulas — including classic JSON rules you cannot open in the formula bar. The `unwhack_locale` profile converts those back to invariant Power Fx (`.` decimal, `,` list separator, `;` chaining) across `Src/**/*.pa.yaml` and control JSON `InvariantScript` / `AutoRuleBindingString`. Compact invariant colors like `RGBA(0,0,0,0)` are left alone (not mistaken for decimal commas).
+When an app is edited under a comma-decimal locale (German, French, …), Studio can persist locale separators into formulas — including classic JSON rules you cannot open in the formula bar. The `unwhack_locale_formulas` hop converts those back to invariant Power Fx (`.` decimal, `,` list separator, `;` chaining) across `Src/**/*.pa.yaml` and control JSON `InvariantScript` / `AutoRuleBindingString`. Compact invariant colors like `RGBA(0,0,0,0)` are left alone (not mistaken for decimal commas).
 
 ### Dark mode
 
-The `dark_mode` profile builds an **editable central palette** instead of hard-coding `If(gblDarkMode, …)` / RGBA on every control:
+The `enable_dark_mode` hop builds an **editable central palette** instead of hard-coding `If(gblDarkMode, …)` / RGBA on every control:
 
 1. `App.OnStart` gets `gblThemeLight` / `gblThemeDark` records (tokens like `Page`, `Surface`, `Text`, `Accent`, …) and `Set(gblTheme, gblThemeLight)`
 2. Toggle sets `gblDarkMode` and swaps `gblTheme` between the two palettes
@@ -220,7 +194,7 @@ Upload an optional SharePoint schema JSON (UI field or hop option `schema` / `sc
 }
 ```
 
-The `sharepoint_correlate` profile then:
+The `correlate_sharepoint` hop then:
 
 1. Reads `References/DataSources.json`, `DataSources/*`, `Connections/*`, and `pkgs/TableDefinitions/*` from the `.msapp`
 2. Flags bad/empty SharePoint connections and lists/columns missing vs the schema
@@ -245,26 +219,24 @@ Cleaned customer apps for Studio import (ASCII names, Studio-compatible Windows 
 
 Import with **make.powerapps.com → Apps → Import app → From file (.msapp)** and pick a **local** file (avoids remote download/network blocks). Then **Save** once into your environment.
 
-### Repair Studio errors (VCR-class apps)
+### Studio repair order
 
-Profile **`repair_studio_errors`** is the full pass for apps like CDLS VCR after a language/region switch or screen duplication. It runs, in order:
+When formula/locale damage is detected (or when you run `HopChains::studioRepair()`), hops typically run in this order:
 
-1. `unwhack_locale_formulas` — Expected operator, invalid arity, ParseJSON / If / LookUp separator damage (YAML + JSON `InvariantScript` / `AutoRuleBindingString`)  
-2. `repair_control_refs` — qualify bare cross-screen control references  
-3. `repair_double_qualified_refs` — collapse `'Screen'.'Screen'.Control` double qualification  
-4. `repair_sharepoint_fields` — list/column typos in metadata and formulas  
-5. `repair_var_current_package` — `varCurrentPackage` record shape  
-6. `repair_ghost_patch_fields` — ghost Patch fields from duplicated screens  
-7. `repair_studio_syntax` — trailing Concatenate commas, screen-qualified `Date()`, App bootstrap  
-8. `repair_checked_booleans` — “Expecting a true or false value” on Checked/Default/Visible  
-9. `accessibility_labels`, `ensure_focus_visible`, `ensure_tab_index`, `tooltip_from_label`  
-10. `repair_maintainability` — safe maintainability fixes  
-11. `repair_delegation` — SharePoint delegation (email filters, collection CountIf, split duplicate-request Filters)  
-12. `regenerate_sarif` — write fresh `AppCheckerResult.sarif` from the live App checker  
+1. `unwhack_locale_formulas` — Expected operator, invalid arity, ParseJSON / If / LookUp separator damage (YAML + JSON `InvariantScript` / `AutoRuleBindingString`)
+2. `repair_control_refs` — qualify bare cross-screen control references
+3. `repair_double_qualified_refs` — collapse `'Screen'.'Screen'.Control` double qualification
+4. `repair_sharepoint_fields` — list/column typos in metadata and formulas
+5. `repair_var_current_package` — `varCurrentPackage` record shape
+6. `repair_ghost_patch_fields` — ghost Patch fields from duplicated screens
+7. `repair_studio_syntax` — trailing Concatenate commas, screen-qualified `Date()`, App bootstrap
+8. `repair_checked_booleans` — “Expecting a true or false value” on Checked/Default/Visible
+9. `accessibility_labels`, `ensure_focus_visible`, `ensure_tab_index`, `tooltip_from_label`
+10. `repair_maintainability` — safe maintainability fixes
+11. `repair_delegation` — SharePoint delegation (email filters, collection CountIf, split duplicate-request Filters)
+12. `regenerate_sarif` — write fresh `AppCheckerResult.sarif` from the live App checker
 
-Use **`scan_studio_issues`** afterward for a report-only verify pass, or **`regenerate_sarif`** alone to refresh SARIF without formula edits.
-
-**Related profiles:** `repair_formula_refs` (refs/SharePoint only), `repair_delegation` (delegation only), `repair_studio_errors_then_dark` (repair + dark mode).
+Use hop `scan_studio_issues` afterward for a report-only verify pass, or `regenerate_sarif` alone to refresh SARIF without formula edits.
 
 ## Tests
 
@@ -275,6 +247,6 @@ php tests/run_tests.php
 ## Notes
 
 - Import cleaned apps via **Apps → Import app → From file (.msapp)** (local file picker), then **Save** once. Prefer `~/Downloads/power_sweeper_import/` copies (ASCII filenames).
-- Packed `.msapp` files **preserve** the source zip path style (almost always Windows `\\`). Use profile **`posix_zip_paths`** (or hop `set_zip_path_style`) only if you intentionally want forward slashes.
+- Packed `.msapp` files **preserve** the source zip path style (almost always Windows `\\`). Use hop `set_zip_path_style` only if you intentionally want forward slashes.
 - Only hop-owned properties are changed; media, connections, and unrelated metadata are left alone.
 - Prefer editing apps you can re-save in Studio; treat this as a companion cleanup tool, not a full source-control substitute.

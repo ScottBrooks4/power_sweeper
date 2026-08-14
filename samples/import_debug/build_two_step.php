@@ -9,13 +9,14 @@ declare(strict_types=1);
  *   php samples/import_debug/build_two_step.php
  *
  * Outputs (same folder):
- *   CDLS_L_VCR_step1_repair.msapp           — repair_studio_errors only
- *   CDLS_L_VCR_step2_dark_mode.msapp        — dark_mode only (same plain source)
+ *   CDLS_L_VCR_step1_repair.msapp           — studio repair only
+ *   CDLS_L_VCR_step2_dark_mode.msapp        — dark mode only (same plain source)
  *   CDLS_L_VCR_step3_repair_then_dark.msapp — recommended production (repair → dark)
  */
 
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
 
+use PowerSweeper\HopChains;
 use PowerSweeper\Pipeline;
 
 $outDir = __DIR__;
@@ -25,11 +26,8 @@ if (!is_file($plain)) {
     exit(1);
 }
 
-$profilesDir = dirname(__DIR__, 2) . '/profiles';
-/** @var array{hops: list<array{id:string,options?:array<string,mixed>}>} $repair */
-$repair = include $profilesDir . '/repair_studio_errors.php';
-/** @var array{hops: list<array{id:string,options?:array<string,mixed>}>} $dark */
-$dark = include $profilesDir . '/dark_mode.php';
+$repair = HopChains::studioRepair();
+$dark = HopChains::darkMode();
 
 $step1 = $outDir . '/CDLS_L_VCR_step1_repair.msapp';
 $step2 = $outDir . '/CDLS_L_VCR_step2_dark_mode.msapp';
@@ -39,16 +37,16 @@ $pipeline = new Pipeline();
 
 echo 'Source: ' . basename($plain) . "\n\n";
 
-echo "Step 1 — repair_studio_errors → " . basename($step1) . "\n";
-$r1 = $pipeline->run($plain, $repair['hops'], $step1);
+echo "Step 1 — studio_repair → " . basename($step1) . "\n";
+$r1 = $pipeline->run($plain, $repair, $step1);
 echo '  changes: ' . ($r1['report']['total'] ?? 0) . "\n";
 
 echo "\nStep 2 — dark_mode → " . basename($step2) . "\n";
-$r2 = $pipeline->run($plain, $dark['hops'], $step2);
+$r2 = $pipeline->run($plain, $dark, $step2);
 echo '  changes: ' . ($r2['report']['total'] ?? 0) . "\n";
 
 echo "\nStep 3 — repair then dark (recommended) → " . basename($step3) . "\n";
-$r3 = $pipeline->run($plain, array_merge($repair['hops'], $dark['hops']), $step3);
+$r3 = $pipeline->run($plain, array_merge($repair, $dark), $step3);
 echo '  changes: ' . ($r3['report']['total'] ?? 0) . "\n";
 
 echo "\nDone.\n";

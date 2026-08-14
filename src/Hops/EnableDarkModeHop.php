@@ -197,7 +197,7 @@ final class EnableDarkModeHop implements HopInterface
                 $palette[$core] = $pair;
             }
         }
-        // Hop/profile theme_defaults always win (brand palette without touching controls)
+        // Hop theme_defaults always win (brand palette without touching controls)
         foreach ($forcedDefaults as $token => $pair) {
             $palette[$token] = $pair;
         }

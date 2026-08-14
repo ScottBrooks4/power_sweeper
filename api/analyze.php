@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use PowerSweeper\AppProfileAdvisor;
+use PowerSweeper\HopAdvisor;
 use PowerSweeper\ZipTool;
 
 // Keep the NDJSON stream clean — no HTML notices/warnings in the body.
@@ -54,7 +54,7 @@ register_shutdown_function(static function () use ($emit): void {
         'type' => 'error',
         'ok' => false,
         'error' => 'Analyze crashed: ' . ($err['message'] ?? 'fatal error'),
-        'forceable_hops' => AppProfileAdvisor::FORCEABLE_HOPS,
+        'forceable_hops' => HopAdvisor::FORCEABLE_HOPS,
     ]);
 });
 
@@ -105,7 +105,7 @@ try {
     ]);
 
     try {
-        $advisor = new AppProfileAdvisor();
+        $advisor = new HopAdvisor();
         $result = $advisor->recommend($tmp, static function (array $event) use ($emit): void {
             $emit($event);
         });
@@ -122,6 +122,6 @@ try {
         'type' => 'error',
         'ok' => false,
         'error' => $e->getMessage(),
-        'forceable_hops' => AppProfileAdvisor::FORCEABLE_HOPS,
+        'forceable_hops' => HopAdvisor::FORCEABLE_HOPS,
     ]);
 }

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use PowerSweeper\AppProfileAdvisor;
+use PowerSweeper\HopAdvisor;
 use PowerSweeper\HopRegistry;
 
 $hops = (new HopRegistry())->catalog();
-$forceable = AppProfileAdvisor::FORCEABLE_HOPS;
+$forceable = HopAdvisor::FORCEABLE_HOPS;
 
 // Base URL for /power_sweeper/ under Apache, or / under php -S router.php
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';

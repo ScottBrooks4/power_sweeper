@@ -16,7 +16,7 @@ use ZipArchive;
  * On disk we always use forward slashes. Inside .msapp packages, entry path
  * separators are preserved from the source archive by default (almost always
  * Windows `\`, since Power Apps is a Windows product). Use the
- * `set_zip_path_style` hop / `posix_zip_paths` profile to force POSIX `/`.
+ * `set_zip_path_style` hop to force POSIX `/`.
  */
 final class ZipTool
 {

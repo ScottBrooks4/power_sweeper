@@ -4,18 +4,18 @@
 declare(strict_types=1);
 
 /**
- * Run repair / powered / power↔web profiles against the multi-app sample set.
+ * Run studio repair / powered / power↔web hop chains against the multi-app sample set.
  *
  * Usage:
- *   php scripts/matrix_profiles.php [--apps=vcr,thcee,tdr,pacs,template]
- *                                   [--skip-powered] [--skip-repair] [--web]
+ *   php scripts/matrix_hops.php [--apps=vcr,thcee,tdr,pacs,template]
+ *                               [--skip-powered] [--skip-repair] [--web]
  */
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use PowerSweeper\HopChains;
 use PowerSweeper\MsappArchive;
 use PowerSweeper\Pipeline;
-use PowerSweeper\ProfileLoader;
 use PowerSweeper\StudioLiveChecker;
 
 $allApps = [
@@ -47,7 +47,6 @@ foreach (array_slice($argv, 1) as $arg) {
 
 $outDir = sys_get_temp_dir() . '/ps_matrix_' . date('Ymd_His');
 mkdir($outDir, 0775, true);
-$loader = new ProfileLoader(POWER_SWEEPER_PROFILES);
 $summary = [];
 
 $fmtRules = static function (array $byRule): string {
@@ -93,17 +92,16 @@ foreach ($selected as $appId) {
 
     $repairedPath = $path;
     if (!$skipRepair) {
-        $repairProf = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
         $out1 = $outDir . '/' . $appId . '.repaired.msapp';
         $t0 = microtime(true);
         try {
-            (new Pipeline())->run($path, $repairProf['hops'], $out1);
+            (new Pipeline())->run($path, HopChains::studioRepair(), $out1);
             $secs = round(microtime(true) - $t0, 1);
             $a2 = new MsappArchive($out1);
             $a2->unpack();
             $after = StudioLiveChecker::check($a2->documents(), ['extract_dir' => $a2->extractDir()]);
             $a2->cleanup();
-            echo "repair_studio_errors: {$secs}s live={$after['total']} formulaErr="
+            echo "studio_repair: {$secs}s live={$after['total']} formulaErr="
                 . $formulaErrCount($after) . ' delta=' . ($after['total'] - $before['total'])
                 . ' | ' . $fmtRules($after['by_rule']) . "\n";
             $summary[$appId]['repair'] = [
@@ -121,13 +119,11 @@ foreach ($selected as $appId) {
     }
 
     if ($runWeb) {
-        $powerToWeb = include dirname(__DIR__) . '/profiles/power_to_web.php';
-        $webToPower = include dirname(__DIR__) . '/profiles/web_to_power.php';
         $webOut = $outDir . '/' . $appId . '.web.msapp';
         $roundOut = $outDir . '/' . $appId . '.web_roundtrip.msapp';
         try {
             $t0 = microtime(true);
-            (new Pipeline())->run($repairedPath, $powerToWeb['hops'], $webOut);
+            (new Pipeline())->run($repairedPath, HopChains::powerToWeb(), $webOut);
             $secsWeb = round(microtime(true) - $t0, 1);
             $aw = new MsappArchive($webOut);
             $aw->unpack();
@@ -148,7 +144,7 @@ foreach ($selected as $appId) {
             $aw->cleanup();
 
             $t0 = microtime(true);
-            (new Pipeline())->run($webOut, $webToPower['hops'], $roundOut);
+            (new Pipeline())->run($webOut, HopChains::webToPower(), $roundOut);
             $secsRound = round(microtime(true) - $t0, 1);
             $ar = new MsappArchive($roundOut);
             $ar->unpack();
@@ -190,13 +186,10 @@ foreach ($selected as $appId) {
         continue;
     }
 
-    $powered = $loader->resolvePoweredProfile($path);
-    $appClass = (string) ($powered['app_class'] ?? 'shared');
-    $profileName = 'repair_powered';
     $out2 = $outDir . '/' . $appId . '.powered.msapp';
     $t0 = microtime(true);
     try {
-        (new Pipeline())->run($path, $powered['hops'], $out2);
+        (new Pipeline())->run($path, HopChains::powered(), $out2);
         $secs = round(microtime(true) - $t0, 1);
         $a3 = new MsappArchive($out2);
         $a3->unpack();
@@ -210,7 +203,7 @@ foreach ($selected as $appId) {
             }
         }
         $a3->cleanup();
-        echo "powered ({$profileName}/{$appClass}): {$secs}s live={$after['total']} formulaErr="
+        echo "powered: {$secs}s live={$after['total']} formulaErr="
             . $formulaErrCount($after) . ' theme=' . ($hasTheme ? 'Y' : 'N')
             . ' | ' . $fmtRules($after['by_rule']) . "\n";
         $summary[$appId]['powered'] = [
@@ -220,8 +213,6 @@ foreach ($selected as $appId) {
             'secs' => $secs,
             'theme' => $hasTheme,
             'rules' => $after['by_rule'],
-            'profile' => $profileName,
-            'app_class' => $appClass,
         ];
     } catch (Throwable $e) {
         echo 'powered FAIL: ' . $e->getMessage() . "\n";

@@ -4,23 +4,18 @@
 declare(strict_types=1);
 
 /**
- * Build *.powered.msapp deliverables (repair + dark mode).
+ * Build *.powered.msapp deliverables (studio repair + dark mode).
  *
  * Usage:
- *   php scripts/build_powered.php [input.msapp] [output.msapp] [profile.php]
- *
- * Profile auto-selection:
- *   - explicit profile.php when provided
- *   - repair_powered (shared full repair + dark mode) otherwise
+ *   php scripts/build_powered.php [input.msapp] [output.msapp]
  */
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use PowerSweeper\ProfileLoader;
+use PowerSweeper\HopChains;
 
 $input = $argv[1] ?? dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
 $output = $argv[2] ?? null;
-$explicitProfile = $argv[3] ?? null;
 
 if (!is_file($input)) {
     fwrite(STDERR, "Input not found: {$input}\n");
@@ -33,15 +28,7 @@ if ($output === null) {
     $output = dirname($input) . '/' . preg_replace('/[^A-Za-z0-9_]+/', '_', $base) . '.powered.msapp';
 }
 
-$profilesDir = dirname(__DIR__) . '/profiles';
-$loader = new ProfileLoader($profilesDir);
-$profile = $loader->resolvePoweredProfile($input, is_string($explicitProfile) && $explicitProfile !== '' ? $explicitProfile : null);
-$profileLabel = is_string($explicitProfile) && $explicitProfile !== ''
-    ? basename($explicitProfile)
-    : 'repair_powered.php';
-$appClass = (string) ($profile['app_class'] ?? 'shared');
-
-(new PowerSweeper\Pipeline())->run($input, $loader->resolveHops($profile), $output);
+(new PowerSweeper\Pipeline())->run($input, HopChains::powered(), $output);
 
 $arch = new PowerSweeper\MsappArchive($output);
 $arch->unpack();
@@ -76,7 +63,6 @@ foreach ($live['findings'] as $f) {
 $arch->cleanup();
 
 echo "Built: {$output}\n";
-echo "Profile: {$profileLabel} (app_class={$appClass})\n";
+echo "Chain: powered (studio repair + dark mode)\n";
 echo "Live checker total: {$live['total']} (formulaErr={$formulaErr})\n";
-echo "Theme palettes in App.OnStart: " . ($hasTheme ? 'yes' : 'no') . "\n";
-echo "Theme radio wired: " . ($themeRadioWired ? 'yes' : 'no') . "\n";
+echo "Theme OnStart: " . ($hasTheme ? 'yes' : 'no') . "; ThemeRadio wired: " . ($themeRadioWired ? 'yes' : 'no') . "\n";

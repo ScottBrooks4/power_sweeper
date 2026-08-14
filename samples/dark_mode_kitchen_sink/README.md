@@ -39,7 +39,7 @@ Outputs:
 
 1. Open Power Sweeper
 2. Drop `dark_mode_kitchen_sink.msapp`
-3. Choose profile **dark_mode** (or hop `enable_dark_mode`)
+3. Let Analyze pick hops (or add `prefer_classic_theme_controls` + `enable_dark_mode`)
 4. Run → download cleaned app
 5. Open in Power Apps Studio (**File → Open → Browse**), save once
 6. On `HomeScreen`, use **Dark mode** toggle and confirm surfaces/text/borders flip  

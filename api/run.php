@@ -6,7 +6,6 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 
 use PowerSweeper\HopRegistry;
 use PowerSweeper\Pipeline;
-use PowerSweeper\ProfileLoader;
 use PowerSweeper\ZipTool;
 
 /**
@@ -81,7 +80,6 @@ function ps_upload_error_message(int $code, int $uploadMax, int $postMax): strin
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     header('Content-Type: application/json; charset=utf-8');
     $registry = new HopRegistry();
-    $profiles = (new ProfileLoader(POWER_SWEEPER_PROFILES))->all();
     echo json_encode([
         'ok' => true,
         'ziptool' => ZipTool::REV,
@@ -94,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'post_max_size_bytes' => ps_bytes((string) ini_get('post_max_size')),
         ],
         'hops' => $registry->catalog(),
-        'profiles' => $profiles,
+        'forceable_hops' => \PowerSweeper\HopAdvisor::FORCEABLE_HOPS,
     ], JSON_UNESCAPED_SLASHES);
     exit;
 }

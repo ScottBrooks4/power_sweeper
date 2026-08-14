@@ -11,7 +11,7 @@ namespace PowerSweeper;
  * - all          → options.force=true on hops that honor force (overwrite existing)
  * - missing_only → options.force=false (fill gaps / preserve user values)
  */
-final class AppProfileAdvisor
+final class HopAdvisor
 {
     /** Hops that honor options.force (must stay in sync with hop implementations). */
     public const FORCEABLE_HOPS = [
@@ -26,7 +26,6 @@ final class AppProfileAdvisor
      * @param null|callable(array{type:string,message:string,phase?:string}):void $onProgress
      * @return array{
      *   ok:true,
-     *   recommended_profile:string,
      *   force_mode:string,
      *   force_mode_reason:string,
      *   reasons:list<string>,
@@ -67,17 +66,15 @@ final class AppProfileAdvisor
             $hops = $this->applyForceMode($plan['hops'], $plan['force_mode']);
             $emit(
                 sprintf(
-                    'Selected %d hop%s for profile “%s”.',
+                    'Selected %d hop%s.',
                     count($hops),
-                    count($hops) === 1 ? '' : 's',
-                    $plan['profile']
+                    count($hops) === 1 ? '' : 's'
                 ),
                 'done'
             );
 
             return [
                 'ok' => true,
-                'recommended_profile' => $plan['profile'],
                 'force_mode' => $plan['force_mode'],
                 'force_mode_reason' => $plan['force_mode_reason'],
                 'reasons' => $plan['reasons'],
@@ -310,7 +307,6 @@ final class AppProfileAdvisor
     /**
      * @param array<string, mixed> $signals
      * @return array{
-     *   profile:string,
      *   force_mode:string,
      *   force_mode_reason:string,
      *   reasons:list<string>,
@@ -320,10 +316,7 @@ final class AppProfileAdvisor
     private function buildPlan(array $signals): array
     {
         $reasons = [];
-        $studioRepair = include dirname(__DIR__) . '/profiles/includes/studio_repair_hops.php';
-        if (!is_array($studioRepair)) {
-            $studioRepair = [];
-        }
+        $studioRepair = HopChains::studioRepair();
 
         $needsRepair = ((int) $signals['formula_errors'] > 0)
             || ((int) $signals['locale_hits'] > 0)
@@ -344,7 +337,6 @@ final class AppProfileAdvisor
         );
 
         $hops = [];
-        $profile = 'default';
 
         if ($needsNames) {
             $reasons[] = sprintf(
@@ -380,12 +372,8 @@ final class AppProfileAdvisor
         if ($needsRepair) {
             if ($needsNames) {
                 $hops[] = ['id' => 'meaningful_names', 'options' => ['only_generic' => true]];
-                $hops = array_merge($hops, $studioRepair);
-                $profile = $needsTheme ? 'repair_powered' : 'repair_smart';
-            } else {
-                $hops = $studioRepair;
-                $profile = $needsTheme ? 'repair_powered' : 'repair_studio_errors';
             }
+            $hops = array_merge($hops, $studioRepair);
             if ($needsContainers) {
                 $hops[] = ['id' => 'normalize_containers', 'options' => []];
                 $hops[] = ['id' => 'strip_default_fill', 'options' => []];
@@ -395,10 +383,8 @@ final class AppProfileAdvisor
                 $hops[] = ['id' => 'enable_dark_mode', 'options' => []];
             }
         } else {
-            // Light / modular cleanup
             if ((int) $signals['locale_hits'] > 0) {
                 $hops[] = ['id' => 'unwhack_locale_formulas', 'options' => []];
-                $profile = 'unwhack_locale';
             }
             if ($needsNames) {
                 array_unshift($hops, ['id' => 'meaningful_names', 'options' => ['only_generic' => true]]);
@@ -413,24 +399,20 @@ final class AppProfileAdvisor
                 $hops[] = ['id' => 'ensure_focus_visible', 'options' => ['thickness' => 2]];
                 $hops[] = ['id' => 'ensure_tab_index', 'options' => ['value' => 0]];
                 $hops[] = ['id' => 'tooltip_from_label', 'options' => []];
-                $profile = 'a11y_pass';
-            } elseif ($hops === []) {
+            } elseif ($hops === [] || (count($hops) === 1 && ($hops[0]['id'] ?? '') === 'align_near_miss')) {
                 $hops = [
                     ['id' => 'normalize_containers', 'options' => []],
                     ['id' => 'align_near_miss', 'options' => ['tolerance' => 3]],
                     ['id' => 'accessibility_labels', 'options' => []],
                 ];
-                $profile = 'default';
-                $reasons[] = 'No major issues — balanced default cleanup';
+                $reasons[] = 'No major issues — light cleanup pass';
             }
             if ($needsTheme) {
                 $hops[] = ['id' => 'prefer_classic_theme_controls', 'options' => []];
                 $hops[] = ['id' => 'enable_dark_mode', 'options' => []];
-                $profile = 'repair_studio_errors_then_dark';
             }
         }
 
-        // Ensure classic theme prep always sits immediately before enable_dark_mode.
         $hasClassic = false;
         $darkAt = null;
         foreach ($hops as $i => $step) {
@@ -446,14 +428,11 @@ final class AppProfileAdvisor
             array_splice($hops, $darkAt, 0, [['id' => 'prefer_classic_theme_controls', 'options' => []]]);
         }
 
-        // Deduplicate consecutive identical hop ids while preserving intentional double_qualified repeats in studio chain.
-        // (studio_repair_hops intentionally repeats repair_double_qualified_refs — keep as-is)
-
         $forceMode = 'missing_only';
         $forceReason = 'Preserve existing labels, theme colors, and container values; fill gaps only.';
         if ($needsTheme && !$hasTheme) {
             $forceMode = 'all';
-            $forceReason = 'App has no theme yet — force full palette/chrome application for a complete powered pass.';
+            $forceReason = 'App has no theme yet — force full palette/chrome application for a complete themed pass.';
         } elseif (((float) $signals['label_missing_ratio']) >= 0.55 && ((int) $signals['interactive_controls'] >= 20)) {
             $forceMode = 'all';
             $forceReason = 'Most interactive controls lack AccessibleLabel — overwrite/fill aggressively.';
@@ -469,7 +448,6 @@ final class AppProfileAdvisor
         }
 
         return [
-            'profile' => $profile,
             'force_mode' => $forceMode,
             'force_mode_reason' => $forceReason,
             'reasons' => $reasons,
