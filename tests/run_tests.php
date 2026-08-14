@@ -605,7 +605,10 @@ assert_true($linkHex === '#2DD4BF', 'ColorValue::toHex for dark link teal');
 // analyze_app_checker removes empty layout formulas
 $emptyDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_settings.pa.yaml', 'Src/Home.pa.yaml');
 $emptyReport = new Report();
-(new AnalyzeAppCheckerHop())->apply([$emptyDoc], $emptyReport, ['_extract_dir' => sys_get_temp_dir()]);
+$emptyExtract = sys_get_temp_dir() . '/ps_analyze_empty_' . bin2hex(random_bytes(4));
+mkdir($emptyExtract, 0777, true);
+(new AnalyzeAppCheckerHop())->apply([$emptyDoc], $emptyReport, ['_extract_dir' => $emptyExtract]);
+@rmdir($emptyExtract);
 $emptyDoc->reindex();
 $layoutCleared = true;
 foreach ($emptyDoc->controls() as $c) {

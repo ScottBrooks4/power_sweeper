@@ -186,11 +186,43 @@ final class AnalyzeAppCheckerHop implements HopInterface
                 return $p;
             }
         }
-        // Case-insensitive walk (zip path styles vary)
-        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($extractDir));
-        foreach ($it as $f) {
-            if ($f->isFile() && strcasecmp($f->getFilename(), 'AppCheckerResult.sarif') === 0) {
-                return $f->getPathname();
+        // Case-insensitive walk (zip path styles vary).
+        // BFS without following symlinks — CI runners can symlink into unreadable /tmp mounts.
+        // Cap depth/visits so a mistaken extract root (e.g. sys temp) cannot hang.
+        $queue = [[$extractDir, 0]];
+        $visited = 0;
+        $maxDepth = 16;
+        $maxVisited = 4000;
+        while ($queue !== []) {
+            [$dir, $depth] = array_pop($queue);
+            if ($depth > $maxDepth || $visited >= $maxVisited) {
+                break;
+            }
+            $entries = @scandir($dir);
+            if ($entries === false) {
+                continue;
+            }
+            foreach ($entries as $name) {
+                if ($name === '.' || $name === '..') {
+                    continue;
+                }
+                $visited++;
+                if ($visited > $maxVisited) {
+                    break 2;
+                }
+                $path = $dir . DIRECTORY_SEPARATOR . $name;
+                if (is_link($path)) {
+                    continue;
+                }
+                if (is_dir($path)) {
+                    if ($depth < $maxDepth) {
+                        $queue[] = [$path, $depth + 1];
+                    }
+                    continue;
+                }
+                if (is_file($path) && strcasecmp($name, 'AppCheckerResult.sarif') === 0) {
+                    return $path;
+                }
             }
         }
         return null;
