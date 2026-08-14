@@ -30,9 +30,10 @@ final class EnsureFocusVisibleHop implements HopInterface
     public function apply(array $documents, Report $report, array $options = []): void
     {
         $thickness = isset($options['thickness']) ? max(1, (int) $options['thickness']) : 2;
+        $hasTheme = $this->documentsDefineTheme($documents);
         $defaultColorYaml = is_string($options['color'] ?? null)
             ? (string) $options['color']
-            : '=RGBA(37, 99, 235, 1)';
+            : ($hasTheme ? '=gblTheme.Focus' : '=RGBA(37, 99, 235, 1)');
 
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
@@ -57,7 +58,12 @@ final class EnsureFocusVisibleHop implements HopInterface
                 }
 
                 $borderColor = $control->getProperty('FocusedBorderColor');
-                if ($borderColor === null || $this->isBlank($borderColor)) {
+                $needsColor = $borderColor === null || $this->isBlank($borderColor);
+                // Prefer theme token over opaque RGBA leftovers from older runs.
+                if (!$needsColor && $hasTheme && $this->isOpaqueRgbaLiteral((string) $borderColor)) {
+                    $needsColor = true;
+                }
+                if ($needsColor) {
                     $toColor = $control->format === 'yaml'
                         ? $defaultColorYaml
                         : ltrim($defaultColorYaml, '=');
@@ -72,6 +78,33 @@ final class EnsureFocusVisibleHop implements HopInterface
                 }
             }
         }
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     */
+    private function documentsDefineTheme(array $documents): bool
+    {
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$control->isApp()) {
+                    continue;
+                }
+                $onStart = (string) ($control->getProperty('OnStart') ?? '');
+                $formulas = (string) ($control->getProperty('Formulas') ?? '');
+                if (str_contains($onStart, 'gblTheme') || str_contains($formulas, 'gblTheme')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function isOpaqueRgbaLiteral(string $value): bool
+    {
+        $v = trim(ltrim(trim($value), '='));
+        return (bool) preg_match('/^RGBA\s*\(/i', $v);
     }
 
     private function isBlankOrZero(?string $value): bool
