@@ -17,6 +17,7 @@ zip -r "$OUT" . \
   -x '.github/*' \
   -x 'storage/tmp/*' \
   -x 'storage/out/*' \
+  -x 'dist/*' \
   -x 'samples/**/*.msapp' \
   -x 'samples/import_debug/*' \
   -x 'tests/fixtures/*.msapp' \

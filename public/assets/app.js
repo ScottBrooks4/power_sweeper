@@ -18,6 +18,10 @@
   const forceHint = document.getElementById('forceHint');
   const planReasons = document.getElementById('planReasons');
   const forceModeSelect = document.getElementById('forceModeSelect');
+  const scanLive = document.getElementById('scanLive');
+  const detectedHops = document.getElementById('detectedHops');
+  const detectedHopsList = document.getElementById('detectedHopsList');
+  const hopsLayout = document.querySelector('.hops-layout');
   const palette = document.getElementById('palette');
   const sequenceEl = document.getElementById('sequence');
   const emptySeq = document.getElementById('emptySeq');
@@ -288,8 +292,11 @@
 
   function showPlan(data) {
     planPanel?.classList.remove('hidden');
+    planPanel?.classList.add('plan-ready');
     const profile = data.recommended_profile || 'custom';
-    planHint.textContent = `Auto-selected “${profile}” (${(data.hops || []).length} hop${(data.hops || []).length === 1 ? '' : 's'}). You can still edit the sequence.`;
+    const hopCount = (data.hops || []).length;
+    planHint.textContent = `Auto-selected “${profile}” (${hopCount} hop${hopCount === 1 ? '' : 's'}). You can still edit the sequence.`;
+    if (scanLive) scanLive.textContent = '';
     forceHint.textContent = data.force_mode_reason || '';
     forceMode = data.force_mode === 'all' ? 'all' : 'missing_only';
     if (forceModeSelect) {
@@ -304,7 +311,132 @@
       });
     }
     (data.forceable_hops || []).forEach((id) => forceableHops.add(id));
+    renderDetectedHops(data.hops || []);
     loadHops(data.hops || []);
+    requestAnimationFrame(() => {
+      planPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      hopsLayout?.classList.add('sequence-reveal');
+    });
+  }
+
+  function renderDetectedHops(hops) {
+    if (!detectedHops || !detectedHopsList) return;
+    detectedHopsList.innerHTML = '';
+    const list = hops || [];
+    if (list.length === 0) {
+      detectedHops.classList.add('hidden');
+      return;
+    }
+    detectedHops.classList.remove('hidden');
+    detectedHops.classList.remove('slide-in');
+    // Retrigger animation
+    void detectedHops.offsetWidth;
+    detectedHops.classList.add('slide-in');
+    list.forEach((step, index) => {
+      const id = step.id || step;
+      const meta = hopMeta[id];
+      const li = document.createElement('li');
+      li.style.animationDelay = `${0.05 + index * 0.045}s`;
+      li.innerHTML = `<span class="detected-hop-name">${escapeHtml(meta?.label || id)}</span>`
+        + (meta?.description ? `<span class="detected-hop-desc">${escapeHtml(meta.description)}</span>` : '');
+      detectedHopsList.appendChild(li);
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+  }
+
+  function setScanProgress(message) {
+    if (scanLive) scanLive.textContent = message || '';
+    if (planHint && message) planHint.textContent = 'Scanning…';
+  }
+
+  async function readAnalyzeStream(res) {
+    if (!res.body || typeof res.body.getReader !== 'function') {
+      const text = await res.text();
+      return parseAnalyzePayload(text, res.status);
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let result = null;
+    let error = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let event;
+        try {
+          event = JSON.parse(trimmed);
+        } catch {
+          throw new Error('Analyze returned non-JSON. Is /api/analyze.php reachable on this host?');
+        }
+        if (event.type === 'progress') {
+          setScanProgress(event.message || 'Scanning…');
+        } else if (event.type === 'result' || event.ok === true) {
+          result = event;
+        } else if (event.type === 'error' || event.ok === false) {
+          error = event;
+        }
+      }
+    }
+    const tail = buffer.trim();
+    if (tail) {
+      try {
+        const event = JSON.parse(tail);
+        if (event.type === 'progress') setScanProgress(event.message || 'Scanning…');
+        else if (event.type === 'result' || event.ok === true) result = event;
+        else if (event.type === 'error' || event.ok === false) error = event;
+      } catch {
+        throw new Error('Analyze returned non-JSON. Is /api/analyze.php reachable on this host?');
+      }
+    }
+    if (error) {
+      const err = new Error(error.error || `Analyze failed (HTTP ${res.status})`);
+      err.status = res.status;
+      throw err;
+    }
+    if (!result) {
+      throw new Error(`Analyze failed (HTTP ${res.status})`);
+    }
+    return result;
+  }
+
+  function parseAnalyzePayload(text, status) {
+    const trimmed = (text || '').trim();
+    if (!trimmed) {
+      throw new Error(`Analyze failed (HTTP ${status})`);
+    }
+    if (trimmed.startsWith('<')) {
+      throw new Error('Analyze endpoint returned HTML instead of JSON — /api/analyze.php is not executing PHP on this host.');
+    }
+    const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
+    let result = null;
+    let error = null;
+    for (const line of lines) {
+      let event;
+      try {
+        event = JSON.parse(line);
+      } catch {
+        throw new Error('Analyze returned non-JSON. Is /api/analyze.php reachable on this host?');
+      }
+      if (event.type === 'progress') setScanProgress(event.message || 'Scanning…');
+      else if (event.type === 'result' || event.ok === true) result = event;
+      else if (event.type === 'error' || event.ok === false) error = event;
+    }
+    if (error) throw new Error(error.error || `Analyze failed (HTTP ${status})`);
+    if (!result) throw new Error(`Analyze failed (HTTP ${status})`);
+    return result;
   }
 
   async function analyzeFile(selected) {
@@ -313,8 +445,11 @@
       analyzeAbort.abort();
     }
     analyzeAbort = new AbortController();
-    planPanel?.classList.remove('hidden');
-    if (planHint) planHint.textContent = 'Scanning app for recommended hops…';
+    planPanel?.classList.remove('hidden', 'plan-ready');
+    hopsLayout?.classList.remove('sequence-reveal');
+    detectedHops?.classList.add('hidden');
+    if (planHint) planHint.textContent = 'Scanning…';
+    setScanProgress('Uploading app for analysis…');
     if (forceHint) forceHint.textContent = '';
     if (planReasons) planReasons.innerHTML = '';
     status.textContent = '';
@@ -329,9 +464,10 @@
         method: 'POST',
         body,
         signal: analyzeAbort.signal,
+        headers: { Accept: 'application/x-ndjson, application/json' },
       });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
+      const data = await readAnalyzeStream(res);
+      if (!data.ok) {
         throw new Error(data.error || `Analyze failed (HTTP ${res.status})`);
       }
       showPlan(data);
@@ -340,6 +476,7 @@
       if (planHint) {
         planHint.textContent = 'Could not auto-select hops — add them manually from the left.';
       }
+      if (scanLive) scanLive.textContent = '';
       if (forceHint) {
         forceHint.textContent = err.message || String(err);
       }
@@ -412,8 +549,8 @@
     renderSequence();
     if (forceHint) {
       forceHint.textContent = forceMode === 'all'
-        ? 'All: overwrite existing labels, theme colors, and container chrome where those hops apply.'
-        : 'Missing only: fill gaps and preserve existing values on force-aware hops.';
+        ? 'All: write over existing labels, theme colors, and container chrome where those hops apply.'
+        : 'Missing only: fill gaps and preserve existing values on write-aware hops.';
     }
   });
 

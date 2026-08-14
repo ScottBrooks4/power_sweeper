@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Power Sweeper">
+  <rect width="64" height="64" rx="14" fill="#14200a"/>
+  <path fill="#c6f26d" d="M18 44c6-10 14-18 26-24l2 4c-11 5-18 12-24 22l-4-2z"/>
+  <path fill="#e7f0df" d="M42 16l6 3-9 16-6-3 9-16z"/>
+  <path fill="#9aaf95" d="M14 48h20c1 3-1 6-4 6H18c-3 0-5-3-4-6z"/>
+  <circle cx="46" cy="18" r="3" fill="#c6f26d"/>
+</svg>

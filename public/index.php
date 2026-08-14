@@ -26,6 +26,7 @@ $basePath = $basePath === '' ? '' : $basePath;
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Power Sweeper</title>
   <base href="<?= htmlspecialchars(($basePath === '' ? '' : $basePath) . '/', ENT_QUOTES) ?>">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -36,7 +37,7 @@ $basePath = $basePath === '' ? '' : $basePath;
     <header class="hero">
       <p class="brand">Power Sweeper</p>
       <h1>Clean a canvas app in hops</h1>
-      <p class="lede">Drop an <code>.msapp</code> — Power Sweeper scans it, picks the hop sequence and overwrite mode, then you can tweak and run.</p>
+      <p class="lede">Drop an <code>.msapp</code> — Power Sweeper scans it, picks the hop sequence and write mode, then you can tweak and run.</p>
     </header>
 
     <section class="panel drop-panel" id="dropZone" tabindex="0">
@@ -48,16 +49,24 @@ $basePath = $basePath === '' ? '' : $basePath;
     </section>
 
     <section class="panel plan-panel hidden" id="planPanel">
-      <div class="row between">
+      <div class="row between plan-toolbar">
         <h2>Recommended plan</h2>
-        <select id="forceModeSelect" aria-label="Overwrite mode for selected hops">
-          <option value="missing_only">Missing only</option>
-          <option value="all">All</option>
-        </select>
+        <label class="write-mode" for="forceModeSelect">
+          <span class="write-mode-label">Write mode</span>
+          <select id="forceModeSelect" aria-label="Write mode for selected hops">
+            <option value="missing_only">Missing only</option>
+            <option value="all">All</option>
+          </select>
+        </label>
       </div>
       <p class="hint" id="planHint">Scanning…</p>
+      <p class="hint scan-live" id="scanLive" aria-live="polite"></p>
       <p class="hint force-hint" id="forceHint"></p>
       <ul class="plan-reasons" id="planReasons"></ul>
+      <div class="detected-hops hidden" id="detectedHops">
+        <p class="detected-hops-label">Detected useful fixes</p>
+        <ul class="detected-hops-list" id="detectedHopsList"></ul>
+      </div>
     </section>
 
     <section class="panel hops-layout">

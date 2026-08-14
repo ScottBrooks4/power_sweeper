@@ -23,6 +23,7 @@ final class AppProfileAdvisor
     ];
 
     /**
+     * @param null|callable(array{type:string,message:string,phase?:string}):void $onProgress
      * @return array{
      *   ok:true,
      *   recommended_profile:string,
@@ -34,14 +35,45 @@ final class AppProfileAdvisor
      *   forceable_hops:list<string>
      * }
      */
-    public function recommend(string $msappPath): array
+    public function recommend(string $msappPath, ?callable $onProgress = null): array
     {
+        $emit = static function (string $message, string $phase = 'scan') use ($onProgress): void {
+            if ($onProgress === null) {
+                return;
+            }
+            $onProgress([
+                'type' => 'progress',
+                'phase' => $phase,
+                'message' => $message,
+            ]);
+        };
+
         $archive = new MsappArchive($msappPath);
         try {
+            $emit('Unpacking .msapp package…', 'unpack');
             $archive->unpack();
+            $emit('Reading screens, components, and controls…', 'catalog');
             $documents = $archive->documents();
-            $signals = $this->collectSignals($msappPath, $documents, $archive->extractDir());
+            $docCount = count($documents);
+            $emit(
+                $docCount === 1
+                    ? 'Scanning 1 document for repair signals…'
+                    : sprintf('Scanning %d documents for repair signals…', $docCount),
+                'signals'
+            );
+            $signals = $this->collectSignals($msappPath, $documents, $archive->extractDir(), $emit);
+            $emit('Choosing hop sequence and write mode…', 'plan');
             $plan = $this->buildPlan($signals);
+            $hops = $this->applyForceMode($plan['hops'], $plan['force_mode']);
+            $emit(
+                sprintf(
+                    'Selected %d hop%s for profile “%s”.',
+                    count($hops),
+                    count($hops) === 1 ? '' : 's',
+                    $plan['profile']
+                ),
+                'done'
+            );
 
             return [
                 'ok' => true,
@@ -50,7 +82,7 @@ final class AppProfileAdvisor
                 'force_mode_reason' => $plan['force_mode_reason'],
                 'reasons' => $plan['reasons'],
                 'signals' => $signals,
-                'hops' => $this->applyForceMode($plan['hops'], $plan['force_mode']),
+                'hops' => $hops,
                 'forceable_hops' => self::FORCEABLE_HOPS,
             ];
         } finally {
@@ -84,9 +116,10 @@ final class AppProfileAdvisor
 
     /**
      * @param list<ControlDocument> $documents
+     * @param null|callable(string,string):void $emit
      * @return array<string, mixed>
      */
-    private function collectSignals(string $msappPath, array $documents, string $extractDir): array
+    private function collectSignals(string $msappPath, array $documents, string $extractDir, ?callable $emit = null): array
     {
         $localeHits = 0;
         $formulaSamples = 0;
@@ -103,7 +136,11 @@ final class AppProfileAdvisor
         $opaqueColors = 0;
         $themedColors = 0;
 
+        $emit?->__invoke('Checking accessibility, theme, and formula patterns…', 'signals');
+
         foreach ($documents as $doc) {
+            $screenLabel = $doc->relativePath !== '' ? basename($doc->relativePath) : 'document';
+            $emit?->__invoke('Scanning ' . $screenLabel . '…', 'signals');
             foreach ($doc->controls() as $control) {
                 if ($control->isApp()) {
                     $onStart = (string) ($control->getProperty('OnStart') ?? '');
