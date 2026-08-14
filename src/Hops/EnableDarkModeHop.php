@@ -604,7 +604,7 @@ final class EnableDarkModeHop implements HopInterface
             }
         }
 
-        // Pass 6e: DatePicker + DataTable auxiliary color chrome (THCEE cost-rate tables, trip dates)
+        // Pass 6e: DatePicker + DataTable auxiliary color chrome (trip dates, rate tables, …)
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
                 if ($this->isDatePicker($control)) {
@@ -617,20 +617,24 @@ final class EnableDarkModeHop implements HopInterface
             }
         }
 
-        // Pass 6d: section containers around rich text editors (e.g. 10_Remarks)
+        // Pass 6d: containers that host rich-text editors — Surface so RTE chrome contrasts.
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
-                if (!$control->isContainer()) {
-                    continue;
-                }
-                if (!preg_match('/(?:^|\/)10_Remarks(\/|\.|$)|BugReportingContainer(\/|\.|$)/i', $control->path)) {
+                if (!$control->isContainer() || !$this->containsRichTextDescendant($control)) {
                     continue;
                 }
                 $from = $control->getProperty('Fill');
-                if ($from !== null && trim($from) !== '' && $this->alreadyThemed($from, $var, $theme)) {
+                $alreadySurface = is_string($from) && $this->usesActiveThemeToken($from, $theme)
+                    && str_contains((string) $from, 'Surface');
+                if ($alreadySurface) {
                     continue;
                 }
-                if ($from !== null && trim($from) !== '') {
+                // Upgrade Page (from earlier container pass) or unset/literal fills to Surface.
+                if ($from !== null && trim($from) !== '' && $this->alreadyThemed($from, $var, $theme)
+                    && !str_contains((string) $from, 'Page')) {
+                    continue;
+                }
+                if ($from !== null && trim($from) !== '' && !$this->alreadyThemed($from, $var, $theme)) {
                     $parsed = ColorValue::parse($from);
                     if ($parsed !== null && !ColorValue::isTransparent($parsed) && !$this->usesActiveThemeToken($from, $theme)) {
                         if ($this->shouldPreserveUserValue($from, 'Fill', $force, $theme, $var, $themeLight, $themeDark)) {
@@ -947,11 +951,11 @@ final class EnableDarkModeHop implements HopInterface
     private function ensureThemeComponentAppScope(array $documents, Report $report): void
     {
         foreach ($documents as $doc) {
-            if (!str_contains($doc->relativePath, 'TopbarHeader')) {
-                continue;
-            }
             foreach ($doc->controls() as $control) {
-                if ($control->name !== 'TopbarHeader' || !str_contains($control->path, 'ComponentDefinitions')) {
+                if (!$this->isComponentDefinitionRoot($doc, $control)) {
+                    continue;
+                }
+                if (!$this->componentReferencesThemeGlobals($control)) {
                     continue;
                 }
                 $beforeRoot = $control->getYamlDefinitionField('AccessAppScope');
@@ -974,6 +978,56 @@ final class EnableDarkModeHop implements HopInterface
         }
     }
 
+    private function isComponentDefinitionRoot(ControlDocument $doc, ControlNode $control): bool
+    {
+        if (preg_match('/(?:^|\/|\.)ComponentDefinitions(?:\/|\.)(' . preg_quote($control->name, '/') . ')$/', $control->path) === 1) {
+            return true;
+        }
+        if (!str_starts_with(str_replace('\\', '/', $doc->relativePath), 'Src/Components/')) {
+            return false;
+        }
+        $base = pathinfo(str_replace('\\', '/', $doc->relativePath), PATHINFO_FILENAME);
+
+        return $control->name === $base;
+    }
+
+    private function componentReferencesThemeGlobals(ControlNode $control): bool
+    {
+        $stack = [$control];
+        while ($stack !== []) {
+            /** @var ControlNode $node */
+            $node = array_pop($stack);
+            foreach ($node->propertyNames() as $prop) {
+                $value = (string) ($node->getProperty($prop) ?? '');
+                if ($value !== '' && preg_match('/\b(?:gblTheme|gblThemeLight|gblThemeDark|gblDarkMode)\b/', $value) === 1) {
+                    return true;
+                }
+            }
+            foreach ($node->children as $child) {
+                $stack[] = $child;
+            }
+        }
+
+        return false;
+    }
+
+    private function containsRichTextDescendant(ControlNode $control): bool
+    {
+        $stack = $control->children;
+        while ($stack !== []) {
+            /** @var ControlNode $node */
+            $node = array_pop($stack);
+            if ($this->isRichTextInput($node)) {
+                return true;
+            }
+            foreach ($node->children as $child) {
+                $stack[] = $child;
+            }
+        }
+
+        return false;
+    }
+
     private function isThemeRadio(ControlNode $control): bool
     {
         if (!str_contains(strtolower($control->type), 'radio')) {
@@ -983,14 +1037,23 @@ final class EnableDarkModeHop implements HopInterface
             return true;
         }
         $items = strtolower((string) ($control->getProperty('Items') ?? ''));
+        $onChange = strtolower((string) ($control->getProperty('OnChange') ?? ''));
         if (str_contains($items, 'english') || str_contains($items, 'french')) {
             return false;
         }
         if (str_contains($items, 'light') && str_contains($items, 'dark')) {
             return true;
         }
-        // Incomplete theme stub (Light only) inside TopbarHeader settings
-        return str_contains($items, 'light') && str_contains($control->path, 'TopbarHeader');
+        // Incomplete theme stub: Light-only Items with theme OnChange, or inside a component definition.
+        if (str_contains($items, 'light') && (
+            str_contains($onChange, 'gbldarkmode')
+            || str_contains($onChange, 'gbltheme')
+            || str_contains($control->path, 'ComponentDefinitions')
+        )) {
+            return true;
+        }
+
+        return false;
     }
 
     private function isTextControl(ControlNode $control): bool

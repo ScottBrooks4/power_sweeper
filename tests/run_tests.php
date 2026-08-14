@@ -562,6 +562,42 @@ assert_true(
 );
 assert_true(str_contains($inputFill, 'gblTheme.InputFill'), 'text input Fill uses InputFill');
 assert_true(str_contains($inputColor, 'gblTheme.Text'), 'text input Color set for readable typed text');
+assert_true(
+    str_contains($onStartContrast, 'Success: RGBA(21, 128, 61, 1)'),
+    'dark palette includes darkened Success for readable banner text'
+);
+
+// Generalized detection: RTE host by child type; theme component AccessAppScope without TopbarHeader hardcoding
+$generalDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_generalized.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($generalDoc !== null, 'generalized dark mode fixture loads');
+$generalClassic = new Report();
+(new PreferClassicThemeControlsHop())->apply([$generalDoc], $generalClassic);
+$generalReport = new Report();
+(new EnableDarkModeHop())->apply([$generalDoc], $generalReport, ['force' => true]);
+$generalDoc->reindex();
+$notesFill = $themeScope = $modernActionType = $themeRadioItems = '';
+$accessRoot = null;
+$accessInProps = false;
+foreach ($generalDoc->controls() as $c) {
+    if ($c->name === 'NotesHost') {
+        $notesFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'ModernAction') {
+        $modernActionType = (string) $c->type;
+    }
+    if ($c->name === 'ThemeRadio') {
+        $themeRadioItems = (string) ($c->getProperty('Items') ?? '');
+    }
+    if ($c->name === 'ThemeChrome' && str_contains($c->path, 'ComponentDefinitions')) {
+        $accessRoot = $c->getYamlDefinitionField('AccessAppScope');
+        $accessInProps = $c->getProperty('AccessAppScope') !== null;
+    }
+}
+assert_true(str_contains($notesFill, 'gblTheme.Surface'), 'RTE host container themed by child type (not 10_Remarks name)');
+assert_true(str_starts_with($modernActionType, 'Classic/Button@'), 'classic prep runs before dark on modern buttons');
+assert_true(str_contains($themeRadioItems, 'Dark'), 'theme radio Light-only stub expanded via OnChange heuristics');
+assert_true($accessRoot === true || $accessRoot === 'true', 'theme-aware component gets AccessAppScope at root');
+assert_true($accessInProps === false, 'theme-aware component does not keep AccessAppScope in Properties');
 
 $linkHex = ColorValue::toHex(['r' => 45, 'g' => 212, 'b' => 191, 'a' => 1.0]);
 assert_true($linkHex === '#2DD4BF', 'ColorValue::toHex for dark link teal');
