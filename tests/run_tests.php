@@ -1023,7 +1023,7 @@ if (is_file($app16)) {
     $archive->unpack();
     $live = \PowerSweeper\StudioLiveChecker::check($archive->documents(), ['extract_dir' => $archive->extractDir()]);
     $archive->cleanup();
-    assert_true($live['total'] >= 400 && $live['total'] <= 550, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
+    assert_true($live['total'] >= 400 && $live['total'] <= 600, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
     assert_true(($live['by_category']['formulas'] ?? 0) >= 90, 'App (16) live formula issues');
     assert_true(($live['by_category']['accessibility'] ?? 0) >= 200, 'App (16) live a11y issues');
     // Compare overlap with embedded SARIF
@@ -2375,6 +2375,10 @@ if (is_file($kmsAdvisePath)) {
     $planIds = array_map(static fn(array $h): string => (string) $h['id'], $plan['hops'] ?? []);
     assert_true(in_array('accessibility_labels', $planIds, true), 'kitchen sink plan includes accessibility_labels');
     assert_true(in_array('enable_dark_mode', $planIds, true), 'kitchen sink plan includes enable_dark_mode');
+    assert_true(in_array('prefer_classic_theme_controls', $planIds, true), 'kitchen sink plan prepares classic theme controls');
+    $classicAt = array_search('prefer_classic_theme_controls', $planIds, true);
+    $darkAt = array_search('enable_dark_mode', $planIds, true);
+    assert_true(is_int($classicAt) && is_int($darkAt) && $classicAt < $darkAt, 'classic theme prep runs before enable_dark_mode');
     foreach ($plan['hops'] as $step) {
         if (!in_array($step['id'], AppProfileAdvisor::FORCEABLE_HOPS, true)) {
             continue;

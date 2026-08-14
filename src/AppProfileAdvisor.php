@@ -354,6 +354,7 @@ final class AppProfileAdvisor
                 $hops[] = ['id' => 'strip_default_fill', 'options' => []];
             }
             if ($needsTheme) {
+                $hops[] = ['id' => 'prefer_classic_theme_controls', 'options' => []];
                 $hops[] = ['id' => 'enable_dark_mode', 'options' => []];
             }
         } else {
@@ -386,9 +387,26 @@ final class AppProfileAdvisor
                 $reasons[] = 'No major issues — balanced default cleanup';
             }
             if ($needsTheme) {
+                $hops[] = ['id' => 'prefer_classic_theme_controls', 'options' => []];
                 $hops[] = ['id' => 'enable_dark_mode', 'options' => []];
                 $profile = 'repair_studio_errors_then_dark';
             }
+        }
+
+        // Ensure classic theme prep always sits immediately before enable_dark_mode.
+        $hasClassic = false;
+        $darkAt = null;
+        foreach ($hops as $i => $step) {
+            $id = (string) ($step['id'] ?? '');
+            if ($id === 'prefer_classic_theme_controls') {
+                $hasClassic = true;
+            }
+            if ($id === 'enable_dark_mode') {
+                $darkAt = $i;
+            }
+        }
+        if ($darkAt !== null && !$hasClassic) {
+            array_splice($hops, $darkAt, 0, [['id' => 'prefer_classic_theme_controls', 'options' => []]]);
         }
 
         // Deduplicate consecutive identical hop ids while preserving intentional double_qualified repeats in studio chain.

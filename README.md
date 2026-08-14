@@ -8,6 +8,24 @@ Drop an app, choose operations (or load a profile preset), reorder the sequence,
 
 Canonical install: **`/srv/http/power_sweeper`** (same layout as sweeper/convert under `/srv/http`).
 
+## Azure App Service (Linux PHP)
+
+Publish-ready branch packaging (excludes customer `.msapp` samples):
+
+```bash
+composer install --no-dev
+bash scripts/package_azure_zip.sh
+# → storage/out/power_sweeper-azure.zip
+```
+
+In Azure Portal create a **PHP 8.2+** Linux Web App with the **zip** extension enabled, deploy that zip to `/home/site/wwwroot`, then set **Startup Command** to:
+
+```bash
+bash /home/site/wwwroot/azure/startup.sh
+```
+
+Confirm `upload_limits` via `/api/run.php` shows **256M** (from [`.user.ini`](.user.ini)). `storage/tmp` and `storage/out` must be writable. Nginx routing lives in [`azure/nginx.conf`](azure/nginx.conf).
+
 ## Quick start
 
 ```bash
