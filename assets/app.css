@@ -151,58 +151,6 @@ body::before {
   font-size: 0.86rem;
 }
 
-.detected-hops {
-  margin-top: 1rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--line);
-}
-
-.detected-hops.hidden { display: none; }
-
-.detected-hops-label {
-  margin: 0 0 0.55rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.detected-hops-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.detected-hops-list li {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: rgba(198, 242, 109, 0.05);
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
-.detected-hops.slide-in .detected-hops-list li {
-  animation: hop-slide 0.45s ease forwards;
-}
-
-.detected-hop-name {
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.detected-hop-desc {
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.4;
-}
 
 .plan-panel.plan-ready {
   animation: plan-settle 0.55s ease both;

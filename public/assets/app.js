@@ -19,8 +19,6 @@
   const planReasons = document.getElementById('planReasons');
   const forceModeSelect = document.getElementById('forceModeSelect');
   const scanLive = document.getElementById('scanLive');
-  const detectedHops = document.getElementById('detectedHops');
-  const detectedHopsList = document.getElementById('detectedHopsList');
   const hopsLayout = document.querySelector('.hops-layout');
   const palette = document.getElementById('palette');
   const sequenceEl = document.getElementById('sequence');
@@ -310,44 +308,11 @@
       });
     }
     (data.forceable_hops || []).forEach((id) => forceableHops.add(id));
-    renderDetectedHops(data.hops || []);
     loadHops(data.hops || []);
     requestAnimationFrame(() => {
       planPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       hopsLayout?.classList.add('sequence-reveal');
     });
-  }
-
-  function renderDetectedHops(hops) {
-    if (!detectedHops || !detectedHopsList) return;
-    detectedHopsList.innerHTML = '';
-    const list = hops || [];
-    if (list.length === 0) {
-      detectedHops.classList.add('hidden');
-      return;
-    }
-    detectedHops.classList.remove('hidden');
-    detectedHops.classList.remove('slide-in');
-    // Retrigger animation
-    void detectedHops.offsetWidth;
-    detectedHops.classList.add('slide-in');
-    list.forEach((step, index) => {
-      const id = step.id || step;
-      const meta = hopMeta[id];
-      const li = document.createElement('li');
-      li.style.animationDelay = `${0.05 + index * 0.045}s`;
-      li.innerHTML = `<span class="detected-hop-name">${escapeHtml(meta?.label || id)}</span>`
-        + (meta?.description ? `<span class="detected-hop-desc">${escapeHtml(meta.description)}</span>` : '');
-      detectedHopsList.appendChild(li);
-    });
-  }
-
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;');
   }
 
   function setScanProgress(message) {
@@ -473,7 +438,6 @@
     analyzeAbort = new AbortController();
     planPanel?.classList.remove('hidden', 'plan-ready');
     hopsLayout?.classList.remove('sequence-reveal');
-    detectedHops?.classList.add('hidden');
     if (planHint) planHint.textContent = 'Scanning…';
     setScanProgress('Uploading app for analysis…');
     if (forceHint) forceHint.textContent = '';

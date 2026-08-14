@@ -63,10 +63,6 @@ $basePath = $basePath === '' ? '' : $basePath;
       <p class="hint scan-live" id="scanLive" aria-live="polite"></p>
       <p class="hint force-hint" id="forceHint"></p>
       <ul class="plan-reasons" id="planReasons"></ul>
-      <div class="detected-hops hidden" id="detectedHops">
-        <p class="detected-hops-label">Detected useful fixes</p>
-        <ul class="detected-hops-list" id="detectedHopsList"></ul>
-      </div>
     </section>
 
     <section class="panel hops-layout">
