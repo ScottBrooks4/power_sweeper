@@ -136,6 +136,10 @@ body::before {
   border-color: rgba(198, 242, 109, 0.35);
 }
 
+.plan-panel.hidden {
+  display: none;
+}
+
 .plan-panel .force-hint {
   margin-top: 0.35rem;
   color: color-mix(in srgb, var(--accent) 55%, var(--muted));
