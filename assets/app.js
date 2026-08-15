@@ -833,13 +833,19 @@
     const byHop = data.report?.by_hop || {};
     const parts = Object.entries(byHop).map(([k, v]) => `${k}: ${v}`);
     if (reportSummary) {
+      const truncated = data.report?.entries_truncated
+        ? ` (showing ${data.report.entries?.length || 0} of ${total})`
+        : '';
       reportSummary.textContent = `${total} change${total === 1 ? '' : 's'}`
         + ` in ${formatDuration(elapsedMs)}`
-        + (parts.length ? ` — ${parts.join(' · ')}` : '');
+        + (parts.length ? ` — ${parts.join(' · ')}` : '')
+        + truncated;
     }
     if (reportTable) {
       reportTable.innerHTML = '';
-      (data.report?.entries || []).forEach((row) => {
+      const rows = data.report?.entries || [];
+      const maxRows = 500;
+      rows.slice(0, maxRows).forEach((row) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${escapeHtml(row.hop)}</td>
@@ -850,6 +856,13 @@
         `;
         reportTable.appendChild(tr);
       });
+      if (rows.length > maxRows || data.report?.entries_truncated) {
+        const tr = document.createElement('tr');
+        const omitted = data.report?.entries_omitted
+          ?? Math.max(0, total - Math.min(rows.length, maxRows));
+        tr.innerHTML = `<td colspan="5" class="hint">…and ${omitted} more change${omitted === 1 ? '' : 's'} (download the cleaned .msapp — full list kept on the server).</td>`;
+        reportTable.appendChild(tr);
+      }
     }
     if (downloadLink && data.download_token) {
       downloadLink.href = `${cfg.apiDownload}?token=${encodeURIComponent(data.download_token)}`;
@@ -985,7 +998,12 @@
       }
 
       if (failed) throw new Error(failed.error || 'Run failed');
-      if (!finished?.ok) throw new Error('Run failed');
+      if (!finished?.ok) {
+        throw new Error(
+          'Run failed — the server stopped before finishing (often out of memory on large apps like THCEE). '
+          + 'Retry after deploy, or run Enable dark mode alone with fewer other hops.'
+        );
+      }
       applyResult(finished);
     } catch (err) {
       status.textContent = err.message || String(err);

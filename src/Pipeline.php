@@ -101,6 +101,9 @@ final class Pipeline
                 ]);
                 $hopStarted = microtime(true);
                 $hop->apply($archive->documents(), $report, $options);
+                if (function_exists('gc_collect_cycles')) {
+                    gc_collect_cycles();
+                }
                 $completedUnits++;
                 $emit([
                     'type' => 'hop_done',

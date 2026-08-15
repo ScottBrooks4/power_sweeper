@@ -59,6 +59,38 @@ function ps_human_bytes(int $bytes): string
     return round($bytes / (1024 * 1024), 1) . ' MB';
 }
 
+/**
+ * Keep totals accurate but avoid multi-MB NDJSON "done" payloads that can stall
+ * proxies/browsers after large dark-mode sweeps (THCEE ≈ 9k–30k rows).
+ *
+ * @param array{total?:int,by_hop?:array<string,int>,entries?:list<array<string,mixed>>} $report
+ * @return array{total:int,by_hop:array<string,int>,entries:list<array<string,mixed>>,entries_truncated?:bool,entries_omitted?:int}
+ */
+function ps_slim_report(array $report, int $maxEntries = 250): array
+{
+    $entries = $report['entries'] ?? [];
+    if (!is_array($entries)) {
+        $entries = [];
+    }
+    $total = isset($report['total']) ? (int) $report['total'] : count($entries);
+    $byHop = is_array($report['by_hop'] ?? null) ? $report['by_hop'] : [];
+    if (count($entries) <= $maxEntries) {
+        return [
+            'total' => $total,
+            'by_hop' => $byHop,
+            'entries' => array_values($entries),
+        ];
+    }
+
+    return [
+        'total' => $total,
+        'by_hop' => $byHop,
+        'entries' => array_slice(array_values($entries), 0, $maxEntries),
+        'entries_truncated' => true,
+        'entries_omitted' => max(0, $total - $maxEntries),
+    ];
+}
+
 function ps_upload_error_message(int $code, int $uploadMax, int $postMax): string
 {
     $limits = 'upload_max_filesize=' . ps_ini_size('upload_max_filesize')
@@ -105,6 +137,45 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $wantsStream = isset($_POST['stream']) || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'ndjson');
+
+$runFinished = false;
+register_shutdown_function(static function () use (&$runFinished, &$wantsStream): void {
+    if ($runFinished) {
+        return;
+    }
+    $err = error_get_last();
+    if ($err === null) {
+        return;
+    }
+    $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if (!in_array($err['type'], $fatalTypes, true)) {
+        return;
+    }
+    $message = trim((string) ($err['message'] ?? 'Fatal error'));
+    if ($message === '') {
+        $message = 'Fatal error';
+    }
+    if (str_contains($message, 'Allowed memory size')) {
+        $message = 'Out of memory while sweeping this app (' . ps_ini_size('memory_limit')
+            . '). Try fewer hops, or raise memory_limit to 1024M on the host.';
+    } else {
+        $message = 'Server stopped mid-run: ' . $message;
+    }
+    // Best-effort NDJSON/JSON error so the UI does not show a blank "Run failed".
+    if (!headers_sent()) {
+        header('Content-Type: ' . ($wantsStream ? 'application/x-ndjson' : 'application/json') . '; charset=utf-8');
+    }
+    $payload = [
+        'type' => 'error',
+        'ok' => false,
+        'error' => $message,
+    ];
+    echo json_encode($payload, JSON_UNESCAPED_SLASHES) . ($wantsStream ? "\n" : '');
+    if (function_exists('ob_flush')) {
+        @ob_flush();
+    }
+    @flush();
+});
 
 if ($wantsStream) {
     while (ob_get_level() > 0) {
@@ -262,15 +333,18 @@ try {
     }
 
     $downloadName = preg_replace('/\.msapp$/i', '', $originalName) . '.cleaned.msapp';
+    $fullReport = $result['report'];
+    $slimReport = ps_slim_report(is_array($fullReport) ? $fullReport : []);
     $meta = [
         'token' => $token,
         'filename' => $downloadName,
         'created' => time(),
-        'report' => $result['report'],
+        // Compact JSON: full entry list can be 10MB+ after dark-mode on large apps.
+        'report' => $fullReport,
     ];
     file_put_contents(
         POWER_SWEEPER_STORAGE . '/out/' . $token . '.json',
-        json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        json_encode($meta, JSON_UNESCAPED_SLASHES)
     );
 
     $done = [
@@ -278,7 +352,7 @@ try {
         'ok' => true,
         'download_token' => $token,
         'filename' => $downloadName,
-        'report' => $result['report'],
+        'report' => $slimReport,
         'elapsed_ms' => (int) ($result['elapsed_ms'] ?? 0),
         'progress' => 1.0,
     ];
@@ -290,11 +364,13 @@ try {
             'ok' => true,
             'download_token' => $token,
             'filename' => $downloadName,
-            'report' => $result['report'],
+            'report' => $slimReport,
             'elapsed_ms' => (int) ($result['elapsed_ms'] ?? 0),
         ], JSON_UNESCAPED_SLASHES);
     }
+    $runFinished = true;
 } catch (Throwable $e) {
+    $runFinished = true;
     if ($wantsStream) {
         ps_emit([
             'type' => 'error',
