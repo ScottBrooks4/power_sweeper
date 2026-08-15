@@ -308,6 +308,9 @@ final class EnableDarkModeHop implements HopInterface
             foreach ($doc->controls() as $control) {
                 if ($this->isThemeRadio($control)) {
                     $this->wireThemeRadio($control, $var, $theme, $themeLight, $themeDark, $report);
+                } elseif ($this->isRadioControl($control)) {
+                    // Language (and other) radios need the same readable FontColor as theme radios.
+                    $this->ensureRadioFontColor($control, $theme, $report);
                 }
             }
         }
@@ -760,6 +763,11 @@ final class EnableDarkModeHop implements HopInterface
                 }
             }
         }
+
+        // Pass 8: buttons with themed fills but missing/black labels; radios already handled above.
+        $this->ensureButtonLabelInk($documents, $theme, $report);
+        // Pass 9: TextOnLight on dark/page surfaces (status badges, legends) → Text or keep semantic tokens from pass 2.
+        $this->rewriteDarkSurfaceInk($documents, $theme, $report);
     }
 
     /**
@@ -994,12 +1002,152 @@ final class EnableDarkModeHop implements HopInterface
             $report->add(self::id(), $radio->path, 'AccessibleLabel', $beforeA11y !== '' ? $beforeA11y : '(unset)', $a11yTo);
         }
 
-        $fontColorTo = $this->themeFormula($radio, $theme, 'Text');
-        $beforeFont = (string) ($radio->getProperty('FontColor') ?? '');
-        $fontTrim = trim(ltrim($beforeFont, '='));
-        if ($fontTrim === '' || $fontTrim === '""') {
-            $radio->setProperty('FontColor', $fontColorTo);
-            $report->add(self::id(), $radio->path, 'FontColor', $beforeFont !== '' ? $beforeFont : '(unset)', $fontColorTo);
+        $this->ensureRadioFontColor($radio, $theme, $report);
+    }
+
+    private function isRadioControl(ControlNode $control): bool
+    {
+        return str_contains(strtolower($control->type), 'radio');
+    }
+
+    private function ensureRadioFontColor(ControlNode $radio, string $theme, Report $report): void
+    {
+        // Modern RadioGroupCanvas item labels follow FontColor.
+        $before = (string) ($radio->getProperty('FontColor') ?? '');
+        $trim = trim(ltrim($before, '='));
+        $parsed = $trim !== '' && $trim !== '""' ? ColorValue::parse($before) : null;
+        $needs = $trim === '' || $trim === '""'
+            || ($parsed !== null && !$this->usesActiveThemeToken($before, $theme) && ColorValue::luminance($parsed) < 0.45);
+        if (!$needs) {
+            return;
+        }
+        $to = $this->themeFormula($radio, $theme, 'Text');
+        if ($to === $before) {
+            return;
+        }
+        $radio->setProperty('FontColor', $to);
+        $report->add(self::id(), $radio->path, 'FontColor', $before !== '' ? $before : '(unset)', $to);
+    }
+
+    /**
+     * Modern ButtonCanvas / classic buttons often keep Studio's default black label when
+     * only Fill/BasePaletteColor was themed (TDR Settings Annuler / Enregistrer).
+     *
+     * @param list<ControlDocument> $documents
+     */
+    private function ensureButtonLabelInk(array $documents, string $theme, Report $report): void
+    {
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$this->isButtonControl($control)) {
+                    continue;
+                }
+                $fill = (string) ($control->getProperty('Fill') ?? $control->getProperty('BasePaletteColor') ?? '');
+                $colorProp = $control->getProperty('Color') !== null || !str_contains(strtolower($control->type), 'canvas')
+                    ? 'Color'
+                    : 'Color';
+                // Prefer Color; also set FontColor when the modern control exposes it.
+                foreach (['Color', 'FontColor'] as $prop) {
+                    if ($prop === 'FontColor' && $control->getProperty('FontColor') === null && !str_contains(strtolower($control->type), 'canvas')) {
+                        continue;
+                    }
+                    $before = $control->getProperty($prop);
+                    $beforeStr = $before !== null ? (string) $before : '';
+                    $trim = trim(ltrim($beforeStr, '='));
+                    $parsed = $trim !== '' ? ColorValue::parse($beforeStr) : null;
+                    $missing = $before === null || $trim === '' || $trim === '""';
+                    $darkLiteral = $parsed !== null && ColorValue::luminance($parsed) < 0.35 && ($parsed['a'] ?? 1) > 0.8;
+                    if (!$missing && !$darkLiteral) {
+                        continue;
+                    }
+                    $token = $this->buttonInkTokenForFill($fill, $theme);
+                    $to = $this->themeFormula($control, $theme, $token);
+                    if ($to === $beforeStr) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, $missing ? '(unset)' : self::preview($beforeStr), $to);
+                }
+            }
+        }
+    }
+
+    private function isButtonControl(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+        if (str_contains($t, 'button')) {
+            return true;
+        }
+        $n = strtolower($control->name);
+        return str_starts_with($n, 'btn') || str_contains($n, 'button');
+    }
+
+    private function buttonInkTokenForFill(string $fill, string $theme): string
+    {
+        if (str_contains($fill, $theme . '.Accent') || str_contains($fill, $theme . '.Success') || str_contains($fill, $theme . '.Warning')) {
+            return 'TextOnAccent';
+        }
+        return 'Text';
+    }
+
+    /**
+     * Replace leftover TextOnLight ink when the control (or its fill) is a dark surface token.
+     *
+     * @param list<ControlDocument> $documents
+     */
+    private function rewriteDarkSurfaceInk(array $documents, string $theme, Report $report): void
+    {
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(function (string $formula, string $path) use ($theme, $report): string {
+                if (!$this->isColorPropertyPath($path) && !preg_match('/\.(Color|FontColor)(\.|$)/i', $path)) {
+                    return $formula;
+                }
+                if (!str_contains($formula, $theme . '.TextOnLight')) {
+                    return $formula;
+                }
+                // Status/legend Switch() formulas: TextOnLight on Surface* is unreadable in dark mode.
+                if (preg_match('/Switch\s*\(/i', $formula) || str_contains($formula, $theme . '.Surface') || str_contains($formula, $theme . '.Page')) {
+                    $replaced = str_replace($theme . '.TextOnLight', $theme . '.Text', $formula);
+                    if ($replaced !== $formula) {
+                        $report->add(self::id(), $path, 'Color', $theme . '.TextOnLight', $theme . '.Text');
+                    }
+                    return $replaced;
+                }
+                return $formula;
+            });
+
+            foreach ($doc->controls() as $control) {
+                foreach (['Color', 'FontColor'] as $prop) {
+                    $from = $control->getProperty($prop);
+                    if ($from === null || !str_contains($from, $theme . '.TextOnLight')) {
+                        continue;
+                    }
+                    if (preg_match('/Switch\s*\(/i', $from)) {
+                        $to = str_replace($theme . '.TextOnLight', $theme . '.Text', $from);
+                        if ($to !== $from) {
+                            $control->setProperty($prop, $to);
+                            $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($to));
+                        }
+                        continue;
+                    }
+                    $fill = trim((string) ($control->getProperty('Fill') ?? ''));
+                    $fillBody = trim(ltrim(preg_replace('/\/\/[^\n]*/', '', $fill) ?? $fill, '='));
+                    $parsedFill = $fillBody !== '' ? ColorValue::parse($fillBody) : null;
+                    $transparent = $fillBody === '' || ($parsedFill !== null && ColorValue::isTransparent($parsedFill));
+                    $onDarkSurface = $transparent
+                        || str_contains($fill, $theme . '.Page')
+                        || str_contains($fill, $theme . '.Surface');
+                    if (!$onDarkSurface) {
+                        continue;
+                    }
+                    $to = str_replace($theme . '.TextOnLight', $theme . '.Text', $from);
+                    if ($to === $from) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($to));
+                }
+            }
         }
     }
 
@@ -1817,8 +1965,10 @@ final class EnableDarkModeHop implements HopInterface
 
         return match (true) {
             str_contains($token, 'Link') => str_contains($token, 'Hover') ? 'LinkHover' : 'Link',
-            // Semantic *Text tokens are ink-on-bright-fill → TextOnLight (not white Text).
-            $token === 'WarningText' || $token === 'SuccessText' || $token === 'DangerText' => 'TextOnLight',
+            // Colored legend/status ink must stay chromatic on dark pages — not TextOnLight (dark slate).
+            $token === 'WarningText' => 'Warning',
+            $token === 'SuccessText' => 'Success',
+            $token === 'DangerText' => 'Accent',
             str_contains($token, 'OnLight') => 'TextOnLight',
             str_contains($token, 'Text') || str_ends_with($token, 'Text') => 'Text',
             str_contains($token, 'Border') || $token === 'Focus' => str_contains($token, 'Strong') ? 'BorderStrong' : 'Border',

@@ -589,6 +589,25 @@ assert_true(str_contains((string) $patBy['AzureLbl']->getProperty('Fill'), 'gblT
 assert_true(str_contains((string) $patBy['AzureLbl']->getProperty('Color'), 'gblTheme.Text'), '//FontColour stub → Text');
 assert_true(str_contains((string) $patBy['HtmlLbl']->getProperty('HtmlText'), 'TextCss'), 'HtmlText #111111 → TextCss');
 
+// TDR / THCEE Directory: language radio FontColor, Settings buttons, status legend ink
+$tdrDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/tdr_dark_controls.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($tdrDoc !== null, 'TDR dark controls fixture loads');
+$tdrReport = new Report();
+(new EnableDarkModeHop())->apply([$tdrDoc], $tdrReport, ['force' => true, 'inject_toggle' => false]);
+$tdrDoc->reindex();
+$tdrBy = [];
+foreach ($tdrDoc->controls() as $c) {
+    $tdrBy[$c->name] = $c;
+}
+assert_true(str_contains((string) $tdrBy['LangRadio']->getProperty('FontColor'), 'gblTheme.Text'), 'language radio gets FontColor');
+assert_true(str_contains((string) $tdrBy['ThemeRadio']->getProperty('FontColor'), 'gblTheme.Text'), 'theme radio keeps FontColor');
+assert_true(str_contains((string) $tdrBy['SaveBtn']->getProperty('Color'), 'gblTheme.Text'), 'Settings Save button gets Color ink');
+assert_true(str_contains((string) $tdrBy['CancelBtn']->getProperty('Color'), 'gblTheme.Text'), 'Settings Cancel button gets Color ink');
+assert_true(str_contains((string) $tdrBy['lblDraft']->getProperty('Color'), 'gblTheme.Warning'), 'Draft legend stays Warning (not TextOnLight)');
+assert_true(str_contains((string) $tdrBy['lblSigned']->getProperty('Color'), 'gblTheme.Success'), 'Signed legend stays Success');
+assert_true(str_contains((string) $tdrBy['lblDenied']->getProperty('Color'), 'gblTheme.Accent'), 'Denied legend stays Accent');
+assert_true(!str_contains((string) $tdrBy['lblType']->getProperty('Color'), 'TextOnLight'), 'THCEE badge avoids TextOnLight on surface');
+
 // Light-only RadioGroupCanvas stub (THCEE/TDR/ASC Topbar JSON twin pattern) gets Dark wired
 $lightStubDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_light_stub.pa.yaml', 'Src/Home.pa.yaml');
 assert_true($lightStubDoc !== null, 'light-only theme stub fixture loads');
