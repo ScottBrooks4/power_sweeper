@@ -19,6 +19,7 @@
   const planReasons = document.getElementById('planReasons');
   const forceModeSelect = document.getElementById('forceModeSelect');
   const scanLive = document.getElementById('scanLive');
+  const skipScanBtn = document.getElementById('skipScanBtn');
   const hopsLayout = document.querySelector('.hops-layout');
   const palette = document.getElementById('palette');
   const sequenceEl = document.getElementById('sequence');
@@ -289,10 +290,13 @@
   }
 
   function showPlan(data) {
+    setSkipScanVisible(false);
     planPanel?.classList.remove('hidden');
     planPanel?.classList.add('plan-ready');
     const hopCount = (data.hops || []).length;
-    planHint.textContent = `Detected ${hopCount} hop${hopCount === 1 ? '' : 's'}. You can still edit the sequence.`;
+    planHint.textContent = hopCount === 0
+      ? 'No actionable hops detected. Add hops from the left if you still want to run something.'
+      : `Detected ${hopCount} hop${hopCount === 1 ? '' : 's'}. You can still edit the sequence.`;
     if (scanLive) scanLive.textContent = '';
     forceHint.textContent = data.force_mode_reason || '';
     forceMode = data.force_mode === 'all' ? 'all' : 'missing_only';
@@ -312,6 +316,36 @@
     requestAnimationFrame(() => {
       planPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       hopsLayout?.classList.add('sequence-reveal');
+    });
+  }
+
+  function setSkipScanVisible(visible) {
+    if (!skipScanBtn) return;
+    skipScanBtn.hidden = !visible;
+  }
+
+  function skipScan() {
+    if (analyzeAbort) {
+      analyzeAbort.abort();
+      analyzeAbort = null;
+    }
+    setSkipScanVisible(false);
+    planPanel?.classList.remove('hidden');
+    planPanel?.classList.add('plan-ready');
+    hopsLayout?.classList.remove('sequence-reveal');
+    if (planHint) {
+      planHint.textContent = 'Scan skipped — add hops from the left. Order matters.';
+    }
+    if (scanLive) scanLive.textContent = '';
+    if (forceHint) forceHint.textContent = '';
+    if (planReasons) planReasons.innerHTML = '';
+    sequence = [];
+    renderSequence();
+    updateRunEnabled();
+    updateRunEstimate();
+    status.textContent = '';
+    requestAnimationFrame(() => {
+      hopsLayout?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
@@ -438,6 +472,7 @@
     analyzeAbort = new AbortController();
     planPanel?.classList.remove('hidden', 'plan-ready');
     hopsLayout?.classList.remove('sequence-reveal');
+    setSkipScanVisible(true);
     if (planHint) planHint.textContent = 'Scanning…';
     setScanProgress('Uploading app for analysis…');
     if (forceHint) forceHint.textContent = '';
@@ -469,6 +504,7 @@
       showPlan(data);
     } catch (err) {
       if (err?.name === 'AbortError') return;
+      setSkipScanVisible(false);
       if (planHint) {
         planHint.textContent = 'Could not auto-select hops — add them manually from the left.';
       }
@@ -500,6 +536,11 @@
   browseBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     fileInput.click();
+  });
+  skipScanBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    skipScan();
   });
   dropZone.addEventListener('click', () => fileInput.click());
   dropZone.addEventListener('keydown', (e) => {

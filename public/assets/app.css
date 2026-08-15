@@ -127,6 +127,13 @@ body::before {
   flex-wrap: wrap;
 }
 
+.plan-toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .write-mode {
   display: inline-flex;
   align-items: center;

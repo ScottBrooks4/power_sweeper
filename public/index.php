@@ -51,13 +51,16 @@ $basePath = $basePath === '' ? '' : $basePath;
     <section class="panel plan-panel hidden" id="planPanel">
       <div class="row between plan-toolbar">
         <h2>Recommended plan</h2>
-        <label class="write-mode" for="forceModeSelect">
-          <span class="write-mode-label">Write mode</span>
-          <select id="forceModeSelect" aria-label="Write mode for selected hops">
-            <option value="missing_only">Missing only</option>
-            <option value="all">All</option>
-          </select>
-        </label>
+        <div class="plan-toolbar-actions">
+          <button type="button" class="ghost" id="skipScanBtn" hidden>Skip scan</button>
+          <label class="write-mode" for="forceModeSelect">
+            <span class="write-mode-label">Write mode</span>
+            <select id="forceModeSelect" aria-label="Write mode for selected hops">
+              <option value="missing_only">Missing only</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+        </div>
       </div>
       <p class="hint" id="planHint">Scanning…</p>
       <p class="hint scan-live" id="scanLive" aria-live="polite"></p>
