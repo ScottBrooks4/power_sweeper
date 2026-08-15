@@ -35,8 +35,13 @@ $basePath = $basePath === '' ? '' : $basePath;
 <body>
   <div class="page">
     <header class="hero">
-      <p class="brand">Power Sweeper</p>
-      <h1>Clean a canvas app in hops</h1>
+      <div class="brand-lockup">
+        <img class="brand-icon" src="assets/favicon.svg" width="56" height="56" alt="">
+        <div class="brand-copy">
+          <p class="brand">Power Sweeper</p>
+          <h1>Clean a canvas app in hops</h1>
+        </div>
+      </div>
       <p class="lede">Drop an <code>.msapp</code> — Power Sweeper scans it, picks the hop sequence and write mode, then you can tweak and run.</p>
     </header>
 
