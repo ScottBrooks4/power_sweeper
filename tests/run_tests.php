@@ -2410,10 +2410,17 @@ if (is_file($kmsAdvisePath)) {
     $planIds = array_map(static fn(array $h): string => (string) $h['id'], $plan['hops'] ?? []);
     assert_true(in_array('accessibility_labels', $planIds, true), 'kitchen sink plan includes accessibility_labels');
     assert_true(in_array('enable_dark_mode', $planIds, true), 'kitchen sink plan includes enable_dark_mode');
-    assert_true(in_array('prefer_classic_theme_controls', $planIds, true), 'kitchen sink plan prepares classic theme controls');
-    $classicAt = array_search('prefer_classic_theme_controls', $planIds, true);
-    $darkAt = array_search('enable_dark_mode', $planIds, true);
-    assert_true(is_int($classicAt) && is_int($darkAt) && $classicAt < $darkAt, 'classic theme prep runs before enable_dark_mode');
+    if (((int) ($plan['signals']['modern_themeable_controls'] ?? 0)) > 0) {
+        assert_true(in_array('prefer_classic_theme_controls', $planIds, true), 'kitchen sink plan prepares classic theme controls when modern controls exist');
+        $classicAt = array_search('prefer_classic_theme_controls', $planIds, true);
+        $darkAt = array_search('enable_dark_mode', $planIds, true);
+        assert_true(is_int($classicAt) && is_int($darkAt) && $classicAt < $darkAt, 'classic theme prep runs before enable_dark_mode');
+    } else {
+        assert_true(!in_array('prefer_classic_theme_controls', $planIds, true), 'kitchen sink skips classic prep when no modern controls to convert');
+    }
+    assert_true(!in_array('align_near_miss', $planIds, true), 'kitchen sink does not recommend align_near_miss without detection');
+    assert_true(!in_array('repair_delegation', $planIds, true), 'kitchen sink skips repair_delegation with no delegation hints');
+    assert_true(!in_array('unwhack_locale_formulas', $planIds, true), 'kitchen sink skips locale unwhack with no locale hits');
     foreach ($plan['hops'] as $step) {
         if (!in_array($step['id'], HopAdvisor::FORCEABLE_HOPS, true)) {
             continue;
@@ -2431,6 +2438,19 @@ if (is_file($poweredAdvise)) {
     assert_true(($poweredPlan['signals']['has_theme'] ?? false) === true, 'powered app signals has_theme');
     $poweredIds = array_map(static fn(array $h): string => (string) $h['id'], $poweredPlan['hops'] ?? []);
     assert_true(!in_array('enable_dark_mode', $poweredIds, true), 'powered app skips enable_dark_mode');
+    assert_true(!in_array('align_near_miss', $poweredIds, true), 'powered app does not get default light-cleanup hops');
+    // No full studio_repair dump when signals are clean for that hop.
+    if (((int) ($poweredPlan['signals']['delegation_hints'] ?? 0)) === 0) {
+        assert_true(!in_array('repair_delegation', $poweredIds, true), 'powered app skips repair_delegation when no delegation hints');
+    }
+    if (((int) ($poweredPlan['signals']['locale_hits'] ?? 0)) === 0) {
+        assert_true(!in_array('unwhack_locale_formulas', $poweredIds, true), 'powered app skips unwhack when no locale hits');
+    }
+    if (((int) ($poweredPlan['signals']['missing_accessible_label'] ?? 0)) === 0
+        && ((int) ($poweredPlan['signals']['by_rule']['acc-AccessibleLabelNeeded'] ?? 0)) === 0
+    ) {
+        assert_true(!in_array('accessibility_labels', $poweredIds, true), 'powered app skips accessibility_labels when none missing');
+    }
 }
 
 echo "\n";
