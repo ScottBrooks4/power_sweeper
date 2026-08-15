@@ -687,6 +687,32 @@ assert_true(
         && str_contains($onStartContrast, 'Warning: RGBA(161, 98, 7, 1)'),
     'dark palette includes TextOnLight and darkened Warning for white banner text'
 );
+
+// THCEE finals: cream HtmlViewer section headers, ColorFade Draft chip, pale Modern buttons
+$thceeFinalDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/thcee_dark_final.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($thceeFinalDoc !== null, 'thcee dark final fixture loads');
+$thceeFinalReport = new Report();
+(new EnableDarkModeHop())->apply([$thceeFinalDoc], $thceeFinalReport, ['force' => false]);
+$thceeFinalDoc->reindex();
+$thceeHtml = $thceeHome = $thceeChip = $thceeOn = '';
+foreach ($thceeFinalDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $thceeOn = (string) ($c->getProperty('OnStart') ?? '');
+    }
+    if ($c->name === 'HeaderHtml') {
+        $thceeHtml = (string) ($c->getProperty('HtmlText') ?? '');
+    }
+    if ($c->name === 'ReturnHome') {
+        $thceeHome = (string) ($c->getProperty('BasePaletteColor') ?? '');
+    }
+    if ($c->name === 'StatusChip') {
+        $thceeChip = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true(str_contains($thceeOn, 'PageCss:') && str_contains($thceeOn, 'TextMutedCss:'), 'THCEE palette ships PageCss/TextMutedCss');
+assert_true(str_contains($thceeHtml, 'gblTheme.PageCss') && str_contains($thceeHtml, 'gblTheme.TextCss'), 'THCEE section HTML cream/title theme');
+assert_true(str_contains($thceeChip, 'If(gblDarkMode'), 'THCEE Draft ColorFade chip darkens when dark');
+assert_true(str_contains($thceeHome, 'gblTheme.Surface'), 'pale Return Home BasePaletteColor → Surface');
 assert_true(
     str_contains($mixedColor, 'gblTheme.') && !preg_match('/RGBA\s*\(\s*117\s*,\s*117\s*,\s*117/i', $mixedColor),
     'mixed If(...) formula rewrites leftover mid-gray RGBA'
