@@ -5,6 +5,7 @@
     'accessibility_labels',
     'tooltip_from_label',
     'enable_dark_mode',
+    'translate',
     'unwhack_locale_formulas',
     'normalize_containers',
   ]);
@@ -44,6 +45,7 @@
   /** Baseline ms per hop before file-size scaling (tuned from typical runs). */
   const HOP_COST_MS = {
     enable_dark_mode: 4500,
+    translate: 3500,
     meaningful_names: 3500,
     unwhack_locale_formulas: 2800,
     accessibility_labels: 2200,

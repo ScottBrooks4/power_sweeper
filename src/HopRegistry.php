@@ -35,6 +35,7 @@ use PowerSweeper\Hops\ScanStudioIssuesHop;
 use PowerSweeper\Hops\SetZipPathStyleHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
+use PowerSweeper\Hops\TranslateHop;
 use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
 
 final class HopRegistry
@@ -71,6 +72,7 @@ final class HopRegistry
             AnalyzeAppCheckerHop::class,
             PreferClassicThemeControlsHop::class,
             EnableDarkModeHop::class,
+            TranslateHop::class,
             CorrelateSharePointHop::class,
             SetZipPathStyleHop::class,
             ExportWebAppHop::class,

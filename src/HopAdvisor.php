@@ -20,6 +20,7 @@ final class HopAdvisor
         'accessibility_labels',
         'tooltip_from_label',
         'enable_dark_mode',
+        'translate',
         'unwhack_locale_formulas',
         'normalize_containers',
     ];
@@ -136,6 +137,9 @@ final class HopAdvisor
         $opaqueColors = 0;
         $themedColors = 0;
         $modernThemeable = 0;
+        $hasI18n = false;
+        $literalTexts = 0;
+        $hasLangControl = false;
         $doubleQualifiedHits = 0;
         $syntaxHits = 0;
         $ghostSeedHits = 0;
@@ -172,6 +176,14 @@ final class HopAdvisor
                     ) {
                         $hasTheme = true;
                     }
+                    if (
+                        str_contains($onStart, 'gblStrings')
+                        || str_contains($onStart, '/* ps-i18n:start */')
+                        || str_contains($formulas, 'gblStrings')
+                        || str_contains($onStart, 'varTranslations')
+                    ) {
+                        $hasI18n = true;
+                    }
                     $maxRows = $control->getProperty('MaxDataRowCount') ?? $control->getProperty('DataRowLimit');
                     if ($maxRows !== null && is_numeric(trim(ltrim(trim((string) $maxRows), '='))) && (float) $maxRows > 500) {
                         $maxRowsHigh++;
@@ -186,6 +198,19 @@ final class HopAdvisor
                     )
                 ) {
                     $themeToggle = true;
+                }
+                $langBlob = strtolower(
+                    $control->name . ' '
+                    . (string) ($control->getProperty('Items') ?? '')
+                    . ' '
+                    . (string) ($control->getProperty('OnChange') ?? '')
+                );
+                if (
+                    (str_contains($langBlob, 'english') && str_contains($langBlob, 'french'))
+                    || str_contains($langBlob, 'varlang')
+                    || str_contains($langBlob, 'language')
+                ) {
+                    $hasLangControl = true;
                 }
 
                 if (!$control->isScreen() && !$control->isApp()) {
@@ -255,6 +280,15 @@ final class HopAdvisor
                     }
                     if (str_contains($value, 'gblTheme.')) {
                         $themedColors++;
+                    }
+                    if (str_contains($value, 'gblStrings.') || str_contains($value, 'comTranslations.Labels')) {
+                        $hasI18n = true;
+                    }
+                    if (
+                        in_array($prop, ['Text', 'HintText', 'Tooltip', 'TrueText', 'FalseText'], true)
+                        && preg_match('/^=?\s*"[^"]+"\s*$/', trim($value))
+                    ) {
+                        $literalTexts++;
                     }
                     if (preg_match('/Fill|Color|Border|FontColor/i', $prop) && ColorValue::parse($value) !== null) {
                         $parsed = ColorValue::parse($value);
@@ -438,6 +472,9 @@ final class HopAdvisor
             'theme_toggle' => $themeToggle,
             'opaque_colors' => $opaqueColors,
             'themed_colors' => $themedColors,
+            'has_i18n' => $hasI18n,
+            'literal_texts' => $literalTexts,
+            'has_lang_control' => $hasLangControl,
             'embedded_sarif_total' => (int) ($embedded['total'] ?? 0),
             'by_rule' => $byRule,
             'catalog_screens' => count($catalog->screenNames()),
@@ -483,6 +520,9 @@ final class HopAdvisor
         $modernThemeable = (int) $signals['modern_themeable_controls'];
         $hasTheme = (bool) $signals['has_theme'];
         $opaqueColors = (int) $signals['opaque_colors'];
+        $hasI18n = (bool) ($signals['has_i18n'] ?? false);
+        $literalTexts = (int) ($signals['literal_texts'] ?? 0);
+        $needsTranslate = !$hasI18n && ($literalTexts >= 8);
 
         $needsNames = ($genericRatio >= 0.12) || ($genericNames >= 15);
         $needsTheme = !$hasTheme && ($opaqueColors >= 25 || $modernThemeable > 0);
@@ -529,6 +569,11 @@ final class HopAdvisor
             $reasons[] = 'No gblTheme palette detected — include dark-mode theming';
         } elseif ($hasTheme) {
             $reasons[] = 'Theme palettes already present — skip re-theme';
+        }
+        if ($needsTranslate) {
+            $reasons[] = sprintf('Many hard-coded UI strings (%d) — centralize into language packs', $literalTexts);
+        } elseif ($hasI18n) {
+            $reasons[] = 'Language packs / translations already present — skip translate';
         }
 
         // Formula / ref repair — only hops that match signals (studio_repair order).
@@ -616,6 +661,10 @@ final class HopAdvisor
                 $hops[] = ['id' => 'prefer_classic_theme_controls', 'options' => []];
             }
             $hops[] = ['id' => 'enable_dark_mode', 'options' => []];
+        }
+
+        if ($needsTranslate) {
+            $hops[] = ['id' => 'translate', 'options' => []];
         }
 
         // Ensure classic theme prep sits immediately before enable_dark_mode when both present.

@@ -27,6 +27,7 @@ use PowerSweeper\Hops\RepairCheckedBooleansHop;
 use PowerSweeper\Hops\ScanStudioIssuesHop;
 use PowerSweeper\Hops\StripDefaultFillHop;
 use PowerSweeper\Hops\TooltipFromLabelHop;
+use PowerSweeper\Hops\TranslateHop;
 use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
 use PowerSweeper\Pipeline;
 use PowerSweeper\HopChains;
@@ -230,6 +231,43 @@ foreach ($darkDocForced->controls() as $c) {
     }
 }
 assert_true($accentFillForced !== null && str_contains($accentFillForced, 'gblTheme.'), 'custom accent fill re-themed when force=true');
+
+// --- translate hop: packs + language radio wiring ---
+$translateDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/translate_app.pa.yaml', 'Src/App.pa.yaml');
+assert_true($translateDoc !== null, 'translate fixture loads');
+$translateReport = new Report();
+(new TranslateHop())->apply([$translateDoc], $translateReport);
+$onStart = $titleText = $goText = $subText = $langOnChange = $glyph = null;
+foreach ($translateDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $onStart = (string) ($c->getProperty('OnStart') ?? '');
+    }
+    if ($c->name === 'Title') {
+        $titleText = (string) ($c->getProperty('Text') ?? '');
+    }
+    if ($c->name === 'GoBtn') {
+        $goText = (string) ($c->getProperty('Text') ?? '');
+    }
+    if ($c->name === 'Subtitle') {
+        $subText = (string) ($c->getProperty('Text') ?? '');
+    }
+    if ($c->name === 'LanguageRadio') {
+        $langOnChange = (string) ($c->getProperty('OnChange') ?? '');
+    }
+    if ($c->name === 'SkipGlyph') {
+        $glyph = (string) ($c->getProperty('Text') ?? '');
+    }
+}
+assert_true(is_string($onStart) && str_contains($onStart, '/* ps-i18n:start */'), 'translate injects i18n OnStart block');
+assert_true(is_string($onStart) && str_contains($onStart, 'gblStringsEn') && str_contains($onStart, 'gblStringsFr'), 'translate defines EN/FR packs');
+assert_true(is_string($titleText) && str_contains($titleText, 'gblStrings.'), 'translate rewrites Welcome label to gblStrings');
+assert_true(is_string($goText) && str_contains($goText, 'gblStrings.'), 'translate rewrites Continue button to gblStrings');
+assert_true(is_string($subText) && str_contains($subText, 'gblStrings.'), 'translate collapses bilingual If(varLang) into gblStrings');
+assert_true(is_string($onStart) && str_contains($onStart, 'Open request') && str_contains($onStart, 'Ouvrir la demande'), 'translate keeps both EN/FR bilingual literals in packs');
+assert_true(is_string($langOnChange) && str_contains($langOnChange, 'gblStrings'), 'translate wires existing LanguageRadio to swap packs');
+assert_true(is_string($glyph) && str_contains($glyph, '→'), 'translate leaves arrow glyph alone');
+assert_true($translateReport->count() > 0, 'translate reports changes');
+assert_true((new \PowerSweeper\HopRegistry())->has('translate'), 'translate hop registered');
 
 // --- align near miss ---
 $doc = loadFixtureDoc();
