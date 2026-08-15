@@ -1,0 +1,41 @@
+# ************************************************************************************************
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(gblReady, true)
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - StatusChip:
+        Control: GroupContainer@1.5.0
+        Properties:
+          BorderColor: =RGBA(250, 204, 21, 1)
+          Fill: =ColorFade(Self.BorderColor, 80%)
+          Width: =160
+          Height: =36
+        Children:
+          - StatusLabel:
+              Control: Label@2.5.1
+              Properties:
+                Text: ="Draft"
+                Color: =RGBA(0, 0, 0, 1)
+                Fill: =RGBA(0, 0, 0, 0)
+                Width: =160
+                Height: =36
+    - HeaderHtml:
+        Control: HtmlViewer@2.1.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          HtmlText: ="<body style='margin:0; background:#f7f6f3; color:#1f1d1a;'><div class='tdr-section-header__title' style='color:#1f1d1a;'>General Details</div><div style='color:#6b6760;'>Step 1 of 4</div></body>"
+    - ReturnHome:
+        Control: ModernButton@1.0.0
+        Properties:
+          BasePaletteColor: =RGBA(189, 178, 176, 1)
+          Text: ="Return Home"
+    - SendFeedback:
+        Control: ModernButton@1.0.0
+        Properties:
+          BasePaletteColor: =RGBA(156, 220, 79, 1)
+          Text: ="Send Feedback"

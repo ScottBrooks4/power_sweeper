@@ -574,6 +574,8 @@ final class EnableDarkModeHop implements HopInterface
 
         // Pass 5b: dark ink on pastel ColorFade chips / bright Warning|Success banners
         $this->applyTextOnLightSurfaces($documents, $theme, $report);
+        // Pass 5c: ColorFade(..., +N%) status chips stay pastel in dark mode — flip fade when dark.
+        $this->themePastelColorFadeFills($documents, $var, $report);
 
         // Pass 6: input surfaces (white / legacy gray fills) use InputFill token + readable Color
         foreach ($documents as $doc) {
@@ -722,15 +724,21 @@ final class EnableDarkModeHop implements HopInterface
             });
         }
 
-        // Pass 7: hyperlinks — teal in dark mode via gblTheme.Link / LinkCss (not Accent)
+        // Pass 7: hyperlinks + embedded HTML section chrome (THCEE translation HTML bodies)
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($theme, $report): string {
-                if (!str_contains(strtolower($path), 'htmltext')) {
-                    return $formula;
-                }
-                $rewritten = $this->rewriteInlineLinkHtml($formula, $theme);
-                if ($rewritten !== $formula) {
-                    $report->add(self::id(), $path, 'HtmlText', 'color: blue', $theme . '.LinkCss');
+                $rewritten = $formula;
+                if (str_contains(strtolower($path), 'htmltext') || $this->looksLikeEmbeddedHtml($formula)) {
+                    $next = $this->rewriteInlineLinkHtml($rewritten, $theme);
+                    if ($next !== $rewritten) {
+                        $report->add(self::id(), $path, 'HtmlText', 'color: blue', $theme . '.LinkCss');
+                        $rewritten = $next;
+                    }
+                    $next = $this->rewriteEmbeddedHtmlSurfaces($rewritten, $theme);
+                    if ($next !== $rewritten) {
+                        $report->add(self::id(), $path, 'HtmlTheme', 'light HTML chrome', $theme . '.*Css');
+                        $rewritten = $next;
+                    }
                 }
 
                 return $rewritten;
@@ -740,6 +748,7 @@ final class EnableDarkModeHop implements HopInterface
                 $html = $control->getProperty('HtmlText');
                 if (is_string($html) && $html !== '') {
                     $rewritten = $this->rewriteInlineLinkHtml($html, $theme);
+                    $rewritten = $this->rewriteEmbeddedHtmlSurfaces($rewritten, $theme);
                     if ($rewritten !== $html) {
                         $control->setProperty('HtmlText', $rewritten);
                         $report->add(self::id(), $control->path, 'HtmlText', self::preview($html), self::preview($rewritten));
@@ -766,6 +775,8 @@ final class EnableDarkModeHop implements HopInterface
 
         // Pass 8: buttons with themed fills but missing/black labels; radios already handled above.
         $this->ensureButtonLabelInk($documents, $theme, $report);
+        // Pass 8b: pale Modern button BasePaletteColor (Return Home taupe → Surface)
+        $this->themePaleModernButtonPalettes($documents, $theme, $var, $themeLight, $themeDark, $force, $report);
         // Pass 9: TextOnLight on dark/page surfaces (status badges, legends) → Text or keep semantic tokens from pass 2.
         $this->rewriteDarkSurfaceInk($documents, $theme, $report);
     }
@@ -805,6 +816,18 @@ final class EnableDarkModeHop implements HopInterface
         if (isset($palette['Text'])) {
             $lightFields[] = 'TextCss: "' . ColorValue::toHex($palette['Text']['light']) . '"';
             $darkFields[] = 'TextCss: "' . ColorValue::toHex($palette['Text']['dark']) . '"';
+        }
+        if (isset($palette['TextMuted'])) {
+            $lightFields[] = 'TextMutedCss: "' . ColorValue::toHex($palette['TextMuted']['light']) . '"';
+            $darkFields[] = 'TextMutedCss: "' . ColorValue::toHex($palette['TextMuted']['dark']) . '"';
+        }
+        if (isset($palette['Page'])) {
+            $lightFields[] = 'PageCss: "' . ColorValue::toHex($palette['Page']['light']) . '"';
+            $darkFields[] = 'PageCss: "' . ColorValue::toHex($palette['Page']['dark']) . '"';
+        }
+        if (isset($palette['Surface'])) {
+            $lightFields[] = 'SurfaceCss: "' . ColorValue::toHex($palette['Surface']['light']) . '"';
+            $darkFields[] = 'SurfaceCss: "' . ColorValue::toHex($palette['Surface']['dark']) . '"';
         }
         if (isset($palette['LinkHover'])) {
             $lightFields[] = 'LinkHoverCss: "' . ColorValue::toHex($palette['LinkHover']['light']) . '"';
@@ -1097,6 +1120,14 @@ final class EnableDarkModeHop implements HopInterface
      */
     private function rewriteDarkSurfaceInk(array $documents, string $theme, Report $report): void
     {
+        /** @var array<string, string> $fillByPath */
+        $fillByPath = [];
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                $fillByPath[$control->path] = (string) ($control->getProperty('Fill') ?? '');
+            }
+        }
+
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($theme, $report): string {
                 if (!$this->isColorPropertyPath($path) && !preg_match('/\.(Color|FontColor)(\.|$)/i', $path)) {
@@ -1130,7 +1161,17 @@ final class EnableDarkModeHop implements HopInterface
                         }
                         continue;
                     }
-                    $fill = trim((string) ($control->getProperty('Fill') ?? ''));
+                    // Pastel ColorFade chips need TextOnLight even when the label fill is transparent.
+                    $ownFill = (string) ($control->getProperty('Fill') ?? '');
+                    if ($this->isPastelChipFill($ownFill)) {
+                        continue;
+                    }
+                    foreach ($this->ancestorFills($control->path, $fillByPath) as $parentFill) {
+                        if ($this->isPastelChipFill($parentFill)) {
+                            continue 2;
+                        }
+                    }
+                    $fill = trim($ownFill);
                     $fillBody = trim(ltrim(preg_replace('/\/\/[^\n]*/', '', $fill) ?? $fill, '='));
                     $parsedFill = $fillBody !== '' ? ColorValue::parse($fillBody) : null;
                     $transparent = $fillBody === '' || ($parsedFill !== null && ColorValue::isTransparent($parsedFill));
@@ -1149,6 +1190,155 @@ final class EnableDarkModeHop implements HopInterface
                 }
             }
         }
+    }
+
+    /**
+     * Status chips use ColorFade(BorderColor, 80%) — stays light yellow in dark mode.
+     * Flip positive fades to a darken percentage when gblDarkMode is on.
+     *
+     * @param list<ControlDocument> $documents
+     */
+    private function themePastelColorFadeFills(array $documents, string $var, Report $report): void
+    {
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                $from = $control->getProperty('Fill');
+                if ($from === null || !$this->isPastelChipFill($from)) {
+                    continue;
+                }
+                if (str_contains($from, $var)) {
+                    continue;
+                }
+                // ColorFade(expr, 80%) → ColorFade(expr, If(gblDarkMode, -55%, 80%))
+                $rewritten = preg_replace_callback(
+                    '/ColorFade\s*\(\s*(.+?)\s*,\s*(\d+)\s*%\s*\)/is',
+                    static function (array $m) use ($var): string {
+                        $pct = (int) $m[2];
+                        if ($pct < 35) {
+                            return $m[0];
+                        }
+                        $darkPct = max(35, min(70, (int) round($pct * 0.7)));
+
+                        return 'ColorFade(' . $m[1] . ', If(' . $var . ', -' . $darkPct . '%, ' . $pct . '%))';
+                    },
+                    $from
+                );
+                if (!is_string($rewritten) || $rewritten === $from) {
+                    continue;
+                }
+                $control->setProperty('Fill', $rewritten);
+                $report->add(self::id(), $control->path, 'Fill', self::preview($from), self::preview($rewritten));
+            }
+        }
+    }
+
+    /**
+     * Modern buttons with pale taupe/grey BasePaletteColor read as white chips in dark mode.
+     *
+     * @param list<ControlDocument> $documents
+     */
+    private function themePaleModernButtonPalettes(
+        array $documents,
+        string $theme,
+        string $var,
+        string $themeLight,
+        string $themeDark,
+        bool $force,
+        Report $report,
+    ): void {
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                $t = strtolower($control->type);
+                if (!str_contains($t, 'button') && !str_contains($t, 'modernbutton')) {
+                    continue;
+                }
+                $from = $control->getProperty('BasePaletteColor');
+                if ($from === null || trim($from) === '' || $this->alreadyThemed($from, $var, $theme)) {
+                    continue;
+                }
+                if ($this->shouldPreserveUserValue($from, 'BasePaletteColor', $force, $theme, $var, $themeLight, $themeDark)) {
+                    $parsed = ColorValue::parse($from);
+                    // Still rewrite washed-out greys/taupes even in missing-only.
+                    if ($parsed === null || ColorValue::isTransparent($parsed)) {
+                        continue;
+                    }
+                    $lum = ColorValue::luminance($parsed);
+                    $sat = ColorValue::saturation($parsed);
+                    if (!($lum >= 0.40 && $sat <= 0.28)) {
+                        continue;
+                    }
+                } else {
+                    $parsed = ColorValue::parse($from);
+                    if ($parsed === null || ColorValue::isTransparent($parsed)) {
+                        continue;
+                    }
+                    $lum = ColorValue::luminance($parsed);
+                    $sat = ColorValue::saturation($parsed);
+                    if (!($lum >= 0.40 && $sat <= 0.35) && !$force) {
+                        continue;
+                    }
+                }
+                $to = $this->themeFormula($control, $theme, 'Surface');
+                if ($to === $from) {
+                    continue;
+                }
+                $control->setProperty('BasePaletteColor', $to, 'Design');
+                $report->add(self::id(), $control->path, 'BasePaletteColor', $from, $to);
+            }
+        }
+    }
+
+    private function looksLikeEmbeddedHtml(string $formula): bool
+    {
+        return (bool) preg_match('/<\s*(?:!doctype|html|body|div)\b/i', $formula)
+            || str_contains($formula, 'tdr-section-header')
+            || (bool) preg_match('/background\s*:\s*#(?:f7f6f3|ffffff|fff\b|f5f5f5|fafafa)/i', $formula);
+    }
+
+    /**
+     * THCEE translation HTML uses light body backgrounds (#f7f6f3) and near-black titles.
+     * Splice theme CSS tokens so HtmlViewer section headers follow dark mode.
+     */
+    private function rewriteEmbeddedHtmlSurfaces(string $formula, string $theme): string
+    {
+        if (!$this->looksLikeEmbeddedHtml($formula)) {
+            return $formula;
+        }
+
+        // Quote-aware splice for HTML string literals (OnReset translation packs, HtmlText, etc.).
+        $spliced = preg_replace_callback(
+            '/(")([^"]*?)(")/s',
+            static function (array $m) use ($theme): string {
+                $chunk = $m[2];
+                if (!preg_match('/<\s*(?:!doctype|html|body|div)\b|tdr-section-header|background\s*:/i', $chunk)) {
+                    return $m[0];
+                }
+                $q = '"';
+                $map = [
+                    '/background(?:-color)?\s*:\s*#(?:f7f6f3|f5f5f5|fafafa|ffffff|fff)\b/i'
+                        => 'background:' . $q . ' & ' . $theme . '.PageCss & ' . $q,
+                    '/color\s*:\s*#(?:1f1d1a|111111|000000|0{3,6}|1a1a1a|222222)\b/i'
+                        => 'color:' . $q . ' & ' . $theme . '.TextCss & ' . $q,
+                    '/color\s*:\s*#(?:6b6760|6b7280|64748b|757575|767676|888888|999999)\b/i'
+                        => 'color:' . $q . ' & ' . $theme . '.TextMutedCss & ' . $q,
+                ];
+                $next = $chunk;
+                foreach ($map as $pat => $replacement) {
+                    $replaced = preg_replace($pat, $replacement, $next);
+                    if (is_string($replaced)) {
+                        $next = $replaced;
+                    }
+                }
+                if ($next === $chunk) {
+                    return $m[0];
+                }
+
+                return $q . $next . $q;
+            },
+            $formula
+        );
+
+        return is_string($spliced) ? $spliced : $formula;
     }
 
     /** @param list<ControlDocument> $documents */
