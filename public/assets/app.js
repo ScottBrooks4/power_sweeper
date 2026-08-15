@@ -95,6 +95,9 @@
   /** @type {'all'|'missing_only'} */
   let forceMode = 'missing_only';
   let analyzeAbort = null;
+  let runAbort = null;
+  /** Bumped whenever a new app is chosen so stale run/analyze UI updates are ignored. */
+  let uiEpoch = 0;
   /** @type {ReturnType<typeof setInterval>|null} */
   let progressTimer = null;
   let runStartedAt = 0;
@@ -537,10 +540,21 @@
       status.textContent = 'Please choose a .msapp file.';
       return;
     }
+
+    // Immediate dock reset — before analyze upload — and cancel any in-flight sweep
+    // so its NDJSON events cannot paint over the cleared bottom bar.
+    uiEpoch += 1;
+    if (runAbort) {
+      runAbort.abort();
+      runAbort = null;
+    }
+    sequence = [];
+    renderSequence();
+    resetBottomUi();
+
     file = f;
     fileLabel.textContent = f.name;
     dropZone.classList.add('has-file');
-    resetBottomUi();
     warnIfOverUploadLimit(f);
     updateRunEnabled();
     updateRunEstimate();
@@ -631,6 +645,7 @@
     if (progressLast) progressLast.textContent = '';
     if (progressElapsed) progressElapsed.textContent = 'Elapsed 0:00';
     if (progressEta) progressEta.textContent = 'Estimating…';
+    if (progressBar) delete progressBar.dataset.indeterminate;
     if (resultPanel) resultPanel.classList.add('hidden');
     if (reportSummary) reportSummary.textContent = '';
     if (reportTable) reportTable.innerHTML = '';
@@ -639,6 +654,10 @@
       downloadLink.removeAttribute('download');
     }
     if (status) status.textContent = '';
+    if (runEstimate) {
+      runEstimate.textContent = 'Add hops to estimate runtime';
+      runEstimate.classList.add('is-empty');
+    }
     updateRunEstimate();
   }
 
@@ -913,6 +932,12 @@
   runBtn.addEventListener('click', async () => {
     if (!file || !sequence.length) return;
     applyForceModeToSequence();
+    const epoch = uiEpoch;
+    if (runAbort) {
+      runAbort.abort();
+    }
+    runAbort = new AbortController();
+    const signal = runAbort.signal;
     status.textContent = '';
     resultPanel.classList.add('hidden');
     runBtn.disabled = true;
@@ -932,8 +957,11 @@
       const res = await fetch(cfg.apiRun, {
         method: 'POST',
         body,
+        signal,
         headers: { Accept: 'application/x-ndjson, application/json' },
       });
+
+      if (epoch !== uiEpoch) return;
 
       if (res.status === 413) {
         throw new Error(
@@ -967,6 +995,7 @@
 
       if (contentType.includes('ndjson')) {
         await readNdjsonStream(res, (ev) => {
+          if (epoch !== uiEpoch) return;
           if (ev.type === 'done' || (ev.ok === true && ev.download_token)) {
             finished = { type: 'done', ok: true, ...ev };
             return;
@@ -979,10 +1008,12 @@
         });
       } else if (contentType.includes('json')) {
         const data = await res.json();
+        if (epoch !== uiEpoch) return;
         if (!data.ok) failed = data;
         else finished = { type: 'done', ok: true, ...data };
       } else {
         const text = await res.text();
+        if (epoch !== uiEpoch) return;
         const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
         for (const line of lines) {
           const ev = parseEventLine(line);
@@ -997,6 +1028,7 @@
         }
       }
 
+      if (epoch !== uiEpoch) return;
       if (failed) throw new Error(failed.error || 'Run failed');
       if (!finished?.ok) {
         throw new Error(
@@ -1006,6 +1038,7 @@
       }
       applyResult(finished);
     } catch (err) {
+      if (epoch !== uiEpoch || err?.name === 'AbortError') return;
       status.textContent = err.message || String(err);
       if (finished?.ok) {
         markRunFinished(finished);
@@ -1017,10 +1050,15 @@
         updateRunEstimate();
       }
     } finally {
-      if (finished?.ok && progressPhase && /^starting/i.test(progressPhase.textContent || '')) {
-        markRunFinished(finished);
+      if (epoch === uiEpoch) {
+        if (finished?.ok && progressPhase && /^starting/i.test(progressPhase.textContent || '')) {
+          markRunFinished(finished);
+        }
+        updateRunEnabled();
       }
-      updateRunEnabled();
+      if (runAbort && runAbort.signal === signal) {
+        runAbort = null;
+      }
     }
   });
 
