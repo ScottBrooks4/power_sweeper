@@ -7,6 +7,8 @@ namespace PowerSweeper;
 /**
  * Scan a canvas .msapp and recommend an ordered hop sequence plus force mode.
  *
+ * Only hops that are expected to change something are included. Empty is OK.
+ *
  * force_mode:
  * - all          → options.force=true on hops that honor force (overwrite existing)
  * - missing_only → options.force=false (fill gaps / preserve user values)
@@ -119,21 +121,42 @@ final class HopAdvisor
     private function collectSignals(string $msappPath, array $documents, string $extractDir, ?callable $emit = null): array
     {
         $localeHits = 0;
-        $formulaSamples = 0;
         $genericNames = 0;
         $namedControls = 0;
         $interactive = 0;
         $missingLabel = 0;
         $missingTabIndex = 0;
         $missingFocus = 0;
+        $missingTooltip = 0;
         $containerChrome = 0;
         $containers = 0;
+        $whiteContainerFills = 0;
         $hasTheme = false;
         $themeToggle = false;
         $opaqueColors = 0;
         $themedColors = 0;
+        $modernThemeable = 0;
+        $doubleQualifiedHits = 0;
+        $syntaxHits = 0;
+        $ghostSeedHits = 0;
+        $galleryDelayIssues = 0;
+        $maxRowsHigh = 0;
+
+        $themeMap = $this->themeControlMap();
+        $ghostSeeds = array_fill_keys([
+            'OneTimeVisit', 'RecurringVisit', 'EmergencyVisit', 'AmendmentVisit',
+            'GovernmentInitiave', 'CommercialInitiave',
+        ], true);
 
         $emit?->__invoke('Checking accessibility, theme, and formula patterns…', 'signals');
+
+        $catalog = AppControlCatalog::build($documents);
+        $knownNames = [];
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $c) {
+                $knownNames[$c->name] = true;
+            }
+        }
 
         foreach ($documents as $doc) {
             $screenLabel = $doc->relativePath !== '' ? basename($doc->relativePath) : 'document';
@@ -148,6 +171,10 @@ final class HopAdvisor
                         || str_contains($formulas, 'gblThemeLight')
                     ) {
                         $hasTheme = true;
+                    }
+                    $maxRows = $control->getProperty('MaxDataRowCount') ?? $control->getProperty('DataRowLimit');
+                    if ($maxRows !== null && is_numeric(trim(ltrim(trim((string) $maxRows), '='))) && (float) $maxRows > 500) {
+                        $maxRowsHigh++;
                     }
                 }
                 if (
@@ -168,18 +195,11 @@ final class HopAdvisor
                     }
                 }
 
-                $type = strtolower($control->type);
-                $isInteractive = str_contains($type, 'button')
-                    || str_contains($type, 'textinput')
-                    || str_contains($type, 'dropdown')
-                    || str_contains($type, 'combobox')
-                    || str_contains($type, 'checkbox')
-                    || str_contains($type, 'toggle')
-                    || str_contains($type, 'radio')
-                    || str_contains($type, 'datepicker')
-                    || str_contains($type, 'slider')
-                    || str_contains($type, 'icon');
-                if ($isInteractive) {
+                if ($this->matchesThemeableModern($control->type, $themeMap)) {
+                    $modernThemeable++;
+                }
+
+                if ($control->isInteractive()) {
                     $interactive++;
                     $label = trim((string) ($control->getProperty('AccessibleLabel') ?? ''));
                     if ($label === '' || $label === '=""' || $label === '=Blank()') {
@@ -195,7 +215,15 @@ final class HopAdvisor
                     }
                 }
 
-                if (str_contains($type, 'groupcontainer') || str_contains($type, 'container')) {
+                $type = strtolower($control->type);
+                if (
+                    (str_contains($type, 'button') || str_contains($type, 'icon') || str_contains($type, 'image'))
+                    && ControlNaming::isBlank($control->getProperty('Tooltip'))
+                ) {
+                    $missingTooltip++;
+                }
+
+                if ($control->isContainer()) {
                     $containers++;
                     $shadow = (string) ($control->getProperty('DropShadow') ?? '');
                     $radius = (string) ($control->getProperty('BorderRadius') ?? '');
@@ -206,6 +234,17 @@ final class HopAdvisor
                         || ($pad !== '' && !preg_match('/^=?0\b/', $pad))
                     ) {
                         $containerChrome++;
+                    }
+                    $fill = $control->getProperty('Fill');
+                    if ($fill !== null && $this->isDefaultOpaqueFill($fill)) {
+                        $whiteContainerFills++;
+                    }
+                }
+
+                if (str_contains($type, 'gallery')) {
+                    $delay = $control->getProperty('DelayItemLoading');
+                    if ($delay === null || in_array(strtolower(trim(ltrim(trim((string) $delay), '='))), ['false', '0', ''], true)) {
+                        $galleryDelayIssues++;
                     }
                 }
 
@@ -223,34 +262,78 @@ final class HopAdvisor
                             $opaqueColors++;
                         }
                     }
-                    if ($formulaSamples < 400) {
-                        $formulaSamples++;
-                        if (FormulaLocaleNormalizer::looksLocaleCorrupted($value)) {
-                            $localeHits++;
+                    if (FormulaLocaleNormalizer::looksLocaleCorrupted($value)) {
+                        $localeHits++;
+                    }
+                    if (preg_match("/'([^']+)'\s*\.\s*'\\1'/", $value)) {
+                        $doubleQualifiedHits++;
+                    }
+                    if (
+                        preg_match('/""\s*,\s*\)/', $value)
+                        || preg_match('/\)\s*,\s*\)/', $value)
+                        || preg_match("/'[^']+'\s*\.\s*Date\s*\(/i", $value)
+                        || preg_match('/\bvarNewRequest\b/', $value)
+                    ) {
+                        $syntaxHits++;
+                    }
+                    foreach ($ghostSeeds as $seed => $_) {
+                        if (str_contains($value, $seed) && !isset($knownNames[$seed])) {
+                            $ghostSeedHits++;
+                            break;
+                        }
+                    }
+                    if (preg_match('/\b([A-Za-z_][\w-]*)\s*:\s*\1\s*\./', $value, $m)) {
+                        if (!isset($knownNames[$m[1]])) {
+                            $ghostSeedHits++;
                         }
                     }
                 }
             }
         }
 
-        $scanner = new StudioIssueScanner();
-        $scan = $scanner->scan($documents);
-        $localeFromScan = (int) ($scan['by_kind']['locale_separators'] ?? 0);
-        $boolIssues = (int) ($scan['by_kind']['expecting_boolean'] ?? 0)
-            + (int) ($scan['by_kind']['expecting_boolean_checked'] ?? 0);
+        $scanIssues = StudioIssueScanner::scan($documents);
+        $scanByKind = [];
+        foreach ($scanIssues as $issue) {
+            $kind = (string) ($issue['kind'] ?? '');
+            if ($kind === '') {
+                continue;
+            }
+            $scanByKind[$kind] = ($scanByKind[$kind] ?? 0) + 1;
+        }
+        $localeFromScan = (int) ($scanByKind['locale_separators'] ?? 0);
+        $boolIssues = (int) ($scanByKind['expecting_boolean'] ?? 0)
+            + (int) ($scanByKind['expecting_boolean_if_numeric'] ?? 0);
 
         $embedded = StudioErrorDetector::detectFromMsapp($msappPath, false);
+        $byRule = [];
         $formulaErr = 0;
         $a11ySarif = 0;
         $delegationHints = 0;
         $mangled = 0;
+        $refErrors = 0;
+        $columnErrors = 0;
+        $boolSarif = 0;
+        $maintSarif = 0;
         foreach ($embedded['issues'] ?? [] as $issue) {
             $rule = (string) ($issue['ruleId'] ?? '');
+            if ($rule === '') {
+                continue;
+            }
+            $byRule[$rule] = ($byRule[$rule] ?? 0) + 1;
             if (str_starts_with($rule, 'app-Err') || $rule === 'app-formula-mangled-screen-ref') {
                 $formulaErr++;
             }
             if ($rule === 'app-formula-mangled-screen-ref') {
                 $mangled++;
+            }
+            if (in_array($rule, ['app-ErrInvalidName', 'app-ErrInvalidDot', 'app-formula-mangled-screen-ref'], true)) {
+                $refErrors++;
+            }
+            if ($rule === 'app-ErrColDNE-Name') {
+                $columnErrors++;
+            }
+            if ($rule === 'app-WarnBooleanExpected') {
+                $boolSarif++;
             }
             if (str_starts_with($rule, 'acc-')) {
                 $a11ySarif++;
@@ -258,49 +341,106 @@ final class HopAdvisor
             if (str_starts_with($rule, 'app-SuggestRemoteExecutionHint')) {
                 $delegationHints++;
             }
+            if (in_array($rule, [
+                'app-UnusedVariables',
+                'app-DataSourceDefaultMaxRowsLimit',
+                'app-InefficientDelayLoading',
+                'app-CrossScreenEventDependencies',
+            ], true)) {
+                $maintSarif++;
+            }
         }
 
         // Live checker is accurate but heavier — use when SARIF is empty/stale.
         $liveFormulaErr = 0;
         $liveA11y = 0;
         if ($formulaErr === 0 && $a11ySarif === 0) {
+            $emit?->__invoke('Running live formula checker (no embedded SARIF inventory)…', 'signals');
             $live = StudioLiveChecker::check($documents, ['extract_dir' => $extractDir]);
             foreach ($live['findings'] as $f) {
                 $rule = (string) ($f['ruleId'] ?? '');
+                if ($rule === '') {
+                    continue;
+                }
+                $byRule[$rule] = ($byRule[$rule] ?? 0) + 1;
                 if (str_starts_with($rule, 'app-Err') || $rule === 'app-formula-mangled-screen-ref') {
                     $liveFormulaErr++;
+                }
+                if ($rule === 'app-formula-mangled-screen-ref') {
+                    $mangled++;
+                }
+                if (in_array($rule, ['app-ErrInvalidName', 'app-ErrInvalidDot', 'app-formula-mangled-screen-ref'], true)) {
+                    $refErrors++;
+                }
+                if ($rule === 'app-ErrColDNE-Name') {
+                    $columnErrors++;
+                }
+                if ($rule === 'app-WarnBooleanExpected') {
+                    $boolSarif++;
                 }
                 if (str_starts_with($rule, 'acc-')) {
                     $liveA11y++;
                 }
+                if (str_starts_with($rule, 'app-SuggestRemoteExecutionHint')) {
+                    $delegationHints++;
+                }
+                if (in_array($rule, [
+                    'app-UnusedVariables',
+                    'app-DataSourceDefaultMaxRowsLimit',
+                    'app-InefficientDelayLoading',
+                    'app-CrossScreenEventDependencies',
+                ], true)) {
+                    $maintSarif++;
+                }
             }
         }
 
+        $emit?->__invoke('Validating unresolved refs and package shape…', 'signals');
+        $post = StudioPostRepairValidator::validate($documents, ['extract_dir' => $extractDir]);
+        $unresolvedRefs = (int) ($post['by_kind']['unresolved_control_ref'] ?? 0);
+        $missingPackageFields = (int) ($post['by_kind']['missing_package_field'] ?? 0);
+        $delegationFromPost = (int) ($post['by_kind']['delegation_warning'] ?? 0);
+        $delayFromPost = (int) ($post['by_kind']['inefficient_delay_loading'] ?? 0);
+
         $genericRatio = $namedControls > 0 ? $genericNames / $namedControls : 0.0;
         $labelMissingRatio = $interactive > 0 ? $missingLabel / $interactive : 0.0;
+        $formulaErrors = max($formulaErr, $liveFormulaErr);
 
         return [
             'locale_hits' => max($localeHits, $localeFromScan),
-            'bool_issues' => $boolIssues,
-            'formula_errors' => max($formulaErr, $liveFormulaErr),
+            'bool_issues' => max($boolIssues, $boolSarif),
+            'formula_errors' => $formulaErrors,
             'mangled_screen_refs' => $mangled,
-            'delegation_hints' => $delegationHints,
+            'ref_errors' => $refErrors,
+            'unresolved_control_refs' => $unresolvedRefs,
+            'column_errors' => $columnErrors,
+            'missing_package_fields' => $missingPackageFields,
+            'double_qualified_hits' => $doubleQualifiedHits,
+            'syntax_hits' => $syntaxHits,
+            'ghost_hits' => $ghostSeedHits,
+            'delegation_hints' => max($delegationHints, $delegationFromPost),
+            'maintainability_hits' => $maintSarif + $galleryDelayIssues + $delayFromPost + $maxRowsHigh,
             'a11y_sarif' => max($a11ySarif, $liveA11y),
             'interactive_controls' => $interactive,
             'missing_accessible_label' => $missingLabel,
             'missing_tab_index' => $missingTabIndex,
             'missing_focus_border' => $missingFocus,
+            'missing_tooltip' => $missingTooltip,
             'label_missing_ratio' => round($labelMissingRatio, 3),
             'generic_names' => $genericNames,
             'named_controls' => $namedControls,
             'generic_ratio' => round($genericRatio, 3),
             'container_chrome' => $containerChrome,
             'containers' => $containers,
+            'white_container_fills' => $whiteContainerFills,
+            'modern_themeable_controls' => $modernThemeable,
             'has_theme' => $hasTheme || $themeToggle || $themedColors > 5,
             'theme_toggle' => $themeToggle,
             'opaque_colors' => $opaqueColors,
             'themed_colors' => $themedColors,
             'embedded_sarif_total' => (int) ($embedded['total'] ?? 0),
+            'by_rule' => $byRule,
+            'catalog_screens' => count($catalog->screenNames()),
         ];
     }
 
@@ -316,103 +456,169 @@ final class HopAdvisor
     private function buildPlan(array $signals): array
     {
         $reasons = [];
-        $studioRepair = HopChains::studioRepair();
-
-        $needsRepair = ((int) $signals['formula_errors'] > 0)
-            || ((int) $signals['locale_hits'] > 0)
-            || ((int) $signals['bool_issues'] > 0)
-            || ((int) $signals['mangled_screen_refs'] > 0);
-        $needsA11y = ((float) $signals['label_missing_ratio'] >= 0.08)
-            || ((int) $signals['missing_accessible_label'] >= 5)
-            || ((int) $signals['a11y_sarif'] > 0)
-            || ((int) $signals['missing_tab_index'] >= 5)
-            || ((int) $signals['missing_focus_border'] >= 5);
-        $needsNames = ((float) $signals['generic_ratio'] >= 0.12)
-            || ((int) $signals['generic_names'] >= 15);
-        $needsContainers = ((int) $signals['container_chrome'] >= 3);
-        $hasTheme = (bool) $signals['has_theme'];
-        $needsTheme = !$hasTheme && (
-            $needsRepair
-            || ((int) $signals['opaque_colors'] >= 25)
-        );
-
         $hops = [];
+
+        $localeHits = (int) $signals['locale_hits'];
+        $boolIssues = (int) $signals['bool_issues'];
+        $formulaErrors = (int) $signals['formula_errors'];
+        $mangled = (int) $signals['mangled_screen_refs'];
+        $refErrors = (int) $signals['ref_errors'];
+        $unresolved = (int) $signals['unresolved_control_refs'];
+        $columnErrors = (int) $signals['column_errors'];
+        $missingPackage = (int) $signals['missing_package_fields'];
+        $doubleQualified = (int) $signals['double_qualified_hits'];
+        $syntaxHits = (int) $signals['syntax_hits'];
+        $ghostHits = (int) $signals['ghost_hits'];
+        $delegation = (int) $signals['delegation_hints'];
+        $maintHits = (int) $signals['maintainability_hits'];
+        $missingLabel = (int) $signals['missing_accessible_label'];
+        $missingTab = (int) $signals['missing_tab_index'];
+        $missingFocus = (int) $signals['missing_focus_border'];
+        $missingTooltip = (int) $signals['missing_tooltip'];
+        $a11ySarif = (int) $signals['a11y_sarif'];
+        $genericNames = (int) $signals['generic_names'];
+        $genericRatio = (float) $signals['generic_ratio'];
+        $containerChrome = (int) $signals['container_chrome'];
+        $whiteFills = (int) $signals['white_container_fills'];
+        $modernThemeable = (int) $signals['modern_themeable_controls'];
+        $hasTheme = (bool) $signals['has_theme'];
+        $opaqueColors = (int) $signals['opaque_colors'];
+
+        $needsNames = ($genericRatio >= 0.12) || ($genericNames >= 15);
+        $needsTheme = !$hasTheme && ($opaqueColors >= 25 || $modernThemeable > 0);
+
+        $needsRefRepair = $refErrors > 0 || $mangled > 0 || $doubleQualified > 0
+            || ($unresolved > 0 && $formulaErrors > 0);
+        $needsFormulaWork = $localeHits > 0
+            || $needsRefRepair
+            || $boolIssues > 0
+            || $missingPackage > 0
+            || $columnErrors > 0
+            || ($ghostHits > 0 && $formulaErrors > 0)
+            || $syntaxHits > 0
+            || $formulaErrors > 0;
 
         if ($needsNames) {
             $reasons[] = sprintf(
                 'Many generic Studio names (%d / %d controls)',
-                (int) $signals['generic_names'],
+                $genericNames,
                 (int) $signals['named_controls']
             );
+            $hops[] = ['id' => 'meaningful_names', 'options' => ['only_generic' => true]];
         }
-        if ((int) $signals['locale_hits'] > 0) {
+        if ($localeHits > 0) {
             $reasons[] = 'Locale-corrupted formula separators detected';
+            $hops[] = ['id' => 'unwhack_locale_formulas', 'options' => []];
         }
-        if ((int) $signals['formula_errors'] > 0) {
-            $reasons[] = sprintf('%d formula error(s) in checker inventory', (int) $signals['formula_errors']);
+        if ($formulaErrors > 0) {
+            $reasons[] = sprintf('%d formula error(s) in checker inventory', $formulaErrors);
         }
-        if ((int) $signals['bool_issues'] > 0) {
+        if ($boolIssues > 0) {
             $reasons[] = 'Checked/boolean formula issues detected';
         }
-        if ($needsA11y) {
+        if ($missingLabel > 0 || $a11ySarif > 0) {
             $reasons[] = sprintf(
                 'Accessibility gaps (missing labels ≈ %d%% of interactive controls)',
                 (int) round(((float) $signals['label_missing_ratio']) * 100)
             );
         }
-        if ($needsContainers) {
+        if ($containerChrome > 0) {
             $reasons[] = 'Default container chrome still present';
         }
         if ($needsTheme) {
             $reasons[] = 'No gblTheme palette detected — include dark-mode theming';
         } elseif ($hasTheme) {
-            $reasons[] = 'Theme palettes already present — skip re-theme unless forced';
+            $reasons[] = 'Theme palettes already present — skip re-theme';
         }
 
-        if ($needsRepair) {
-            if ($needsNames) {
-                $hops[] = ['id' => 'meaningful_names', 'options' => ['only_generic' => true]];
-            }
-            $hops = array_merge($hops, $studioRepair);
-            if ($needsContainers) {
-                $hops[] = ['id' => 'normalize_containers', 'options' => []];
-                $hops[] = ['id' => 'strip_default_fill', 'options' => []];
-            }
-            if ($needsTheme) {
-                $hops[] = ['id' => 'prefer_classic_theme_controls', 'options' => []];
-                $hops[] = ['id' => 'enable_dark_mode', 'options' => []];
-            }
-        } else {
-            if ((int) $signals['locale_hits'] > 0) {
-                $hops[] = ['id' => 'unwhack_locale_formulas', 'options' => []];
-            }
-            if ($needsNames) {
-                array_unshift($hops, ['id' => 'meaningful_names', 'options' => ['only_generic' => true]]);
-            }
-            if ($needsContainers) {
-                $hops[] = ['id' => 'normalize_containers', 'options' => []];
-                $hops[] = ['id' => 'strip_default_fill', 'options' => []];
-            }
-            $hops[] = ['id' => 'align_near_miss', 'options' => ['tolerance' => 3]];
-            if ($needsA11y) {
-                $hops[] = ['id' => 'accessibility_labels', 'options' => []];
-                $hops[] = ['id' => 'ensure_focus_visible', 'options' => ['thickness' => 2]];
-                $hops[] = ['id' => 'ensure_tab_index', 'options' => ['value' => 0]];
-                $hops[] = ['id' => 'tooltip_from_label', 'options' => []];
-            } elseif ($hops === [] || (count($hops) === 1 && ($hops[0]['id'] ?? '') === 'align_near_miss')) {
-                $hops = [
-                    ['id' => 'normalize_containers', 'options' => []],
-                    ['id' => 'align_near_miss', 'options' => ['tolerance' => 3]],
-                    ['id' => 'accessibility_labels', 'options' => []],
-                ];
-                $reasons[] = 'No major issues — light cleanup pass';
-            }
-            if ($needsTheme) {
-                $hops[] = ['id' => 'prefer_classic_theme_controls', 'options' => []];
-                $hops[] = ['id' => 'enable_dark_mode', 'options' => []];
-            }
+        // Formula / ref repair — only hops that match signals (studio_repair order).
+        if ($doubleQualified > 0 || $mangled > 0) {
+            $hops[] = ['id' => 'repair_double_qualified_refs', 'options' => []];
+        }
+        if ($needsRefRepair) {
+            $hops[] = ['id' => 'repair_control_refs', 'options' => []];
+            $hops[] = ['id' => 'repair_context_aware_refs', 'options' => []];
+            $hops[] = ['id' => 'repair_double_qualified_refs', 'options' => []];
+        }
+        if ($missingPackage > 0) {
+            $hops[] = ['id' => 'repair_var_current_package', 'options' => []];
+        }
+        if ($columnErrors > 0) {
+            $hops[] = ['id' => 'repair_sharepoint_fields', 'options' => []];
+        }
+        if ($ghostHits > 0 && $formulaErrors > 0) {
+            $hops[] = ['id' => 'repair_ghost_patch_fields', 'options' => []];
+        }
+        if ($syntaxHits > 0) {
+            $hops[] = ['id' => 'repair_studio_syntax', 'options' => []];
+        }
+        if ($boolIssues > 0) {
+            $hops[] = ['id' => 'repair_checked_booleans', 'options' => []];
         }
 
+        // A11y — per-gap, never bundled solely because formulas failed.
+        if ($missingLabel > 0 || ((int) ($signals['by_rule']['acc-AccessibleLabelNeeded'] ?? 0)) > 0) {
+            $hops[] = ['id' => 'accessibility_labels', 'options' => []];
+        }
+        if ($missingFocus > 0 || ((int) ($signals['by_rule']['acc-FocusBorderShouldBeVisible'] ?? 0)) > 0) {
+            $hops[] = ['id' => 'ensure_focus_visible', 'options' => ['thickness' => 2]];
+        }
+        if ($missingTab > 0 || ((int) ($signals['by_rule']['acc-TabIndexShouldBeDefinedForInteractiveControl'] ?? 0)) > 0) {
+            $hops[] = ['id' => 'ensure_tab_index', 'options' => ['value' => 0]];
+        }
+        if ($missingTooltip > 0) {
+            $hops[] = ['id' => 'tooltip_from_label', 'options' => []];
+        }
+
+        if ($maintHits > 0) {
+            $hops[] = ['id' => 'repair_maintainability', 'options' => []];
+        }
+        if ($delegation > 0) {
+            $hops[] = ['id' => 'repair_delegation', 'options' => []];
+        }
+
+        $formulaHopIds = [
+            'unwhack_locale_formulas' => true,
+            'repair_double_qualified_refs' => true,
+            'repair_control_refs' => true,
+            'repair_context_aware_refs' => true,
+            'repair_var_current_package' => true,
+            'repair_sharepoint_fields' => true,
+            'repair_ghost_patch_fields' => true,
+            'repair_studio_syntax' => true,
+            'repair_checked_booleans' => true,
+        ];
+        $addedFormulaHop = false;
+        foreach ($hops as $step) {
+            if (isset($formulaHopIds[$step['id'] ?? ''])) {
+                $addedFormulaHop = true;
+                break;
+            }
+        }
+        if ($addedFormulaHop && $needsFormulaWork) {
+            $hops[] = ['id' => 'repair_converge_formulas', 'options' => []];
+            $hops[] = ['id' => 'repair_double_qualified_refs', 'options' => []];
+        } elseif ($formulaErrors > 0) {
+            // Unclassified formula errors: converge is the hop that re-checks live errors.
+            $hops[] = ['id' => 'repair_converge_formulas', 'options' => []];
+            $hops[] = ['id' => 'repair_double_qualified_refs', 'options' => []];
+        }
+
+        if ($containerChrome > 0) {
+            $hops[] = ['id' => 'normalize_containers', 'options' => []];
+        }
+        if ($whiteFills > 0) {
+            $hops[] = ['id' => 'strip_default_fill', 'options' => []];
+        }
+
+        if ($needsTheme) {
+            if ($modernThemeable > 0) {
+                $hops[] = ['id' => 'prefer_classic_theme_controls', 'options' => []];
+            }
+            $hops[] = ['id' => 'enable_dark_mode', 'options' => []];
+        }
+
+        // Ensure classic theme prep sits immediately before enable_dark_mode when both present.
         $hasClassic = false;
         $darkAt = null;
         foreach ($hops as $i => $step) {
@@ -424,8 +630,19 @@ final class HopAdvisor
                 $darkAt = $i;
             }
         }
-        if ($darkAt !== null && !$hasClassic) {
+        if ($darkAt !== null && !$hasClassic && $modernThemeable > 0) {
             array_splice($hops, $darkAt, 0, [['id' => 'prefer_classic_theme_controls', 'options' => []]]);
+        }
+
+        // Deduplicate consecutive identical hop ids (keep intentional double_qualified repeats).
+        $hops = $this->dedupeNonRepeating($hops);
+
+        $mutating = array_values(array_filter(
+            $hops,
+            static fn(array $h): bool => ($h['id'] ?? '') !== 'regenerate_sarif'
+        ));
+        if ($mutating !== []) {
+            $hops[] = ['id' => 'regenerate_sarif', 'options' => []];
         }
 
         $forceMode = 'missing_only';
@@ -443,7 +660,9 @@ final class HopAdvisor
                 : 'Most labels already set — only fill missing values.';
         }
 
-        if ($reasons === []) {
+        if ($hops === []) {
+            $reasons = ['No actionable changes detected — hop sequence left empty.'];
+        } elseif ($reasons === []) {
             $reasons[] = 'Heuristic scan complete';
         }
 
@@ -453,5 +672,74 @@ final class HopAdvisor
             'reasons' => $reasons,
             'hops' => $hops,
         ];
+    }
+
+    /**
+     * @param list<array{id:string,options?:array<string,mixed>}> $hops
+     * @return list<array{id:string,options?:array<string,mixed>}>
+     */
+    private function dedupeNonRepeating(array $hops): array
+    {
+        $out = [];
+        $seen = [];
+        foreach ($hops as $step) {
+            $id = (string) ($step['id'] ?? '');
+            if ($id === '') {
+                continue;
+            }
+            // repair_double_qualified_refs may appear multiple times by design.
+            if ($id !== 'repair_double_qualified_refs' && isset($seen[$id])) {
+                continue;
+            }
+            $seen[$id] = true;
+            $out[] = $step;
+        }
+
+        return $out;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function themeControlMap(): array
+    {
+        $path = POWER_SWEEPER_ROOT . '/config/theme_control_map.php';
+        if (!is_file($path)) {
+            return [];
+        }
+        $map = include $path;
+
+        return is_array($map) ? $map : [];
+    }
+
+    /** @param list<array<string, mixed>> $themeMap */
+    private function matchesThemeableModern(string $type, array $themeMap): bool
+    {
+        $hay = strtolower($type);
+        foreach ($themeMap as $entry) {
+            if (!empty($entry['optional'])) {
+                continue;
+            }
+            foreach ($entry['match'] ?? [] as $pattern) {
+                if (is_string($pattern) && @preg_match($pattern, $hay)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function isDefaultOpaqueFill(string $fill): bool
+    {
+        $parsed = ColorValue::parse($fill);
+        if ($parsed === null) {
+            $body = strtolower(trim(ltrim(trim($fill), '=')));
+
+            return $body === 'color.white' || $body === 'white';
+        }
+        if (ColorValue::isTransparent($parsed)) {
+            return false;
+        }
+
+        return $parsed['r'] >= 250 && $parsed['g'] >= 250 && $parsed['b'] >= 250;
     }
 }
