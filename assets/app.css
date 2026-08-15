@@ -134,6 +134,54 @@ body::before {
   flex-wrap: wrap;
 }
 
+.drop-scan-actions {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.drop-scan-actions[hidden],
+.scan-actions[hidden] {
+  display: none !important;
+}
+
+.drop-scan-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.scan-actions {
+  margin: 0.85rem 0 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.btn-skip-scan {
+  appearance: none;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.75rem 1.45rem;
+  cursor: pointer;
+  border: 1.5px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.btn-skip-scan:hover {
+  filter: brightness(1.06);
+}
+
+.btn-skip-scan:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .write-mode {
   display: inline-flex;
   align-items: center;

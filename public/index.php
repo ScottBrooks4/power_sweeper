@@ -45,25 +45,29 @@ $basePath = $basePath === '' ? '' : $basePath;
       <div class="drop-inner">
         <p class="drop-title" id="fileLabel">Drop your .msapp here</p>
         <p class="drop-sub">or <button type="button" class="linkish" id="browseBtn">browse</button></p>
+        <div class="drop-scan-actions" id="dropScanActions" hidden>
+          <p class="drop-scan-hint" id="dropScanHint">Scanning for useful hops…</p>
+          <button type="button" class="btn-skip-scan" id="skipScanBtnDrop">Skip scan — pick hops myself</button>
+        </div>
       </div>
     </section>
 
     <section class="panel plan-panel hidden" id="planPanel">
       <div class="row between plan-toolbar">
-        <h2>Recommended plan</h2>
-        <div class="plan-toolbar-actions">
-          <button type="button" class="ghost" id="skipScanBtn" hidden>Skip scan</button>
-          <label class="write-mode" for="forceModeSelect">
-            <span class="write-mode-label">Write mode</span>
-            <select id="forceModeSelect" aria-label="Write mode for selected hops">
-              <option value="missing_only">Missing only</option>
-              <option value="all">All</option>
-            </select>
-          </label>
-        </div>
+        <h2 id="planHeading">Recommended plan</h2>
+        <label class="write-mode" for="forceModeSelect">
+          <span class="write-mode-label">Write mode</span>
+          <select id="forceModeSelect" aria-label="Write mode for selected hops">
+            <option value="missing_only">Missing only</option>
+            <option value="all">All</option>
+          </select>
+        </label>
       </div>
       <p class="hint" id="planHint">Scanning…</p>
       <p class="hint scan-live" id="scanLive" aria-live="polite"></p>
+      <div class="scan-actions" id="scanActions" hidden>
+        <button type="button" class="btn-skip-scan" id="skipScanBtn">Skip scan — pick hops myself</button>
+      </div>
       <p class="hint force-hint" id="forceHint"></p>
       <ul class="plan-reasons" id="planReasons"></ul>
     </section>
