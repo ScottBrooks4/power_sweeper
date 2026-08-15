@@ -526,7 +526,7 @@
     file = f;
     fileLabel.textContent = f.name;
     dropZone.classList.add('has-file');
-    status.textContent = '';
+    resetBottomUi();
     warnIfOverUploadLimit(f);
     updateRunEnabled();
     updateRunEstimate();
@@ -593,6 +593,34 @@
 
   function showProgress(show) {
     runProgress.classList.toggle('hidden', !show);
+  }
+
+  function resetBottomUi() {
+    stopProgressClock();
+    showProgress(false);
+    runStartedAt = 0;
+    runSequence = [];
+    hopDurationsMs = [];
+    hopDurationById = {};
+    hopsRemaining = 0;
+    packingPending = false;
+    plannedTotalMs = 0;
+    runProgressFraction = 0;
+    setProgressFraction(0);
+    if (progressPhase) progressPhase.textContent = 'Ready';
+    if (progressCount) progressCount.textContent = '';
+    if (progressLast) progressLast.textContent = '';
+    if (progressElapsed) progressElapsed.textContent = 'Elapsed 0:00';
+    if (progressEta) progressEta.textContent = 'Estimating…';
+    if (resultPanel) resultPanel.classList.add('hidden');
+    if (reportSummary) reportSummary.textContent = '';
+    if (reportTable) reportTable.innerHTML = '';
+    if (downloadLink) {
+      downloadLink.removeAttribute('href');
+      downloadLink.removeAttribute('download');
+    }
+    if (status) status.textContent = '';
+    updateRunEstimate();
   }
 
   function formatDuration(ms) {
