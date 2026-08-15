@@ -50,10 +50,6 @@ $basePath = $basePath === '' ? '' : $basePath;
       <div class="drop-inner">
         <p class="drop-title" id="fileLabel">Drop your app in to begin</p>
         <p class="drop-sub">or <button type="button" class="linkish" id="browseBtn">browse</button></p>
-        <div class="drop-scan-actions" id="dropScanActions" hidden>
-          <p class="drop-scan-hint" id="dropScanHint">Scanning for useful hops…</p>
-          <button type="button" class="btn-skip-scan" id="skipScanBtnDrop">Skip scan — pick hops myself</button>
-        </div>
       </div>
     </section>
 
@@ -68,11 +64,11 @@ $basePath = $basePath === '' ? '' : $basePath;
           </select>
         </label>
       </div>
-      <p class="hint" id="planHint">Drop your app in to begin</p>
-      <p class="hint scan-live" id="scanLive" aria-live="polite"></p>
-      <div class="scan-actions" id="scanActions" hidden>
-        <button type="button" class="btn-skip-scan" id="skipScanBtn">Skip scan — pick hops myself</button>
+      <div class="scan-status-row" id="scanActions">
+        <p class="hint" id="planHint">Drop your app in to begin</p>
+        <button type="button" class="btn-skip-scan" id="skipScanBtn" hidden>Skip scan — pick hops myself</button>
       </div>
+      <p class="hint scan-live" id="scanLive" aria-live="polite"></p>
       <p class="hint force-hint" id="forceHint"></p>
       <ul class="plan-reasons" id="planReasons"></ul>
     </section>

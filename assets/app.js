@@ -21,10 +21,6 @@
   const forceModeSelect = document.getElementById('forceModeSelect');
   const scanLive = document.getElementById('scanLive');
   const skipScanBtn = document.getElementById('skipScanBtn');
-  const skipScanBtnDrop = document.getElementById('skipScanBtnDrop');
-  const scanActions = document.getElementById('scanActions');
-  const dropScanActions = document.getElementById('dropScanActions');
-  const dropScanHint = document.getElementById('dropScanHint');
   const hopsLayout = document.querySelector('.hops-layout');
   const palette = document.getElementById('palette');
   const sequenceEl = document.getElementById('sequence');
@@ -300,7 +296,6 @@
 
   function showPlan(data) {
     setSkipScanVisible(false);
-    if (dropScanHint) dropScanHint.textContent = 'Scanning for useful hops…';
     planPanel?.classList.remove('hidden');
     planPanel?.classList.add('plan-ready');
     const hopCount = (data.hops || []).length;
@@ -330,13 +325,10 @@
   }
 
   function setSkipScanVisible(visible) {
-    if (scanActions) scanActions.hidden = !visible;
-    if (dropScanActions) dropScanActions.hidden = !visible;
-    [skipScanBtn, skipScanBtnDrop].forEach((btn) => {
-      if (!btn) return;
-      btn.disabled = !visible;
-      btn.setAttribute('aria-hidden', visible ? 'false' : 'true');
-    });
+    if (!skipScanBtn) return;
+    skipScanBtn.hidden = !visible;
+    skipScanBtn.disabled = !visible;
+    skipScanBtn.setAttribute('aria-hidden', visible ? 'false' : 'true');
   }
 
   function skipScan() {
@@ -351,7 +343,6 @@
     if (planHint) {
       planHint.textContent = 'Scan skipped — add hops from the left. Order matters.';
     }
-    if (dropScanHint) dropScanHint.textContent = 'Scanning for useful hops…';
     if (scanLive) scanLive.textContent = '';
     if (forceHint) forceHint.textContent = '';
     if (planReasons) planReasons.innerHTML = '';
@@ -368,7 +359,6 @@
   function setScanProgress(message) {
     if (scanLive) scanLive.textContent = message || '';
     if (planHint && message) planHint.textContent = 'Scanning…';
-    if (dropScanHint && message) dropScanHint.textContent = message;
   }
 
   function analyzeParseError(status, sample) {
@@ -579,9 +569,7 @@
     skipScan();
   }
   skipScanBtn?.addEventListener('click', onSkipScanClick);
-  skipScanBtnDrop?.addEventListener('click', onSkipScanClick);
-  dropZone.addEventListener('click', (e) => {
-    if (e.target.closest('#dropScanActions, #skipScanBtnDrop')) return;
+  dropZone.addEventListener('click', () => {
     fileInput.click();
   });
   dropZone.addEventListener('keydown', (e) => {
