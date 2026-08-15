@@ -43,44 +43,51 @@
   const downloadLink = document.getElementById('downloadLink');
 
   /** Baseline ms per hop before file-size scaling (tuned from typical runs). */
+  /** Fallback hop bases used before estimate_model.json loads. */
   const HOP_COST_MS = {
-    enable_dark_mode: 4500,
-    translate: 3500,
-    meaningful_names: 3500,
-    unwhack_locale_formulas: 2800,
-    accessibility_labels: 2200,
-    tooltip_from_label: 1400,
-    normalize_containers: 1800,
-    strip_default_fill: 900,
-    normalize_classic_button_chrome: 1100,
-    align_near_miss: 1000,
-    ensure_focus_visible: 1100,
-    ensure_tab_index: 900,
-    repair_control_refs: 2600,
-    repair_context_aware_refs: 2400,
-    repair_converge_formulas: 2200,
-    repair_double_qualified_refs: 2000,
-    repair_studio_syntax: 2100,
-    repair_sharepoint_fields: 1700,
-    repair_ghost_patch_fields: 1600,
-    repair_delegation: 1500,
-    repair_maintainability: 1400,
-    repair_checked_booleans: 1200,
-    repair_var_current_package: 1300,
-    correlate_sharepoint: 2000,
-    regenerate_sarif: 1300,
-    analyze_app_checker: 1600,
+    enable_dark_mode: 2200,
+    translate: 40,
+    meaningful_names: 50,
+    unwhack_locale_formulas: 220,
+    accessibility_labels: 40,
+    tooltip_from_label: 20,
+    normalize_containers: 40,
+    strip_default_fill: 20,
+    normalize_classic_button_chrome: 40,
+    prefer_classic_theme_controls: 40,
+    align_near_miss: 80,
+    ensure_focus_visible: 20,
+    ensure_tab_index: 20,
+    repair_control_refs: 28000,
+    repair_context_aware_refs: 3200,
+    repair_converge_formulas: 4000,
+    repair_double_qualified_refs: 3200,
+    repair_studio_syntax: 400,
+    repair_sharepoint_fields: 750,
+    repair_ghost_patch_fields: 6500,
+    repair_delegation: 420,
+    repair_maintainability: 160,
+    repair_checked_booleans: 200,
+    repair_var_current_package: 200,
+    correlate_sharepoint: 800,
+    regenerate_sarif: 2400,
+    analyze_app_checker: 1800,
     scan_studio_issues: 1400,
-    export_web_ir: 3200,
-    import_web_ir: 3200,
-    configure_power_document: 900,
-    set_zip_path_style: 700,
+    export_web_ir: 2500,
+    import_web_ir: 2500,
+    configure_power_document: 200,
+    set_zip_path_style: 80,
   };
   const DEFAULT_HOP_MS = 900;
-  const OVERHEAD_MS = 700;
-  const UNPACK_MS = 1100;
-  const PACK_MS = 1400;
+  const LEARNED_SAMPLES_KEY = 'ps_hop_samples_v2';
   const LEARNED_COSTS_KEY = 'ps_hop_costs_v1';
+
+  /** @type {any} */
+  let estimateModel = null;
+  /** @type {Record<string, any>|null} */
+  let appComplexity = null;
+  /** @type {Record<string, any>|null} */
+  let appSignals = null;
 
   let file = null;
   /** @type {{id:string,options:object,uid:string}[]} */
@@ -120,15 +127,60 @@
     return `${(n / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  function fileSizeFactor(bytes) {
-    if (!bytes || bytes <= 0) return 1;
-    const mb = bytes / (1024 * 1024);
-    return Math.max(0.75, Math.min(2.6, 0.7 + Math.sqrt(mb) * 0.42));
+  function fileMb(bytes = file?.size || appComplexity?.file_bytes || 0) {
+    return Math.max(0.01, Number(bytes || 0) / (1024 * 1024));
   }
 
-  function learnedHopCosts() {
+  function controlCount() {
+    const n = Number(appComplexity?.control_count);
+    return Number.isFinite(n) && n > 0 ? n : Math.max(80, Math.round(fileMb() * 280));
+  }
+
+  function formulaK() {
+    const n = Number(appComplexity?.formula_chars);
+    return Number.isFinite(n) && n > 0 ? n / 1000 : Math.max(1, controlCount() * 0.8);
+  }
+
+  function signalNumber(...keys) {
+    let sum = 0;
+    let hit = false;
+    for (const key of keys) {
+      const n = Number(appSignals?.[key]);
+      if (Number.isFinite(n) && n > 0) {
+        sum += n;
+        hit = true;
+      }
+    }
+    return hit ? sum : 0;
+  }
+
+  function hopWorkload(id, changes = 0) {
+    const controls = controlCount();
+    const mapped = estimateModel?.workload_from_signals?.[id];
+    if (Array.isArray(mapped) && mapped.length) {
+      const fromSignals = signalNumber(...mapped);
+      if (fromSignals > 0) {
+        return id === 'translate' ? Math.max(1, Math.round(fromSignals * 0.35)) : fromSignals;
+      }
+    }
+    if (id === 'enable_dark_mode') {
+      return Math.max(1, signalNumber('opaque_colors', 'modern_themeable_controls', 'white_container_fills') || Math.round(controls * 0.4));
+    }
+    if (id.startsWith('repair_') || id === 'regenerate_sarif' || id === 'analyze_app_checker' || id === 'scan_studio_issues') {
+      return Math.max(
+        1,
+        changes,
+        signalNumber('formula_errors'),
+        Math.round(controls * (id === 'regenerate_sarif' ? 1 : 0.08))
+      );
+    }
+    if (changes > 0) return changes;
+    return Math.max(1, Math.round(controls * 0.02));
+  }
+
+  function learnedSamples() {
     try {
-      const raw = localStorage.getItem(LEARNED_COSTS_KEY);
+      const raw = localStorage.getItem(LEARNED_SAMPLES_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
       return parsed && typeof parsed === 'object' ? parsed : {};
     } catch {
@@ -136,40 +188,102 @@
     }
   }
 
-  function rememberHopCost(id, ms) {
-    if (!id || !(ms >= 80) || !(ms < 15 * 60 * 1000)) return;
-    const costs = learnedHopCosts();
-    const prev = Number(costs[id]);
-    costs[id] = Number.isFinite(prev) && prev > 0
-      ? Math.round(prev * 0.62 + ms * 0.38)
-      : Math.round(ms);
+  function rememberHopSample(id, durationMs, changes = 0) {
+    if (!id || !(durationMs >= 40) || !(durationMs < 20 * 60 * 1000)) return;
+    const sample = {
+      duration_ms: Math.round(durationMs),
+      changes: Math.max(0, Number(changes) || 0),
+      controls: controlCount(),
+      file_mb: Number(fileMb().toFixed(4)),
+      workload: hopWorkload(id, Number(changes) || 0),
+      app: 'live',
+    };
+    const all = learnedSamples();
+    const list = Array.isArray(all[id]) ? all[id] : [];
+    list.push(sample);
+    all[id] = list.slice(-12);
     try {
-      localStorage.setItem(LEARNED_COSTS_KEY, JSON.stringify(costs));
+      localStorage.setItem(LEARNED_SAMPLES_KEY, JSON.stringify(all));
     } catch {
       /* ignore quota / private mode */
     }
+    // Keep legacy scalar cache as a quick blend for remaining-ETA mid-run.
+    try {
+      const costs = JSON.parse(localStorage.getItem(LEARNED_COSTS_KEY) || '{}') || {};
+      const prev = Number(costs[id]);
+      costs[id] = Number.isFinite(prev) && prev > 0
+        ? Math.round(prev * 0.55 + durationMs * 0.45)
+        : Math.round(durationMs);
+      localStorage.setItem(LEARNED_COSTS_KEY, JSON.stringify(costs));
+    } catch {
+      /* ignore */
+    }
   }
 
-  function hopBaseCostMs(id, options = {}) {
-    const learned = Number(learnedHopCosts()[id]);
-    let base = Number.isFinite(learned) && learned > 0
-      ? learned
-      : (HOP_COST_MS[id] ?? DEFAULT_HOP_MS);
-    if (options?.force === true && forceableHops.has(id)) {
-      base *= 1.28;
+  function predictFromSamples(samples, controls, mb, workload, heavy) {
+    if (!Array.isArray(samples) || !samples.length) return null;
+    let num = 0;
+    let den = 0;
+    for (const s of samples) {
+      const sc = Math.max(1, Number(s.controls) || 1);
+      const sm = Math.max(0.01, Number(s.file_mb) || 0.01);
+      const sw = Math.max(1, Number(s.workload) || 1);
+      let ratio = 0.42 * (controls / sc) + 0.28 * (mb / sm) + 0.3 * (workload / sw);
+      ratio = Math.max(0.06, Math.min(5.5, ratio));
+      if (heavy) ratio = ratio ** 1.2;
+      const pred = Math.max(1, Number(s.duration_ms) || 1) * ratio;
+      const w = 1 / (0.12 + Math.abs(Math.log(Math.max(0.05, ratio))));
+      num += pred * w;
+      den += w;
     }
-    return base;
+    return den > 0 ? num / den : null;
+  }
+
+  function packagePhaseMs(kind) {
+    const mb = fileMb();
+    const phase = estimateModel?.[kind];
+    if (phase && typeof phase === 'object') {
+      return Math.max(20, Number(phase.fixed_ms || 0) + Number(phase.per_mb_ms || 0) * mb);
+    }
+    return kind === 'unpack' ? 80 + 110 * mb : 80 + 160 * mb;
   }
 
   function hopCostMs(id, options = {}) {
-    return hopBaseCostMs(id, options) * fileSizeFactor(file?.size || 0);
+    const controls = controlCount();
+    const mb = fileMb();
+    const workload = hopWorkload(id);
+    const modelHop = estimateModel?.hops?.[id] || estimateModel?.default_hop;
+    const learned = learnedSamples()[id];
+    const samples = [
+      ...(Array.isArray(modelHop?.samples) ? modelHop.samples : []),
+      ...(Array.isArray(learned) ? learned : []),
+    ];
+    const heavy = Boolean(modelHop?.heavy) || id.startsWith('repair_') || id === 'enable_dark_mode' || id === 'regenerate_sarif';
+    let ms = predictFromSamples(samples, controls, mb, workload, heavy);
+    if (!(ms > 0)) {
+      try {
+        const legacy = Number(JSON.parse(localStorage.getItem(LEARNED_COSTS_KEY) || '{}')?.[id]);
+        if (Number.isFinite(legacy) && legacy > 0) ms = legacy;
+      } catch {
+        /* ignore */
+      }
+    }
+    if (!(ms > 0)) {
+      ms = HOP_COST_MS[id] ?? DEFAULT_HOP_MS;
+      // Soft size scaling when model samples are missing.
+      ms *= Math.max(0.35, Math.min(2.4, 0.45 + Math.sqrt(mb) * 0.35 + controls / 3500));
+    }
+    if (options?.force === true && forceableHops.has(id)) {
+      ms *= Number(estimateModel?.force_multiplier) || 1.12;
+    }
+    return Math.max(25, ms);
   }
 
   function estimateSequenceMs(hops = sequence) {
     if (!hops.length) return 0;
-    const scale = fileSizeFactor(file?.size || 0);
     const hopsMs = hops.reduce((sum, step) => sum + hopCostMs(step.id, step.options), 0);
-    return OVERHEAD_MS + (UNPACK_MS + PACK_MS) * scale + hopsMs;
+    const overhead = Number(estimateModel?.overhead_ms) || 280;
+    return overhead + packagePhaseMs('unpack') + packagePhaseMs('pack') + hopsMs;
   }
 
   function formatEstimateFriendly(ms) {
@@ -190,9 +304,27 @@
     plannedTotalMs = estimateSequenceMs();
     const hopWord = sequence.length === 1 ? 'hop' : 'hops';
     const sizeNote = file ? ` · ${humanBytes(file.size)}` : '';
-    runEstimate.textContent = `Est. ${formatEstimateFriendly(plannedTotalMs)} for ${sequence.length} ${hopWord}${sizeNote}`;
+    const controlNote = appComplexity?.control_count
+      ? ` · ${Number(appComplexity.control_count).toLocaleString()} controls`
+      : '';
+    runEstimate.textContent = `Est. ${formatEstimateFriendly(plannedTotalMs)} for ${sequence.length} ${hopWord}${sizeNote}${controlNote}`;
     runEstimate.classList.remove('is-empty');
   }
+
+  async function loadEstimateModel() {
+    try {
+      const res = await fetch('assets/estimate_model.json', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && typeof data === 'object') {
+        estimateModel = data;
+        updateRunEstimate();
+      }
+    } catch {
+      /* keep fallbacks */
+    }
+  }
+  loadEstimateModel();
 
   function warnIfOverUploadLimit(selected) {
     const limits = cfg.upload_limits || {};
@@ -296,6 +428,8 @@
 
   function showPlan(data) {
     setSkipScanVisible(false);
+    appComplexity = data.complexity && typeof data.complexity === 'object' ? data.complexity : appComplexity;
+    appSignals = data.signals && typeof data.signals === 'object' ? data.signals : appSignals;
     planPanel?.classList.remove('hidden');
     planPanel?.classList.add('plan-ready');
     const hopCount = (data.hops || []).length;
@@ -318,6 +452,7 @@
     }
     (data.forceable_hops || []).forEach((id) => forceableHops.add(id));
     loadHops(data.hops || []);
+    updateRunEstimate();
     requestAnimationFrame(() => {
       planPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       hopsLayout?.classList.add('sequence-reveal');
@@ -547,6 +682,8 @@
       runAbort = null;
     }
     sequence = [];
+    appComplexity = null;
+    appSignals = null;
     renderSequence();
     resetBottomUi();
 
@@ -689,7 +826,6 @@
   function estimateRemainingMs() {
     if (runProgressFraction >= 0.999) return 0;
     const elapsed = Date.now() - runStartedAt;
-    const scale = fileSizeFactor(file?.size || 0);
     let eta = null;
 
     const remaining = remainingHopSteps();
@@ -702,14 +838,14 @@
         return sum + hopCostMs(step.id, step.options);
       }, 0);
       if (packingPending) {
-        weighted += PACK_MS * scale;
+        weighted += packagePhaseMs('pack');
       }
       eta = weighted;
     }
 
     if (hopDurationsMs.length > 0 && (hopsRemaining > 0 || packingPending)) {
       const avg = hopDurationsMs.reduce((a, b) => a + b, 0) / hopDurationsMs.length;
-      const fromAvg = avg * hopsRemaining + (packingPending ? Math.max(avg * 0.35, 800) : 0);
+      const fromAvg = avg * hopsRemaining + (packingPending ? Math.max(avg * 0.35, packagePhaseMs('pack') * 0.65) : 0);
       eta = eta == null ? fromAvg : (eta * 0.7 + fromAvg * 0.3);
     }
 
@@ -799,12 +935,16 @@
       if (ev.phase === 'pack_done' || ev.phase === 'unpack_done') {
         packingPending = ev.phase !== 'pack_done';
       }
+      if (ev.phase === 'unpack_done' && ev.complexity && typeof ev.complexity === 'object') {
+        appComplexity = { ...(appComplexity || {}), ...ev.complexity };
+        updateRunEstimate();
+      }
     } else if (ev.type === 'hop_done') {
       if (typeof ev.duration_ms === 'number' && ev.duration_ms >= 0) {
         hopDurationsMs.push(ev.duration_ms);
         if (ev.hop) {
           hopDurationById[ev.hop] = ev.duration_ms;
-          rememberHopCost(ev.hop, ev.duration_ms);
+          rememberHopSample(ev.hop, ev.duration_ms, ev.changes);
         }
       }
       if (typeof ev.total === 'number' && typeof ev.index === 'number') {

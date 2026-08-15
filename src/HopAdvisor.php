@@ -56,6 +56,7 @@ final class HopAdvisor
             $archive->unpack();
             $emit('Reading screens, components, and controls…', 'catalog');
             $documents = $archive->documents();
+            $complexity = AppComplexity::measure($msappPath, $documents, $archive->extractDir());
             $docCount = count($documents);
             $emit(
                 $docCount === 1
@@ -82,6 +83,7 @@ final class HopAdvisor
                 'force_mode_reason' => $plan['force_mode_reason'],
                 'reasons' => $plan['reasons'],
                 'signals' => $signals,
+                'complexity' => $complexity,
                 'hops' => $hops,
                 'forceable_hops' => self::FORCEABLE_HOPS,
             ];

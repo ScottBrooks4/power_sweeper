@@ -24,3 +24,4 @@ composer.phar
 # Built locally; committed azure zip lives under dist/ for one-shot download
 !/dist/
 !/dist/power_sweeper-azure.zip
+/storage/benchmarks/

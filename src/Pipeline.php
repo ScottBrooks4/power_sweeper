@@ -60,6 +60,7 @@ final class Pipeline
             $unpackStarted = microtime(true);
             $archive->unpack();
             $completedUnits = 1;
+            $complexity = AppComplexity::measure($inputMsapp, $archive->documents(), $archive->extractDir());
             $emit([
                 'type' => 'phase',
                 'phase' => 'unpack_done',
@@ -71,6 +72,7 @@ final class Pipeline
                 'units' => $units,
                 'progress' => $completedUnits / $units,
                 'count' => $report->count(),
+                'complexity' => $complexity,
             ]);
 
             foreach ($hops as $index => $step) {
@@ -99,6 +101,7 @@ final class Pipeline
                     'message' => sprintf('Hop %d of %d: %s', $index + 1, $hopTotal, $hop::label()),
                     'count' => $report->count(),
                 ]);
+                $countBefore = $report->count();
                 $hopStarted = microtime(true);
                 $hop->apply($archive->documents(), $report, $options);
                 if (function_exists('gc_collect_cycles')) {
@@ -112,6 +115,7 @@ final class Pipeline
                     'index' => $index + 1,
                     'total' => $hopTotal,
                     'duration_ms' => (int) round((microtime(true) - $hopStarted) * 1000),
+                    'changes' => max(0, $report->count() - $countBefore),
                     'unit' => $completedUnits,
                     'units' => $units,
                     'progress' => $completedUnits / $units,
