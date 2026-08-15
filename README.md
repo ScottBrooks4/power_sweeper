@@ -65,7 +65,7 @@ See [`samples/import_debug/from_plain/HOW_TO_TEST.txt`](samples/import_debug/fro
 ## How it works
 
 1. Upload an `.msapp` (ZIP archive of canvas sources).
-2. **Analyze** scans for locale damage, formula errors, a11y gaps, generic names, container chrome, and theme presence — then proposes an ordered hop list and write mode (`missing_only` vs `all`).
+2. **Analyze** scans for locale damage, formula errors, a11y gaps, generic names, container chrome, and theme presence — then proposes **only the hops expected to change something**, in order, plus write mode (`missing_only` vs `all`). If nothing actionable is found, the sequence stays empty.
 3. Tweak hops if you want, then run. Power Sweeper unpacks the archive, edits `Src/**/*.pa.yaml` (and control JSON when present), repacks, and returns the file plus a report.
 
 Order matters: the same hops in a different sequence can produce different results. There are no named “profiles” — only hops, detection, and optional CLI convenience chains in [`config/hop_chains/`](config/hop_chains/).
