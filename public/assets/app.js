@@ -483,6 +483,7 @@
 
   async function analyzeFile(selected) {
     if (!selected || !cfg.apiAnalyze) return;
+    const epoch = uiEpoch;
     if (analyzeAbort) {
       analyzeAbort.abort();
     }
@@ -494,7 +495,12 @@
     setScanProgress('Uploading app for analysis…');
     if (forceHint) forceHint.textContent = '';
     if (planReasons) planReasons.innerHTML = '';
-    status.textContent = '';
+    // Keep the dock clear while the analyze upload is in flight.
+    if (epoch === uiEpoch) {
+      showProgress(false);
+      if (resultPanel) resultPanel.classList.add('hidden');
+      if (status) status.textContent = '';
+    }
     sequence = [];
     renderSequence();
     updateRunEnabled();
@@ -508,6 +514,7 @@
         signal: analyzeAbort.signal,
         headers: { Accept: 'application/x-ndjson, application/json' },
       });
+      if (epoch !== uiEpoch) return;
       if (res.status === 413) {
         throw new Error(
           `Upload too large for the web server (HTTP 413). File is ${humanBytes(selected.size)}. `
@@ -515,12 +522,13 @@
         );
       }
       const data = await readAnalyzeStream(res);
+      if (epoch !== uiEpoch) return;
       if (!data.ok) {
         throw new Error(data.error || `Analyze failed (HTTP ${res.status})`);
       }
       showPlan(data);
     } catch (err) {
-      if (err?.name === 'AbortError') return;
+      if (err?.name === 'AbortError' || epoch !== uiEpoch) return;
       setSkipScanVisible(false);
       if (planHint) {
         planHint.textContent = 'Could not auto-select hops — add them manually from the left.';
