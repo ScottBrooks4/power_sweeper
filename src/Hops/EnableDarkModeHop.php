@@ -6,6 +6,7 @@ namespace PowerSweeper\Hops;
 
 use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
+use PowerSweeper\ControlNaming;
 use PowerSweeper\ControlNode;
 use PowerSweeper\HopOptions;
 use PowerSweeper\Report;
@@ -925,7 +926,12 @@ final class EnableDarkModeHop implements HopInterface
 
         $beforeOnChange = (string) ($radio->getProperty('OnChange') ?? '');
         $onChangeTrim = trim(ltrim($beforeOnChange, '='));
-        if ($onChangeTrim === '' || $onChangeTrim === 'false' || !str_contains($beforeOnChange, $themeDark)) {
+        // Replace empty/false stubs and any OnChange that does not yet swap the dark palette.
+        if (
+            $onChangeTrim === ''
+            || strtolower($onChangeTrim) === 'false'
+            || !str_contains($beforeOnChange, $themeDark)
+        ) {
             $onChangeTo = $radio->format === 'yaml' ? '=' . $onChangeBody : $onChangeBody;
             $radio->setProperty('OnChange', $onChangeTo);
             $report->add(self::id(), $radio->path, 'OnChange', $beforeOnChange !== '' ? $beforeOnChange : '(empty)', $onChangeTo);
@@ -936,6 +942,14 @@ final class EnableDarkModeHop implements HopInterface
             $defaultTo = $radio->format === 'yaml' ? '=' . $defaultBody : $defaultBody;
             $radio->setProperty('DefaultSelectedItems', $defaultTo);
             $report->add(self::id(), $radio->path, 'DefaultSelectedItems', $beforeDefault !== '' ? $beforeDefault : '(empty)', $defaultTo);
+        }
+
+        // Help makers recognize the control when it was a generic RadioGroupCanvas stub.
+        $beforeA11y = (string) ($radio->getProperty('AccessibleLabel') ?? '');
+        if (ControlNaming::isBlank($beforeA11y) || strtolower(trim(ltrim($beforeA11y, '='))) === '""') {
+            $a11yTo = $radio->format === 'yaml' ? '="Theme"' : '"Theme"';
+            $radio->setProperty('AccessibleLabel', $a11yTo);
+            $report->add(self::id(), $radio->path, 'AccessibleLabel', $beforeA11y !== '' ? $beforeA11y : '(unset)', $a11yTo);
         }
 
         $fontColorTo = $this->themeFormula($radio, $theme, 'Text');
@@ -1033,23 +1047,80 @@ final class EnableDarkModeHop implements HopInterface
         if (!str_contains(strtolower($control->type), 'radio')) {
             return false;
         }
-        if (str_contains(strtolower($control->name), 'theme')) {
+        $name = strtolower($control->name);
+        if (str_contains($name, 'theme')) {
             return true;
         }
+
         $items = strtolower((string) ($control->getProperty('Items') ?? ''));
         $onChange = strtolower((string) ($control->getProperty('OnChange') ?? ''));
-        if (str_contains($items, 'english') || str_contains($items, 'french')) {
+        $defaultSel = strtolower((string) ($control->getProperty('DefaultSelectedItems') ?? ''));
+        $accessible = strtolower((string) ($control->getProperty('AccessibleLabel') ?? ''));
+        $tooltip = strtolower((string) ($control->getProperty('Tooltip') ?? ''));
+        $path = strtolower($control->path);
+        $blob = $name . ' ' . $items . ' ' . $onChange . ' ' . $defaultSel . ' ' . $accessible . ' ' . $tooltip;
+
+        // Language radios must never be treated as theme (THCEE/TDR/ASC Topbar).
+        if (
+            str_contains($items, 'english')
+            || str_contains($items, 'french')
+            || str_contains($blob, 'language')
+            || str_contains($blob, 'langue')
+            || str_contains($name, 'lang')
+        ) {
             return false;
         }
+
         if (str_contains($items, 'light') && str_contains($items, 'dark')) {
             return true;
         }
-        // Incomplete theme stub: Light-only Items with theme OnChange, or inside a component definition.
+
+        // VCDS TopbarHeader pattern: Items = ["Light"] only (YAML + JSON twin).
+        // Matches component definitions AND Controls/Components/*.json copies.
+        if ($this->isLightOnlyThemeStub($items, $defaultSel)) {
+            return true;
+        }
+
+        // Incomplete theme stub with theme-oriented OnChange / settings placement.
         if (str_contains($items, 'light') && (
             str_contains($onChange, 'gbldarkmode')
             || str_contains($onChange, 'gbltheme')
-            || str_contains($control->path, 'ComponentDefinitions')
+            || str_contains($path, 'componentdefinitions')
+            || str_contains($path, 'topbar')
+            || str_contains($path, 'setting')
+            || str_contains($blob, 'theme')
         )) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * True when Items/DefaultSelectedItems is the common Light-only theme stub
+     * (["Light"]) used across VCDS TopbarHeader components before Dark is added.
+     */
+    private function isLightOnlyThemeStub(string $itemsLower, string $defaultSelLower): bool
+    {
+        $normalize = static function (string $s): string {
+            $s = strtolower(trim($s));
+            if (str_starts_with($s, '=')) {
+                $s = trim(substr($s, 1));
+            }
+            // Strip /* comments */ that sometimes wrap Items.
+            $s = preg_replace('#/\*.*?\*/#s', '', $s) ?? $s;
+            $s = preg_replace('/\s+/', '', $s) ?? $s;
+
+            return $s;
+        };
+
+        $items = $normalize($itemsLower);
+        if ($items === '["light"]' || $items === "['light']") {
+            return true;
+        }
+
+        $def = $normalize($defaultSelLower);
+        if (($items === '' || $items === 'false') && ($def === '["light"]' || $def === "['light']")) {
             return true;
         }
 

@@ -567,6 +567,30 @@ assert_true($themeItemsOk, 'ThemeRadio Items includes Light and Dark');
 assert_true($themeOnChangeOk, 'ThemeRadio OnChange swaps gblTheme palettes');
 assert_true($noFloatingToggle, 'ThemeRadio present — no floating toggle injected');
 
+// Light-only RadioGroupCanvas stub (THCEE/TDR/ASC Topbar JSON twin pattern) gets Dark wired
+$lightStubDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_light_stub.pa.yaml', 'Src/Home.pa.yaml');
+assert_true($lightStubDoc !== null, 'light-only theme stub fixture loads');
+$lightStubReport = new Report();
+(new EnableDarkModeHop())->apply([$lightStubDoc], $lightStubReport);
+$stubItems = $stubOnChange = $langItems = null;
+$stubToggleInjected = false;
+foreach ($lightStubDoc->controls() as $c) {
+    if ($c->name === 'RadioGroupCanvas1_5') {
+        $stubItems = (string) ($c->getProperty('Items') ?? '');
+        $stubOnChange = (string) ($c->getProperty('OnChange') ?? '');
+    }
+    if ($c->name === 'RadioGroupCanvas1_4') {
+        $langItems = (string) ($c->getProperty('Items') ?? '');
+    }
+    if ($c->name === 'tglPowerSweeperDarkMode') {
+        $stubToggleInjected = true;
+    }
+}
+assert_true(is_string($stubItems) && str_contains($stubItems, 'Dark'), 'Light-only RadioGroupCanvas Items gains Dark');
+assert_true(is_string($stubOnChange) && str_contains($stubOnChange, 'gblThemeDark'), 'Light-only RadioGroupCanvas OnChange swaps dark palette');
+assert_true(is_string($langItems) && str_contains($langItems, 'English') && !str_contains(strtolower($langItems), 'dark'), 'language radio left as English/French');
+assert_true(!$stubToggleInjected, 'no floating dark toggle when Light-only theme radio stub exists');
+
 // Brand override via theme_defaults option (central palette only)
 $overrideDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
 $dmOverrideReport = new Report();

@@ -1,0 +1,48 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(gblReady, true)
+# Simulates VCDS TopbarHeader JSON twin: Light-only RadioGroupCanvas, not named ThemeRadio,
+# path outside ComponentDefinitions (Controls/Components/*.json pattern).
+Home:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - TopbarHeader:
+        Control: GroupContainer@1.0.0
+        Properties:
+          X: =0
+          Y: =0
+          Width: =600
+          Height: =120
+        Children:
+          - RadioGroupCanvas1_4:
+              Control: Radio@0.0.25
+              Properties:
+                Items: =["English", "French"]
+                OnChange: =If(Self.Selected.Value = "English", Set(varLang, true), Set(varLang, false))
+                X: =16
+                Y: =16
+                Width: =240
+                Height: =40
+          - RadioGroupCanvas1_5:
+              Control: Radio@0.0.25
+              Properties:
+                Items: =["Light"]
+                DefaultSelectedItems: =["Light"]
+                OnChange: =false
+                X: =280
+                Y: =16
+                Width: =240
+                Height: =40
+          - Title:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Welcome"
+                Color: =RGBA(20, 20, 20, 1)
+                Fill: =RGBA(0, 0, 0, 0)
+                X: =16
+                Y: =70
+                Width: =200
+                Height: =40
