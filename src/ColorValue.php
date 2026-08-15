@@ -68,6 +68,22 @@ final class ColorValue
             'color.brown' => [165, 42, 42, 1.0],
             'color.cyan' => [0, 255, 255, 1.0],
             'color.magenta' => [255, 0, 255, 1.0],
+            'color.azure' => [240, 255, 255, 1.0],
+            'color.skyblue' => [135, 206, 235, 1.0],
+            'color.aliceblue' => [240, 248, 255, 1.0],
+            'color.darkcyan' => [0, 139, 139, 1.0],
+            'color.aquamarine' => [127, 255, 212, 1.0],
+            'color.dodgerblue' => [30, 144, 255, 1.0],
+            'color.cornflowerblue' => [100, 149, 237, 1.0],
+            'color.steelblue' => [70, 130, 180, 1.0],
+            'color.royalblue' => [65, 105, 225, 1.0],
+            'color.mediumblue' => [0, 0, 205, 1.0],
+            'color.navy' => [0, 0, 128, 1.0],
+            'color.midnightblue' => [25, 25, 112, 1.0],
+            'color.teal' => [0, 128, 128, 1.0],
+            'color.turquoise' => [64, 224, 208, 1.0],
+            'color.cadetblue' => [95, 158, 160, 1.0],
+            'color.indigo' => [75, 0, 130, 1.0],
         ];
         if (isset($named[$lower])) {
             [$r, $g, $b, $a] = $named[$lower];
@@ -119,7 +135,9 @@ final class ColorValue
             return $formula;
         }
 
-        $fixed = FormulaLocaleNormalizer::toInvariant($formula);
+        // PAT/PACS formulas often keep prior experiments as // comments after the live value.
+        $stripped = preg_replace('/\/\/[^\n]*/', '', $formula) ?? $formula;
+        $fixed = FormulaLocaleNormalizer::toInvariant($stripped);
         return self::fixLocaleBrokenAlpha($fixed);
     }
 
@@ -182,6 +200,10 @@ final class ColorValue
         if (str_contains($p, 'border')) {
             return 'border';
         }
+        // Modern button/input brand color — background chrome, not text ink.
+        if ($p === 'basepalettecolor' || str_contains($p, 'palette')) {
+            return 'background';
+        }
         if ($p === 'color' || (str_ends_with($p, 'color') && !str_contains($p, 'fill'))) {
             return 'foreground';
         }
@@ -202,6 +224,10 @@ final class ColorValue
         $hue = self::hue($c);
 
         if ($sat > 0.35 && $hue >= 0) {
+            // Translucent blue/azure chips (common PAT review labels) are chrome, not solid Accent.
+            if ($role === 'background' && ($c['a'] ?? 1.0) < 0.45) {
+                return 'SurfaceMuted';
+            }
             $family = match (true) {
                 $hue < 25 || $hue >= 345 => 'Danger',
                 $hue >= 25 && $hue < 70 => 'Warning',

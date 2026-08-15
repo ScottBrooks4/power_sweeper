@@ -116,6 +116,24 @@ final class EnableDarkModeHop implements HopInterface
         'Color.Yellow' => 'Warning',
         'Color.Red' => 'Accent',
         'Color.Blue' => 'Accent',
+        // PAT / PACS / VCDS chrome — light tints vs strong fills
+        'Color.Azure' => 'SurfaceMuted',
+        'Color.LightBlue' => 'SurfaceMuted',
+        'Color.SkyBlue' => 'SurfaceMuted',
+        'Color.AliceBlue' => 'SurfaceMuted',
+        'Color.DarkCyan' => 'Accent',
+        'Color.Aquamarine' => 'Accent',
+        'Color.DodgerBlue' => 'Accent',
+        'Color.CornflowerBlue' => 'Accent',
+        'Color.SteelBlue' => 'Accent',
+        'Color.RoyalBlue' => 'Accent',
+        'Color.MediumBlue' => 'Accent',
+        'Color.Navy' => 'Accent',
+        'Color.MidnightBlue' => 'Accent',
+        'Color.Teal' => 'Accent',
+        'Color.Turquoise' => 'Accent',
+        'Color.CadetBlue' => 'Accent',
+        'Color.Indigo' => 'Accent',
     ];
 
     private const LEGACY_SURFACE = 'DefaultGrayBackgroud';
@@ -166,6 +184,7 @@ final class EnableDarkModeHop implements HopInterface
                     if ($from === null || trim($from) === '' || $this->alreadyThemed($from, $var, $theme)) {
                         continue;
                     }
+                    $from = $this->recoverCommentedColorFormula($from, $prop);
                     if ($this->shouldPreserveUserValue($from, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
                         continue;
                     }
@@ -306,11 +325,22 @@ final class EnableDarkModeHop implements HopInterface
                     if ($from === null || trim($from) === '') {
                         continue;
                     }
+                    $from = $this->recoverCommentedColorFormula($from, $prop);
+                    $activeBody = trim(ltrim(trim(preg_replace('/\/\/[^\n]*/', '', $from) ?? $from), '='));
+                    // Comment-only Color stubs like //FontColour → treat as unset text ink.
+                    if ($activeBody === '' && strcasecmp($prop, 'Color') === 0) {
+                        $to = $this->themeFormula($control, $theme, 'Text');
+                        if ($to !== $from) {
+                            $control->setProperty($prop, $to);
+                            $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($to));
+                        }
+                        continue;
+                    }
                     // Pure gblTheme.Token refs are done; mixed formulas may still embed RGBA literals.
                     if ($this->isPureThemeReference($from, $theme)) {
                         continue;
                     }
-                    if ($this->usesActiveThemeToken($from, $theme) && preg_match('/RGBA\s*\(|\bColor\.(White|Yellow|Green|Red|Blue)\b/i', $from)) {
+                    if ($this->usesActiveThemeToken($from, $theme) && preg_match('/RGBA\s*\(|\bColor\.[A-Za-z]+\b/i', $from)) {
                         $embedded = $this->rewriteEmbeddedRgba($from, $prop, $theme, $var, true);
                         if ($embedded !== $from) {
                             $to = $control->format === 'yaml' && !str_starts_with(trim($embedded), '=')
@@ -704,6 +734,14 @@ final class EnableDarkModeHop implements HopInterface
             });
 
             foreach ($doc->controls() as $control) {
+                $html = $control->getProperty('HtmlText');
+                if (is_string($html) && $html !== '') {
+                    $rewritten = $this->rewriteInlineLinkHtml($html, $theme);
+                    if ($rewritten !== $html) {
+                        $control->setProperty('HtmlText', $rewritten);
+                        $report->add(self::id(), $control->path, 'HtmlText', self::preview($html), self::preview($rewritten));
+                    }
+                }
                 if (!$this->isInlineLinkHost($control)) {
                     continue;
                 }
@@ -755,6 +793,10 @@ final class EnableDarkModeHop implements HopInterface
         if (isset($palette['Link'])) {
             $lightFields[] = 'LinkCss: "' . ColorValue::toHex($palette['Link']['light']) . '"';
             $darkFields[] = 'LinkCss: "' . ColorValue::toHex($palette['Link']['dark']) . '"';
+        }
+        if (isset($palette['Text'])) {
+            $lightFields[] = 'TextCss: "' . ColorValue::toHex($palette['Text']['light']) . '"';
+            $darkFields[] = 'TextCss: "' . ColorValue::toHex($palette['Text']['dark']) . '"';
         }
         if (isset($palette['LinkHover'])) {
             $lightFields[] = 'LinkHoverCss: "' . ColorValue::toHex($palette['LinkHover']['light']) . '"';
@@ -1518,31 +1560,65 @@ final class EnableDarkModeHop implements HopInterface
 
     private function rewriteInlineLinkHtml(string $formula, string $theme): string
     {
-        if (str_contains($formula, $theme . '.LinkCss')) {
-            return $formula;
+        if (str_contains($formula, $theme . '.LinkCss') && str_contains($formula, $theme . '.TextCss')) {
+            // Still allow partial rewrites below when only one was applied.
         }
-        if (!preg_match('/color\s*:\s*blue/i', $formula)) {
-            return $formula;
-        }
-
-        $patterns = [
-            '/="<span style=\'color: blue; text-decoration: underline;\'>([^<]+)<\/span>"/'
-                => '="<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
-            '/="<span style=""color: blue; text-decoration: underline;"">([^<]+)<\/span>"/'
-                => '="<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
-            '/"<span style=\'color: blue; text-decoration: underline;\'>([^<]+)<\/span>"/'
-                => '"<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
-        ];
-
         $out = $formula;
-        foreach ($patterns as $pattern => $replacement) {
-            $replaced = preg_replace($pattern, $replacement, $out);
-            if ($replaced !== null && $replaced !== $out) {
-                $out = $replaced;
+        if (!str_contains($out, $theme . '.LinkCss') && preg_match('/color\s*:\s*blue/i', $out)) {
+            $patterns = [
+                '/="<span style=\'color: blue; text-decoration: underline;\'>([^<]+)<\/span>"/'
+                    => '="<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
+                '/="<span style=""color: blue; text-decoration: underline;"">([^<]+)<\/span>"/'
+                    => '="<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
+                '/"<span style=\'color: blue; text-decoration: underline;\'>([^<]+)<\/span>"/'
+                    => '"<span style=""color:" & ' . $theme . '.LinkCss & "; text-decoration: underline;"">$1</span>"',
+            ];
+            foreach ($patterns as $pattern => $replacement) {
+                $replaced = preg_replace($pattern, $replacement, $out);
+                if ($replaced !== null && $replaced !== $out) {
+                    $out = $replaced;
+                }
+            }
+        }
+
+        // PAT HtmlText field labels use hard-coded near-black ink (#111111) that vanishes on dark surfaces.
+        if (!str_contains($out, $theme . '.TextCss')) {
+            $replaced = preg_replace(
+                '/color\s*:\s*#(?:111111|000000|0{3,6}|1a1a1a|222222|333333)\b/i',
+                'color:" & ' . $theme . '.TextCss & "',
+                $out
+            );
+            if (is_string($replaced) && $replaced !== $out) {
+                // Keep formula concatenations valid inside quoted HTML strings.
+                // Common shape: ="...<div style='... color:#111111; ...'>..."
+                // After replace: color:" & gblTheme.TextCss & ";  which breaks unless we splice quotes.
+                $out = $this->spliceCssColorConcat($formula, $theme);
             }
         }
 
         return $out;
+    }
+
+    /**
+     * Rewrite dark hex text colors inside HtmlText formulas to gblTheme.TextCss.
+     */
+    private function spliceCssColorConcat(string $formula, string $theme): string
+    {
+        if (str_contains($formula, $theme . '.TextCss')) {
+            return $formula;
+        }
+        $replaced = preg_replace_callback(
+            '/(["\'])([^"\']*?)color\s*:\s*#(?:111111|000000|0{3,6}|1a1a1a|222222|333333)\b([^"\']*?)\1/i',
+            static function (array $m) use ($theme): string {
+                $q = $m[1];
+                $before = $m[2];
+                $after = $m[3];
+                return $q . $before . 'color:' . $q . ' & ' . $theme . '.TextCss & ' . $q . $after . $q;
+            },
+            $formula
+        );
+
+        return is_string($replaced) ? $replaced : $formula;
     }
 
     /** @param list<ControlDocument> $documents */
@@ -1653,25 +1729,36 @@ final class EnableDarkModeHop implements HopInterface
 
     private function rewriteColorEnums(string $formula, string $theme): string
     {
-        $out = $formula;
-        foreach (self::COLOR_ENUM_MAP as $enum => $token) {
-            $replaced = preg_replace('/\b' . preg_quote($enum, '/') . '\b/i', $theme . '.' . $token, $out);
-            if (is_string($replaced)) {
-                $out = $replaced;
-            }
+        // Do not rewrite Color.* tokens that only appear inside // comments (PAT keeps history there).
+        $chunks = preg_split('/(\/\/[^\n]*)/', $formula, -1, PREG_SPLIT_DELIM_CAPTURE);
+        if ($chunks === false) {
+            $chunks = [$formula];
         }
-
-        $legacyTheme = [
-            'App.Theme.Colors.Primary' => $theme . '.Accent',
-            'App.Theme.Colors.Lighter70' => $theme . '.SurfaceMuted',
-            'App.Theme.Colors.Lighter30' => $theme . '.SurfaceMuted',
-            'App.Theme.Colors.Darker70' => $theme . '.Accent',
-            'App.Theme.Colors.Darker30' => $theme . '.Accent',
-        ];
-        foreach ($legacyTheme as $from => $to) {
-            if (str_contains($out, $from)) {
-                $out = str_replace($from, $to, $out);
+        $out = '';
+        foreach ($chunks as $chunk) {
+            if (str_starts_with($chunk, '//')) {
+                $out .= $chunk;
+                continue;
             }
+            foreach (self::COLOR_ENUM_MAP as $enum => $token) {
+                $replaced = preg_replace('/\b' . preg_quote($enum, '/') . '\b/i', $theme . '.' . $token, $chunk);
+                if (is_string($replaced)) {
+                    $chunk = $replaced;
+                }
+            }
+            $legacyTheme = [
+                'App.Theme.Colors.Primary' => $theme . '.Accent',
+                'App.Theme.Colors.Lighter70' => $theme . '.SurfaceMuted',
+                'App.Theme.Colors.Lighter30' => $theme . '.SurfaceMuted',
+                'App.Theme.Colors.Darker70' => $theme . '.Accent',
+                'App.Theme.Colors.Darker30' => $theme . '.Accent',
+            ];
+            foreach ($legacyTheme as $from => $to) {
+                if (str_contains($chunk, $from)) {
+                    $chunk = str_replace($from, $to, $chunk);
+                }
+            }
+            $out .= $chunk;
         }
 
         return $out;
@@ -1817,8 +1904,70 @@ final class EnableDarkModeHop implements HopInterface
         if (preg_match('/\bColor\.White\b/i', $from)) {
             return false;
         }
+        if ($this->isBrandChromeColor($from, $prop)) {
+            return false;
+        }
 
         return !ColorValue::isStudioDefault($from, $prop);
+    }
+
+    /**
+     * PAT/PACS-style brand blues/cyans used as chrome (quick-action bars, nav, borders).
+     * These should theme even when Write mode is "missing only".
+     */
+    private function isBrandChromeColor(string $from, string $prop): bool
+    {
+        if (preg_match('/ColorFade\s*\(\s*RGBA\s*\(/i', $from)) {
+            return true;
+        }
+        $parsed = ColorValue::parse($from);
+        if ($parsed === null || ColorValue::isTransparent($parsed)) {
+            return false;
+        }
+        $hue = ColorValue::hue($parsed);
+        $sat = ColorValue::saturation($parsed);
+        if ($hue < 0) {
+            return false;
+        }
+        // Blue / cyan / teal family
+        if ($hue < 175 || $hue > 265) {
+            return false;
+        }
+        if ($sat < 0.18) {
+            return false;
+        }
+        $p = strtolower($prop);
+        if (str_contains($p, 'border') || str_contains($p, 'fill') || $p === 'color') {
+            return true;
+        }
+
+        return $sat > 0.35;
+    }
+
+    /**
+     * PAT details buttons often leave Fill as comments only (//RGBA(...)), which Studio
+     * treats as blank and falls back to the default primary blue. Recover the last
+     * commented color literal so we can theme it.
+     */
+    private function recoverCommentedColorFormula(string $from, string $prop): string
+    {
+        $active = preg_replace('/\/\/[^\n]*/', '', $from) ?? $from;
+        $active = trim(preg_replace('/\s+/', ' ', $active) ?? $active);
+        $body = trim(ltrim($active, '='));
+        if ($body !== '') {
+            return $from;
+        }
+        if (preg_match('/ColorFade\s*\(\s*RGBA\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[0-9.]+\s*)?\)\s*,\s*-?\d+%\s*\)/i', $from, $m)) {
+            return str_starts_with(trim($from), '=') ? '=' . $m[0] : $m[0];
+        }
+        if (preg_match('/RGBA\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[0-9.]+\s*)?\)/i', $from, $m)) {
+            return str_starts_with(trim($from), '=') ? '=' . $m[0] : $m[0];
+        }
+        if (preg_match('/\bColor\.[A-Za-z]+\b/i', $from, $m)) {
+            return str_starts_with(trim($from), '=') ? '=' . $m[0] : $m[0];
+        }
+
+        return $from;
     }
 
     /**

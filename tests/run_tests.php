@@ -567,6 +567,28 @@ assert_true($themeItemsOk, 'ThemeRadio Items includes Light and Dark');
 assert_true($themeOnChangeOk, 'ThemeRadio OnChange swaps gblTheme palettes');
 assert_true($noFloatingToggle, 'ThemeRadio present — no floating toggle injected');
 
+// PAT / PACS chrome: Color.DarkCyan bars, comment-only BasePaletteColor, azure tints, HtmlText ink
+assert_true(
+    ColorValue::parse('=RGBA(30, 144, 255, 0.10) //Color.Azure') !== null,
+    'color parse ignores trailing // comments'
+);
+assert_true(ColorValue::roleForProperty('BasePaletteColor') === 'background', 'BasePaletteColor is background chrome');
+$patDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/pat_dark_chrome.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($patDoc !== null, 'PAT chrome fixture loads');
+$patReport = new Report();
+(new EnableDarkModeHop())->apply([$patDoc], $patReport, ['inject_toggle' => false]);
+$patDoc->reindex();
+$patBy = [];
+foreach ($patDoc->controls() as $c) {
+    $patBy[$c->name] = $c;
+}
+assert_true(str_contains((string) $patBy['TabBar']->getProperty('Fill'), 'gblTheme.Accent'), 'Color.DarkCyan tab bar → Accent');
+assert_true(str_contains((string) $patBy['PrimaryBtn']->getProperty('BasePaletteColor'), 'gblTheme.Accent'), 'comment BasePaletteColor → Accent');
+assert_true(str_contains((string) $patBy['PrimaryBtn']->getProperty('BorderColor'), 'gblTheme.Accent'), 'Color.Aquamarine → Accent');
+assert_true(str_contains((string) $patBy['AzureLbl']->getProperty('Fill'), 'gblTheme.SurfaceMuted'), 'translucent azure fill → SurfaceMuted');
+assert_true(str_contains((string) $patBy['AzureLbl']->getProperty('Color'), 'gblTheme.Text'), '//FontColour stub → Text');
+assert_true(str_contains((string) $patBy['HtmlLbl']->getProperty('HtmlText'), 'TextCss'), 'HtmlText #111111 → TextCss');
+
 // Light-only RadioGroupCanvas stub (THCEE/TDR/ASC Topbar JSON twin pattern) gets Dark wired
 $lightStubDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_light_stub.pa.yaml', 'Src/Home.pa.yaml');
 assert_true($lightStubDoc !== null, 'light-only theme stub fixture loads');

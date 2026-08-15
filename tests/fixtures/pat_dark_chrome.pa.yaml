@@ -1,0 +1,24 @@
+Screens:
+  Screen1:
+    Properties:
+      Fill: =RGBA(255, 255, 255, 1)
+    Children:
+      - TabBar:
+          Control: GroupContainer@1.5.0
+          Properties:
+            Fill: =Color.DarkCyan
+      - PrimaryBtn:
+          Control: Button@0.0.45
+          Properties:
+            BasePaletteColor: =//BackgroundRed //RGBA(37, 99, 235, 1)
+            BorderColor: =Color.Aquamarine
+            Color: =Color.White
+      - AzureLbl:
+          Control: Label@2.5.1
+          Properties:
+            Fill: =RGBA(30, 144, 255, 0.10) //Color.Azure
+            Color: =//FontColour
+      - HtmlLbl:
+          Control: HtmlViewer@2.1.0
+          Properties:
+            HtmlText: ="<div style='color:#111111;'>Hi</div>"
