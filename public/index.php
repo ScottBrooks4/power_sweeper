@@ -64,7 +64,7 @@ $basePath = $basePath === '' ? '' : $basePath;
           </select>
         </label>
       </div>
-      <div class="scan-status-row" id="scanActions">
+      <div class="scan-status-row">
         <p class="hint" id="planHint">Drop your app in to begin</p>
         <button type="button" class="btn-skip-scan" id="skipScanBtn" hidden>Skip scan — pick hops myself</button>
       </div>
