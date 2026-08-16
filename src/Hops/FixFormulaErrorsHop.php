@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PowerSweeper\Hops;
 
 use PowerSweeper\ControlDocument;
+use PowerSweeper\HopProgress;
 use PowerSweeper\HopRegistry;
 use PowerSweeper\Report;
 use PowerSweeper\StudioLiveChecker;
@@ -96,19 +97,54 @@ final class FixFormulaErrorsHop implements HopInterface
         $reverted = 0;
         $extractDir = is_string($options['_extract_dir'] ?? null) ? $options['_extract_dir'] : null;
         $guard = ($options['guard'] ?? true) !== false;
+        $emit = is_callable($options['_on_progress'] ?? null) ? $options['_on_progress'] : null;
+        [$progressBase, $progressSpan] = HopProgress::boundsFromOptions($options);
+
+        $steps = [];
+        foreach (self::subHops() as $step) {
+            $id = (string) $step['id'];
+            if (!$registry->has($id) || $id === self::id()) {
+                continue;
+            }
+            if ($id === 'regenerate_sarif' && ($extractDir === null || $extractDir === '')) {
+                continue;
+            }
+            $steps[] = $step;
+        }
+        $stepTotal = count($steps);
+        $stepIds = array_map(static fn(array $s): string => (string) $s['id'], $steps);
+        $cum = HopProgress::cumulativeFractions($stepIds);
 
         $report->pushHopAlias(self::id());
         try {
-            foreach (self::subHops() as $step) {
+            foreach ($steps as $stepIndex => $step) {
                 $id = (string) $step['id'];
-                if (!$registry->has($id) || $id === self::id()) {
-                    continue;
-                }
-                if ($id === 'regenerate_sarif' && ($extractDir === null || $extractDir === '')) {
-                    continue;
-                }
                 $kind = self::kindLabel($id);
                 $countBefore = $report->count();
+                $fracStart = $cum[$stepIndex] ?? ($stepIndex / max(1, $stepTotal));
+                $fracEnd = $cum[$stepIndex + 1] ?? (($stepIndex + 1) / max(1, $stepTotal));
+
+                if ($emit !== null) {
+                    $emit([
+                        'type' => 'phase',
+                        'phase' => 'subhop',
+                        'hop' => self::id(),
+                        'label' => self::label(),
+                        'subhop' => $id,
+                        'subhop_label' => $kind,
+                        'index' => $stepIndex + 1,
+                        'total' => max(1, $stepTotal),
+                        'progress' => HopProgress::map($progressBase, $progressSpan, $fracStart),
+                        'message' => sprintf(
+                            '%s · %s (%d/%d)',
+                            self::label(),
+                            $kind,
+                            $stepIndex + 1,
+                            max(1, $stepTotal),
+                        ),
+                        'count' => $report->count(),
+                    ]);
+                }
 
                 $snapshot = $guard ? self::snapshotFormulas($documents) : [];
                 $errorsBefore = $guard ? self::formulaErrorCount($documents, $extractDir) : 0;
@@ -118,7 +154,15 @@ final class FixFormulaErrorsHop implements HopInterface
                 $hop = $registry->make($id);
                 $childOptions = array_merge($options, $step['options']);
                 $childOptions['report_stats'] = false;
+                $childOptions['_progress_base'] = HopProgress::map($progressBase, $progressSpan, $fracStart);
+                $childOptions['_progress_span'] = max(
+                    0.0,
+                    HopProgress::map($progressBase, $progressSpan, $fracEnd)
+                        - HopProgress::map($progressBase, $progressSpan, $fracStart)
+                );
+                $stepStarted = microtime(true);
                 $hop->apply($documents, $probe, $childOptions);
+                $durationMs = (int) round((microtime(true) - $stepStarted) * 1000);
 
                 $ran++;
                 if ($guard) {
@@ -147,6 +191,23 @@ final class FixFormulaErrorsHop implements HopInterface
                             (string) $probe->count() . ' tentative change(s)',
                             $reason,
                         );
+                        if ($emit !== null) {
+                            $emit([
+                                'type' => 'phase',
+                                'phase' => 'subhop_done',
+                                'hop' => self::id(),
+                                'label' => self::label(),
+                                'subhop' => $id,
+                                'subhop_label' => $kind,
+                                'index' => $stepIndex + 1,
+                                'total' => max(1, $stepTotal),
+                                'duration_ms' => $durationMs,
+                                'changes' => 0,
+                                'progress' => HopProgress::map($progressBase, $progressSpan, $fracEnd),
+                                'message' => sprintf('Skipped %s · %s (reverted)', self::label(), $kind),
+                                'count' => $report->count(),
+                            ]);
+                        }
                         if (function_exists('gc_collect_cycles')) {
                             gc_collect_cycles();
                         }
@@ -172,6 +233,28 @@ final class FixFormulaErrorsHop implements HopInterface
                 $delta = $report->count() - $countBefore;
                 if ($delta > 0) {
                     $byKind[$kind] = ($byKind[$kind] ?? 0) + $delta;
+                }
+                if ($emit !== null) {
+                    $emit([
+                        'type' => 'phase',
+                        'phase' => 'subhop_done',
+                        'hop' => self::id(),
+                        'label' => self::label(),
+                        'subhop' => $id,
+                        'subhop_label' => $kind,
+                        'index' => $stepIndex + 1,
+                        'total' => max(1, $stepTotal),
+                        'duration_ms' => $durationMs,
+                        'changes' => $delta,
+                        'progress' => HopProgress::map($progressBase, $progressSpan, $fracEnd),
+                        'message' => sprintf(
+                            'Finished %s · %s (%d changes)',
+                            self::label(),
+                            $kind,
+                            $delta,
+                        ),
+                        'count' => $report->count(),
+                    ]);
                 }
                 if (function_exists('gc_collect_cycles')) {
                     gc_collect_cycles();

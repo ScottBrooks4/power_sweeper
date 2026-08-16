@@ -193,6 +193,8 @@
   let hopsRemaining = 0;
   let packingPending = false;
   let plannedTotalMs = 0;
+  /** Remaining sub-pass ids inside the active composite (including the one in flight). */
+  let compositeRemaining = [];
 
   function uid() {
     return Math.random().toString(36).slice(2, 10);
@@ -330,19 +332,28 @@
   }
 
   function hopCostMs(id, options = {}) {
-    // Composite: sum child estimates until the model has dedicated samples.
+    // Composite: prefer summing child estimates (granular learning) and blend
+    // with parent samples when available.
     const compositeKids = COMPOSITE_SUB_HOPS[id];
     if (Array.isArray(compositeKids) && compositeKids.length) {
+      const childSum = compositeKids.reduce((sum, sid) => sum + hopCostMs(sid, options), 0);
       const modelHop = estimateModel?.hops?.[id];
       const learned = learnedSamples()[id];
-      const hasSamples = (Array.isArray(modelHop?.samples) && modelHop.samples.length)
-        || (Array.isArray(learned) && learned.length);
-      if (!hasSamples) {
-        return Math.max(
-          25,
-          compositeKids.reduce((sum, sid) => sum + hopCostMs(sid, options), 0)
-        );
+      const samples = [
+        ...(Array.isArray(modelHop?.samples) ? modelHop.samples : []),
+        ...(Array.isArray(learned) ? learned : []),
+      ];
+      const parentPred = predictFromSamples(
+        samples,
+        controlCount(),
+        fileMb(),
+        hopWorkload(id),
+        true,
+      );
+      if (parentPred > 0) {
+        return Math.max(25, childSum * 0.7 + parentPred * 0.3);
       }
+      return Math.max(25, childSum);
     }
     const controls = controlCount();
     const mb = fileMb();
@@ -872,8 +883,9 @@
     hopsRemaining = 0;
     packingPending = false;
     plannedTotalMs = 0;
+    compositeRemaining = [];
     runProgressFraction = 0;
-    setProgressFraction(0);
+    setProgressFraction(0, { allowRetreat: true });
     if (progressPhase) progressPhase.textContent = 'Ready';
     if (progressCount) progressCount.textContent = '';
     if (progressLast) progressLast.textContent = '';
@@ -902,8 +914,12 @@
     return `${m}:${String(s).padStart(2, '0')}`;
   }
 
-  function setProgressFraction(fraction, { indeterminate = false } = {}) {
+  function setProgressFraction(fraction, { indeterminate = false, allowRetreat = false } = {}) {
     const clamped = Math.max(0, Math.min(1, Number(fraction) || 0));
+    // Keep the bar monotonic during a run (weighted sub-hops should not jump backward).
+    if (!allowRetreat && !indeterminate && clamped < runProgressFraction) {
+      return;
+    }
     runProgressFraction = clamped;
     if (!progressBar || !progressBarFill) return;
     if (indeterminate) {
@@ -924,6 +940,22 @@
     return runSequence.slice(start);
   }
 
+  function costForStep(step) {
+    const learned = hopDurationById[step.id];
+    if (Number.isFinite(learned) && learned > 0) {
+      return learned;
+    }
+    return hopCostMs(step.id, step.options);
+  }
+
+  function costForSubhop(id, options = {}) {
+    const learned = hopDurationById[id];
+    if (Number.isFinite(learned) && learned > 0) {
+      return learned;
+    }
+    return hopCostMs(id, options);
+  }
+
   function estimateRemainingMs() {
     if (runProgressFraction >= 0.999) return 0;
     const elapsed = Date.now() - runStartedAt;
@@ -931,12 +963,15 @@
 
     const remaining = remainingHopSteps();
     if (remaining.length || packingPending) {
-      let weighted = remaining.reduce((sum, step) => {
-        const learned = hopDurationById[step.id];
-        if (Number.isFinite(learned) && learned > 0) {
-          return sum + learned;
+      let weighted = remaining.reduce((sum, step, index) => {
+        // Inside an active composite: only unfinished sub-passes remain for this hop.
+        if (index === 0 && compositeRemaining.length && COMPOSITE_SUB_HOPS[step.id]) {
+          return sum + compositeRemaining.reduce(
+            (inner, sid) => inner + costForSubhop(sid, step.options),
+            0,
+          );
         }
-        return sum + hopCostMs(step.id, step.options);
+        return sum + costForStep(step);
       }, 0);
       if (packingPending) {
         weighted += packagePhaseMs('pack');
@@ -987,9 +1022,10 @@
     hopDurationById = {};
     hopsRemaining = runSequence.length;
     packingPending = true;
+    compositeRemaining = [];
     plannedTotalMs = estimateSequenceMs(runSequence);
     runProgressFraction = 0;
-    setProgressFraction(0, { indeterminate: true });
+    setProgressFraction(0, { indeterminate: true, allowRetreat: true });
     if (runEstimate && plannedTotalMs > 0) {
       runEstimate.textContent = `Plan ${formatEstimateFriendly(plannedTotalMs)} · running…`;
       runEstimate.classList.remove('is-empty');
@@ -1025,13 +1061,41 @@
       if (ev.phase === 'hop' && typeof ev.total === 'number' && typeof ev.index === 'number') {
         hopsRemaining = Math.max(0, ev.total - ev.index + 1);
         packingPending = true;
+        const kids = COMPOSITE_SUB_HOPS[ev.hop];
+        compositeRemaining = Array.isArray(kids) ? kids.slice() : [];
         if (typeof ev.progress !== 'number' && ev.total > 0) {
           setProgressFraction((ev.index - 1) / (ev.total + 2));
+        }
+      }
+      if (ev.phase === 'subhop') {
+        const kids = COMPOSITE_SUB_HOPS[ev.hop];
+        if (Array.isArray(kids) && kids.length) {
+          const at = typeof ev.index === 'number'
+            ? Math.max(0, ev.index - 1)
+            : Math.max(0, kids.indexOf(ev.subhop));
+          compositeRemaining = kids.slice(at);
+        } else if (ev.subhop) {
+          compositeRemaining = [ev.subhop];
+        }
+      }
+      if (ev.phase === 'subhop_done') {
+        if (typeof ev.duration_ms === 'number' && ev.subhop) {
+          rememberHopSample(ev.subhop, ev.duration_ms, ev.changes);
+          hopDurationById[ev.subhop] = ev.duration_ms;
+        }
+        if (ev.subhop) {
+          if (compositeRemaining[0] === ev.subhop) {
+            compositeRemaining.shift();
+          } else {
+            const i = compositeRemaining.indexOf(ev.subhop);
+            if (i >= 0) compositeRemaining.splice(i, 1);
+          }
         }
       }
       if (ev.phase === 'pack') {
         hopsRemaining = 0;
         packingPending = true;
+        compositeRemaining = [];
       }
       if (ev.phase === 'pack_done' || ev.phase === 'unpack_done') {
         packingPending = ev.phase !== 'pack_done';
@@ -1041,6 +1105,7 @@
         updateRunEstimate();
       }
     } else if (ev.type === 'hop_done') {
+      compositeRemaining = [];
       if (typeof ev.duration_ms === 'number' && ev.duration_ms >= 0) {
         hopDurationsMs.push(ev.duration_ms);
         if (ev.hop) {
@@ -1074,9 +1139,10 @@
     if (progressLast && (!progressLast.textContent || /waiting for first/i.test(progressLast.textContent))) {
       progressLast.textContent = 'Sweep complete';
     }
-    setProgressFraction(1);
+    setProgressFraction(1, { allowRetreat: true });
     hopsRemaining = 0;
     packingPending = false;
+    compositeRemaining = [];
     stopProgressClock();
     refreshProgressTimes({ finalMs: elapsedMs });
     updateRunEstimate();

@@ -88,6 +88,8 @@ final class Pipeline
                 $options['_extract_dir'] = $archive->extractDir();
                 $options['_msapp_archive'] = $archive;
                 $options['_on_progress'] = $emit;
+                $options['_progress_base'] = $completedUnits / $units;
+                $options['_progress_span'] = 1.0 / $units;
                 $hop = $this->registry->make($id);
                 $emit([
                     'type' => 'phase',

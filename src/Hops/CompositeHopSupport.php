@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PowerSweeper\Hops;
 
+use PowerSweeper\HopProgress;
 use PowerSweeper\HopRegistry;
 use PowerSweeper\Report;
 
@@ -32,6 +33,11 @@ final class CompositeHopSupport
         $ran = 0;
         $byKind = [];
         $emit = is_callable($options['_on_progress'] ?? null) ? $options['_on_progress'] : null;
+        [$progressBase, $progressSpan] = HopProgress::boundsFromOptions($options);
+        $parentLabel = $registry->has($parentId)
+            ? $registry->make($parentId)::label()
+            : $parentId;
+
         $steps = [];
         foreach ($subHops as $step) {
             $id = (string) ($step['id'] ?? '');
@@ -47,6 +53,8 @@ final class CompositeHopSupport
             $steps[] = $step;
         }
         $stepTotal = count($steps);
+        $stepIds = array_map(static fn(array $s): string => (string) $s['id'], $steps);
+        $cum = HopProgress::cumulativeFractions($stepIds);
 
         $report->pushHopAlias($parentId);
         try {
@@ -54,15 +62,22 @@ final class CompositeHopSupport
                 $id = (string) ($step['id'] ?? '');
                 $kind = $kindLabel($id);
                 $countBefore = $report->count();
+                $fracStart = $cum[$stepIndex] ?? ($stepIndex / max(1, $stepTotal));
+                $fracEnd = $cum[$stepIndex + 1] ?? (($stepIndex + 1) / max(1, $stepTotal));
                 if ($emit !== null) {
                     $emit([
                         'type' => 'phase',
                         'phase' => 'subhop',
                         'hop' => $parentId,
+                        'label' => $parentLabel,
                         'subhop' => $id,
+                        'subhop_label' => $kind,
+                        'index' => $stepIndex + 1,
+                        'total' => max(1, $stepTotal),
+                        'progress' => HopProgress::map($progressBase, $progressSpan, $fracStart),
                         'message' => sprintf(
                             '%s · %s (%d/%d)',
-                            $parentId,
+                            $parentLabel,
                             $kind,
                             $stepIndex + 1,
                             max(1, $stepTotal),
@@ -71,14 +86,22 @@ final class CompositeHopSupport
                     ]);
                 }
                 $report->pushPropertyPrefix($kind);
+                $stepStarted = microtime(true);
                 try {
                     $hop = $registry->make($id);
                     $childOptions = array_merge($options, is_array($step['options'] ?? null) ? $step['options'] : []);
                     $childOptions['report_stats'] = false;
+                    $childOptions['_progress_base'] = HopProgress::map($progressBase, $progressSpan, $fracStart);
+                    $childOptions['_progress_span'] = max(
+                        0.0,
+                        HopProgress::map($progressBase, $progressSpan, $fracEnd)
+                            - HopProgress::map($progressBase, $progressSpan, $fracStart)
+                    );
                     $hop->apply($documents, $report, $childOptions);
                 } finally {
                     $report->popPropertyPrefix();
                 }
+                $durationMs = (int) round((microtime(true) - $stepStarted) * 1000);
                 $delta = $report->count() - $countBefore;
                 if ($delta > 0) {
                     $byKind[$kind] = ($byKind[$kind] ?? 0) + $delta;
@@ -94,10 +117,17 @@ final class CompositeHopSupport
                         'type' => 'phase',
                         'phase' => 'subhop_done',
                         'hop' => $parentId,
+                        'label' => $parentLabel,
                         'subhop' => $id,
+                        'subhop_label' => $kind,
+                        'index' => $stepIndex + 1,
+                        'total' => max(1, $stepTotal),
+                        'duration_ms' => $durationMs,
+                        'changes' => $delta,
+                        'progress' => HopProgress::map($progressBase, $progressSpan, $fracEnd),
                         'message' => sprintf(
                             'Finished %s · %s (%d changes)',
-                            $parentId,
+                            $parentLabel,
                             $kind,
                             $delta,
                         ),
