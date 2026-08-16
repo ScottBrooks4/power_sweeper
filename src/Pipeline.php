@@ -40,7 +40,7 @@ final class Pipeline
                 'to' => $entry['to'],
                 'count' => $count,
             ]);
-        }, 500, 160);
+        }, 500, 280);
 
         $hopTotal = count($hops);
         // unpack + each hop + pack

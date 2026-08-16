@@ -1020,7 +1020,7 @@
     const elapsedMs = markRunFinished(data);
     const total = data.report?.total ?? 0;
     const byHop = data.report?.by_hop || {};
-    const parts = Object.entries(byHop).map(([k, v]) => `${k}: ${v}`);
+    const parts = Object.entries(byHop).map(([k, v]) => `${hopMeta[k]?.label || k}: ${v}`);
     if (reportSummary) {
       const truncated = data.report?.entries_truncated
         ? ` (showing ${data.report.entries?.length || 0} of ${total})`
@@ -1035,13 +1035,14 @@
       const rows = data.report?.entries || [];
       const maxRows = 500;
       rows.slice(0, maxRows).forEach((row) => {
+        const hopLabel = hopMeta[row.hop]?.label || row.hop;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${escapeHtml(row.hop)}</td>
+          <td>${escapeHtml(hopLabel)}</td>
           <td>${escapeHtml(row.control)}</td>
           <td>${escapeHtml(row.property)}</td>
-          <td>${escapeHtml(row.from)}</td>
-          <td>${escapeHtml(row.to)}</td>
+          <td><code class="report-from">${escapeHtml(row.from)}</code></td>
+          <td><code class="report-to">${escapeHtml(row.to)}</code></td>
         `;
         reportTable.appendChild(tr);
       });

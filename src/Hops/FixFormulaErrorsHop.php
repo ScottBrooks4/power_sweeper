@@ -12,6 +12,9 @@ use PowerSweeper\Report;
  *
  * Covers locale separators, control/screen refs, SharePoint/ghost fields, syntax,
  * checked booleans, delegation/maintainability, and a live-checker converge loop.
+ *
+ * Child repairs attribute under this hop id with a kind prefix on the property
+ * column so the UI report reads like enable_dark_mode (control · from → to).
  */
 final class FixFormulaErrorsHop implements HopInterface
 {
@@ -41,6 +44,25 @@ final class FixFormulaErrorsHop implements HopInterface
         ];
     }
 
+    public static function kindLabel(string $subHopId): string
+    {
+        return match ($subHopId) {
+            'unwhack_locale_formulas' => 'locale',
+            'repair_double_qualified_refs' => 'screen refs',
+            'repair_control_refs' => 'control refs',
+            'repair_context_aware_refs' => 'context refs',
+            'repair_var_current_package' => 'package fields',
+            'repair_sharepoint_fields' => 'SharePoint fields',
+            'repair_ghost_patch_fields' => 'ghost Patch fields',
+            'repair_studio_syntax' => 'syntax',
+            'repair_checked_booleans' => 'checked booleans',
+            'repair_maintainability' => 'maintainability',
+            'repair_delegation' => 'delegation',
+            'repair_converge_formulas' => 'converge',
+            default => $subHopId,
+        };
+    }
+
     public static function id(): string
     {
         return 'fix_formula_errors';
@@ -61,30 +83,66 @@ final class FixFormulaErrorsHop implements HopInterface
         $before = $report->count();
         $registry = new HopRegistry();
         $ran = 0;
-        foreach (self::subHops() as $step) {
-            $id = (string) $step['id'];
-            if (!$registry->has($id) || $id === self::id()) {
-                continue;
+        $byKind = [];
+
+        $report->pushHopAlias(self::id());
+        try {
+            foreach (self::subHops() as $step) {
+                $id = (string) $step['id'];
+                if (!$registry->has($id) || $id === self::id()) {
+                    continue;
+                }
+                $kind = self::kindLabel($id);
+                $countBefore = $report->count();
+                $report->pushPropertyPrefix($kind);
+                try {
+                    $hop = $registry->make($id);
+                    $childOptions = array_merge($options, $step['options']);
+                    // Avoid nested "(summary)" noise from context-aware / converge when
+                    // we already emit per-formula from→to rows under this parent.
+                    $childOptions['report_stats'] = false;
+                    $hop->apply($documents, $report, $childOptions);
+                } finally {
+                    $report->popPropertyPrefix();
+                }
+                $delta = $report->count() - $countBefore;
+                if ($delta > 0) {
+                    $byKind[$kind] = ($byKind[$kind] ?? 0) + $delta;
+                }
+                $ran++;
+                if (function_exists('gc_collect_cycles')) {
+                    gc_collect_cycles();
+                }
             }
-            $hop = $registry->make($id);
-            $childOptions = array_merge($options, $step['options']);
-            $hop->apply($documents, $report, $childOptions);
-            $ran++;
-            // Sub-hops allocate large catalogs/checkers; free between passes on big apps.
-            if (function_exists('gc_collect_cycles')) {
-                gc_collect_cycles();
-            }
+        } finally {
+            $report->popHopAlias();
         }
 
         $delta = $report->count() - $before;
+        if ($delta === 0) {
+            $report->add(
+                self::id(),
+                '(summary)',
+                'fix_formula_errors',
+                (string) $ran . ' passes',
+                'no formula changes reported',
+            );
+            return;
+        }
+
+        // Dark-mode-style rollup: totals stay accurate; detail rows already listed.
+        $parts = [];
+        foreach ($byKind as $kind => $n) {
+            $parts[] = $kind . ': ' . $n;
+        }
         $report->add(
             self::id(),
             '(summary)',
             'fix_formula_errors',
-            (string) $ran . ' passes',
-            $delta === 0
-                ? 'no formula changes reported'
-                : sprintf('%d change(s) across formula repair passes', $delta),
+            (string) $delta . ' change(s)',
+            $parts === []
+                ? sprintf('%d change(s) across %d passes', $delta, $ran)
+                : implode(' · ', $parts),
         );
     }
 }

@@ -35,10 +35,22 @@ final class RepairDelegationHop implements HopInterface
             $doc->transformFormulas(function (string $formula, string $path) use ($report): string {
                 $rewritten = DelegationFormulaRewriter::rewrite($formula);
                 if ($rewritten !== $formula) {
-                    $report->add(self::id(), $path, '(formula)', '(delegation)', '(rewritten)');
+                    $report->add(
+                        self::id(),
+                        $path,
+                        'formula',
+                        self::preview($formula),
+                        self::preview($rewritten)
+                    );
                 }
                 return $rewritten;
             });
         }
+    }
+
+    private static function preview(string $s): string
+    {
+        $s = preg_replace('/\s+/', ' ', trim($s)) ?? $s;
+        return strlen($s) > 160 ? substr($s, 0, 157) . '...' : $s;
     }
 }

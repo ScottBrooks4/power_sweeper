@@ -1587,6 +1587,37 @@ assert_true($ffeReport->count() >= 1, 'fix_formula_errors writes a summary row')
 $ffeHops = array_column($ffeReport->entries(), 'hop');
 assert_true(in_array('fix_formula_errors', $ffeHops, true), 'fix_formula_errors summary hop id present');
 
+// fix_formula_errors — report attributes under parent hop with from→to like dark mode
+$ffeLocaleDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/App.pa.yaml');
+assert_true($ffeLocaleDoc !== null, 'locale fixture loads for fix_formula_errors report');
+$ffeDetailReport = new Report(null, 500, 280);
+(new \PowerSweeper\Hops\FixFormulaErrorsHop())->apply([$ffeLocaleDoc], $ffeDetailReport, []);
+assert_true($ffeDetailReport->count() > 1, 'fix_formula_errors reports detail rows on locale fixture');
+$ffeDetailHops = array_unique(array_column($ffeDetailReport->entries(), 'hop'));
+assert_true($ffeDetailHops === ['fix_formula_errors'], 'fix_formula_errors attributes all rows under parent hop');
+$ffeHasFormulaDiff = false;
+foreach ($ffeDetailReport->entries() as $row) {
+    if (($row['control'] ?? '') === '(summary)') {
+        continue;
+    }
+    if (($row['from'] ?? '') !== '' && ($row['to'] ?? '') !== ''
+        && ($row['from'] ?? '') !== '(screen ref)'
+        && ($row['to'] ?? '') !== '(normalized)'
+    ) {
+        $ffeHasFormulaDiff = true;
+        break;
+    }
+}
+assert_true($ffeHasFormulaDiff, 'fix_formula_errors includes from→to formula previews');
+$ffeHasKindPrefix = false;
+foreach ($ffeDetailReport->entries() as $row) {
+    if (str_contains((string) ($row['property'] ?? ''), 'locale')) {
+        $ffeHasKindPrefix = true;
+        break;
+    }
+}
+assert_true($ffeHasKindPrefix, 'fix_formula_errors property names include repair kind');
+
 $powerToWeb = HopChains::powerToWeb();
 $webToPower = HopChains::webToPower();
 assert_true(in_array('meaningful_names', array_column($powerToWeb, 'id'), true), 'power_to_web renames generics before export');

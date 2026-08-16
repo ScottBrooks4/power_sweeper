@@ -12,6 +12,10 @@ namespace PowerSweeper;
  * - track accurate totals / by_hop counts always
  * - retain only the first {@see $maxEntries} detail rows (UI preview)
  * - truncate long from/to snippets when storing or streaming
+ *
+ * Composite hops (e.g. fix_formula_errors) can push a hop alias so child
+ * repairs attribute under the parent hop id, optionally with a property prefix
+ * naming the repair kind (locale, control refs, …).
  */
 final class Report
 {
@@ -30,6 +34,12 @@ final class Report
 
     private int $snippetChars;
 
+    /** @var list<string> */
+    private array $hopAliasStack = [];
+
+    /** @var list<string> */
+    private array $propertyPrefixStack = [];
+
     /**
      * @param null|callable(array{hop:string,control:string,property:string,from:string,to:string}, int):void $onChange
      */
@@ -40,8 +50,45 @@ final class Report
         $this->snippetChars = max(16, $snippetChars);
     }
 
+    /** Attribute subsequent add() rows under this hop id (composite parent). */
+    public function pushHopAlias(string $hopId): void
+    {
+        $hopId = trim($hopId);
+        if ($hopId !== '') {
+            $this->hopAliasStack[] = $hopId;
+        }
+    }
+
+    public function popHopAlias(): void
+    {
+        array_pop($this->hopAliasStack);
+    }
+
+    /** Prefix property column (e.g. "locale · OnSelect") while a sub-pass runs. */
+    public function pushPropertyPrefix(string $prefix): void
+    {
+        $prefix = trim($prefix);
+        if ($prefix !== '') {
+            $this->propertyPrefixStack[] = $prefix;
+        }
+    }
+
+    public function popPropertyPrefix(): void
+    {
+        array_pop($this->propertyPrefixStack);
+    }
+
     public function add(string $hop, string $control, string $property, string $from, string $to): void
     {
+        if ($this->hopAliasStack !== []) {
+            $hop = $this->hopAliasStack[array_key_last($this->hopAliasStack)];
+        }
+        if ($this->propertyPrefixStack !== []) {
+            $prefix = $this->propertyPrefixStack[array_key_last($this->propertyPrefixStack)];
+            $property = ($property === '' || $property === '(formula)')
+                ? $prefix
+                : $prefix . ' · ' . $property;
+        }
         $entry = [
             'hop' => $hop,
             'control' => $control,

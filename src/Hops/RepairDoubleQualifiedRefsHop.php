@@ -38,11 +38,23 @@ final class RepairDoubleQualifiedRefsHop implements HopInterface
             $doc->transformFormulas(function (string $formula, string $path) use ($screens, $report): string {
                 $new = ScreenReferenceNormalizer::normalize($formula, $screens);
                 if ($new !== $formula) {
-                    $report->add(self::id(), $path, 'formula', '(screen ref)', '(normalized)');
+                    $report->add(
+                        self::id(),
+                        $path,
+                        'formula',
+                        self::preview($formula),
+                        self::preview($new)
+                    );
                 }
 
                 return $new;
             });
         }
+    }
+
+    private static function preview(string $s): string
+    {
+        $s = preg_replace('/\s+/', ' ', trim($s)) ?? $s;
+        return strlen($s) > 160 ? substr($s, 0, 157) . '...' : $s;
     }
 }

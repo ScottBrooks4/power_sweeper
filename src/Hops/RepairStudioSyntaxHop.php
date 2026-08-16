@@ -204,7 +204,7 @@ final class RepairStudioSyntaxHop implements HopInterface
                     $new
                 );
                 if ($replaced !== null && $replaced !== $new) {
-                    $report->add(self::id(), $path, 'Date()', '(screen-qualified function)', '(fixed)');
+                    $report->add(self::id(), $path, 'Date()', self::preview($new), self::preview($replaced));
                     $new = $replaced;
                     $changed = true;
                 }
@@ -215,7 +215,7 @@ final class RepairStudioSyntaxHop implements HopInterface
                     $new
                 );
                 if ($replaced !== null && $replaced !== $new) {
-                    $report->add(self::id(), $path, 'record key', '(screen-qualified)', '(fixed)');
+                    $report->add(self::id(), $path, 'record key', self::preview($new), self::preview($replaced));
                     $new = $replaced;
                     $changed = true;
                 }
@@ -230,14 +230,14 @@ final class RepairStudioSyntaxHop implements HopInterface
 
             $replaced = preg_replace('/""\s*,\s*\)/', '"")', $new);
             if ($replaced !== null && $replaced !== $new) {
-                $report->add(self::id(), $path, 'Concatenate', 'trailing ,)', '(fixed)');
+                $report->add(self::id(), $path, 'Concatenate', self::preview($new), self::preview($replaced));
                 $new = $replaced;
                 $changed = true;
             }
 
             $replaced = preg_replace('/\)\s*,\s*\)/', '))', $new);
             if ($replaced !== null && $replaced !== $new) {
-                $report->add(self::id(), $path, 'Concatenate', 'trailing ),)', '(fixed)');
+                $report->add(self::id(), $path, 'Concatenate', self::preview($new), self::preview($replaced));
                 $new = $replaced;
                 $changed = true;
             }
@@ -373,5 +373,11 @@ final class RepairStudioSyntaxHop implements HopInterface
 
         $report->add(self::id(), $path, 'OnVisible', '(empty or existing)', 'deferred App bootstrap');
         return str_starts_with(trim($formula), '=') ? '=' . $body : $body;
+    }
+
+    private static function preview(string $s): string
+    {
+        $s = preg_replace('/\s+/', ' ', trim($s)) ?? $s;
+        return strlen($s) > 160 ? substr($s, 0, 157) . '...' : $s;
     }
 }
