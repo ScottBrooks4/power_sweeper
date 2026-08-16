@@ -25,7 +25,14 @@ final class ScreenReferenceNormalizer
             return $formula;
         }
 
-        $screens = self::sortScreensLongestFirst($screenNames);
+        $allScreens = self::sortScreensLongestFirst($screenNames);
+        $screens = self::relevantScreens($formula, $allScreens);
+        if ($screens === null) {
+            // No screen names, Navigate/StartScreen/Screen: context, or heavy quote
+            // corruption — full normalization is a no-op for this formula.
+            return $formula;
+        }
+
         $formula = FormulaArtifactCleaner::clean($formula);
         $formula = self::repairWholeQuotedLiteral($formula, $screens);
         $formula = self::repairCorruptedScreenLiterals($formula, $screens);
@@ -48,13 +55,85 @@ final class ScreenReferenceNormalizer
     }
 
     /**
+     * Screens that can affect this formula, or null when normalization is unnecessary.
+     *
+     * @param list<string> $screens longest-first
+     * @return list<string>|null
+     */
+    private static function relevantScreens(string $formula, array $screens): ?array
+    {
+        $hasQuote = str_contains($formula, "'");
+        $hasNavigate = stripos($formula, 'Navigate') !== false;
+        $hasScreenCtx = stripos($formula, 'StartScreen') !== false
+            || str_contains($formula, 'Screen:')
+            || str_contains($formula, 'Screen :');
+        $hasCorruptQuotes = str_contains($formula, "'''");
+
+        if (!$hasQuote && !$hasNavigate && !$hasScreenCtx && !$hasCorruptQuotes) {
+            // Only unquoted identifier screens (e.g. App) can still matter.
+            $simple = [];
+            foreach ($screens as $screen) {
+                if (preg_match('/^[A-Za-z_][\w]*$/', $screen) !== 1) {
+                    continue;
+                }
+                if (preg_match('/(?<![\w.])' . preg_quote($screen, '/') . '(?![\w])/', $formula) === 1) {
+                    $simple[] = $screen;
+                }
+            }
+
+            return $simple === [] ? null : $simple;
+        }
+
+        $relevant = [];
+        foreach ($screens as $screen) {
+            if (str_contains($formula, $screen)) {
+                $relevant[] = $screen;
+            }
+        }
+
+        // Merged corruption / triple-quote salvage can resolve to a catalog screen
+        // that is not present as a literal substring yet.
+        if ($hasCorruptQuotes || self::looksLikeMergedScreenCorruption($formula)) {
+            return $screens;
+        }
+
+        if ($relevant !== []) {
+            return $relevant;
+        }
+
+        if ($hasNavigate || $hasScreenCtx) {
+            return $screens;
+        }
+
+        return null;
+    }
+
+    private static function looksLikeMergedScreenCorruption(string $formula): bool
+    {
+        // e.g. VCR 'VCR Home Page'.Admin Screen or 'Foo'.'Foo' chains with spaces
+        return preg_match("/[A-Za-z0-9] '(?:[^']|'')+'\\./", $formula) === 1
+            || preg_match("/'(?:[^']|'')+'\\.(?:Admin Screen|[A-Z][A-Za-z0-9 ]+)/", $formula) === 1;
+    }
+
+    /**
      * @param list<string> $screens
      * @return list<string>
      */
     private static function sortScreensLongestFirst(array $screens): array
     {
+        static $cache = [];
+        $key = implode("\0", $screens);
+        if (isset($cache[$key])) {
+            return $cache[$key];
+        }
+
         $unique = array_values(array_unique($screens));
         usort($unique, static fn(string $a, string $b): int => strlen($b) <=> strlen($a));
+        // Bound cache growth for long-running CLI / request reuse.
+        if (count($cache) > 32) {
+            $cache = [];
+        }
+        $cache[$key] = $unique;
 
         return $unique;
     }

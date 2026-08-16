@@ -10,6 +10,9 @@ namespace PowerSweeper;
  */
 final class ControlRefCandidateGenerator
 {
+    /** @var array<string, list<string>> */
+    private array $memo = [];
+
     /**
      * @param array<string, true> $localNames
      * @param array<string, string> $patternMap
@@ -28,6 +31,15 @@ final class ControlRefCandidateGenerator
         }
         if (isset($localNames[$badId]) || $catalog->hasOnScreen($screen, $badId)) {
             return [];
+        }
+
+        $memoKey = $badId . "\0" . $screen . "\0" . $hostControl . "\0"
+            . count($localNames) . "\0" . count($patternMap);
+        if ($patternMap !== []) {
+            $memoKey .= "\0" . hash('xxh128', serialize($patternMap));
+        }
+        if (isset($this->memo[$memoKey])) {
+            return $this->memo[$memoKey];
         }
 
         $seen = [];
@@ -65,6 +77,12 @@ final class ControlRefCandidateGenerator
             $add($this->fuzzyAppWide($badId, $screen, $catalog));
         }
         $add($this->crossScreenQualify($badId, $screen, $catalog));
+
+        // Bound memo growth for long request lifetimes.
+        if (count($this->memo) > 20000) {
+            $this->memo = [];
+        }
+        $this->memo[$memoKey] = $out;
 
         return $out;
     }

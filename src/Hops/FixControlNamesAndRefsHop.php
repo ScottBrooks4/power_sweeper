@@ -18,7 +18,8 @@ final class FixControlNamesAndRefsHop implements HopInterface
         return [
             ['id' => 'meaningful_names', 'options' => ['only_generic' => true]],
             ['id' => 'repair_double_qualified_refs', 'options' => []],
-            ['id' => 'repair_control_refs', 'options' => []],
+            // Screen normalize already runs before/after; skip the redundant per-formula pass.
+            ['id' => 'repair_control_refs', 'options' => ['normalize_screens' => false]],
             ['id' => 'repair_context_aware_refs', 'options' => []],
             ['id' => 'repair_double_qualified_refs', 'options' => []],
             ['id' => 'regenerate_sarif', 'options' => []],

@@ -52,12 +52,16 @@ final class RepairControlRefsHop implements HopInterface
             $isComponent = str_starts_with($doc->relativePath, 'Src/Components/');
 
             $relativePath = $doc->relativePath;
-            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $localNames, $isComponent, $report, $candidates, $relativePath, $formHost): string {
+            $normalizeScreens = ($options['normalize_screens'] ?? true) !== false;
+            $doc->transformFormulas(function (string $formula, string $path) use ($catalog, $screen, $screens, $localNames, $isComponent, $report, $candidates, $relativePath, $formHost, $normalizeScreens): string {
                 $new = $this->repairGhostLayoutBinding($formula, $localNames);
                 $host = $this->hostControlFromPath($path, $relativePath);
                 $map = $this->buildRenameMap($new, $screen, $catalog, $localNames, $candidates, $host);
                 $new = $map === [] ? $new : $this->applyRenameMap($new, $map, $catalog);
-                $new = ScreenReferenceNormalizer::normalize($new, $screens);
+                // Composite sandwich already runs repair_double_qualified_refs around this hop.
+                if ($normalizeScreens) {
+                    $new = ScreenReferenceNormalizer::normalize($new, $screens);
+                }
                 if ($isComponent && $formHost !== null) {
                     $new = $this->qualifyFormSectionRefs($new, $catalog, $formHost);
                 }
@@ -232,23 +236,39 @@ final class RepairControlRefsHop implements HopInterface
                 continue;
             }
 
-            // Token-stem only: accept a generator candidate when it is a near-identical
-            // spelling of a live control (Initiave/Initiative). Skip fuzzy long-shots.
-            foreach ($candidates->candidates($id, $screen, $hostControl, $localNames, $catalog) as $candidate) {
-                if (str_contains($candidate, '.') || $this->wouldOverQualifyScreen($catalog, $id, $candidate)) {
-                    continue;
-                }
-                if (!isset($localNames[$candidate]) && !$catalog->hasOnScreen($screen, $candidate)) {
-                    continue;
-                }
-                if ($this->nearIdenticalStem($id, $candidate)) {
-                    $map[$id] = $candidate;
-                    break;
-                }
+            // Near-identical local spelling (Initiave/Initiative). Scan locals directly —
+            // full candidate generation (incl. app-wide fuzzy) is unnecessary here and
+            // dominated runtime on large apps.
+            $near = $this->nearIdenticalLocalName($id, $localNames);
+            if ($near !== null) {
+                $map[$id] = $near;
             }
         }
 
         return $map;
+    }
+
+    /**
+     * @param array<string, true> $localNames
+     */
+    private function nearIdenticalLocalName(string $id, array $localNames): ?string
+    {
+        $idLen = strlen($id);
+        if ($idLen < 4) {
+            return null;
+        }
+
+        foreach (array_keys($localNames) as $name) {
+            $name = (string) $name;
+            if (abs(strlen($name) - $idLen) > 2) {
+                continue;
+            }
+            if ($this->nearIdenticalStem($id, $name)) {
+                return $name;
+            }
+        }
+
+        return null;
     }
 
     /**

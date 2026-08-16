@@ -25,14 +25,9 @@ final class IterativeFormulaRepairer
      */
     public function repair(array $documents, array $options = []): array
     {
-        $controlCount = 0;
-        foreach ($documents as $doc) {
-            $controlCount += count($doc->controls());
-        }
-        // Large apps: fewer verify iterations — each pass walks every formula.
-        $defaultIters = $controlCount >= 2000 ? 2 : ($controlCount >= 800 ? 3 : 5);
-        $maxIterations = max(1, (int) ($options['max_iterations'] ?? $defaultIters));
-        $maxCandidates = max(1, (int) ($options['max_candidates_per_id'] ?? ($controlCount >= 2000 ? 3 : 6)));
+        // Full coverage: do not reduce iterations/candidates on large apps.
+        $maxIterations = max(1, (int) ($options['max_iterations'] ?? 5));
+        $maxCandidates = max(1, (int) ($options['max_candidates_per_id'] ?? 32));
         $catalog = AppControlCatalog::build($documents);
         $perHostPatternMap = FormulaPatternAnalyzer::inferPerHostRenameMap($documents, $catalog);
         $patternMap = FormulaPatternAnalyzer::inferRenameMap($documents, $catalog);
@@ -228,9 +223,8 @@ final class IterativeFormulaRepairer
                 ];
             }
 
-            // Rebuild catalog after formula repairs may unlock further resolutions.
-            $catalog = AppControlCatalog::build($documents);
-            $checker = new PowerFxFormulaChecker($catalog, $this->dataContext);
+            // Formula-only edits do not change control structure — keep the catalog.
+            // Pattern maps can unlock further renames after sibling formulas change.
             $perHostPatternMap = FormulaPatternAnalyzer::inferPerHostRenameMap($documents, $catalog);
             $patternMap = FormulaPatternAnalyzer::inferRenameMap($documents, $catalog);
         }
@@ -384,19 +378,10 @@ final class IterativeFormulaRepairer
                 continue;
             }
 
+            // resolveIdentifier never returns the same id; non-null means a rename target.
+            // Do not call candidates() here — that is O(controls) and only needed when trying fixes.
             $resolved = $catalog->resolveIdentifier($screen, $id);
-            $aligned = $this->generator->candidates(
-                $id,
-                $screen,
-                $controlName,
-                $localNames,
-                $catalog,
-            )[0] ?? null;
-            if ($resolved !== null && $resolved !== $id && !isset($localNames[$id])) {
-                $bad[] = $id;
-                continue;
-            }
-            if ($resolved !== null && $aligned !== null && $aligned !== $resolved && $aligned !== $id) {
+            if ($resolved !== null && $resolved !== $id) {
                 $bad[] = $id;
                 continue;
             }
