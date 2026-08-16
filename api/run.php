@@ -191,6 +191,11 @@ if ($wantsStream) {
 }
 
 try {
+    // Large hops (control-ref repair on THCEE-class apps) need more than the
+    // default 600s; azure/php-uploads.ini + nginx also allow 1800s.
+    @set_time_limit(1800);
+    @ini_set('max_execution_time', '1800');
+
     $contentLength = isset($_SERVER['CONTENT_LENGTH']) ? (int) $_SERVER['CONTENT_LENGTH'] : 0;
     $postMax = ps_bytes((string) ini_get('post_max_size'));
     $uploadMax = ps_bytes((string) ini_get('upload_max_filesize'));

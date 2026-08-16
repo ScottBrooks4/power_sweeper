@@ -25,7 +25,14 @@ final class IterativeFormulaRepairer
      */
     public function repair(array $documents, array $options = []): array
     {
-        $maxIterations = max(1, (int) ($options['max_iterations'] ?? 5));
+        $controlCount = 0;
+        foreach ($documents as $doc) {
+            $controlCount += count($doc->controls());
+        }
+        // Large apps: fewer verify iterations — each pass walks every formula.
+        $defaultIters = $controlCount >= 2000 ? 2 : ($controlCount >= 800 ? 3 : 5);
+        $maxIterations = max(1, (int) ($options['max_iterations'] ?? $defaultIters));
+        $maxCandidates = max(1, (int) ($options['max_candidates_per_id'] ?? ($controlCount >= 2000 ? 3 : 6)));
         $catalog = AppControlCatalog::build($documents);
         $perHostPatternMap = FormulaPatternAnalyzer::inferPerHostRenameMap($documents, $catalog);
         $patternMap = FormulaPatternAnalyzer::inferRenameMap($documents, $catalog);
@@ -57,6 +64,7 @@ final class IterativeFormulaRepairer
                     $screenRecordVars,
                     $patternMap,
                     $perHostPatternMap,
+                    $maxCandidates,
                     &$iterRepairs,
                     $doc,
                 ): string {
@@ -131,9 +139,8 @@ final class IterativeFormulaRepairer
                         if (isset($hostPatternMap[$badId])) {
                             $candidate = $hostPatternMap[$badId];
                             $trial = $this->applyMap($formula, [$badId => $candidate], $catalog);
-                            if ($this->isImprovement(
+                            $trialScore = $this->scoreFormula(
                                 $checker,
-                                $formula,
                                 $trial,
                                 $screen,
                                 $location,
@@ -144,9 +151,11 @@ final class IterativeFormulaRepairer
                                 $screenRecordVars,
                                 $hostPatternMap,
                                 $catalog,
-                            )) {
+                            );
+                            if ($trial !== $formula && $trialScore < $beforeScore) {
                                 $map[$badId] = $candidate;
                                 $formula = $trial;
+                                $beforeScore = $trialScore;
                                 continue;
                             }
                         }
@@ -160,18 +169,21 @@ final class IterativeFormulaRepairer
                             $patternMap,
                         );
 
-                        $best = null;
-                        $bestCount = $beforeScore;
+                        $tried = 0;
                         foreach ($candidates as $candidate) {
+                            if ($tried >= $maxCandidates) {
+                                break;
+                            }
+                            $tried++;
                             if ($this->wouldOverQualifyScreen($catalog, $badId, $candidate)) {
                                 continue;
                             }
-                            $trialMap = $map;
-                            $trialMap[$badId] = $candidate;
-                            $trial = $this->applyMap($formula, $trialMap, $catalog);
-                            if ($this->isImprovement(
+                            $trial = $this->applyMap($formula, [$badId => $candidate], $catalog);
+                            if ($trial === $formula) {
+                                continue;
+                            }
+                            $trialScore = $this->scoreFormula(
                                 $checker,
-                                $formula,
                                 $trial,
                                 $screen,
                                 $location,
@@ -182,30 +194,16 @@ final class IterativeFormulaRepairer
                                 $screenRecordVars,
                                 $hostPatternMap,
                                 $catalog,
-                            )) {
-                                $best = $candidate;
-                                $bestCount = $this->scoreFormula(
-                                    $checker,
-                                    $trial,
-                                    $screen,
-                                    $location,
-                                    $controlType,
-                                    $property,
-                                    $controlName,
-                                    $localNames,
-                                    $screenRecordVars,
-                                    $hostPatternMap,
-                                    $catalog,
-                                );
-                            }
-                            if ($bestCount <= 0) {
+                            );
+                            if ($trialScore < $beforeScore) {
+                                $map[$badId] = $candidate;
+                                $formula = $trial;
+                                $beforeScore = $trialScore;
+                                if ($beforeScore <= 0) {
+                                    break;
+                                }
                                 break;
                             }
-                        }
-
-                        if ($best !== null) {
-                            $map[$badId] = $best;
-                            $formula = $this->applyMap($formula, [$badId => $best], $catalog);
                         }
                     }
 

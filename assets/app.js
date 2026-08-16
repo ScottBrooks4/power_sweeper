@@ -131,7 +131,7 @@
     ensure_focus_visible: 20,
     ensure_tab_index: 20,
     repair_control_refs: 28000,
-    repair_context_aware_refs: 3200,
+    repair_context_aware_refs: 120000,
     repair_converge_formulas: 4000,
     repair_double_qualified_refs: 3200,
     repair_studio_syntax: 400,
@@ -143,7 +143,7 @@
     repair_var_current_package: 200,
     // Approx sums of COMPOSITE_SUB_HOPS fallbacks.
     fix_formula_errors: 55850,
-    fix_control_names_and_refs: 40050,
+    fix_control_names_and_refs: 155000,
     accessibility_polish: 2520,
     enable_dark_theme: 4640,
     clean_default_chrome: 2500,

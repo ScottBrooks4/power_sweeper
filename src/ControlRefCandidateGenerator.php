@@ -59,7 +59,11 @@ final class ControlRefCandidateGenerator
         $add($this->resolveComponentHostAlias($badId, $catalog));
         $add($this->resolveTokenStem($badId, $localNames));
         $add($this->fuzzyLocal($badId, $localNames));
-        $add($this->fuzzyAppWide($badId, $screen, $catalog));
+        // App-wide fuzzy matching is O(controls) per bad id — skip when cheaper
+        // candidates already exist (critical for THCEE-scale apps).
+        if ($out === []) {
+            $add($this->fuzzyAppWide($badId, $screen, $catalog));
+        }
         $add($this->crossScreenQualify($badId, $screen, $catalog));
 
         return $out;
@@ -292,24 +296,14 @@ final class ControlRefCandidateGenerator
 
     private function fuzzyAppWide(string $badId, string $screen, AppControlCatalog $catalog): ?string
     {
+        // Same-screen only. Scanning every control in the app with levenshtein
+        // for each bad identifier times out on THCEE-class packages (~5k controls).
         $pool = [];
-        foreach ($catalog->screensWith($badId) as $s) {
-            if ($s !== $screen) {
-                continue;
-            }
-        }
         foreach ($catalog->controlNamesOnScreen($screen) as $name) {
             $pool[] = $name;
         }
-        foreach ($catalog->screenNames() as $s) {
-            if ($s === $screen) {
-                continue;
-            }
-            foreach ($catalog->controlNamesOnScreen($s) as $name) {
-                if (!str_contains($name, ' ')) {
-                    $pool[] = $name;
-                }
-            }
+        if ($pool === []) {
+            return null;
         }
 
         $match = StringSimilarity::bestMatch($badId, array_values(array_unique($pool)), 2);
@@ -317,20 +311,7 @@ final class ControlRefCandidateGenerator
             return null;
         }
 
-        $found = $match['match'];
-        if ($catalog->hasOnScreen($screen, $found)) {
-            return $found;
-        }
-
-        $others = array_values(array_filter(
-            $catalog->screensWith($found),
-            static fn(string $s): bool => $s !== $screen
-        ));
-        if (count($others) === 1 && !$catalog->isComponentInstance($found)) {
-            return $catalog->qualify($others[0], $found);
-        }
-
-        return null;
+        return $match['match'];
     }
 
     private function crossScreenQualify(string $badId, string $screen, AppControlCatalog $catalog): ?string
