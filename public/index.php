@@ -18,6 +18,10 @@ if (str_ends_with($basePath, '/public')) {
     $basePath = substr($basePath, 0, -strlen('/public'));
 }
 $basePath = $basePath === '' ? '' : $basePath;
+// Bust Azure /assets/ 7d cache when the mark changes (tab + hero share one SVG).
+$brandIconPath = __DIR__ . '/assets/favicon.svg';
+$brandIconVer = is_file($brandIconPath) ? (string) filemtime($brandIconPath) : '1';
+$brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -26,7 +30,7 @@ $basePath = $basePath === '' ? '' : $basePath;
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Power Sweeper</title>
   <base href="<?= htmlspecialchars(($basePath === '' ? '' : $basePath) . '/', ENT_QUOTES) ?>">
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="<?= htmlspecialchars($brandIconHref, ENT_QUOTES) ?>" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -36,7 +40,7 @@ $basePath = $basePath === '' ? '' : $basePath;
   <div class="page">
     <header class="hero">
       <div class="brand-lockup">
-        <img class="brand-icon" src="assets/favicon.svg" width="56" height="56" alt="">
+        <img class="brand-icon" src="<?= htmlspecialchars($brandIconHref, ENT_QUOTES) ?>" width="56" height="56" alt="">
         <div class="brand-copy">
           <p class="brand">Power Sweeper</p>
           <h1>Clean a canvas app in hops</h1>
