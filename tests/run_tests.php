@@ -187,6 +187,49 @@ assert_true(
     'SaveIcon AccessibleLabel from caption to the right'
 );
 
+// Purpose-first labels: spoken meaning for icons, checkboxes, destinations — not Button1
+$purposeDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/a11y_purpose.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($purposeDoc !== null, 'a11y purpose fixture loads');
+$purposeReport = new Report();
+(new AccessibilityLabelsHop())->apply([$purposeDoc], $purposeReport);
+$purposeLabels = [];
+foreach ($purposeDoc->controls() as $c) {
+    $purposeLabels[$c->name] = $c->getProperty('AccessibleLabel');
+}
+assert_true(
+    is_string($purposeLabels['ManagerReviewCheck'] ?? null)
+        && str_contains(strtolower((string) $purposeLabels['ManagerReviewCheck']), 'checkbox for')
+        && str_contains(strtolower((string) $purposeLabels['ManagerReviewCheck']), 'manager'),
+    'checkbox AccessibleLabel is purpose speech with role'
+);
+assert_true(
+    is_string($purposeLabels['NextFormIcon'] ?? null)
+        && str_contains(strtolower((string) $purposeLabels['NextFormIcon']), 'right arrow')
+        && str_contains(strtolower((string) $purposeLabels['NextFormIcon']), 'request form'),
+    'icon AccessibleLabel uses icon meaning + Navigate destination'
+);
+assert_true(
+    is_string($purposeLabels['SaveOnlyIcon'] ?? null)
+        && preg_match('/^=?"Save"?\s*$/', trim((string) $purposeLabels['SaveOnlyIcon'])) === 1,
+    'icon AccessibleLabel uses Icon.Save meaning, not control name'
+);
+assert_true(
+    is_string($purposeLabels['OpenDetailsButton'] ?? null)
+        && str_contains(strtolower((string) $purposeLabels['OpenDetailsButton']), 'details'),
+    'empty-text button AccessibleLabel uses Navigate destination'
+);
+assert_true(
+    is_string($purposeLabels['Button1'] ?? null)
+        && !str_contains(strtolower((string) $purposeLabels['Button1']), 'button 1'),
+    'generic Button1 does not become AccessibleLabel "Button 1"'
+);
+assert_true(
+    is_string($purposeLabels['ApprovalRequiredToggle'] ?? null)
+        && str_contains(strtolower((string) $purposeLabels['ApprovalRequiredToggle']), 'toggle for')
+        && str_contains(strtolower((string) $purposeLabels['ApprovalRequiredToggle']), 'approval'),
+    'toggle AccessibleLabel uses meaningful name as purpose with role'
+);
+
 $jsonTextNode = (object) ['Name' => 'Hint', 'Template' => (object) ['Name' => 'text'], 'Rules' => []];
 $jsonTextControl = new \PowerSweeper\ControlNode('Hint', 'text', 'Controls/x.json/Hint', 'json', $jsonTextNode);
 assert_true($jsonTextControl->isInteractive(), 'JSON classic TextInput template name "text" is interactive');

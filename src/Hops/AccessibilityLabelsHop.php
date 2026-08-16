@@ -9,6 +9,12 @@ use PowerSweeper\ControlNode;
 use PowerSweeper\HopOptions;
 use PowerSweeper\Report;
 
+/**
+ * Fill AccessibleLabel for people who cannot rely on sight alone.
+ *
+ * Prefer spoken purpose (visible caption, tooltip, icon meaning, destination)
+ * over internal Studio names like Button1 / Icon5.
+ */
 final class AccessibilityLabelsHop implements HopInterface
 {
     /** @var array<string, ControlNode> */
@@ -29,7 +35,7 @@ final class AccessibilityLabelsHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Fill missing AccessibleLabel on interactive controls from Text/Tooltip/HintText, child labels, and neighboring Label controls (above/left or name-paired). Dynamic sources bind live (Self.Text / Neighbor.Text).';
+        return 'Fill missing AccessibleLabel with user-facing purpose: nearby captions, tooltips, icon meaning (e.g. right arrow), and action context (e.g. to select a form) — not internal control names. Checkboxes/toggles become “checkbox for …”.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -89,24 +95,26 @@ final class AccessibilityLabelsHop implements HopInterface
      */
     private function resolveAccessibleLabel(ControlNode $control): ?string
     {
-        // 1) Own visible / hint text
+        // 1) Own visible / hint text — already what a sighted user reads.
         $text = $control->getProperty('Text');
         if ($text !== null && !$this->isBlank($text)) {
             if ($this->isDynamicExpression($text)) {
-                return $this->formulaRef($control, 'Self.Text');
+                return $this->rolePrefixedRef($control, 'Self.Text');
             }
-            return $this->quotedLiteral($control, $this->unwrap($text));
+
+            return $this->spokenLiteral($control, $this->cleanCaption($this->unwrap($text)));
         }
 
-        foreach (['Tooltip', 'HintText', 'ContentLanguage'] as $prop) {
+        foreach (['Tooltip', 'HintText'] as $prop) {
             $val = $control->getProperty($prop);
             if ($val === null || $this->isBlank($val)) {
                 continue;
             }
             if ($this->isDynamicExpression($val)) {
-                return $this->formulaRef($control, 'Self.' . $prop);
+                return $this->rolePrefixedRef($control, 'Self.' . $prop);
             }
-            return $this->quotedLiteral($control, $this->unwrap($val));
+
+            return $this->spokenLiteral($control, $this->cleanCaption($this->unwrap($val)));
         }
 
         // 2) Nested label children (buttons wrapping a Label, etc.)
@@ -115,18 +123,15 @@ final class AccessibilityLabelsHop implements HopInterface
             return $fromChild;
         }
 
-        // 3) Neighboring labels (siblings / parent peers) — critical for inputs
+        // 3) Neighboring captions (siblings / parent peers) — critical for inputs & icons
         $fromNeighbor = $this->labelFromNeighbors($control);
         if ($fromNeighbor !== null) {
             return $fromNeighbor;
         }
 
-        // 4) Humanize control name: NewRequestButton -> New Request Button
-        $name = preg_replace('/([a-z])([A-Z])/', '$1 $2', $control->name) ?? $control->name;
-        $name = trim(preg_replace('/[_\-]+/', ' ', $name) ?? $name);
-        $name = trim(preg_replace('/\s+/', ' ', $name) ?? $name);
-        // Strip trailing type noise for inputs: "Email Input" stays; bare "Text Input 1" is weak but ok
-        return $name !== '' ? $this->quotedLiteral($control, $name) : null;
+        // 4) Purpose from icon meaning + action (Navigate) + meaningful name stems.
+        // Never fall back to "Button 1" / "Icon 5" — that is maker jargon, not user speech.
+        return $this->purposeFromContext($control);
     }
 
     private function labelFromChildren(ControlNode $control): ?string
@@ -140,17 +145,17 @@ final class AccessibilityLabelsHop implements HopInterface
                 continue;
             }
             if ($this->isDynamicExpression($childText)) {
-                // Prefer a live sibling-style ref when the child has a usable name.
                 if ($this->isSafeControlRef($child->name)) {
-                    return $this->formulaRef($control, $child->name . '.Text');
+                    return $this->rolePrefixedRef($control, $child->name . '.Text');
                 }
                 $clean = $this->unwrap($childText);
                 if ($clean !== '' && !$this->isDynamicExpression('=' . $clean)) {
-                    return $this->quotedLiteral($control, $clean);
+                    return $this->spokenLiteral($control, $this->cleanCaption($clean));
                 }
                 continue;
             }
-            return $this->quotedLiteral($control, $this->unwrap($childText));
+
+            return $this->spokenLiteral($control, $this->cleanCaption($this->unwrap($childText)));
         }
 
         return null;
@@ -163,10 +168,16 @@ final class AccessibilityLabelsHop implements HopInterface
             return null;
         }
 
-        // Highest score first.
         usort($candidates, static fn(array $a, array $b): int => $b['score'] <=> $a['score']);
         $best = $candidates[0];
-        if ($best['score'] < 20) {
+        // Require a clear above/left/right or name-pair signal (not vague proximity).
+        $minScore = 40;
+        // Icons/buttons that already expose Icon= / Navigate purpose should only
+        // take a neighbor when it is a tight caption (right/name), not a distant form label.
+        if ($this->iconDescription($control) !== null || $this->actionPhrase($control) !== null) {
+            $minScore = 70;
+        }
+        if ($best['score'] < $minScore) {
             return null;
         }
 
@@ -178,13 +189,411 @@ final class AccessibilityLabelsHop implements HopInterface
         }
 
         if ($this->isDynamicExpression($text) && $this->isSafeControlRef($label->name)) {
-            return $this->formulaRef($control, $label->name . '.Text');
+            return $this->rolePrefixedRef($control, $label->name . '.Text');
         }
         if ($this->isDynamicExpression($text)) {
             return null;
         }
 
-        return $this->quotedLiteral($control, $this->unwrap($text));
+        return $this->spokenLiteral($control, $this->cleanCaption($this->unwrap($text)));
+    }
+
+    /**
+     * Last-resort purpose when no visible caption exists.
+     */
+    private function purposeFromContext(ControlNode $control): ?string
+    {
+        $icon = $this->iconDescription($control);
+        $action = $this->actionPhrase($control);
+        $fromName = $this->purposeFromControlName($control);
+        $role = $this->rolePhrase($control);
+
+        if ($icon !== null && $action !== null) {
+            return $this->quotedLiteral($control, $icon . ' ' . $action);
+        }
+        if ($icon !== null && $fromName !== null) {
+            // Avoid "Save to save only" when the name restates the icon.
+            if (
+                strcasecmp($icon, $fromName) === 0
+                || str_contains(mb_strtolower($fromName), mb_strtolower($icon))
+                || str_contains(mb_strtolower($icon), mb_strtolower($fromName))
+            ) {
+                return $this->quotedLiteral($control, $icon);
+            }
+
+            return $this->quotedLiteral($control, $icon . ' to ' . $this->sentenceCase($fromName));
+        }
+        if ($fromName !== null) {
+            return $this->spokenLiteral($control, $fromName);
+        }
+        if ($icon !== null && $action === null) {
+            return $this->quotedLiteral($control, $icon);
+        }
+        if ($action !== null) {
+            // "to Request Form" → "Go to Request Form"
+            $spoken = str_starts_with($action, 'to ')
+                ? 'Go ' . $action
+                : $action;
+
+            return $this->quotedLiteral($control, $spoken);
+        }
+
+        // Weak but still user-facing role, never "Button 1".
+        return $role !== '' ? $this->quotedLiteral($control, ucfirst($role)) : null;
+    }
+
+    /**
+     * Wrap checkbox/toggle purpose; leave buttons/inputs as the caption itself.
+     */
+    private function spokenLiteral(ControlNode $control, string $purpose): ?string
+    {
+        $purpose = $this->cleanCaption($purpose);
+        if ($purpose === '') {
+            return null;
+        }
+        if ($this->needsRolePrefix($control)) {
+            $purpose = $this->forPhrase($this->rolePhrase($control), $purpose);
+        }
+
+        return $this->quotedLiteral($control, $purpose);
+    }
+
+    private function rolePrefixedRef(ControlNode $control, string $expr): string
+    {
+        if (!$this->needsRolePrefix($control)) {
+            return $this->formulaRef($control, $expr);
+        }
+        $role = $this->rolePhrase($control);
+        $prefix = '"' . str_replace('"', '""', $role . ' for ') . '"';
+
+        return $this->formulaRef($control, $prefix . ' & ' . $expr);
+    }
+
+    private function needsRolePrefix(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+
+        return str_contains($t, 'checkbox')
+            || str_contains($t, 'toggle')
+            || str_contains($t, 'switch');
+    }
+
+    private function rolePhrase(ControlNode $control): string
+    {
+        $t = strtolower($control->type);
+        if (str_contains($t, 'checkbox')) {
+            return 'checkbox';
+        }
+        if (str_contains($t, 'toggle') || str_contains($t, 'switch')) {
+            return 'toggle';
+        }
+        if (str_contains($t, 'radio')) {
+            return 'radio group';
+        }
+        if (str_contains($t, 'dropdown') || str_contains($t, 'combobox')) {
+            return 'dropdown';
+        }
+        if (str_contains($t, 'datepicker')) {
+            return 'date picker';
+        }
+        if (str_contains($t, 'slider')) {
+            return 'slider';
+        }
+        if (str_contains($t, 'gallery')) {
+            return 'gallery';
+        }
+        if (str_contains($t, 'icon')) {
+            return 'icon';
+        }
+        if (str_contains($t, 'image') && !str_contains($t, 'input')) {
+            return 'image';
+        }
+        if (str_contains($t, 'button') || str_contains($t, 'link')) {
+            return 'button';
+        }
+        if (str_contains($t, 'textinput') || $t === 'text' || $t === 'textarea') {
+            return 'text input';
+        }
+
+        return 'control';
+    }
+
+    private function forPhrase(string $role, string $purpose): string
+    {
+        $purpose = $this->cleanCaption($purpose);
+        if ($purpose === '') {
+            return $role;
+        }
+        if ($role !== '' && preg_match('/^\s*' . preg_quote($role, '/') . '\b/i', $purpose) === 1) {
+            return $purpose;
+        }
+        if ($role === '') {
+            return $purpose;
+        }
+
+        return $role . ' for ' . $this->sentenceCase($purpose);
+    }
+
+    private function cleanCaption(string $text): string
+    {
+        $text = trim($text);
+        $text = rtrim($text, " \t:");
+        $text = trim(preg_replace('/\s+/', ' ', $text) ?? $text);
+
+        return $text;
+    }
+
+    private function sentenceCase(string $text): string
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return $text;
+        }
+        $parts = preg_split('/\s+/', $text) ?: [];
+        $out = [];
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+            // Keep short ALL-CAPS tokens (PDF, ID, URL).
+            if (preg_match('/^[A-Z]{2,5}$/', $part) === 1) {
+                $out[] = $part;
+                continue;
+            }
+            $out[] = mb_strtolower($part);
+        }
+
+        return implode(' ', $out);
+    }
+
+    private function iconDescription(ControlNode $control): ?string
+    {
+        $t = strtolower($control->type);
+        if (!str_contains($t, 'icon')) {
+            // Some buttons use Icon= without being Icon controls.
+            $raw = $control->getProperty('Icon');
+            if ($raw === null || $this->isBlank($raw)) {
+                return null;
+            }
+        } else {
+            $raw = $control->getProperty('Icon');
+            if ($raw === null || $this->isBlank($raw)) {
+                return null;
+            }
+        }
+
+        $token = $this->unwrap((string) $raw);
+        if (!preg_match('/\bIcon\.([A-Za-z][A-Za-z0-9]*)\b/', $token, $m)) {
+            return null;
+        }
+
+        return $this->speakIconName($m[1]);
+    }
+
+    private function speakIconName(string $iconName): string
+    {
+        $map = [
+            'ChevronRight' => 'Right arrow',
+            'ChevronLeft' => 'Left arrow',
+            'ChevronUp' => 'Up arrow',
+            'ChevronDown' => 'Down arrow',
+            'ArrowRight' => 'Right arrow',
+            'ArrowLeft' => 'Left arrow',
+            'ArrowUp' => 'Up arrow',
+            'ArrowDown' => 'Down arrow',
+            'NextArrow' => 'Next',
+            'BackArrow' => 'Back',
+            'Forward' => 'Forward',
+            'Back' => 'Back',
+            'Add' => 'Add',
+            'AddDocument' => 'Add document',
+            'Save' => 'Save',
+            'Edit' => 'Edit',
+            'EditDocument' => 'Edit document',
+            'Trash' => 'Delete',
+            'Delete' => 'Delete',
+            'Cancel' => 'Cancel',
+            'CancelBadge' => 'Cancel',
+            'Check' => 'Check',
+            'CheckBadge' => 'Check',
+            'Home' => 'Home',
+            'Search' => 'Search',
+            'Settings' => 'Settings',
+            'SettingsOutline' => 'Settings',
+            'Info' => 'Information',
+            'Warning' => 'Warning',
+            'Error' => 'Error',
+            'Mail' => 'Mail',
+            'Message' => 'Message',
+            'Phone' => 'Phone',
+            'Calendar' => 'Calendar',
+            'Clock' => 'Clock',
+            'Person' => 'Person',
+            'People' => 'People',
+            'Filter' => 'Filter',
+            'Print' => 'Print',
+            'Download' => 'Download',
+            'Upload' => 'Upload',
+            'Refresh' => 'Refresh',
+            'Reload' => 'Reload',
+            'More' => 'More options',
+            'MoreVertical' => 'More options',
+            'Hamburger' => 'Menu',
+            'List' => 'List',
+            'View' => 'View',
+            'Hide' => 'Hide',
+            'Lock' => 'Lock',
+            'Unlock' => 'Unlock',
+            'Copy' => 'Copy',
+            'Cut' => 'Cut',
+            'Paste' => 'Paste',
+            'Send' => 'Send',
+            'Share' => 'Share',
+            'Star' => 'Star',
+            'Favorite' => 'Favorite',
+            'Flag' => 'Flag',
+            'Pin' => 'Pin',
+            'Location' => 'Location',
+            'Document' => 'Document',
+            'Folder' => 'Folder',
+            'Attach' => 'Attach',
+            'Camera' => 'Camera',
+            'Photo' => 'Photo',
+            'Play' => 'Play',
+            'Pause' => 'Pause',
+            'Stop' => 'Stop',
+            'Items' => 'Items',
+            'DetailList' => 'Details',
+            'DockLeft' => 'Previous',
+            'DockRight' => 'Next',
+        ];
+        if (isset($map[$iconName])) {
+            return $map[$iconName];
+        }
+
+        $words = preg_replace('/([a-z])([A-Z])/', '$1 $2', $iconName) ?? $iconName;
+        $words = trim(preg_replace('/\s+/', ' ', $words) ?? $words);
+
+        return $words !== '' ? $words : 'Icon';
+    }
+
+    private function actionPhrase(ControlNode $control): ?string
+    {
+        foreach (['OnSelect', 'OnChange', 'OnCheck', 'OnUncheck'] as $prop) {
+            $raw = $control->getProperty($prop);
+            if ($raw === null || $this->isBlank($raw)) {
+                continue;
+            }
+            $code = $this->unwrap($raw);
+            if (preg_match(
+                '/\bNavigate\s*\(\s*(?:\'([^\']+)\'|"([^"]+)"|([A-Za-z_][\w]*))/',
+                $code,
+                $m
+            ) === 1) {
+                $screen = $m[1] !== '' ? $m[1] : ($m[2] !== '' ? $m[2] : ($m[3] ?? ''));
+                $screen = $this->humanizeIdentifier($screen);
+                if ($screen === '') {
+                    continue;
+                }
+
+                return 'to ' . $screen;
+            }
+            if (preg_match('/\bSelect\s*\(\s*Parent\s*\)/i', $code) === 1) {
+                return 'to select item';
+            }
+            if (preg_match('/\bRemove\s*\(/i', $code) === 1) {
+                return 'to remove';
+            }
+            if (preg_match('/\bEditForm\s*\(/i', $code) === 1) {
+                return 'to edit form';
+            }
+            if (preg_match('/\bNewForm\s*\(/i', $code) === 1) {
+                return 'to create new';
+            }
+            if (preg_match('/\bSubmitForm\s*\(/i', $code) === 1) {
+                return 'to submit form';
+            }
+            if (preg_match('/\bResetForm\s*\(/i', $code) === 1) {
+                return 'to reset form';
+            }
+            if (preg_match('/\bViewForm\s*\(/i', $code) === 1) {
+                return 'to view form';
+            }
+        }
+
+        return null;
+    }
+
+    private function purposeFromControlName(ControlNode $control): ?string
+    {
+        $name = $control->name;
+        if ($name === '' || $this->isStudioGenericName($name)) {
+            return null;
+        }
+
+        $stem = preg_replace(
+            '/^(lbl|txt|txt_|inp|input|cmb|cbo|ddl|drp|btn|img|ico|chk|tgl)+/i',
+            '',
+            $name
+        ) ?? $name;
+        $stem = preg_replace(
+            '/(Label|Lbl|TextInput|TextBox|Input|Field|ComboBox|Combo|Dropdown|DropDown|DatePicker|Picker|CheckBox|Checkbox|Check|Toggle|Slider|Gallery|Button|Btn|Icon|Image|Radio)$/i',
+            '',
+            $stem
+        ) ?? $stem;
+        $stem = preg_replace('/\d+$/', '', $stem) ?? $stem;
+        $stem = trim($stem, "_- \t");
+        if ($stem === '' || $this->isStudioGenericName($stem) || strlen($stem) < 3) {
+            return null;
+        }
+        // Reject stems that are still just a type word.
+        if (preg_match(
+            '/^(Button|Icon|Image|Label|Input|Checkbox|Toggle|Dropdown|Gallery|Container|Control)$/i',
+            $stem
+        ) === 1) {
+            return null;
+        }
+
+        $words = $this->humanizeIdentifier($stem);
+        if ($words === '' || mb_strlen($words) < 3) {
+            return null;
+        }
+
+        return $words;
+    }
+
+    private function humanizeIdentifier(string $name): string
+    {
+        $name = str_replace(['_', '-'], ' ', $name);
+        $name = preg_replace('/([a-z])([A-Z])/', '$1 $2', $name) ?? $name;
+        $name = preg_replace('/([A-Z]+)([A-Z][a-z])/', '$1 $2', $name) ?? $name;
+        $name = trim(preg_replace('/\s+/', ' ', $name) ?? $name);
+        if ($name === '') {
+            return '';
+        }
+        // Title-ish words for screen names / stems, then sentenceCase applied by callers when needed.
+        $parts = explode(' ', $name);
+        $parts = array_map(static function (string $p): string {
+            if ($p === '') {
+                return $p;
+            }
+            if (preg_match('/^[A-Z]{2,5}$/', $p) === 1) {
+                return $p;
+            }
+
+            return mb_strtoupper(mb_substr($p, 0, 1)) . mb_strtolower(mb_substr($p, 1));
+        }, $parts);
+
+        return trim(implode(' ', $parts));
+    }
+
+    private function isStudioGenericName(string $name): bool
+    {
+        return preg_match(
+            '/^(Button|Icon|Image|Label|TextInput|Text|TextBox|Checkbox|CheckBox|Toggle|Dropdown|ComboBox|Gallery|Container|Group|Rectangle|Circle|HtmlText|HtmlViewer|DatePicker|Slider|Radio|ModernButton|ButtonCanvas)\d*(_\d+)?$/i',
+            $name
+        ) === 1
+            || preg_match('/^(btn|ico|img|chk|tgl|lbl|txt)\d+(_\d+)?$/i', $name) === 1;
     }
 
     /**
@@ -201,7 +610,6 @@ final class AccessibilityLabelsHop implements HopInterface
                 }
                 $pool[] = $sib;
             }
-            // Also consider labels that are children of sibling containers (common form layout).
             foreach ($this->byParent[$parent] ?? [] as $sib) {
                 if ($sib->path === $control->path || !$sib->isContainer()) {
                     continue;
@@ -212,7 +620,6 @@ final class AccessibilityLabelsHop implements HopInterface
             }
         }
 
-        // Parent's siblings (labels sitting beside a field container).
         $grand = $parent !== null ? $this->parentPath($parent) : null;
         if ($grand !== null) {
             foreach ($this->byParent[$grand] ?? [] as $uncle) {
@@ -251,7 +658,6 @@ final class AccessibilityLabelsHop implements HopInterface
     {
         $score = 0;
 
-        // Name pairing: EmailLabel ↔ EmailInput / lblEmail ↔ txtEmail
         $nameScore = $this->namePairScore($target->name, $label->name);
         $score += $nameScore;
 
@@ -273,49 +679,66 @@ final class AccessibilityLabelsHop implements HopInterface
             $overlapX = max(0.0, min($targetRight, $labelRight) - max($tx, $lx));
             $overlapY = max(0.0, min($targetBottom, $labelBottom) - max($ty, $ly));
 
-            // Label above input (classic form): overlapping X, label ends near/above input Y.
-            if ($overlapX >= min($tw, $lw) * 0.35 && $labelBottom <= $ty + 12 && $ty - $labelBottom <= 80) {
+            $t = strtolower($target->type);
+            $isFormField = str_contains($t, 'input')
+                || str_contains($t, 'dropdown')
+                || str_contains($t, 'combobox')
+                || str_contains($t, 'datepicker')
+                || str_contains($t, 'slider')
+                || $t === 'text'
+                || $t === 'textarea';
+            $isIconOrImage = str_contains($t, 'icon') || (str_contains($t, 'image') && !str_contains($t, 'input'));
+            $isCheckOrToggle = str_contains($t, 'checkbox')
+                || str_contains($t, 'toggle')
+                || str_contains($t, 'switch');
+
+            // Label above input (classic form). Skip icons/buttons — a wide caption
+            // must not become every control's AccessibleLabel.
+            if (
+                $isFormField
+                && $overlapX >= min($tw, $lw) * 0.35
+                && $labelBottom <= $ty + 12
+                && $ty - $labelBottom <= 80
+            ) {
                 $score += 55;
                 $gap = $ty - $labelBottom;
                 $score += (int) max(0, 25 - $gap / 2);
             }
 
-            // Label to the left of input: overlapping Y, label ends left of input.
             if ($overlapY >= min($th, $lh) * 0.35 && $labelRight <= $tx + 12 && $tx - $labelRight <= 160) {
                 $score += 50;
                 $gap = $tx - $labelRight;
                 $score += (int) max(0, 20 - $gap / 4);
             }
 
-            // Caption to the right of icon/button (toolbar / chip pattern).
-            $t = strtolower($target->type);
-            $isIconOrImage = str_contains($t, 'icon') || (str_contains($t, 'image') && !str_contains($t, 'input'));
+            // Caption to the right (checkbox row / icon+text / button chip).
             if (
-                $isIconOrImage
+                ($isIconOrImage || $isCheckOrToggle || str_contains($t, 'button'))
                 && $overlapY >= min($th, $lh) * 0.35
                 && $lx >= $targetRight - 12
-                && $lx - $targetRight <= 160
+                && $lx - $targetRight <= 200
             ) {
-                $score += 48;
+                $score += $isCheckOrToggle ? 60 : 48;
                 $gap = $lx - $targetRight;
                 $score += (int) max(0, 18 - $gap / 4);
             }
 
-            // Same row / column proximity without clear above/left still gets a small boost.
-            $cx = $tx + $tw / 2;
-            $cy = $ty + $th / 2;
-            $lcx = $lx + $lw / 2;
-            $lcy = $ly + $lh / 2;
-            $dist = hypot($cx - $lcx, $cy - $lcy);
-            if ($dist < 220) {
-                $score += (int) max(0, 18 - $dist / 20);
+            // Tiny proximity nudge only when a directional/name signal already exists —
+            // otherwise one form caption paints every control in the container.
+            if ($score >= 40) {
+                $cx = $tx + $tw / 2;
+                $cy = $ty + $th / 2;
+                $lcx = $lx + $lw / 2;
+                $lcy = $ly + $lh / 2;
+                $dist = hypot($cx - $lcx, $cy - $lcy);
+                if ($dist < 160) {
+                    $score += (int) max(0, 10 - $dist / 30);
+                }
             }
         } elseif ($nameScore >= 40) {
-            // No layout numbers — lean on name pairing alone.
             $score += 5;
         }
 
-        // Prefer labels that look like captions (short, end with colon optional).
         $caption = $this->unwrap((string) $label->getProperty('Text'));
         if ($caption !== '' && mb_strlen($caption) <= 48) {
             $score += 5;
@@ -324,7 +747,6 @@ final class AccessibilityLabelsHop implements HopInterface
             $score += 8;
         }
 
-        // Same immediate parent is stronger than uncle/cousin.
         if ($this->parentPath($target->path) === $this->parentPath($label->path)) {
             $score += 12;
         }
@@ -362,14 +784,13 @@ final class AccessibilityLabelsHop implements HopInterface
     private function nameStem(string $name): string
     {
         $n = $name;
-        // Drop common type/role prefixes & suffixes.
         $n = preg_replace(
-            '/^(lbl|txt|txt_|inp|input|cmb|cbo|ddl|drp|btn|img|ico)+/i',
+            '/^(lbl|txt|txt_|inp|input|cmb|cbo|ddl|drp|btn|img|ico|chk|tgl)+/i',
             '',
             $n
         ) ?? $n;
         $n = preg_replace(
-            '/(Label|Lbl|TextInput|TextBox|Input|Field|ComboBox|Combo|Dropdown|DropDown|DatePicker|Picker|CheckBox|Checkbox|Toggle|Slider|Gallery|Button|Icon|Image)$/i',
+            '/(Label|Lbl|TextInput|TextBox|Input|Field|ComboBox|Combo|Dropdown|DropDown|DatePicker|Picker|CheckBox|Checkbox|Check|Toggle|Slider|Gallery|Button|Icon|Image)$/i',
             '',
             $n
         ) ?? $n;
@@ -404,7 +825,6 @@ final class AccessibilityLabelsHop implements HopInterface
                 return true;
             }
         }
-        // Modern "Text" display controls that are not inputs.
         if (preg_match('/(^|\/)text@/i', $control->type) === 1 && !$control->isInteractive()) {
             return true;
         }
@@ -428,7 +848,8 @@ final class AccessibilityLabelsHop implements HopInterface
     }
 
     /**
-     * Labels that were previously written as a stringified copy of Text/Tooltip (no live binding).
+     * Labels that were previously written as a stringified copy of Text/Tooltip (no live binding),
+     * or as humanized Studio junk names ("Button 1") that should yield to purpose speech.
      */
     private function isBrokenLabel(string $existing, ControlNode $control): bool
     {
@@ -436,7 +857,6 @@ final class AccessibilityLabelsHop implements HopInterface
         if ($unwrapped === '') {
             return true;
         }
-        // Classic failure mode: AccessibleLabel = "If(varLang,""Save"",""Enregistrer"")"
         if ($this->isDynamicExpression('=' . $unwrapped) || preg_match('/^\s*If\s*\(/i', $unwrapped)) {
             return true;
         }
@@ -449,25 +869,47 @@ final class AccessibilityLabelsHop implements HopInterface
                 return true;
             }
         }
-        // Self.* and Neighbor.Text bindings are good.
         if (preg_match('/^Self\.(Text|Tooltip|HintText)\s*$/i', $unwrapped)) {
             return false;
         }
         if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*\.Text\s*$/', $unwrapped)) {
             return false;
         }
+        if (preg_match('/^"[^"]*"\s*&\s*[A-Za-z_][A-Za-z0-9_]*\.(Text|Tooltip|HintText)\s*$/', $unwrapped)) {
+            return false;
+        }
+        if (preg_match('/^"[^"]*"\s*&\s*Self\.(Text|Tooltip|HintText)\s*$/i', $unwrapped)) {
+            return false;
+        }
 
-        // Stale humanized control-name labels lose to a real Text/Tooltip/HintText/neighbor source.
-        $humanized = preg_replace('/([a-z])([A-Z])/', '$1 $2', $control->name) ?? $control->name;
-        $humanized = trim(preg_replace('/\s+/', ' ', trim(preg_replace('/[_\-]+/', ' ', $humanized) ?? $humanized)) ?? $humanized);
-        if (strcasecmp($unwrapped, $humanized) === 0) {
+        // Stale humanized control-name labels — especially Studio junk ("Button 1").
+        $humanized = $this->humanizeIdentifier($control->name);
+        if ($humanized !== '' && strcasecmp($unwrapped, $humanized) === 0) {
+            if ($this->isStudioGenericName($control->name)) {
+                return true;
+            }
             foreach (['Text', 'Tooltip', 'HintText'] as $prop) {
                 $src = $control->getProperty($prop);
                 if ($src !== null && !$this->isBlank($src)) {
                     return true;
                 }
             }
-            if ($this->labelFromNeighbors($control) !== null) {
+            if ($this->labelFromNeighbors($control) !== null
+                || $this->iconDescription($control) !== null
+                || $this->actionPhrase($control) !== null
+            ) {
+                return true;
+            }
+        }
+
+        // Weak role-only label when we now have caption/icon/action context.
+        $role = $this->rolePhrase($control);
+        if ($role !== '' && strcasecmp($unwrapped, $role) === 0) {
+            if ($this->labelFromNeighbors($control) !== null
+                || $this->iconDescription($control) !== null
+                || $this->actionPhrase($control) !== null
+                || $this->purposeFromControlName($control) !== null
+            ) {
                 return true;
             }
         }
@@ -484,14 +926,13 @@ final class AccessibilityLabelsHop implements HopInterface
         if ($v === '') {
             return false;
         }
-        // Simple quoted string is not dynamic.
         if (
             (str_starts_with($v, '"') && str_ends_with($v, '"') && substr_count($v, '"') === 2)
             || (str_starts_with($v, "'") && str_ends_with($v, "'") && substr_count($v, "'") === 2)
         ) {
             return false;
         }
-        // Function calls / operators / known dynamic roots (avoid bare words like "User reviewed").
+
         return (bool) preg_match(
             '/\b(If|Switch|LookUp|Coalesce|Concatenate|With|Filter|LookUp)\s*\(|\b(Self|Parent|ThisItem|var[A-Z]|com[A-Z]|gbl[A-Z])\b|[()&]|[A-Za-z_]\w*\./i',
             $v
@@ -515,6 +956,7 @@ final class AccessibilityLabelsHop implements HopInterface
     private function isBlank(string $value): bool
     {
         $v = trim($this->unwrap($value));
+
         return $v === '' || strtolower($v) === 'blank()' || $v === '""' || $v === "''";
     }
 
@@ -527,9 +969,9 @@ final class AccessibilityLabelsHop implements HopInterface
         $v = trim($v);
         if ((str_starts_with($v, '"') && str_ends_with($v, '"')) || (str_starts_with($v, "'") && str_ends_with($v, "'"))) {
             $v = substr($v, 1, -1);
-            // Undo Power Fx doubling inside string literals.
             $v = str_replace('""', '"', $v);
         }
+
         return trim($v);
     }
 }

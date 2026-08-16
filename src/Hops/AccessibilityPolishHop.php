@@ -45,7 +45,7 @@ final class AccessibilityPolishHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Fill missing AccessibleLabel, focus rings, TabIndex, and tooltips, then regenerate App checker SARIF.';
+        return 'Fill missing AccessibleLabel with spoken purpose (captions, icon meaning, destinations), focus rings, TabIndex, and tooltips, then regenerate App checker SARIF.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
