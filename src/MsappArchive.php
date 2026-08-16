@@ -90,6 +90,13 @@ final class MsappArchive
     public function pack(string $outputPath): void
     {
         $this->saveDocuments();
+        // Control trees for THCEE are ~250MB. Drop them before zipping so pack
+        // peak stays within small App Service RAM (OS-kill looks like mid-run OOM).
+        $this->documents = [];
+        $this->documentPaths = [];
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
         ZipTool::createFromDirectory($this->extractDir, $outputPath, $this->entryStyle, $this->entryOrder);
     }
 

@@ -59,27 +59,32 @@ final class StudioLiveChecker
                         continue;
                     }
                     $location = self::qualifiedLocation($screen, $control->path, $prop);
-                    $findings = array_merge(
-                        $findings,
-                        $formulaChecker->check(
-                            $value,
-                            $screen,
-                            $location,
-                            self::controlTypeFqn($screen, $control),
-                            $prop,
-                            $control->name,
-                            $localNames,
-                            $screenRecordVars,
-                        )
-                    );
+                    foreach ($formulaChecker->check(
+                        $value,
+                        $screen,
+                        $location,
+                        self::controlTypeFqn($screen, $control),
+                        $prop,
+                        $control->name,
+                        $localNames,
+                        $screenRecordVars,
+                    ) as $finding) {
+                        $findings[] = $finding;
+                    }
                 }
 
-                $findings = array_merge($findings, self::checkAccessibility($control, $screen, $catalog));
-                $findings = array_merge($findings, self::checkPerformance($control, $screen));
+                foreach (self::checkAccessibility($control, $screen, $catalog) as $finding) {
+                    $findings[] = $finding;
+                }
+                foreach (self::checkPerformance($control, $screen) as $finding) {
+                    $findings[] = $finding;
+                }
             }
         }
 
-        $findings = array_merge($findings, self::checkAppLevel($scanDocs, $allFormulaText, $catalog));
+        foreach (self::checkAppLevel($scanDocs, $allFormulaText, $catalog) as $finding) {
+            $findings[] = $finding;
+        }
 
         $findings = self::dedupeFindings($findings);
 
@@ -88,9 +93,22 @@ final class StudioLiveChecker
 
     /**
      * @param list<ControlDocument> $documents
+     * @return ($returnReport is true ? array{
+     *   total:int,
+     *   by_category:array<string,int>,
+     *   by_level:array<string,int>,
+     *   by_rule:array<string,int>,
+     *   by_screen:array<string,int>,
+     *   findings:list<array<string,mixed>>,
+     *   path:string
+     * } : string)
      */
-    public static function writeSarifToExtractDir(array $documents, string $extractDir, ?string $templateSarifPath = null): string
-    {
+    public static function writeSarifToExtractDir(
+        array $documents,
+        string $extractDir,
+        ?string $templateSarifPath = null,
+        bool $returnReport = false,
+    ): array|string {
         $template = null;
         if ($templateSarifPath !== null && is_file($templateSarifPath)) {
             $raw = file_get_contents($templateSarifPath);
@@ -115,8 +133,21 @@ final class StudioLiveChecker
 
         $report = self::check($documents, ['extract_dir' => $extractDir, 'template_sarif' => $template]);
         $json = SarifWriter::toJson($report['findings'], $template);
+        unset($template);
         $outPath = $extractDir . '/AppCheckerResult.sarif';
         file_put_contents($outPath, $json);
+        unset($json, $report['findings']);
+        $report['findings'] = [];
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
+
+        if ($returnReport) {
+            $report['path'] = $outPath;
+
+            return $report;
+        }
+
         return $outPath;
     }
 

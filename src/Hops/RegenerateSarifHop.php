@@ -35,8 +35,8 @@ final class RegenerateSarifHop implements HopInterface
             throw new \RuntimeException('regenerate_sarif requires _extract_dir from pipeline');
         }
 
-        $result = StudioLiveChecker::check($documents, ['extract_dir' => $extractDir]);
-        $path = StudioLiveChecker::writeSarifToExtractDir($documents, $extractDir);
+        // One live check + write (previously checked twice and doubled peak RAM).
+        $result = StudioLiveChecker::writeSarifToExtractDir($documents, $extractDir, null, true);
 
         $summary = sprintf(
             '%d issues (%d formulas, %d a11y, %d perf, %d maint)',

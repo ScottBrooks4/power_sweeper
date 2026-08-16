@@ -13,6 +13,23 @@ final class ControlRefCandidateGenerator
     /** @var array<string, list<string>> */
     private array $memo = [];
 
+    private string $patternEpoch = '';
+
+    /** Call when the global pattern map changes so memo keys stay small. */
+    public function beginPatternEpoch(array $patternMap = []): void
+    {
+        $this->patternEpoch = $patternMap === []
+            ? ''
+            : hash('xxh128', serialize($patternMap));
+        // Pattern map identity changed — prior memo entries are stale.
+        $this->memo = [];
+    }
+
+    public function clearMemo(): void
+    {
+        $this->memo = [];
+    }
+
     /**
      * @param array<string, true> $localNames
      * @param array<string, string> $patternMap
@@ -34,10 +51,7 @@ final class ControlRefCandidateGenerator
         }
 
         $memoKey = $badId . "\0" . $screen . "\0" . $hostControl . "\0"
-            . count($localNames) . "\0" . count($patternMap);
-        if ($patternMap !== []) {
-            $memoKey .= "\0" . hash('xxh128', serialize($patternMap));
-        }
+            . count($localNames) . "\0" . $this->patternEpoch;
         if (isset($this->memo[$memoKey])) {
             return $this->memo[$memoKey];
         }
@@ -79,7 +93,7 @@ final class ControlRefCandidateGenerator
         $add($this->crossScreenQualify($badId, $screen, $catalog));
 
         // Bound memo growth for long request lifetimes.
-        if (count($this->memo) > 20000) {
+        if (count($this->memo) > 8000) {
             $this->memo = [];
         }
         $this->memo[$memoKey] = $out;

@@ -85,9 +85,9 @@ final class Pipeline
                 if (!is_array($options)) {
                     $options = [];
                 }
-                // Let hops that need Connections/DataSources or pack options see the archive.
                 $options['_extract_dir'] = $archive->extractDir();
                 $options['_msapp_archive'] = $archive;
+                $options['_on_progress'] = $emit;
                 $hop = $this->registry->make($id);
                 $emit([
                     'type' => 'phase',

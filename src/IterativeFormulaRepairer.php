@@ -25,17 +25,26 @@ final class IterativeFormulaRepairer
      */
     public function repair(array $documents, array $options = []): array
     {
-        // Full coverage: do not reduce iterations/candidates on large apps.
         $maxIterations = max(1, (int) ($options['max_iterations'] ?? 5));
         $maxCandidates = max(1, (int) ($options['max_candidates_per_id'] ?? 32));
         $catalog = AppControlCatalog::build($documents);
         $perHostPatternMap = FormulaPatternAnalyzer::inferPerHostRenameMap($documents, $catalog);
         $patternMap = FormulaPatternAnalyzer::inferRenameMap($documents, $catalog);
+        $this->generator->beginPatternEpoch($patternMap);
         $checker = new PowerFxFormulaChecker($catalog, $this->dataContext);
         $totalRepairs = 0;
+        $emit = is_callable($options['_on_progress'] ?? null) ? $options['_on_progress'] : null;
 
         for ($iter = 0; $iter < $maxIterations; $iter++) {
             $iterRepairs = 0;
+            if ($emit !== null) {
+                $emit([
+                    'type' => 'phase',
+                    'phase' => 'context_refs_iter',
+                    'message' => sprintf('Context-aware refs · pass %d/%d', $iter + 1, $maxIterations),
+                    'count' => $totalRepairs,
+                ]);
+            }
 
             foreach ($documents as $doc) {
                 $screen = $catalog->screenForDocument($doc);
@@ -216,6 +225,8 @@ final class IterativeFormulaRepairer
 
             $totalRepairs += $iterRepairs;
             if ($iterRepairs === 0) {
+                $this->generator->clearMemo();
+
                 return [
                     'iterations' => $iter + 1,
                     'repairs' => $totalRepairs,
@@ -227,7 +238,13 @@ final class IterativeFormulaRepairer
             // Pattern maps can unlock further renames after sibling formulas change.
             $perHostPatternMap = FormulaPatternAnalyzer::inferPerHostRenameMap($documents, $catalog);
             $patternMap = FormulaPatternAnalyzer::inferRenameMap($documents, $catalog);
+            $this->generator->beginPatternEpoch($patternMap);
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
         }
+
+        $this->generator->clearMemo();
 
         return [
             'iterations' => $maxIterations,

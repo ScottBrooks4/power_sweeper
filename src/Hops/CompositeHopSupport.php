@@ -31,23 +31,45 @@ final class CompositeHopSupport
         $registry = new HopRegistry();
         $ran = 0;
         $byKind = [];
+        $emit = is_callable($options['_on_progress'] ?? null) ? $options['_on_progress'] : null;
+        $steps = [];
+        foreach ($subHops as $step) {
+            $id = (string) ($step['id'] ?? '');
+            if ($id === '' || !$registry->has($id) || $id === $parentId) {
+                continue;
+            }
+            if ($id === 'regenerate_sarif') {
+                $extractDir = $options['_extract_dir'] ?? null;
+                if (!is_string($extractDir) || $extractDir === '') {
+                    continue;
+                }
+            }
+            $steps[] = $step;
+        }
+        $stepTotal = count($steps);
 
         $report->pushHopAlias($parentId);
         try {
-            foreach ($subHops as $step) {
+            foreach ($steps as $stepIndex => $step) {
                 $id = (string) ($step['id'] ?? '');
-                if ($id === '' || !$registry->has($id) || $id === $parentId) {
-                    continue;
-                }
-                // SARIF rewrite needs the unpacked archive; skip in unit/fixture runs.
-                if ($id === 'regenerate_sarif') {
-                    $extractDir = $options['_extract_dir'] ?? null;
-                    if (!is_string($extractDir) || $extractDir === '') {
-                        continue;
-                    }
-                }
                 $kind = $kindLabel($id);
                 $countBefore = $report->count();
+                if ($emit !== null) {
+                    $emit([
+                        'type' => 'phase',
+                        'phase' => 'subhop',
+                        'hop' => $parentId,
+                        'subhop' => $id,
+                        'message' => sprintf(
+                            '%s · %s (%d/%d)',
+                            $parentId,
+                            $kind,
+                            $stepIndex + 1,
+                            max(1, $stepTotal),
+                        ),
+                        'count' => $report->count(),
+                    ]);
+                }
                 $report->pushPropertyPrefix($kind);
                 try {
                     $hop = $registry->make($id);
@@ -62,8 +84,25 @@ final class CompositeHopSupport
                     $byKind[$kind] = ($byKind[$kind] ?? 0) + $delta;
                 }
                 $ran++;
+                // Free hop-local graphs between passes — THCEE holds ~250MB of docs already.
+                unset($hop);
                 if (function_exists('gc_collect_cycles')) {
                     gc_collect_cycles();
+                }
+                if ($emit !== null) {
+                    $emit([
+                        'type' => 'phase',
+                        'phase' => 'subhop_done',
+                        'hop' => $parentId,
+                        'subhop' => $id,
+                        'message' => sprintf(
+                            'Finished %s · %s (%d changes)',
+                            $parentId,
+                            $kind,
+                            $delta,
+                        ),
+                        'count' => $report->count(),
+                    ]);
                 }
             }
         } finally {
