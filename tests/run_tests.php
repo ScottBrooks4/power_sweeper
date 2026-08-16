@@ -1537,22 +1537,25 @@ if (is_file($repaired16)) {
 
 // Hop chains — ids resolve; studio repair + powered + web round-trip
 $hopRegistry = new \PowerSweeper\HopRegistry();
+assert_true($hopRegistry->has('fix_formula_errors'), 'fix_formula_errors hop registered');
+$formulaSubIds = array_column(\PowerSweeper\Hops\FixFormulaErrorsHop::subHops(), 'id');
+foreach (array_unique($formulaSubIds) as $subId) {
+    assert_true($hopRegistry->has($subId), 'fix_formula_errors sub-hop ' . $subId . ' registered');
+}
 $repairHopIds = array_column(HopChains::studioRepair(), 'id');
-assert_true(in_array('repair_delegation', $repairHopIds, true), 'studio repair includes repair_delegation');
+assert_true(in_array('fix_formula_errors', $repairHopIds, true), 'studio repair includes fix_formula_errors');
 assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'studio repair includes regenerate_sarif');
-assert_true(in_array('repair_control_refs', $repairHopIds, true), 'studio repair includes repair_control_refs');
-assert_true(in_array('repair_context_aware_refs', $repairHopIds, true), 'studio repair includes repair_context_aware_refs');
-assert_true(in_array('repair_converge_formulas', $repairHopIds, true), 'studio repair includes repair_converge_formulas');
-assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'studio repair includes repair_studio_syntax');
+assert_true(!in_array('repair_control_refs', $repairHopIds, true), 'studio repair uses composite instead of repair_control_refs');
+assert_true(!in_array('repair_converge_formulas', $repairHopIds, true), 'studio repair uses composite instead of repair_converge_formulas');
 assert_true(!in_array('meaningful_names', $repairHopIds, true), 'studio repair does not rename by default');
 
 $smartHopIds = array_column(HopChains::smartRepair(), 'id');
 assert_true(in_array('meaningful_names', $smartHopIds, true), 'smart repair includes meaningful_names');
-assert_true(in_array('repair_context_aware_refs', $smartHopIds, true), 'smart repair includes repair_context_aware_refs');
+assert_true(in_array('fix_formula_errors', $smartHopIds, true), 'smart repair includes fix_formula_errors');
 
 $poweredHops = HopChains::powered();
 $poweredIds = array_column($poweredHops, 'id');
-assert_true(in_array('repair_control_refs', $poweredIds, true), 'powered chain includes repair_control_refs');
+assert_true(in_array('fix_formula_errors', $poweredIds, true), 'powered chain includes fix_formula_errors');
 assert_true(in_array('regenerate_sarif', $poweredIds, true), 'powered chain includes regenerate_sarif');
 assert_true(in_array('enable_dark_mode', $poweredIds, true), 'powered chain includes enable_dark_mode');
 assert_true(in_array('prefer_classic_theme_controls', $poweredIds, true), 'powered chain includes classic theme prep');
@@ -1562,6 +1565,13 @@ foreach ($poweredHops as $hop) {
 foreach (HopChains::studioRepair() as $hop) {
     assert_true($hopRegistry->has($hop['id']), 'studio repair hop ' . $hop['id'] . ' registered');
 }
+
+// fix_formula_errors — composite runs without error on empty docs
+$ffeReport = new Report();
+(new \PowerSweeper\Hops\FixFormulaErrorsHop())->apply([], $ffeReport, []);
+assert_true($ffeReport->count() >= 1, 'fix_formula_errors writes a summary row');
+$ffeHops = array_column($ffeReport->entries(), 'hop');
+assert_true(in_array('fix_formula_errors', $ffeHops, true), 'fix_formula_errors summary hop id present');
 
 $powerToWeb = HopChains::powerToWeb();
 $webToPower = HopChains::webToPower();
@@ -2550,6 +2560,15 @@ if (is_file($kmsAdvisePath)) {
     assert_true(!in_array('align_near_miss', $planIds, true), 'kitchen sink does not recommend align_near_miss without detection');
     assert_true(!in_array('repair_delegation', $planIds, true), 'kitchen sink skips repair_delegation with no delegation hints');
     assert_true(!in_array('unwhack_locale_formulas', $planIds, true), 'kitchen sink skips locale unwhack with no locale hits');
+    $formulaSignal = ((int) ($plan['signals']['formula_errors'] ?? 0))
+        + ((int) ($plan['signals']['locale_hits'] ?? 0))
+        + ((int) ($plan['signals']['delegation_hints'] ?? 0))
+        + ((int) ($plan['signals']['maintainability_hits'] ?? 0));
+    if ($formulaSignal > 0) {
+        assert_true(in_array('fix_formula_errors', $planIds, true), 'kitchen sink recommends fix_formula_errors when formula signals present');
+    } else {
+        assert_true(!in_array('fix_formula_errors', $planIds, true), 'kitchen sink skips fix_formula_errors with no formula signals');
+    }
     foreach ($plan['hops'] as $step) {
         if (!in_array($step['id'], HopAdvisor::FORCEABLE_HOPS, true)) {
             continue;

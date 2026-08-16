@@ -22,6 +22,7 @@ final class HopAdvisor
         'enable_dark_mode',
         'translate',
         'unwhack_locale_formulas',
+        'fix_formula_errors',
         'normalize_containers',
     ];
 
@@ -538,7 +539,9 @@ final class HopAdvisor
             || $columnErrors > 0
             || ($ghostHits > 0 && $formulaErrors > 0)
             || $syntaxHits > 0
-            || $formulaErrors > 0;
+            || $formulaErrors > 0
+            || $maintHits > 0
+            || $delegation > 0;
 
         if ($needsNames) {
             $reasons[] = sprintf(
@@ -550,7 +553,6 @@ final class HopAdvisor
         }
         if ($localeHits > 0) {
             $reasons[] = 'Locale-corrupted formula separators detected';
-            $hops[] = ['id' => 'unwhack_locale_formulas', 'options' => []];
         }
         if ($formulaErrors > 0) {
             $reasons[] = sprintf('%d formula error(s) in checker inventory', $formulaErrors);
@@ -578,29 +580,9 @@ final class HopAdvisor
             $reasons[] = 'Language packs / translations already present — skip translate';
         }
 
-        // Formula / ref repair — only hops that match signals (studio_repair order).
-        if ($doubleQualified > 0 || $mangled > 0) {
-            $hops[] = ['id' => 'repair_double_qualified_refs', 'options' => []];
-        }
-        if ($needsRefRepair) {
-            $hops[] = ['id' => 'repair_control_refs', 'options' => []];
-            $hops[] = ['id' => 'repair_context_aware_refs', 'options' => []];
-            $hops[] = ['id' => 'repair_double_qualified_refs', 'options' => []];
-        }
-        if ($missingPackage > 0) {
-            $hops[] = ['id' => 'repair_var_current_package', 'options' => []];
-        }
-        if ($columnErrors > 0) {
-            $hops[] = ['id' => 'repair_sharepoint_fields', 'options' => []];
-        }
-        if ($ghostHits > 0 && $formulaErrors > 0) {
-            $hops[] = ['id' => 'repair_ghost_patch_fields', 'options' => []];
-        }
-        if ($syntaxHits > 0) {
-            $hops[] = ['id' => 'repair_studio_syntax', 'options' => []];
-        }
-        if ($boolIssues > 0) {
-            $hops[] = ['id' => 'repair_checked_booleans', 'options' => []];
+        // One hop covers locale, refs, SharePoint/ghost fields, syntax, booleans, converge.
+        if ($needsFormulaWork) {
+            $hops[] = ['id' => 'fix_formula_errors', 'options' => []];
         }
 
         // A11y — per-gap, never bundled solely because formulas failed.
@@ -615,40 +597,6 @@ final class HopAdvisor
         }
         if ($missingTooltip > 0) {
             $hops[] = ['id' => 'tooltip_from_label', 'options' => []];
-        }
-
-        if ($maintHits > 0) {
-            $hops[] = ['id' => 'repair_maintainability', 'options' => []];
-        }
-        if ($delegation > 0) {
-            $hops[] = ['id' => 'repair_delegation', 'options' => []];
-        }
-
-        $formulaHopIds = [
-            'unwhack_locale_formulas' => true,
-            'repair_double_qualified_refs' => true,
-            'repair_control_refs' => true,
-            'repair_context_aware_refs' => true,
-            'repair_var_current_package' => true,
-            'repair_sharepoint_fields' => true,
-            'repair_ghost_patch_fields' => true,
-            'repair_studio_syntax' => true,
-            'repair_checked_booleans' => true,
-        ];
-        $addedFormulaHop = false;
-        foreach ($hops as $step) {
-            if (isset($formulaHopIds[$step['id'] ?? ''])) {
-                $addedFormulaHop = true;
-                break;
-            }
-        }
-        if ($addedFormulaHop && $needsFormulaWork) {
-            $hops[] = ['id' => 'repair_converge_formulas', 'options' => []];
-            $hops[] = ['id' => 'repair_double_qualified_refs', 'options' => []];
-        } elseif ($formulaErrors > 0) {
-            // Unclassified formula errors: converge is the hop that re-checks live errors.
-            $hops[] = ['id' => 'repair_converge_formulas', 'options' => []];
-            $hops[] = ['id' => 'repair_double_qualified_refs', 'options' => []];
         }
 
         if ($containerChrome > 0) {

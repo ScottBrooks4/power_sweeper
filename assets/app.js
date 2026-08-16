@@ -7,8 +7,27 @@
     'enable_dark_mode',
     'translate',
     'unwhack_locale_formulas',
+    'fix_formula_errors',
     'normalize_containers',
   ]);
+
+  /** Sub-hops run by fix_formula_errors (keep in sync with FixFormulaErrorsHop::subHops). */
+  const FIX_FORMULA_ERROR_SUB_HOPS = [
+    'unwhack_locale_formulas',
+    'repair_double_qualified_refs',
+    'repair_control_refs',
+    'repair_context_aware_refs',
+    'repair_double_qualified_refs',
+    'repair_var_current_package',
+    'repair_sharepoint_fields',
+    'repair_ghost_patch_fields',
+    'repair_studio_syntax',
+    'repair_checked_booleans',
+    'repair_maintainability',
+    'repair_delegation',
+    'repair_converge_formulas',
+    'repair_double_qualified_refs',
+  ];
 
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
@@ -69,6 +88,8 @@
     repair_maintainability: 160,
     repair_checked_booleans: 200,
     repair_var_current_package: 200,
+    // Sum of FIX_FORMULA_ERROR_SUB_HOPS fallbacks (approx).
+    fix_formula_errors: 53450,
     correlate_sharepoint: 800,
     regenerate_sarif: 2400,
     analyze_app_checker: 1800,
@@ -249,6 +270,19 @@
   }
 
   function hopCostMs(id, options = {}) {
+    // Composite: sum child estimates until the model has dedicated samples.
+    if (id === 'fix_formula_errors') {
+      const modelHop = estimateModel?.hops?.[id];
+      const learned = learnedSamples()[id];
+      const hasSamples = (Array.isArray(modelHop?.samples) && modelHop.samples.length)
+        || (Array.isArray(learned) && learned.length);
+      if (!hasSamples) {
+        return Math.max(
+          25,
+          FIX_FORMULA_ERROR_SUB_HOPS.reduce((sum, sid) => sum + hopCostMs(sid, options), 0)
+        );
+      }
+    }
     const controls = controlCount();
     const mb = fileMb();
     const workload = hopWorkload(id);
@@ -258,7 +292,7 @@
       ...(Array.isArray(modelHop?.samples) ? modelHop.samples : []),
       ...(Array.isArray(learned) ? learned : []),
     ];
-    const heavy = Boolean(modelHop?.heavy) || id.startsWith('repair_') || id === 'enable_dark_mode' || id === 'regenerate_sarif';
+    const heavy = Boolean(modelHop?.heavy) || id.startsWith('repair_') || id === 'fix_formula_errors' || id === 'enable_dark_mode' || id === 'regenerate_sarif';
     let ms = predictFromSamples(samples, controls, mb, workload, heavy);
     if (!(ms > 0)) {
       try {

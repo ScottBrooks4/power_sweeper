@@ -15,6 +15,7 @@ use PowerSweeper\Hops\EnsureTabIndexHop;
 use PowerSweeper\Hops\ExportWebAppHop;
 use PowerSweeper\Hops\HopInterface;
 use PowerSweeper\Hops\ImportWebAppHop;
+use PowerSweeper\Hops\FixFormulaErrorsHop;
 use PowerSweeper\Hops\MeaningfulNamesHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
@@ -46,6 +47,7 @@ final class HopRegistry
     public function __construct()
     {
         foreach ([
+            FixFormulaErrorsHop::class,
             NormalizeContainersHop::class,
             AccessibilityLabelsHop::class,
             MeaningfulNamesHop::class,
