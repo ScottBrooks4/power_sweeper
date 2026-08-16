@@ -2,18 +2,13 @@
   const cfg = window.POWER_SWEEPER || {};
   const hopMeta = Object.fromEntries((cfg.hops || []).map((h) => [h.id, h]));
   const forceableHops = new Set(cfg.forceable_hops || [
-    'accessibility_labels',
+    'fix_control_names_and_refs',
+    'fix_formula_errors',
+    'repair_sharepoint_data',
     'accessibility_polish',
-    'tooltip_from_label',
-    'enable_dark_mode',
+    'clean_default_chrome',
     'enable_dark_theme',
     'translate',
-    'unwhack_locale_formulas',
-    'fix_formula_errors',
-    'fix_control_names_and_refs',
-    'normalize_containers',
-    'clean_default_chrome',
-    'repair_sharepoint_data',
   ]);
 
   /** Sub-hops for composites (keep in sync with *Hop::subHops). */

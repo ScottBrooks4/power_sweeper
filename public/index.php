@@ -79,7 +79,7 @@ $brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
 
     <section class="panel hops-layout">
       <div>
-        <h2>Available hops</h2>
+        <h2>Hops</h2>
         <ul class="palette" id="palette">
           <?php foreach ($hops as $hop): ?>
             <li>

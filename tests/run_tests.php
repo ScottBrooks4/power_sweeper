@@ -194,13 +194,13 @@ assert_true($jsonTextControl->isInteractive(), 'JSON classic TextInput template 
 // --- advisor force mode stamps forceable hops ---
 $advisorForce = new HopAdvisor();
 $forced = $advisorForce->applyForceMode([
-    ['id' => 'accessibility_labels', 'options' => []],
-    ['id' => 'ensure_tab_index', 'options' => ['value' => 0]],
+    ['id' => 'accessibility_polish', 'options' => []],
+    ['id' => 'export_to_web_ir', 'options' => []],
 ], 'all');
 assert_true(($forced[0]['options']['force'] ?? false) === true, 'applyForceMode sets force on forceable hops');
-assert_true(!array_key_exists('force', $forced[1]['options']) || ($forced[1]['options']['force'] ?? null) === true || !isset($forced[1]['options']['force']), 'non-forceable hop left alone or untouched');
+assert_true(!array_key_exists('force', $forced[1]['options']), 'non-forceable hop left alone');
 $missing = $advisorForce->applyForceMode([
-    ['id' => 'accessibility_labels', 'options' => ['force' => true]],
+    ['id' => 'accessibility_polish', 'options' => ['force' => true]],
 ], 'missing_only');
 assert_true(($missing[0]['options']['force'] ?? true) === false, 'applyForceMode missing_only clears force');
 
@@ -1567,6 +1567,14 @@ $compositeIds = [
 foreach ($compositeIds as $cid) {
     assert_true($hopRegistry->has($cid), $cid . ' hop registered');
 }
+$paletteIds = array_column($hopRegistry->catalog(), 'id');
+assert_true($paletteIds === \PowerSweeper\HopRegistry::PALETTE_IDS, 'UI catalog matches PALETTE_IDS order');
+assert_true(!in_array('enable_dark_mode', $paletteIds, true), 'palette hides enable_dark_mode behind enable_dark_theme');
+assert_true(!in_array('repair_control_refs', $paletteIds, true), 'palette hides individual formula repair hops');
+assert_true(!in_array('accessibility_labels', $paletteIds, true), 'palette hides accessibility_labels behind accessibility_polish');
+assert_true(!in_array('regenerate_sarif', $paletteIds, true), 'palette hides regenerate_sarif (runs inside composites)');
+assert_true($hopRegistry->has('enable_dark_mode'), 'internal enable_dark_mode still registered');
+assert_true($hopRegistry->has('regenerate_sarif'), 'internal regenerate_sarif still registered');
 $formulaSubIds = array_column(\PowerSweeper\Hops\FixFormulaErrorsHop::subHops(), 'id');
 foreach (array_unique($formulaSubIds) as $subId) {
     assert_true($hopRegistry->has($subId), 'fix_formula_errors sub-hop ' . $subId . ' registered');
@@ -2673,21 +2681,21 @@ array_map('unlink', glob($webExtract . '/WebApp/*') ?: []);
 $advisor = new HopAdvisor();
 $forced = $advisor->applyForceMode(
     [
-        ['id' => 'accessibility_labels', 'options' => []],
-        ['id' => 'meaningful_names', 'options' => ['only_generic' => true]],
-        ['id' => 'enable_dark_mode', 'options' => ['x' => 1]],
+        ['id' => 'accessibility_polish', 'options' => []],
+        ['id' => 'export_to_web_ir', 'options' => ['only_generic' => true]],
+        ['id' => 'enable_dark_theme', 'options' => ['x' => 1]],
     ],
     'all'
 );
 assert_true(($forced[0]['options']['force'] ?? null) === true, 'applyForceMode all sets force on a11y');
 assert_true(!array_key_exists('force', $forced[1]['options']), 'applyForceMode leaves non-forceable hops alone');
-assert_true(($forced[2]['options']['force'] ?? null) === true, 'applyForceMode all sets force on dark mode');
+assert_true(($forced[2]['options']['force'] ?? null) === true, 'applyForceMode all sets force on dark theme');
 assert_true(($forced[2]['options']['x'] ?? null) === 1, 'applyForceMode preserves other options');
 $missing = $advisor->applyForceMode(
-    [['id' => 'normalize_containers', 'options' => []], ['id' => 'tooltip_from_label', 'options' => ['force' => true]]],
+    [['id' => 'clean_default_chrome', 'options' => []], ['id' => 'translate', 'options' => ['force' => true]]],
     'missing_only'
 );
-assert_true(($missing[0]['options']['force'] ?? null) === false, 'applyForceMode missing_only clears container force');
+assert_true(($missing[0]['options']['force'] ?? null) === false, 'applyForceMode missing_only clears chrome force');
 assert_true(($missing[1]['options']['force'] ?? null) === false, 'applyForceMode missing_only overrides prior force');
 
 $kmsAdvisePath = dirname(__DIR__) . '/samples/dark_mode_kitchen_sink/dark_mode_kitchen_sink.msapp';

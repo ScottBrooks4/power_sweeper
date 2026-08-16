@@ -48,22 +48,41 @@ use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
 
 final class HopRegistry
 {
+    /**
+     * User-facing palette only: safe stage composites + translate.
+     * Sub-passes stay registered for composites / CLI but are not listed in the UI.
+     *
+     * @var list<string>
+     */
+    public const PALETTE_IDS = [
+        'fix_control_names_and_refs',
+        'fix_formula_errors',
+        'repair_sharepoint_data',
+        'accessibility_polish',
+        'clean_default_chrome',
+        'enable_dark_theme',
+        'translate',
+        'export_to_web_ir',
+        'import_from_web_ir',
+    ];
+
     /** @var array<string, class-string<HopInterface>> */
     private array $hops = [];
 
     public function __construct()
     {
         foreach ([
-            // One-click stage composites (shown first in the palette).
+            // Palette stages (order mirrored by PALETTE_IDS).
             FixControlNamesAndRefsHop::class,
             FixFormulaErrorsHop::class,
             RepairSharePointDataHop::class,
             AccessibilityPolishHop::class,
             CleanDefaultChromeHop::class,
             EnableDarkThemeHop::class,
+            TranslateHop::class,
             ExportToWebIrHop::class,
             ImportFromWebIrHop::class,
-            // Individual hops (power-user / sub-pass escape hatches).
+            // Internal sub-passes (composites / scripts; hidden from catalog()).
             NormalizeContainersHop::class,
             AccessibilityLabelsHop::class,
             MeaningfulNamesHop::class,
@@ -90,7 +109,6 @@ final class HopRegistry
             AnalyzeAppCheckerHop::class,
             PreferClassicThemeControlsHop::class,
             EnableDarkModeHop::class,
-            TranslateHop::class,
             CorrelateSharePointHop::class,
             SetZipPathStyleHop::class,
             ExportWebAppHop::class,
@@ -102,17 +120,26 @@ final class HopRegistry
         }
     }
 
-    /** @return list<array{id:string,label:string,description:string}> */
+    /**
+     * Palette entries for the UI (composites + translate only).
+     *
+     * @return list<array{id:string,label:string,description:string}>
+     */
     public function catalog(): array
     {
         $out = [];
-        foreach ($this->hops as $id => $class) {
+        foreach (self::PALETTE_IDS as $id) {
+            if (!isset($this->hops[$id])) {
+                continue;
+            }
+            $class = $this->hops[$id];
             $out[] = [
                 'id' => $id,
                 'label' => $class::label(),
                 'description' => $class::description(),
             ];
         }
+
         return $out;
     }
 

@@ -15,20 +15,15 @@ namespace PowerSweeper;
  */
 final class HopAdvisor
 {
-    /** Hops that honor options.force (must stay in sync with hop implementations). */
+    /** Palette hops that honor options.force (must stay in sync with hop implementations). */
     public const FORCEABLE_HOPS = [
-        'accessibility_labels',
+        'fix_control_names_and_refs',
+        'fix_formula_errors',
+        'repair_sharepoint_data',
         'accessibility_polish',
-        'tooltip_from_label',
-        'enable_dark_mode',
+        'clean_default_chrome',
         'enable_dark_theme',
         'translate',
-        'unwhack_locale_formulas',
-        'fix_formula_errors',
-        'fix_control_names_and_refs',
-        'normalize_containers',
-        'clean_default_chrome',
-        'repair_sharepoint_data',
     ];
 
     /**
