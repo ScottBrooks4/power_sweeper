@@ -29,17 +29,18 @@ final class Pipeline
         };
 
         $archive = new MsappArchive($inputMsapp);
+        // Cap retained detail rows: THCEE dark-mode alone can exceed 10k changes.
         $report = new Report(static function (array $entry, int $count) use ($emit): void {
             $emit([
                 'type' => 'change',
                 'hop' => $entry['hop'],
                 'control' => $entry['control'],
                 'property' => $entry['property'],
-                'from' => $entry['from'],
+                // Omit bulky from/to on the wire; UI only needs count + a short hint.
                 'to' => $entry['to'],
                 'count' => $count,
             ]);
-        });
+        }, 500, 160);
 
         $hopTotal = count($hops);
         // unpack + each hop + pack

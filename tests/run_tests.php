@@ -204,6 +204,20 @@ $missing = $advisorForce->applyForceMode([
 ], 'missing_only');
 assert_true(($missing[0]['options']['force'] ?? true) === false, 'applyForceMode missing_only clears force');
 
+// --- Report caps detail rows but keeps accurate totals (THCEE OOM guard) ---
+$capReport = new Report(null, 3, 20);
+for ($i = 0; $i < 10; $i++) {
+    $capReport->add('enable_dark_mode', 'Ctrl' . $i, 'Fill', str_repeat('A', 100), str_repeat('B', 100));
+}
+assert_true($capReport->count() === 10, 'capped report still counts all changes');
+assert_true(count($capReport->entries()) === 3, 'capped report retains only maxEntries detail rows');
+$capArr = $capReport->toArray();
+assert_true(($capArr['entries_truncated'] ?? false) === true, 'capped report marks entries_truncated');
+assert_true(($capArr['entries_omitted'] ?? 0) === 7, 'capped report reports omitted count');
+assert_true(($capArr['by_hop']['enable_dark_mode'] ?? 0) === 10, 'capped report by_hop stays accurate');
+assert_true(strlen($capArr['entries'][0]['from']) <= 20, 'capped report truncates from snippets');
+assert_true(str_ends_with($capArr['entries'][0]['from'], '...'), 'capped report marks truncated snippets');
+
 // --- ColorValue studio defaults ---
 assert_true(ColorValue::isStudioDefault('=RGBA(255, 255, 255, 1)', 'Fill'), 'white fill is studio default');
 assert_true(ColorValue::isStudioDefault('=RGBA(20, 20, 20, 1)', 'Color'), 'near-black text is studio default');

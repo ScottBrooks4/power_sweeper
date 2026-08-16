@@ -1049,7 +1049,7 @@
         const tr = document.createElement('tr');
         const omitted = data.report?.entries_omitted
           ?? Math.max(0, total - Math.min(rows.length, maxRows));
-        tr.innerHTML = `<td colspan="5" class="hint">…and ${omitted} more change${omitted === 1 ? '' : 's'} (download the cleaned .msapp — full list kept on the server).</td>`;
+        tr.innerHTML = `<td colspan="5" class="hint">…and ${omitted} more change${omitted === 1 ? '' : 's'} (preview capped to keep memory low — download the cleaned .msapp).</td>`;
         reportTable.appendChild(tr);
       }
     }
@@ -1203,7 +1203,7 @@
       if (!finished?.ok) {
         throw new Error(
           'Run failed — the server stopped before finishing (often out of memory on large apps like THCEE). '
-          + 'Retry after deploy, or run Enable dark mode alone with fewer other hops.'
+          + 'Retry after deploy, or run Enable dark mode / Fix formula errors alone with fewer other hops.'
         );
       }
       applyResult(finished);

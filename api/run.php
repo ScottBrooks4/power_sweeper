@@ -157,7 +157,7 @@ register_shutdown_function(static function () use (&$runFinished, &$wantsStream)
     }
     if (str_contains($message, 'Allowed memory size')) {
         $message = 'Out of memory while sweeping this app (' . ps_ini_size('memory_limit')
-            . '). Try fewer hops, or raise memory_limit to 1024M on the host.';
+            . '). Try fewer hops (Enable dark mode alone), or raise memory_limit on a larger host.';
     } else {
         $message = 'Server stopped mid-run: ' . $message;
     }
@@ -334,13 +334,14 @@ try {
 
     $downloadName = preg_replace('/\.msapp$/i', '', $originalName) . '.cleaned.msapp';
     $fullReport = $result['report'];
-    $slimReport = ps_slim_report(is_array($fullReport) ? $fullReport : []);
+    // Prefer pipeline-capped report; still clamp payload size for the wire/meta.
+    $slimReport = ps_slim_report(is_array($fullReport) ? $fullReport : [], 250);
     $meta = [
         'token' => $token,
         'filename' => $downloadName,
         'created' => time(),
-        // Compact JSON: full entry list can be 10MB+ after dark-mode on large apps.
-        'report' => $fullReport,
+        // Never persist the full entry list — THCEE dark mode can be 10MB+ of JSON.
+        'report' => $slimReport,
     ];
     file_put_contents(
         POWER_SWEEPER_STORAGE . '/out/' . $token . '.json',

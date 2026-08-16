@@ -70,6 +70,10 @@ final class FixFormulaErrorsHop implements HopInterface
             $childOptions = array_merge($options, $step['options']);
             $hop->apply($documents, $report, $childOptions);
             $ran++;
+            // Sub-hops allocate large catalogs/checkers; free between passes on big apps.
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
         }
 
         $delta = $report->count() - $before;

@@ -10,6 +10,8 @@ const POWER_SWEEPER_STORAGE = __DIR__ . '/storage';
 // Large canvas apps (e.g. THCEE) need well above PHP's default 128M/256M while
 // unpacking control trees and applying enable_dark_mode. Raise early so API
 // routes and CLI share the same floor even when Azure .user.ini is slow/missing.
+// Keep at 1024M (not higher): App Service plans with ~1.5–1.75GB RAM will hard-kill
+// PHP if memory_limit exceeds the container, which skips our NDJSON error handler.
 (static function (): void {
     $want = 1024 * 1024 * 1024; // 1024M
     $current = ini_get('memory_limit');
