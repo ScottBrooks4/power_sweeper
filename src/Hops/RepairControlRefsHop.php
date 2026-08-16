@@ -290,6 +290,20 @@ final class RepairControlRefsHop implements HopInterface
         if ($a === '' || $b === '' || $a === $b) {
             return $a !== '' && $a === $b;
         }
+
+        // Never rewrite Foo_5 → Foo_9 (different copy-paste instances).
+        if (preg_match('/^(.*_)(\d+)$/', $from, $fm) && preg_match('/^(.*_)(\d+)$/', $to, $tm)) {
+            if (strcasecmp($fm[1], $tm[1]) === 0 && $fm[2] !== $tm[2]) {
+                return false;
+            }
+        }
+
+        // Never invent suffixes: EnglishNameShort → EnglishNameShort2_2 (data column
+        // mistaken for a control). Prefer stripping suffixes, not adding them.
+        if (!preg_match('/_\d+$/', $from) && preg_match('/_\d+/', $to)) {
+            return false;
+        }
+
         similar_text($a, $b, $pct);
         $lenDelta = abs(strlen($a) - strlen($b));
 

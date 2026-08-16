@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace PowerSweeper\Hops;
 
+use PowerSweeper\ControlDocument;
 use PowerSweeper\HopRegistry;
 use PowerSweeper\Report;
+use PowerSweeper\StudioLiveChecker;
 
 /**
  * One-click formula repair: runs the Studio formula-error hops in the proven order.
@@ -15,6 +17,10 @@ use PowerSweeper\Report;
  *
  * Child repairs attribute under this hop id with a kind prefix on the property
  * column so the UI report reads like enable_dark_mode (control · from → to).
+ *
+ * Each sub-pass is verified with the live App checker (SARIF-equivalent rules).
+ * If a pass would raise formula errors — or damage App.Formulas statement
+ * separators — it is reverted and noted in the report.
  */
 final class FixFormulaErrorsHop implements HopInterface
 {
@@ -75,7 +81,7 @@ final class FixFormulaErrorsHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Fix formula errors of every supported kind: locale separators, broken control/screen refs, SharePoint and ghost fields, Studio syntax, checked booleans, delegation/maintainability, then re-check until errors stop falling.';
+        return 'Fix formula errors of every supported kind: locale separators, broken control/screen refs, SharePoint and ghost fields, Studio syntax, checked booleans, delegation/maintainability, then re-check until errors stop falling. Each pass is verified against the live checker and reverted if it would increase formula errors.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -84,6 +90,9 @@ final class FixFormulaErrorsHop implements HopInterface
         $registry = new HopRegistry();
         $ran = 0;
         $byKind = [];
+        $reverted = 0;
+        $extractDir = is_string($options['_extract_dir'] ?? null) ? $options['_extract_dir'] : null;
+        $guard = ($options['guard'] ?? true) !== false;
 
         $report->pushHopAlias(self::id());
         try {
@@ -94,22 +103,70 @@ final class FixFormulaErrorsHop implements HopInterface
                 }
                 $kind = self::kindLabel($id);
                 $countBefore = $report->count();
+
+                $snapshot = $guard ? self::snapshotFormulas($documents) : [];
+                $errorsBefore = $guard ? self::formulaErrorCount($documents, $extractDir) : 0;
+                $formulasHealthBefore = $guard ? self::appFormulasSeparatorCount($documents) : 0;
+
+                $probe = new Report(null, 500, 280);
+                $hop = $registry->make($id);
+                $childOptions = array_merge($options, $step['options']);
+                $childOptions['report_stats'] = false;
+                $hop->apply($documents, $probe, $childOptions);
+
+                $ran++;
+                if ($guard) {
+                    $errorsAfter = self::formulaErrorCount($documents, $extractDir);
+                    $formulasHealthAfter = self::appFormulasSeparatorCount($documents);
+                    $raisedErrors = $errorsAfter > $errorsBefore;
+                    $brokeFormulas = $formulasHealthAfter < $formulasHealthBefore;
+                    if ($raisedErrors || $brokeFormulas) {
+                        self::restoreFormulas($documents, $snapshot);
+                        $reverted++;
+                        $reason = $brokeFormulas
+                            ? sprintf(
+                                'reverted — App.Formulas separators %d → %d',
+                                $formulasHealthBefore,
+                                $formulasHealthAfter
+                            )
+                            : sprintf(
+                                'reverted — live formula errors %d → %d',
+                                $errorsBefore,
+                                $errorsAfter
+                            );
+                        $report->add(
+                            self::id(),
+                            '(guard)',
+                            $kind,
+                            (string) $probe->count() . ' tentative change(s)',
+                            $reason,
+                        );
+                        if (function_exists('gc_collect_cycles')) {
+                            gc_collect_cycles();
+                        }
+                        continue;
+                    }
+                }
+
                 $report->pushPropertyPrefix($kind);
                 try {
-                    $hop = $registry->make($id);
-                    $childOptions = array_merge($options, $step['options']);
-                    // Avoid nested "(summary)" noise from context-aware / converge when
-                    // we already emit per-formula from→to rows under this parent.
-                    $childOptions['report_stats'] = false;
-                    $hop->apply($documents, $report, $childOptions);
+                    foreach ($probe->entries() as $entry) {
+                        $report->add(
+                            self::id(),
+                            $entry['control'],
+                            $entry['property'],
+                            $entry['from'],
+                            $entry['to'],
+                        );
+                    }
                 } finally {
                     $report->popPropertyPrefix();
                 }
+
                 $delta = $report->count() - $countBefore;
                 if ($delta > 0) {
                     $byKind[$kind] = ($byKind[$kind] ?? 0) + $delta;
                 }
-                $ran++;
                 if (function_exists('gc_collect_cycles')) {
                     gc_collect_cycles();
                 }
@@ -119,7 +176,7 @@ final class FixFormulaErrorsHop implements HopInterface
         }
 
         $delta = $report->count() - $before;
-        if ($delta === 0) {
+        if ($delta === 0 && $reverted === 0) {
             $report->add(
                 self::id(),
                 '(summary)',
@@ -130,19 +187,148 @@ final class FixFormulaErrorsHop implements HopInterface
             return;
         }
 
-        // Dark-mode-style rollup: totals stay accurate; detail rows already listed.
         $parts = [];
         foreach ($byKind as $kind => $n) {
             $parts[] = $kind . ': ' . $n;
+        }
+        if ($reverted > 0) {
+            $parts[] = 'reverted passes: ' . $reverted;
         }
         $report->add(
             self::id(),
             '(summary)',
             'fix_formula_errors',
-            (string) $delta . ' change(s)',
+            (string) max(0, $delta - $reverted) . ' change(s)',
             $parts === []
                 ? sprintf('%d change(s) across %d passes', $delta, $ran)
                 : implode(' · ', $parts),
         );
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @return array<string, string>
+     */
+    private static function snapshotFormulas(array $documents): array
+    {
+        $out = [];
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(static function (string $formula, string $path) use (&$out): string {
+                $out[$path] = $formula;
+                return $formula;
+            });
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @param array<string, string> $snapshot
+     */
+    private static function restoreFormulas(array $documents, array $snapshot): void
+    {
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(static function (string $formula, string $path) use ($snapshot): string {
+                return $snapshot[$path] ?? $formula;
+            });
+        }
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     */
+    private static function formulaErrorCount(array $documents, ?string $extractDir): int
+    {
+        $check = StudioLiveChecker::check($documents, [
+            'extract_dir' => $extractDir,
+        ]);
+        $n = 0;
+        foreach ($check['by_rule'] ?? [] as $rule => $count) {
+            $rule = (string) $rule;
+            if (str_starts_with($rule, 'app-Err') || str_starts_with($rule, 'app-formula')) {
+                $n += (int) $count;
+            }
+        }
+
+        return $n;
+    }
+
+    /**
+     * Count top-level ";" separators in App.Formulas (named-formula terminators).
+     * Losing these (replaced with ",") is a Studio-breaking false locale fix.
+     *
+     * @param list<ControlDocument> $documents
+     */
+    private static function appFormulasSeparatorCount(array $documents): int
+    {
+        foreach ($documents as $doc) {
+            if (!str_ends_with($doc->relativePath, 'App.pa.yaml')
+                && $doc->relativePath !== 'Src/App.pa.yaml'
+            ) {
+                continue;
+            }
+            foreach ($doc->controls() as $control) {
+                if (strcasecmp($control->name, 'App') !== 0) {
+                    continue;
+                }
+                $formulas = $control->getProperty('Formulas');
+                if (!is_string($formulas) || $formulas === '') {
+                    return 0;
+                }
+
+                return self::topLevelSemicolonCount($formulas);
+            }
+        }
+
+        return 0;
+    }
+
+    private static function topLevelSemicolonCount(string $formula): int
+    {
+        $body = ltrim($formula);
+        if (str_starts_with($body, '=')) {
+            $body = substr($body, 1);
+        }
+        $len = strlen($body);
+        $depth = 0;
+        $count = 0;
+        $inString = false;
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $body[$i];
+            if ($inString) {
+                if ($ch === '"' && ($body[$i + 1] ?? '') === '"') {
+                    $i++;
+                    continue;
+                }
+                if ($ch === '"') {
+                    $inString = false;
+                }
+                continue;
+            }
+            if ($ch === '"' ) {
+                $inString = true;
+                continue;
+            }
+            if ($ch === '/' && ($body[$i + 1] ?? '') === '/') {
+                while ($i < $len && $body[$i] !== "\n") {
+                    $i++;
+                }
+                continue;
+            }
+            if ($ch === '(' || $ch === '[' || $ch === '{') {
+                $depth++;
+                continue;
+            }
+            if ($ch === ')' || $ch === ']' || $ch === '}') {
+                $depth = max(0, $depth - 1);
+                continue;
+            }
+            if ($ch === ';' && $depth === 0) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 }

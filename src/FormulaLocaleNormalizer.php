@@ -45,7 +45,9 @@ final class FormulaLocaleNormalizer
         }
 
         // LookUp('Table'; ID = 1) — locale list sep after a quoted datasource arg
-        if (preg_match("/'(?:[^']|'')+'\\s*;/", $masked)) {
+        // INSIDE a call. Do not treat named-formula terminators like Font.'Segoe UI';
+        // (App.Formulas statement separators) as locale corruption.
+        if (preg_match('/\([^)]*\'(?:[^\']|\'\')+\'\s*;/', $masked)) {
             return true;
         }
 
@@ -101,7 +103,7 @@ final class FormulaLocaleNormalizer
                 || self::hasBrokenColorAlpha($masked)
                 || preg_match('/(?<![A-Za-z_])\d{1,3}(?:\.\d{3})+,\d+/', $masked)
                 || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $masked)
-                || preg_match("/'(?:[^']|'')+'\\s*;/", $masked)
+                || preg_match('/\([^)]*\'(?:[^\']|\'\')+\'\s*;/', $masked)
                 || preg_match('/\{[^}"\']*;/', $masked);
             if (!$hasSignal) {
                 return $formula;
@@ -147,8 +149,10 @@ final class FormulaLocaleNormalizer
         // 3) Chaining ;; → placeholder
         $code = str_replace(';;', "\x00CHAIN\x00", $code);
 
-        // 4) List separator ; → ,
-        $code = str_replace(';', ',', $code);
+        // 4) List separator ; → , ONLY inside () / [] / {} .
+        //    Top-level ";" is Power Fx statement chaining / App.Formulas named-formula
+        //    separators and must stay (converting them to "," creates Studio errors).
+        $code = self::replaceListSeparatorsInsideGroups($code);
 
         // 5) Restore chaining as ;
         $code = str_replace("\x00CHAIN\x00", ';', $code);
@@ -161,6 +165,38 @@ final class FormulaLocaleNormalizer
         $code = preg_replace('/,(?=\s*,)/', '', $code) ?? $code;
 
         return $code;
+    }
+
+    /**
+     * Replace locale list separators `;` with invariant `,` only inside
+     * parentheses, brackets, and braces. Top-level `;` (statement / named-formula
+     * separators) are left alone.
+     */
+    private static function replaceListSeparatorsInsideGroups(string $code): string
+    {
+        $len = strlen($code);
+        $out = '';
+        $depth = 0;
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $code[$i];
+            if ($ch === '(' || $ch === '[' || $ch === '{') {
+                $depth++;
+                $out .= $ch;
+                continue;
+            }
+            if ($ch === ')' || $ch === ']' || $ch === '}') {
+                $depth = max(0, $depth - 1);
+                $out .= $ch;
+                continue;
+            }
+            if ($ch === ';' && $depth > 0) {
+                $out .= ',';
+                continue;
+            }
+            $out .= $ch;
+        }
+
+        return $out;
     }
 
     /**
@@ -232,7 +268,7 @@ final class FormulaLocaleNormalizer
     {
         $localeListSep = str_contains($code, ';;')
             || preg_match('/\b[A-Za-z_][\w.]*\s*\([^)"\']*;/', $code) === 1
-            || preg_match("/'(?:[^']|'')+'\\s*;/", $code) === 1
+            || preg_match('/\([^)]*\'(?:[^\']|\'\')+\'\s*;/', $code) === 1
             || preg_match('/\{[^}"\']*;/', $code) === 1;
 
         $protected = [];

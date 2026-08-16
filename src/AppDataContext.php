@@ -207,6 +207,12 @@ final class AppDataContext
         return isset(self::ENUM_TYPES[$name]);
     }
 
+    /** Static lookup for hops that do not hold an AppDataContext instance. */
+    public static function isKnownEnumType(string $name): bool
+    {
+        return isset(self::ENUM_TYPES[$name]);
+    }
+
     public function isEnumOrBuiltin(string $name): bool
     {
         return isset(self::ENUM_NAMES[$name]) || isset(self::ENUM_TYPES[$name]);

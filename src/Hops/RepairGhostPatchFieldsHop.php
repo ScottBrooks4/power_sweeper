@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PowerSweeper\Hops;
 
 use PowerSweeper\AppControlCatalog;
+use PowerSweeper\AppDataContext;
 use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\Report;
 
@@ -89,6 +90,9 @@ final class RepairGhostPatchFieldsHop implements HopInterface
                 $out = PowerFxFormulaSegments::transformCodePreservingLiterals($formula, static function (string $code) use ($ghosts, $report, $path, &$changed): string {
                     $new = $code;
                     foreach (array_keys($ghosts) as $ghost) {
+                        if (AppDataContext::isKnownEnumType((string) $ghost)) {
+                            continue;
+                        }
                         $linePatterns = [
                             '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\.\w+\s*,?[ \t]*\r?\n/m',
                             '/^[ \t]*' . preg_quote($ghost, '/') . '\s*:\s*' . preg_quote($ghost, '/') . '\s*,?[ \t]*\r?\n/m',
@@ -148,8 +152,20 @@ final class RepairGhostPatchFieldsHop implements HopInterface
                         continue;
                     }
                     PowerFxFormulaSegments::transformCode($value, static function (string $code) use (&$candidates): string {
+                        // Patch-style control mirrors: Field: Field.Checked / Field: Field
+                        // Do NOT treat enum record fields (Icon: Icon.Home) as ghosts — require
+                        // a control property suffix, or a bare Field: Field line.
                         if (preg_match_all(
-                            '/^[ \t]*([A-Za-z_][\w\-]*)\s*:\s*\1(?:\.\w+)?\s*,?\s*$/m',
+                            '/^[ \t]*([A-Za-z_][\w\-]*)\s*:\s*\1\.(?:Checked|Text|HtmlText|SelectedDate|Value|Selected|Default|TextColor|Fill)\s*,?\s*$/m',
+                            $code,
+                            $m,
+                        )) {
+                            foreach ($m[1] as $name) {
+                                $candidates[$name] = true;
+                            }
+                        }
+                        if (preg_match_all(
+                            '/^[ \t]*([A-Za-z_][\w\-]*)\s*:\s*\1\s*,?\s*$/m',
                             $code,
                             $m,
                         )) {
@@ -173,6 +189,9 @@ final class RepairGhostPatchFieldsHop implements HopInterface
         $ghosts = [];
         foreach (array_keys($candidates) as $name) {
             if ($catalog->isReserved($name)) {
+                continue;
+            }
+            if (AppDataContext::isKnownEnumType($name)) {
                 continue;
             }
             if ($catalog->isScreenName($name)) {

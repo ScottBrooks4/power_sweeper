@@ -1692,6 +1692,60 @@ assert_true(FormulaLocaleNormalizer::looksLocaleCorrupted($lookupLocale), 'LookU
 $lookupFixed = FormulaLocaleNormalizer::toInvariant($lookupLocale);
 assert_true(str_contains($lookupFixed, "LookUp('VASC App Versions', ID = 1)"), 'LookUp locale separator unwhacked');
 
+// App.Formulas named-formula terminators must not be treated as locale list separators
+$appFormulas = <<<'FX'
+=// Colors
+DefaultGrayBackgroud = RGBA(
+    250,
+    250,
+    250,
+    1
+);
+MainFontColour = RGBA(
+    0,
+    0,
+    0,
+    1
+);
+MainFont = Font.'Segoe UI';
+SideMenuFirstTable = [
+    {
+        Screen: 'VASC SAINT Homepage',
+        Name: "Home",
+        Icon: Icon.Home
+    }
+];
+FX;
+assert_true(!FormulaLocaleNormalizer::looksLocaleCorrupted($appFormulas), 'App.Formulas with Segoe UI; not flagged as locale');
+assert_true(FormulaLocaleNormalizer::toInvariant($appFormulas) === $appFormulas, 'App.Formulas statement separators preserved');
+$appFormulasLocale = "MainFont = Font.'Segoe UI';\nTitle = Concatenate(\"A\"; \"B\");";
+assert_true(FormulaLocaleNormalizer::looksLocaleCorrupted($appFormulasLocale), 'App.Formulas with locale Concatenate(; ) still flagged');
+$appFormulasFixed = FormulaLocaleNormalizer::toInvariant($appFormulasLocale);
+assert_true(str_contains($appFormulasFixed, 'Concatenate("A", "B")'), 'locale args inside calls still converted');
+assert_true(str_contains($appFormulasFixed, "Font.'Segoe UI';"), 'top-level App.Formulas ; preserved while fixing call args');
+
+// Ghost Patch must not strip Power Fx enum record fields (Icon: Icon.Home)
+$iconDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/App.pa.yaml');
+assert_true($iconDoc !== null, 'Icon enum host fixture loads');
+$iconTarget = null;
+foreach ($iconDoc->controls() as $c) {
+    if ($c->getProperty('OnVisible') !== null || $c->getProperty('Text') !== null) {
+        $iconTarget = $c;
+        break;
+    }
+}
+assert_true($iconTarget !== null, 'Icon enum host control found');
+$iconProp = $iconTarget->getProperty('OnVisible') !== null ? 'OnVisible' : 'Text';
+$iconTarget->setProperty(
+    $iconProp,
+    '=[{Name:"Home", Icon: Icon.Home}, {Name:"More", Icon: Icon.Items}]'
+);
+$iconReport = new Report();
+(new \PowerSweeper\Hops\RepairGhostPatchFieldsHop())->apply([$iconDoc], $iconReport, []);
+$iconAfter = (string) ($iconTarget->getProperty($iconProp) ?? '');
+assert_true(str_contains($iconAfter, 'Icon.Home'), 'ghost hop keeps Icon.Home enum fields');
+assert_true(str_contains($iconAfter, 'Icon.Items'), 'ghost hop keeps Icon.Items enum fields');
+
 // repair2.msapp — pipeline idempotency (3 passes, formulas stable)
 $repair2 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
 if (is_file($repair2)) {
