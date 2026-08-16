@@ -51,6 +51,15 @@ final class AppControlCatalog
         'Now' => true, 'Today' => true, 'Lower' => true, 'Upper' => true, 'Trim' => true,
         'Coalesce' => true, 'IsBlank' => true, 'Len' => true, 'Concat' => true, 'JSON' => true,
         'Table' => true, 'Record' => true, 'Error' => true, 'GUID' => true, 'Rand' => true,
+        'FirstError' => true, 'LastError' => true, 'Errors' => true, 'IsError' => true, 'IfError' => true,
+        'IsBlankOrError' => true, 'IsEmpty' => true, 'DataSourceInfo' => true, 'Defaults' => true,
+        'EditForm' => true, 'NewForm' => true, 'ViewForm' => true, 'ResetForm' => true,
+        'Select' => true, 'Remove' => true, 'RemoveIf' => true, 'Clear' => true, 'Update' => true,
+        'Sort' => true, 'SortByColumns' => true, 'AddColumns' => true, 'ShowColumns' => true,
+        'Date' => true, 'Time' => true, 'Year' => true, 'Month' => true, 'Day' => true,
+        'Concatenate' => true, 'Char' => true, 'Replace' => true, 'Substitute' => true,
+        'First' => true, 'Last' => true, 'FirstN' => true, 'LastN' => true, 'Index' => true,
+        'CountRows' => true, 'Distinct' => true, 'GroupBy' => true, 'Ungroup' => true,
     ];
 
     /**

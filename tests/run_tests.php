@@ -1698,6 +1698,70 @@ foreach ($ffeDetailReport->entries() as $row) {
 }
 assert_true($ffeHasKindPrefix, 'fix_formula_errors property names include repair kind');
 
+// Live checker recognizes Set()/UpdateContext variables (Team Pulse teamMemberSelected pattern)
+$setVarPath = sys_get_temp_dir() . '/ps_setvar_' . bin2hex(random_bytes(3)) . '.pa.yaml';
+file_put_contents(
+    $setVarPath,
+    "Screen1:\n  Control: Screen@2.0.0\n  Children:\n    - Btn:\n        Control: Classic/Button@2.2.0\n        Properties:\n          OnSelect: =Set(teamMemberSelected, ThisItem)\n          Text: =teamMemberSelected.Profile.DisplayName\n"
+);
+$setVarDoc = ControlDocument::fromFile($setVarPath, 'Src/Screen1.pa.yaml');
+assert_true($setVarDoc !== null, 'Set() variable fixture loads');
+$setCtx = \PowerSweeper\AppDataContext::build([$setVarDoc], null);
+assert_true($setCtx->isSetVariable('teamMemberSelected'), 'Set() variables are known to live checker');
+@unlink($setVarPath);
+
+// Multi-app formula repair — source apps (ignore powered/repaired copies)
+$formulaRepairSources = [
+    dirname(__DIR__) . '/samples/import_debug/Team Pulse.msapp',
+    dirname(__DIR__) . '/samples/import_debug/TDR - THCEE Directory App.msapp',
+    dirname(__DIR__) . '/samples/import_debug/VCDS ASC — The SAINT Catalog.msapp',
+    dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp',
+];
+$formulaCount = static function (string $path): int {
+    $arch = new \PowerSweeper\MsappArchive($path);
+    try {
+        $arch->unpack();
+        $live = \PowerSweeper\StudioLiveChecker::check($arch->documents(), ['extract_dir' => $arch->extractDir()]);
+        $n = 0;
+        foreach ($live['by_rule'] ?? [] as $rule => $count) {
+            $rule = (string) $rule;
+            if (str_starts_with($rule, 'app-Err') || str_starts_with($rule, 'app-formula')) {
+                $n += (int) $count;
+            }
+        }
+
+        return $n;
+    } finally {
+        $arch->cleanup();
+    }
+};
+foreach ($formulaRepairSources as $srcApp) {
+    if (!is_file($srcApp)) {
+        continue;
+    }
+    $label = basename($srcApp);
+    $before = $formulaCount($srcApp);
+    $out = sys_get_temp_dir() . '/ps_ffe_gen_' . bin2hex(random_bytes(3)) . '.msapp';
+    (new Pipeline())->run($srcApp, [['id' => 'fix_formula_errors', 'options' => []]], $out);
+    $after = $formulaCount($out);
+    @unlink($out);
+    assert_true(
+        $after <= $before,
+        $label . ' formula repair does not regress (before ' . $before . ', after ' . $after . ')'
+    );
+    if ($before > 0) {
+        assert_true(
+            $after < $before || $after <= 15,
+            $label . ' formula repair reduces errors or leaves only hard leftovers (before '
+            . $before . ', after ' . $after . ')'
+        );
+    }
+    if (function_exists('gc_collect_cycles')) {
+        gc_collect_cycles();
+    }
+}
+assert_true(is_file(dirname(__DIR__) . '/scripts/verify_formula_repair_multiapp.php'), 'multi-app formula repair verifier script exists');
+
 $powerToWeb = HopChains::powerToWeb();
 $webToPower = HopChains::webToPower();
 assert_true($powerToWeb === [['id' => 'export_to_web_ir', 'options' => []]], 'power_to_web is export_to_web_ir composite');

@@ -16,6 +16,9 @@ final class AppDataContext
     /** @var array<string, true> */
     private array $packageFields = [];
 
+    /** @var array<string, true> Variables from Set(name, …) / UpdateContext({ name: … }) */
+    private array $setVariables = [];
+
     /** @var array<string, string> screen name => preferred document relative path */
     private array $preferredDocByScreen = [];
 
@@ -108,6 +111,7 @@ final class AppDataContext
             $ctx->loadDataSources($extractDir);
         }
         $ctx->packageFields = self::collectPackageFields($documents);
+        $ctx->setVariables = self::collectSetVariables($documents);
         $ctx->preferredDocByScreen = self::resolvePreferredDocs($documents);
         return $ctx;
     }
@@ -196,6 +200,17 @@ final class AppDataContext
         return isset($this->packageFields[$name]);
     }
 
+    public function isSetVariable(string $name): bool
+    {
+        return isset($this->setVariables[$name]);
+    }
+
+    /** @return array<string, true> */
+    public function setVariables(): array
+    {
+        return $this->setVariables;
+    }
+
     /** @return array<string, true> */
     public function packageFields(): array
     {
@@ -258,6 +273,52 @@ final class AppDataContext
                 $this->dataSourceNames[str_replace("''", "'", $name)] = true;
             }
         }
+    }
+
+    /**
+     * Variables assigned via Set(name, …) or UpdateContext({ name: … }) app-wide.
+     *
+     * @param list<ControlDocument> $documents
+     * @return array<string, true>
+     */
+    private static function collectSetVariables(array $documents): array
+    {
+        $vars = [];
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(static function (string $formula) use (&$vars): string {
+                $body = ltrim(trim($formula), '=');
+                if ($body === '') {
+                    return $formula;
+                }
+                foreach (PowerFxFormulaSegments::splitForStructure($body) as [$type, $text]) {
+                    if ($type !== 'code') {
+                        continue;
+                    }
+                    if (preg_match_all('/\bSet\s*\(\s*([A-Za-z_][\w]*)\s*,/', $text, $m)) {
+                        foreach ($m[1] as $name) {
+                            $vars[$name] = true;
+                        }
+                    }
+                    if (preg_match_all('/\bUpdateContext\s*\(\s*\{/', $text, $starts, PREG_OFFSET_CAPTURE)) {
+                        foreach ($starts[0] as $start) {
+                            $from = (int) $start[1];
+                            $slice = substr($text, $from, 800);
+                            if (preg_match('/\bUpdateContext\s*\(\s*\{([^}]*)\}/', $slice, $block)) {
+                                if (preg_match_all('/(?:^|[,{])\s*([A-Za-z_][\w]*)\s*:/', $block[1], $fields)) {
+                                    foreach ($fields[1] as $name) {
+                                        $vars[$name] = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return $formula;
+            });
+        }
+
+        return $vars;
     }
 
     /**
