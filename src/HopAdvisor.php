@@ -18,12 +18,17 @@ final class HopAdvisor
     /** Hops that honor options.force (must stay in sync with hop implementations). */
     public const FORCEABLE_HOPS = [
         'accessibility_labels',
+        'accessibility_polish',
         'tooltip_from_label',
         'enable_dark_mode',
+        'enable_dark_theme',
         'translate',
         'unwhack_locale_formulas',
         'fix_formula_errors',
+        'fix_control_names_and_refs',
         'normalize_containers',
+        'clean_default_chrome',
+        'repair_sharepoint_data',
     ];
 
     /**
@@ -532,6 +537,16 @@ final class HopAdvisor
 
         $needsRefRepair = $refErrors > 0 || $mangled > 0 || $doubleQualified > 0
             || ($unresolved > 0 && $formulaErrors > 0);
+        $needsNamesAndRefs = $needsNames || $needsRefRepair;
+        $needsSharePointData = $columnErrors > 0 || $missingPackage > 0
+            || ($ghostHits > 0 && $formulaErrors > 0);
+        $needsA11y = $missingLabel > 0 || $missingFocus > 0 || $missingTab > 0 || $missingTooltip > 0
+            || $a11ySarif > 0
+            || ((int) ($signals['by_rule']['acc-AccessibleLabelNeeded'] ?? 0)) > 0
+            || ((int) ($signals['by_rule']['acc-FocusBorderShouldBeVisible'] ?? 0)) > 0
+            || ((int) ($signals['by_rule']['acc-TabIndexShouldBeDefinedForInteractiveControl'] ?? 0)) > 0;
+        $needsChrome = $containerChrome > 0 || $whiteFills > 0;
+
         $needsFormulaWork = $localeHits > 0
             || $needsRefRepair
             || $boolIssues > 0
@@ -549,7 +564,9 @@ final class HopAdvisor
                 $genericNames,
                 (int) $signals['named_controls']
             );
-            $hops[] = ['id' => 'meaningful_names', 'options' => ['only_generic' => true]];
+        }
+        if ($needsRefRepair) {
+            $reasons[] = 'Stale or double-qualified control/screen references detected';
         }
         if ($localeHits > 0) {
             $reasons[] = 'Locale-corrupted formula separators detected';
@@ -560,14 +577,17 @@ final class HopAdvisor
         if ($boolIssues > 0) {
             $reasons[] = 'Checked/boolean formula issues detected';
         }
-        if ($missingLabel > 0 || $a11ySarif > 0) {
+        if ($needsSharePointData) {
+            $reasons[] = 'SharePoint column / package / ghost Patch issues detected';
+        }
+        if ($needsA11y) {
             $reasons[] = sprintf(
                 'Accessibility gaps (missing labels ≈ %d%% of interactive controls)',
                 (int) round(((float) $signals['label_missing_ratio']) * 100)
             );
         }
-        if ($containerChrome > 0) {
-            $reasons[] = 'Default container chrome still present';
+        if ($needsChrome) {
+            $reasons[] = 'Default container chrome or white fills still present';
         }
         if ($needsTheme) {
             $reasons[] = 'No gblTheme palette detected — include dark-mode theming';
@@ -580,62 +600,33 @@ final class HopAdvisor
             $reasons[] = 'Language packs / translations already present — skip translate';
         }
 
-        // One hop covers locale, refs, SharePoint/ghost fields, syntax, booleans, converge.
+        // Stage composites (double-run with formula hop is allowed when refs overlap).
+        if ($needsNamesAndRefs) {
+            $hops[] = ['id' => 'fix_control_names_and_refs', 'options' => []];
+        }
         if ($needsFormulaWork) {
             $hops[] = ['id' => 'fix_formula_errors', 'options' => []];
         }
-
-        // A11y — per-gap, never bundled solely because formulas failed.
-        if ($missingLabel > 0 || ((int) ($signals['by_rule']['acc-AccessibleLabelNeeded'] ?? 0)) > 0) {
-            $hops[] = ['id' => 'accessibility_labels', 'options' => []];
+        if ($needsSharePointData) {
+            $hops[] = ['id' => 'repair_sharepoint_data', 'options' => []];
         }
-        if ($missingFocus > 0 || ((int) ($signals['by_rule']['acc-FocusBorderShouldBeVisible'] ?? 0)) > 0) {
-            $hops[] = ['id' => 'ensure_focus_visible', 'options' => ['thickness' => 2]];
+        if ($needsA11y) {
+            $hops[] = ['id' => 'accessibility_polish', 'options' => []];
         }
-        if ($missingTab > 0 || ((int) ($signals['by_rule']['acc-TabIndexShouldBeDefinedForInteractiveControl'] ?? 0)) > 0) {
-            $hops[] = ['id' => 'ensure_tab_index', 'options' => ['value' => 0]];
+        if ($needsChrome) {
+            $hops[] = ['id' => 'clean_default_chrome', 'options' => []];
         }
-        if ($missingTooltip > 0) {
-            $hops[] = ['id' => 'tooltip_from_label', 'options' => []];
-        }
-
-        if ($containerChrome > 0) {
-            $hops[] = ['id' => 'normalize_containers', 'options' => []];
-        }
-        if ($whiteFills > 0) {
-            $hops[] = ['id' => 'strip_default_fill', 'options' => []];
-        }
-
         if ($needsTheme) {
-            if ($modernThemeable > 0) {
-                $hops[] = ['id' => 'prefer_classic_theme_controls', 'options' => []];
-            }
-            $hops[] = ['id' => 'enable_dark_mode', 'options' => []];
+            $hops[] = ['id' => 'enable_dark_theme', 'options' => []];
         }
-
         if ($needsTranslate) {
             $hops[] = ['id' => 'translate', 'options' => []];
-        }
-
-        // Ensure classic theme prep sits immediately before enable_dark_mode when both present.
-        $hasClassic = false;
-        $darkAt = null;
-        foreach ($hops as $i => $step) {
-            $id = (string) ($step['id'] ?? '');
-            if ($id === 'prefer_classic_theme_controls') {
-                $hasClassic = true;
-            }
-            if ($id === 'enable_dark_mode') {
-                $darkAt = $i;
-            }
-        }
-        if ($darkAt !== null && !$hasClassic && $modernThemeable > 0) {
-            array_splice($hops, $darkAt, 0, [['id' => 'prefer_classic_theme_controls', 'options' => []]]);
         }
 
         // Deduplicate consecutive identical hop ids (keep intentional double_qualified repeats).
         $hops = $this->dedupeNonRepeating($hops);
 
+        // Final SARIF even when composites already regenerated (double-run OK).
         $mutating = array_values(array_filter(
             $hops,
             static fn(array $h): bool => ($h['id'] ?? '') !== 'regenerate_sarif'

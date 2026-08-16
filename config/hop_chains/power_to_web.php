@@ -8,8 +8,5 @@ declare(strict_types=1);
  * @return list<array{id:string,options?:array<string,mixed>}>
  */
 return [
-    ['id' => 'meaningful_names', 'options' => ['only_generic' => true]],
-    ['id' => 'repair_double_qualified_refs', 'options' => []],
-    ['id' => 'export_web_ir', 'options' => ['configure_document' => true]],
-    ['id' => 'configure_power_document', 'options' => ['mode' => 'web']],
+    ['id' => 'export_to_web_ir', 'options' => []],
 ];

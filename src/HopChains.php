@@ -29,7 +29,8 @@ final class HopChains
         }
 
         return array_map(static function (array $hop): array {
-            if (($hop['id'] ?? '') === 'enable_dark_mode') {
+            $id = (string) ($hop['id'] ?? '');
+            if ($id === 'enable_dark_mode' || $id === 'enable_dark_theme') {
                 $hop['options']['force'] = true;
             }
 
@@ -71,7 +72,7 @@ final class HopChains
     public static function smartRepair(): array
     {
         return array_merge(
-            [['id' => 'meaningful_names', 'options' => ['only_generic' => true]]],
+            [['id' => 'fix_control_names_and_refs', 'options' => []]],
             self::studioRepair()
         );
     }

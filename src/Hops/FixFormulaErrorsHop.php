@@ -25,7 +25,8 @@ use PowerSweeper\StudioLiveChecker;
 final class FixFormulaErrorsHop implements HopInterface
 {
     /**
-     * Formula-only subset of config/hop_chains/studio_repair.php (no a11y / SARIF).
+     * Formula-repair subset used by studio_repair (a11y lives in accessibility_polish).
+     * Ends with regenerate_sarif when the pipeline provides _extract_dir.
      *
      * @return list<array{id:string,options:array<string,mixed>}>
      */
@@ -47,6 +48,7 @@ final class FixFormulaErrorsHop implements HopInterface
             ['id' => 'repair_converge_formulas', 'options' => []],
             // Converge can re-touch Navigate/StartScreen; normalize any over-quotes.
             ['id' => 'repair_double_qualified_refs', 'options' => []],
+            ['id' => 'regenerate_sarif', 'options' => []],
         ];
     }
 
@@ -65,6 +67,7 @@ final class FixFormulaErrorsHop implements HopInterface
             'repair_maintainability' => 'maintainability',
             'repair_delegation' => 'delegation',
             'repair_converge_formulas' => 'converge',
+            'regenerate_sarif' => 'SARIF',
             default => $subHopId,
         };
     }
@@ -81,7 +84,7 @@ final class FixFormulaErrorsHop implements HopInterface
 
     public static function description(): string
     {
-        return 'Fix formula errors of every supported kind: locale separators, broken control/screen refs, SharePoint and ghost fields, Studio syntax, checked booleans, delegation/maintainability, then re-check until errors stop falling. Each pass is verified against the live checker and reverted if it would increase formula errors.';
+        return 'Fix formula errors of every supported kind: locale separators, broken control/screen refs, SharePoint and ghost fields, Studio syntax, checked booleans, delegation/maintainability, then re-check until errors stop falling and regenerate App checker SARIF. Each pass is verified against the live checker and reverted if it would increase formula errors. Safe to run with Fix control names & references (overlapping ref passes may run twice).';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -99,6 +102,9 @@ final class FixFormulaErrorsHop implements HopInterface
             foreach (self::subHops() as $step) {
                 $id = (string) $step['id'];
                 if (!$registry->has($id) || $id === self::id()) {
+                    continue;
+                }
+                if ($id === 'regenerate_sarif' && ($extractDir === null || $extractDir === '')) {
                     continue;
                 }
                 $kind = self::kindLabel($id);

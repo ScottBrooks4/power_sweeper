@@ -508,8 +508,11 @@ foreach ($classicPrepOpt->controls() as $c) {
 assert_true(is_string($sitesType) && str_starts_with($sitesType, 'Classic/TextInput@'), 'opt-in ModernNumberInput → Classic/TextInput');
 
 $darkModeHopIds = array_column(HopChains::darkMode(), 'id');
-assert_true($darkModeHopIds[0] === 'prefer_classic_theme_controls', 'dark_mode chain prepares classic controls first');
-assert_true(in_array('enable_dark_mode', $darkModeHopIds, true), 'dark_mode chain still runs enable_dark_mode');
+assert_true($darkModeHopIds === ['enable_dark_theme'], 'dark_mode chain is enable_dark_theme composite');
+$darkThemeSubs = array_column(\PowerSweeper\Hops\EnableDarkThemeHop::subHops(), 'id');
+assert_true($darkThemeSubs[0] === 'prefer_classic_theme_controls', 'enable_dark_theme prepares classic controls first');
+assert_true(in_array('enable_dark_mode', $darkThemeSubs, true), 'enable_dark_theme still runs enable_dark_mode');
+assert_true(in_array('regenerate_sarif', $darkThemeSubs, true), 'enable_dark_theme regenerates SARIF');
 
 // --- dark mode ---
 $doc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
@@ -1551,28 +1554,54 @@ if (is_file($repaired16)) {
 
 // Hop chains — ids resolve; studio repair + powered + web round-trip
 $hopRegistry = new \PowerSweeper\HopRegistry();
-assert_true($hopRegistry->has('fix_formula_errors'), 'fix_formula_errors hop registered');
+$compositeIds = [
+    'fix_formula_errors',
+    'fix_control_names_and_refs',
+    'accessibility_polish',
+    'enable_dark_theme',
+    'clean_default_chrome',
+    'repair_sharepoint_data',
+    'export_to_web_ir',
+    'import_from_web_ir',
+];
+foreach ($compositeIds as $cid) {
+    assert_true($hopRegistry->has($cid), $cid . ' hop registered');
+}
 $formulaSubIds = array_column(\PowerSweeper\Hops\FixFormulaErrorsHop::subHops(), 'id');
 foreach (array_unique($formulaSubIds) as $subId) {
     assert_true($hopRegistry->has($subId), 'fix_formula_errors sub-hop ' . $subId . ' registered');
 }
+assert_true(in_array('regenerate_sarif', $formulaSubIds, true), 'fix_formula_errors includes regenerate_sarif');
+$namesSubs = array_column(\PowerSweeper\Hops\FixControlNamesAndRefsHop::subHops(), 'id');
+assert_true(in_array('meaningful_names', $namesSubs, true), 'fix_control_names_and_refs renames');
+assert_true(in_array('regenerate_sarif', $namesSubs, true), 'fix_control_names_and_refs regenerates SARIF');
+
 $repairHopIds = array_column(HopChains::studioRepair(), 'id');
-assert_true(in_array('fix_formula_errors', $repairHopIds, true), 'studio repair includes fix_formula_errors');
-assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'studio repair includes regenerate_sarif');
+assert_true($repairHopIds === ['fix_formula_errors', 'accessibility_polish'], 'studio repair is formula + a11y composites');
+assert_true(!in_array('regenerate_sarif', $repairHopIds, true), 'studio repair SARIF lives inside composites');
 assert_true(!in_array('repair_control_refs', $repairHopIds, true), 'studio repair uses composite instead of repair_control_refs');
 assert_true(!in_array('repair_converge_formulas', $repairHopIds, true), 'studio repair uses composite instead of repair_converge_formulas');
 assert_true(!in_array('meaningful_names', $repairHopIds, true), 'studio repair does not rename by default');
 
 $smartHopIds = array_column(HopChains::smartRepair(), 'id');
-assert_true(in_array('meaningful_names', $smartHopIds, true), 'smart repair includes meaningful_names');
+assert_true($smartHopIds[0] === 'fix_control_names_and_refs', 'smart repair starts with names/refs composite');
 assert_true(in_array('fix_formula_errors', $smartHopIds, true), 'smart repair includes fix_formula_errors');
+assert_true(
+    in_array('fix_control_names_and_refs', $smartHopIds, true)
+    && in_array('fix_formula_errors', $smartHopIds, true),
+    'smart repair allows double-run of overlapping ref passes via both composites'
+);
 
 $poweredHops = HopChains::powered();
 $poweredIds = array_column($poweredHops, 'id');
 assert_true(in_array('fix_formula_errors', $poweredIds, true), 'powered chain includes fix_formula_errors');
-assert_true(in_array('regenerate_sarif', $poweredIds, true), 'powered chain includes regenerate_sarif');
-assert_true(in_array('enable_dark_mode', $poweredIds, true), 'powered chain includes enable_dark_mode');
-assert_true(in_array('prefer_classic_theme_controls', $poweredIds, true), 'powered chain includes classic theme prep');
+assert_true(in_array('accessibility_polish', $poweredIds, true), 'powered chain includes accessibility_polish');
+assert_true(in_array('enable_dark_theme', $poweredIds, true), 'powered chain includes enable_dark_theme');
+assert_true(!in_array('enable_dark_mode', $poweredIds, true), 'powered chain uses enable_dark_theme composite');
+assert_true(!in_array('prefer_classic_theme_controls', $poweredIds, true), 'powered classic prep is inside enable_dark_theme');
+assert_true(!in_array('regenerate_sarif', $poweredIds, true), 'powered SARIF lives inside composites');
+$forcedDark = HopChains::darkMode(true);
+assert_true(($forcedDark[0]['options']['force'] ?? null) === true, 'darkMode(true) forces enable_dark_theme');
 foreach ($poweredHops as $hop) {
     assert_true($hopRegistry->has($hop['id']), 'powered hop ' . $hop['id'] . ' registered');
 }
@@ -1620,16 +1649,37 @@ assert_true($ffeHasKindPrefix, 'fix_formula_errors property names include repair
 
 $powerToWeb = HopChains::powerToWeb();
 $webToPower = HopChains::webToPower();
-assert_true(in_array('meaningful_names', array_column($powerToWeb, 'id'), true), 'power_to_web renames generics before export');
-assert_true(in_array('repair_double_qualified_refs', array_column($powerToWeb, 'id'), true), 'power_to_web cleans screen refs after rename');
-assert_true(in_array('export_web_ir', array_column($powerToWeb, 'id'), true), 'power_to_web exports IR');
-assert_true(in_array('import_web_ir', array_column($webToPower, 'id'), true), 'web_to_power imports IR');
-assert_true(in_array('repair_double_qualified_refs', array_column($webToPower, 'id'), true), 'web_to_power cleans screen refs after import');
-assert_true(in_array('accessibility_labels', array_column($webToPower, 'id'), true), 'web_to_power fills a11y after import');
-assert_true(in_array('ensure_focus_visible', array_column($webToPower, 'id'), true), 'web_to_power ensures focus visible');
+assert_true($powerToWeb === [['id' => 'export_to_web_ir', 'options' => []]], 'power_to_web is export_to_web_ir composite');
+assert_true($webToPower === [['id' => 'import_from_web_ir', 'options' => []]], 'web_to_power is import_from_web_ir composite');
+$exportSubs = array_column(\PowerSweeper\Hops\ExportToWebIrHop::subHops(), 'id');
+$importSubs = array_column(\PowerSweeper\Hops\ImportFromWebIrHop::subHops(), 'id');
+assert_true(in_array('meaningful_names', $exportSubs, true), 'export_to_web_ir renames generics before export');
+assert_true(in_array('repair_double_qualified_refs', $exportSubs, true), 'export_to_web_ir cleans screen refs after rename');
+assert_true(in_array('export_web_ir', $exportSubs, true), 'export_to_web_ir exports IR');
+assert_true(in_array('regenerate_sarif', $exportSubs, true), 'export_to_web_ir regenerates SARIF');
+assert_true(in_array('import_web_ir', $importSubs, true), 'import_from_web_ir imports IR');
+assert_true(in_array('repair_double_qualified_refs', $importSubs, true), 'import_from_web_ir cleans screen refs after import');
+assert_true(in_array('accessibility_labels', $importSubs, true), 'import_from_web_ir fills a11y after import');
+assert_true(in_array('ensure_focus_visible', $importSubs, true), 'import_from_web_ir ensures focus visible');
+assert_true(in_array('regenerate_sarif', $importSubs, true), 'import_from_web_ir regenerates SARIF');
 assert_true($hopRegistry->has('export_web_ir'), 'export_web_ir hop registered');
 assert_true($hopRegistry->has('import_web_ir'), 'import_web_ir hop registered');
 assert_true($hopRegistry->has('configure_power_document'), 'configure_power_document hop registered');
+
+// Composite smoke — empty docs (SARIF skipped without _extract_dir)
+foreach ([
+    new \PowerSweeper\Hops\FixControlNamesAndRefsHop(),
+    new \PowerSweeper\Hops\AccessibilityPolishHop(),
+    new \PowerSweeper\Hops\EnableDarkThemeHop(),
+    new \PowerSweeper\Hops\CleanDefaultChromeHop(),
+    new \PowerSweeper\Hops\RepairSharePointDataHop(),
+    new \PowerSweeper\Hops\ExportToWebIrHop(),
+    new \PowerSweeper\Hops\ImportFromWebIrHop(),
+] as $compositeHop) {
+    $smokeReport = new Report();
+    $compositeHop->apply([], $smokeReport, []);
+    assert_true($smokeReport->count() >= 1, $compositeHop::id() . ' writes a summary row');
+}
 
 // repair_studio_syntax — trailing Concatenate comma and undefined var (code only)
 $syntaxIn = 'Concatenate(If(true, "a", ""), If(true, "b", ""), If(true, "c", ""),); Set(x, varNewRequest);';
@@ -2646,16 +2696,12 @@ if (is_file($kmsAdvisePath)) {
     assert_true(($plan['ok'] ?? false) === true, 'advisor recommend ok for kitchen sink');
     assert_true(in_array($plan['force_mode'], ['all', 'missing_only'], true), 'advisor force_mode is valid');
     $planIds = array_map(static fn(array $h): string => (string) $h['id'], $plan['hops'] ?? []);
-    assert_true(in_array('accessibility_labels', $planIds, true), 'kitchen sink plan includes accessibility_labels');
-    assert_true(in_array('enable_dark_mode', $planIds, true), 'kitchen sink plan includes enable_dark_mode');
-    if (((int) ($plan['signals']['modern_themeable_controls'] ?? 0)) > 0) {
-        assert_true(in_array('prefer_classic_theme_controls', $planIds, true), 'kitchen sink plan prepares classic theme controls when modern controls exist');
-        $classicAt = array_search('prefer_classic_theme_controls', $planIds, true);
-        $darkAt = array_search('enable_dark_mode', $planIds, true);
-        assert_true(is_int($classicAt) && is_int($darkAt) && $classicAt < $darkAt, 'classic theme prep runs before enable_dark_mode');
-    } else {
-        assert_true(!in_array('prefer_classic_theme_controls', $planIds, true), 'kitchen sink skips classic prep when no modern controls to convert');
-    }
+    assert_true(in_array('accessibility_polish', $planIds, true), 'kitchen sink plan includes accessibility_polish');
+    assert_true(in_array('enable_dark_theme', $planIds, true), 'kitchen sink plan includes enable_dark_theme');
+    assert_true(!in_array('enable_dark_mode', $planIds, true), 'kitchen sink uses enable_dark_theme composite');
+    assert_true(!in_array('prefer_classic_theme_controls', $planIds, true), 'kitchen sink classic prep is inside enable_dark_theme');
+    assert_true(!in_array('accessibility_labels', $planIds, true), 'kitchen sink a11y lives in accessibility_polish');
+    assert_true(in_array('regenerate_sarif', $planIds, true), 'kitchen sink keeps trailing regenerate_sarif (double-run OK)');
     assert_true(!in_array('align_near_miss', $planIds, true), 'kitchen sink does not recommend align_near_miss without detection');
     assert_true(!in_array('repair_delegation', $planIds, true), 'kitchen sink skips repair_delegation with no delegation hints');
     assert_true(!in_array('unwhack_locale_formulas', $planIds, true), 'kitchen sink skips locale unwhack with no locale hits');
@@ -2685,6 +2731,7 @@ if (is_file($poweredAdvise)) {
     assert_true(($poweredPlan['signals']['has_theme'] ?? false) === true, 'powered app signals has_theme');
     $poweredIds = array_map(static fn(array $h): string => (string) $h['id'], $poweredPlan['hops'] ?? []);
     assert_true(!in_array('enable_dark_mode', $poweredIds, true), 'powered app skips enable_dark_mode');
+    assert_true(!in_array('enable_dark_theme', $poweredIds, true), 'powered app skips enable_dark_theme');
     assert_true(!in_array('align_near_miss', $poweredIds, true), 'powered app does not get default light-cleanup hops');
     // No full studio_repair dump when signals are clean for that hop.
     if (((int) ($poweredPlan['signals']['delegation_hints'] ?? 0)) === 0) {
@@ -2697,6 +2744,7 @@ if (is_file($poweredAdvise)) {
         && ((int) ($poweredPlan['signals']['by_rule']['acc-AccessibleLabelNeeded'] ?? 0)) === 0
     ) {
         assert_true(!in_array('accessibility_labels', $poweredIds, true), 'powered app skips accessibility_labels when none missing');
+        assert_true(!in_array('accessibility_polish', $poweredIds, true), 'powered app skips accessibility_polish when none missing');
     }
 }
 

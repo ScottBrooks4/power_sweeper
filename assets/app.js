@@ -3,31 +3,89 @@
   const hopMeta = Object.fromEntries((cfg.hops || []).map((h) => [h.id, h]));
   const forceableHops = new Set(cfg.forceable_hops || [
     'accessibility_labels',
+    'accessibility_polish',
     'tooltip_from_label',
     'enable_dark_mode',
+    'enable_dark_theme',
     'translate',
     'unwhack_locale_formulas',
     'fix_formula_errors',
+    'fix_control_names_and_refs',
     'normalize_containers',
+    'clean_default_chrome',
+    'repair_sharepoint_data',
   ]);
 
-  /** Sub-hops run by fix_formula_errors (keep in sync with FixFormulaErrorsHop::subHops). */
-  const FIX_FORMULA_ERROR_SUB_HOPS = [
-    'unwhack_locale_formulas',
-    'repair_double_qualified_refs',
-    'repair_control_refs',
-    'repair_context_aware_refs',
-    'repair_double_qualified_refs',
-    'repair_var_current_package',
-    'repair_sharepoint_fields',
-    'repair_ghost_patch_fields',
-    'repair_studio_syntax',
-    'repair_checked_booleans',
-    'repair_maintainability',
-    'repair_delegation',
-    'repair_converge_formulas',
-    'repair_double_qualified_refs',
-  ];
+  /** Sub-hops for composites (keep in sync with *Hop::subHops). */
+  const COMPOSITE_SUB_HOPS = {
+    fix_formula_errors: [
+      'unwhack_locale_formulas',
+      'repair_double_qualified_refs',
+      'repair_control_refs',
+      'repair_context_aware_refs',
+      'repair_double_qualified_refs',
+      'repair_var_current_package',
+      'repair_sharepoint_fields',
+      'repair_ghost_patch_fields',
+      'repair_studio_syntax',
+      'repair_checked_booleans',
+      'repair_maintainability',
+      'repair_delegation',
+      'repair_converge_formulas',
+      'repair_double_qualified_refs',
+      'regenerate_sarif',
+    ],
+    fix_control_names_and_refs: [
+      'meaningful_names',
+      'repair_double_qualified_refs',
+      'repair_control_refs',
+      'repair_context_aware_refs',
+      'repair_double_qualified_refs',
+      'regenerate_sarif',
+    ],
+    accessibility_polish: [
+      'accessibility_labels',
+      'ensure_focus_visible',
+      'ensure_tab_index',
+      'tooltip_from_label',
+      'regenerate_sarif',
+    ],
+    enable_dark_theme: [
+      'prefer_classic_theme_controls',
+      'enable_dark_mode',
+      'regenerate_sarif',
+    ],
+    clean_default_chrome: [
+      'normalize_containers',
+      'strip_default_fill',
+      'normalize_classic_button_chrome',
+      'regenerate_sarif',
+    ],
+    repair_sharepoint_data: [
+      'correlate_sharepoint',
+      'repair_sharepoint_fields',
+      'repair_var_current_package',
+      'repair_ghost_patch_fields',
+      'regenerate_sarif',
+    ],
+    export_to_web_ir: [
+      'meaningful_names',
+      'repair_double_qualified_refs',
+      'export_web_ir',
+      'configure_power_document',
+      'regenerate_sarif',
+    ],
+    import_from_web_ir: [
+      'import_web_ir',
+      'repair_double_qualified_refs',
+      'configure_power_document',
+      'accessibility_labels',
+      'ensure_focus_visible',
+      'ensure_tab_index',
+      'tooltip_from_label',
+      'regenerate_sarif',
+    ],
+  };
 
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
@@ -88,8 +146,15 @@
     repair_maintainability: 160,
     repair_checked_booleans: 200,
     repair_var_current_package: 200,
-    // Sum of FIX_FORMULA_ERROR_SUB_HOPS fallbacks (approx).
-    fix_formula_errors: 53450,
+    // Approx sums of COMPOSITE_SUB_HOPS fallbacks.
+    fix_formula_errors: 55850,
+    fix_control_names_and_refs: 40050,
+    accessibility_polish: 2520,
+    enable_dark_theme: 4640,
+    clean_default_chrome: 2500,
+    repair_sharepoint_data: 10650,
+    export_to_web_ir: 8350,
+    import_from_web_ir: 8380,
     correlate_sharepoint: 800,
     regenerate_sarif: 2400,
     analyze_app_checker: 1800,
@@ -271,7 +336,8 @@
 
   function hopCostMs(id, options = {}) {
     // Composite: sum child estimates until the model has dedicated samples.
-    if (id === 'fix_formula_errors') {
+    const compositeKids = COMPOSITE_SUB_HOPS[id];
+    if (Array.isArray(compositeKids) && compositeKids.length) {
       const modelHop = estimateModel?.hops?.[id];
       const learned = learnedSamples()[id];
       const hasSamples = (Array.isArray(modelHop?.samples) && modelHop.samples.length)
@@ -279,7 +345,7 @@
       if (!hasSamples) {
         return Math.max(
           25,
-          FIX_FORMULA_ERROR_SUB_HOPS.reduce((sum, sid) => sum + hopCostMs(sid, options), 0)
+          compositeKids.reduce((sum, sid) => sum + hopCostMs(sid, options), 0)
         );
       }
     }
@@ -292,7 +358,13 @@
       ...(Array.isArray(modelHop?.samples) ? modelHop.samples : []),
       ...(Array.isArray(learned) ? learned : []),
     ];
-    const heavy = Boolean(modelHop?.heavy) || id.startsWith('repair_') || id === 'fix_formula_errors' || id === 'enable_dark_mode' || id === 'regenerate_sarif';
+    const heavy = Boolean(modelHop?.heavy)
+      || id.startsWith('repair_')
+      || id === 'fix_formula_errors'
+      || id === 'fix_control_names_and_refs'
+      || id === 'enable_dark_mode'
+      || id === 'enable_dark_theme'
+      || id === 'regenerate_sarif';
     let ms = predictFromSamples(samples, controls, mb, workload, heavy);
     if (!(ms > 0)) {
       try {

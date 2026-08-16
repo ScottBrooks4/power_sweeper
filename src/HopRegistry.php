@@ -5,21 +5,28 @@ declare(strict_types=1);
 namespace PowerSweeper;
 
 use PowerSweeper\Hops\AccessibilityLabelsHop;
+use PowerSweeper\Hops\AccessibilityPolishHop;
 use PowerSweeper\Hops\AlignNearMissHop;
 use PowerSweeper\Hops\AnalyzeAppCheckerHop;
+use PowerSweeper\Hops\CleanDefaultChromeHop;
 use PowerSweeper\Hops\ConfigurePowerDocumentHop;
 use PowerSweeper\Hops\CorrelateSharePointHop;
 use PowerSweeper\Hops\EnableDarkModeHop;
+use PowerSweeper\Hops\EnableDarkThemeHop;
 use PowerSweeper\Hops\EnsureFocusVisibleHop;
 use PowerSweeper\Hops\EnsureTabIndexHop;
+use PowerSweeper\Hops\ExportToWebIrHop;
 use PowerSweeper\Hops\ExportWebAppHop;
-use PowerSweeper\Hops\HopInterface;
-use PowerSweeper\Hops\ImportWebAppHop;
+use PowerSweeper\Hops\FixControlNamesAndRefsHop;
 use PowerSweeper\Hops\FixFormulaErrorsHop;
+use PowerSweeper\Hops\HopInterface;
+use PowerSweeper\Hops\ImportFromWebIrHop;
+use PowerSweeper\Hops\ImportWebAppHop;
 use PowerSweeper\Hops\MeaningfulNamesHop;
 use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
 use PowerSweeper\Hops\NormalizeContainersHop;
 use PowerSweeper\Hops\PreferClassicThemeControlsHop;
+use PowerSweeper\Hops\RegenerateSarifHop;
 use PowerSweeper\Hops\RepairCheckedBooleansHop;
 use PowerSweeper\Hops\RepairConvergeFormulasHop;
 use PowerSweeper\Hops\RepairContextAwareRefsHop;
@@ -28,9 +35,9 @@ use PowerSweeper\Hops\RepairDelegationHop;
 use PowerSweeper\Hops\RepairDoubleQualifiedRefsHop;
 use PowerSweeper\Hops\RepairGhostPatchFieldsHop;
 use PowerSweeper\Hops\RepairMaintainabilityHop;
+use PowerSweeper\Hops\RepairSharePointDataHop;
 use PowerSweeper\Hops\RepairSharePointFieldsHop;
 use PowerSweeper\Hops\RepairStudioSyntaxHop;
-use PowerSweeper\Hops\RegenerateSarifHop;
 use PowerSweeper\Hops\RepairVarCurrentPackageHop;
 use PowerSweeper\Hops\ScanStudioIssuesHop;
 use PowerSweeper\Hops\SetZipPathStyleHop;
@@ -47,7 +54,16 @@ final class HopRegistry
     public function __construct()
     {
         foreach ([
+            // One-click stage composites (shown first in the palette).
+            FixControlNamesAndRefsHop::class,
             FixFormulaErrorsHop::class,
+            RepairSharePointDataHop::class,
+            AccessibilityPolishHop::class,
+            CleanDefaultChromeHop::class,
+            EnableDarkThemeHop::class,
+            ExportToWebIrHop::class,
+            ImportFromWebIrHop::class,
+            // Individual hops (power-user / sub-pass escape hatches).
             NormalizeContainersHop::class,
             AccessibilityLabelsHop::class,
             MeaningfulNamesHop::class,

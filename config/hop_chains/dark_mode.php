@@ -3,14 +3,10 @@
 declare(strict_types=1);
 
 /**
- * Classic theme prep then dark-mode theming.
+ * Dark theme composite (classic prep + enable dark mode + SARIF).
  *
  * @return list<array{id:string,options?:array<string,mixed>}>
  */
 return [
-    ['id' => 'prefer_classic_theme_controls', 'options' => []],
-    [
-        'id' => 'enable_dark_mode',
-        'options' => [],
-    ],
+    ['id' => 'enable_dark_theme', 'options' => []],
 ];
