@@ -6,7 +6,7 @@ namespace PowerSweeper;
 
 /**
  * Heuristic scan for remaining Studio App-checker-class formula issues
- * after repair hops. Used by tests and optional reporting — does not mutate.
+ * after repair sweeps. Used by tests and optional reporting — does not mutate.
  */
 final class StudioIssueScanner
 {

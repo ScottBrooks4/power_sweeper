@@ -11,7 +11,7 @@ final class MsappArchive
 {
     private string $extractDir;
 
-    /** @var string ZipTool::STYLE_* preserved from source (or overridden by hop) */
+    /** @var string ZipTool::STYLE_* preserved from source (or overridden by sweep) */
     private string $entryStyle = ZipTool::STYLE_WINDOWS;
 
     /** @var list<string> Source archive entry names in original order */

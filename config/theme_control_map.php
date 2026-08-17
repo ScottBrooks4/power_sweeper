@@ -17,7 +17,7 @@ declare(strict_types=1);
  * - missing: which theme props the source typically lacks (documentation)
  * - property_map: rename modern props onto classic equivalents
  * - remove: modern-only props to drop after remap
- * - optional: skipped unless hop option enable_<key> is true
+ * - optional: skipped unless sweep option enable_<key> is true
  *
  * @return list<array{
  *   key:string,

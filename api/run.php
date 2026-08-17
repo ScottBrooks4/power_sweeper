@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use PowerSweeper\HopRegistry;
+use PowerSweeper\SweepRegistry;
 use PowerSweeper\Pipeline;
 use PowerSweeper\ZipTool;
 
@@ -63,8 +63,8 @@ function ps_human_bytes(int $bytes): string
  * Keep totals accurate but avoid multi-MB NDJSON "done" payloads that can stall
  * proxies/browsers after large dark-mode sweeps (THCEE ≈ 9k–30k rows).
  *
- * @param array{total?:int,by_hop?:array<string,int>,entries?:list<array<string,mixed>>} $report
- * @return array{total:int,by_hop:array<string,int>,entries:list<array<string,mixed>>,entries_truncated?:bool,entries_omitted?:int}
+ * @param array{total?:int,by_sweep?:array<string,int>,entries?:list<array<string,mixed>>} $report
+ * @return array{total:int,by_sweep:array<string,int>,entries:list<array<string,mixed>>,entries_truncated?:bool,entries_omitted?:int}
  */
 function ps_slim_report(array $report, int $maxEntries = 250): array
 {
@@ -73,18 +73,18 @@ function ps_slim_report(array $report, int $maxEntries = 250): array
         $entries = [];
     }
     $total = isset($report['total']) ? (int) $report['total'] : count($entries);
-    $byHop = is_array($report['by_hop'] ?? null) ? $report['by_hop'] : [];
+    $bySweep = is_array($report['by_sweep'] ?? null) ? $report['by_sweep'] : [];
     if (count($entries) <= $maxEntries) {
         return [
             'total' => $total,
-            'by_hop' => $byHop,
+            'by_sweep' => $bySweep,
             'entries' => array_values($entries),
         ];
     }
 
     return [
         'total' => $total,
-        'by_hop' => $byHop,
+        'by_sweep' => $bySweep,
         'entries' => array_slice(array_values($entries), 0, $maxEntries),
         'entries_truncated' => true,
         'entries_omitted' => max(0, $total - $maxEntries),
@@ -111,7 +111,7 @@ function ps_upload_error_message(int $code, int $uploadMax, int $postMax): strin
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     header('Content-Type: application/json; charset=utf-8');
-    $registry = new HopRegistry();
+    $registry = new SweepRegistry();
     echo json_encode([
         'ok' => true,
         'ziptool' => ZipTool::REV,
@@ -123,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'upload_max_filesize_bytes' => ps_bytes((string) ini_get('upload_max_filesize')),
             'post_max_size_bytes' => ps_bytes((string) ini_get('post_max_size')),
         ],
-        'hops' => $registry->catalog(),
-        'forceable_hops' => \PowerSweeper\HopAdvisor::FORCEABLE_HOPS,
+        'sweeps' => $registry->catalog(),
+        'forceable_sweeps' => \PowerSweeper\SweepAdvisor::FORCEABLE_SWEEPS,
     ], JSON_UNESCAPED_SLASHES);
     exit;
 }
@@ -157,7 +157,7 @@ register_shutdown_function(static function () use (&$runFinished, &$wantsStream)
     }
     if (str_contains($message, 'Allowed memory size')) {
         $message = 'Out of memory while sweeping this app (' . ps_ini_size('memory_limit')
-            . '). Try fewer hops (Enable dark mode alone), or raise memory_limit on a larger host.';
+            . '). Try fewer sweeps (Enable dark mode alone), or raise memory_limit on a larger host.';
     } else {
         $message = 'Server stopped mid-run: ' . $message;
     }
@@ -191,7 +191,7 @@ if ($wantsStream) {
 }
 
 try {
-    // Large hops (control-ref repair on THCEE-class apps) need more than the
+    // Large sweeps (control-ref repair on THCEE-class apps) need more than the
     // default 600s; azure/php-uploads.ini + nginx also allow 1800s.
     @set_time_limit(1800);
     @ini_set('max_execution_time', '1800');
@@ -230,14 +230,14 @@ try {
         }
     }
 
-    $hopsJson = $_POST['hops'] ?? '[]';
-    $hops = json_decode((string) $hopsJson, true);
-    if (!is_array($hops) || $hops === []) {
-        throw new RuntimeException('Select at least one hop');
+    $sweepsJson = $_POST['sweeps'] ?? $_POST['hops'] ?? '[]';
+    $sweeps = json_decode((string) $sweepsJson, true);
+    if (!is_array($sweeps) || $sweeps === []) {
+        throw new RuntimeException('Select at least one sweep');
     }
 
     $normalized = [];
-    foreach ($hops as $step) {
+    foreach ($sweeps as $step) {
         if (!is_array($step) || empty($step['id'])) {
             continue;
         }
@@ -247,7 +247,7 @@ try {
         ];
     }
     if ($normalized === []) {
-        throw new RuntimeException('Select at least one hop');
+        throw new RuntimeException('Select at least one sweep');
     }
 
     $token = bin2hex(random_bytes(16));
@@ -263,7 +263,7 @@ try {
         );
     }
 
-    // Optional SharePoint list schema JSON for correlate_sharepoint hop
+    // Optional SharePoint list schema JSON for correlate_sharepoint sweep
     if (isset($_FILES['sharepoint_schema']) && is_array($_FILES['sharepoint_schema'])) {
         $schemaFile = $_FILES['sharepoint_schema'];
         if (($schemaFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {

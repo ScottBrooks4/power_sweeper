@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use PowerSweeper\HopAdvisor;
-use PowerSweeper\HopRegistry;
+use PowerSweeper\SweepAdvisor;
+use PowerSweeper\SweepRegistry;
 
-$hops = (new HopRegistry())->catalog();
-$forceable = HopAdvisor::FORCEABLE_HOPS;
+$sweeps = (new SweepRegistry())->catalog();
+$forceable = SweepAdvisor::FORCEABLE_SWEEPS;
 
 // Base URL for /power_sweeper/ under Apache, or / under php -S router.php
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
@@ -43,10 +43,10 @@ $brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
         <img class="brand-icon" src="<?= htmlspecialchars($brandIconHref, ENT_QUOTES) ?>" width="56" height="56" alt="">
         <div class="brand-copy">
           <p class="brand">Power Sweeper</p>
-          <h1>Clean a canvas app in hops</h1>
+          <h1>Clean a canvas app in sweeps</h1>
         </div>
       </div>
-      <p class="lede">Drop an <code>.msapp</code> — Power Sweeper scans it, picks the hop sequence and write mode, then you can tweak and run.</p>
+      <p class="lede">Drop an <code>.msapp</code> — Power Sweeper scans it, picks the sweep sequence and write mode, then you can tweak and run.</p>
     </header>
 
     <section class="panel drop-panel" id="dropZone" tabindex="0">
@@ -62,7 +62,7 @@ $brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
         <h2 id="planHeading">Recommended plan</h2>
         <label class="write-mode" for="forceModeSelect">
           <span class="write-mode-label">Write mode</span>
-          <select id="forceModeSelect" aria-label="Write mode for selected hops">
+          <select id="forceModeSelect" aria-label="Write mode for selected sweeps">
             <option value="missing_only">Missing only</option>
             <option value="all">All</option>
           </select>
@@ -70,22 +70,22 @@ $brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
       </div>
       <div class="scan-status-row">
         <p class="hint" id="planHint">Drop your app in to begin</p>
-        <button type="button" class="btn-skip-scan" id="skipScanBtn" hidden>Skip scan — pick hops myself</button>
+        <button type="button" class="btn-skip-scan" id="skipScanBtn" hidden>Skip scan — pick sweeps myself</button>
       </div>
       <p class="hint scan-live" id="scanLive" aria-live="polite"></p>
       <p class="hint force-hint" id="forceHint"></p>
       <ul class="plan-reasons" id="planReasons"></ul>
     </section>
 
-    <section class="panel hops-layout">
+    <section class="panel sweeps-layout">
       <div>
-        <h2>Hops</h2>
+        <h2>Sweeps</h2>
         <ul class="palette" id="palette">
-          <?php foreach ($hops as $hop): ?>
+          <?php foreach ($sweeps as $sweep): ?>
             <li>
-              <button type="button" class="hop-card" data-hop-id="<?= htmlspecialchars($hop['id'], ENT_QUOTES) ?>">
-                <span class="hop-label"><?= htmlspecialchars($hop['label']) ?></span>
-                <span class="hop-desc"><?= htmlspecialchars($hop['description']) ?></span>
+              <button type="button" class="sweep-card" data-sweep-id="<?= htmlspecialchars($sweep['id'], ENT_QUOTES) ?>">
+                <span class="sweep-label"><?= htmlspecialchars($sweep['label']) ?></span>
+                <span class="sweep-desc"><?= htmlspecialchars($sweep['description']) ?></span>
               </button>
             </li>
           <?php endforeach; ?>
@@ -96,8 +96,8 @@ $brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
           <h2>Sequence</h2>
           <button type="button" class="ghost" id="clearSequence">Clear</button>
         </div>
-        <ol class="sequence" id="sequence" aria-label="Hop sequence"></ol>
-        <p class="hint empty-seq" id="emptySeq">Drop an app to auto-fill hops, or add them from the left. Order matters.</p>
+        <ol class="sequence" id="sequence" aria-label="Sweep sequence"></ol>
+        <p class="hint empty-seq" id="emptySeq">Drop an app to auto-fill sweeps, or add them from the left. Order matters.</p>
       </div>
     </section>
 
@@ -105,7 +105,7 @@ $brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
       <div class="actions-dock-inner">
         <div class="actions-row">
           <button type="button" class="primary" id="runBtn" disabled>Run sweeper</button>
-          <p class="run-estimate" id="runEstimate" aria-live="polite">Add hops to estimate runtime</p>
+          <p class="run-estimate" id="runEstimate" aria-live="polite">Add sweeps to estimate runtime</p>
           <p class="status" id="status" role="status"></p>
         </div>
         <div class="run-progress hidden" id="runProgress" aria-live="polite" aria-atomic="true">
@@ -135,7 +135,7 @@ $brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
         <table id="reportTable">
           <thead>
             <tr>
-              <th>Hop</th>
+              <th>Sweep</th>
               <th>Control</th>
               <th>Property</th>
               <th>From</th>
@@ -150,8 +150,8 @@ $brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
 
   <script>
     window.POWER_SWEEPER = {
-      hops: <?= json_encode($hops, JSON_UNESCAPED_SLASHES) ?>,
-      forceable_hops: <?= json_encode(array_values($forceable), JSON_UNESCAPED_SLASHES) ?>,
+      sweeps: <?= json_encode($sweeps, JSON_UNESCAPED_SLASHES) ?>,
+      forceable_sweeps: <?= json_encode(array_values($forceable), JSON_UNESCAPED_SLASHES) ?>,
       apiRun: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/run.php', JSON_UNESCAPED_SLASHES) ?>,
       apiAnalyze: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/analyze.php', JSON_UNESCAPED_SLASHES) ?>,
       apiDownload: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/download.php', JSON_UNESCAPED_SLASHES) ?>,

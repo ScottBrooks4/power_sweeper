@@ -4,7 +4,7 @@
 declare(strict_types=1);
 
 /**
- * Record real hop timings across sample apps and fit estimate_model.json.
+ * Record real sweep timings across sample apps and fit estimate_model.json.
  *
  * Usage:
  *   php scripts/benchmark_estimates.php [--apps=kitchen,locale,tdr,pacs,vcr,thcee]
@@ -14,7 +14,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 use PowerSweeper\AppComplexity;
-use PowerSweeper\HopAdvisor;
+use PowerSweeper\SweepAdvisor;
 use PowerSweeper\Pipeline;
 
 $apps = [
@@ -44,7 +44,7 @@ if (!is_dir($outDir) && !mkdir($outDir, 0775, true) && !is_dir($outDir)) {
 }
 
 $pipeline = new Pipeline();
-$advisor = new HopAdvisor();
+$advisor = new SweepAdvisor();
 $runs = [];
 $stamp = date('Ymd_His');
 
@@ -61,25 +61,25 @@ foreach ($selected as $appId) {
 
     fwrite(STDERR, "=== {$appId} (" . round(filesize($path) / 1048576, 2) . " MB) — analyzing…\n");
     $plan = $advisor->recommend($path);
-    $hops = $plan['hops'] ?? [];
+    $sweeps = $plan['sweeps'] ?? [];
     $complexity = $plan['complexity'] ?? [];
     $signals = $plan['signals'] ?? [];
-    if ($hops === []) {
-        // Still measure unpack/pack with a no-op configure hop if present, else skip.
-        $hops = [['id' => 'set_zip_path_style', 'options' => []]];
-        fwrite(STDERR, "  no actionable hops — measuring package overhead with set_zip_path_style\n");
+    if ($sweeps === []) {
+        // Still measure unpack/pack with a no-op configure sweep if present, else skip.
+        $sweeps = [['id' => 'set_zip_path_style', 'options' => []]];
+        fwrite(STDERR, "  no actionable sweeps — measuring package overhead with set_zip_path_style\n");
     } else {
-        fwrite(STDERR, '  plan: ' . implode(', ', array_map(static fn ($h) => $h['id'], $hops)) . "\n");
+        fwrite(STDERR, '  plan: ' . implode(', ', array_map(static fn ($h) => $h['id'], $sweeps)) . "\n");
     }
 
     $outPath = $outDir . '/' . $appId . '_' . $stamp . '.msapp';
     $events = [];
     $t0 = microtime(true);
     try {
-        $result = $pipeline->run($path, $hops, $outPath, static function (array $ev) use (&$events): void {
+        $result = $pipeline->run($path, $sweeps, $outPath, static function (array $ev) use (&$events): void {
             $events[] = $ev;
-            if (($ev['type'] ?? '') === 'hop_done' || (($ev['type'] ?? '') === 'phase' && in_array($ev['phase'] ?? '', ['unpack_done', 'pack_done'], true))) {
-                $label = $ev['hop'] ?? ($ev['phase'] ?? 'phase');
+            if (($ev['type'] ?? '') === 'sweep_done' || (($ev['type'] ?? '') === 'phase' && in_array($ev['phase'] ?? '', ['unpack_done', 'pack_done'], true))) {
+                $label = $ev['sweep'] ?? ($ev['phase'] ?? 'phase');
                 $ms = $ev['duration_ms'] ?? '?';
                 $ch = $ev['changes'] ?? '';
                 fwrite(STDERR, "  {$label}: {$ms}ms" . ($ch !== '' ? " ({$ch} changes)" : '') . "\n");
@@ -93,7 +93,7 @@ foreach ($selected as $appId) {
 
     $unpack = null;
     $pack = null;
-    $hopRows = [];
+    $sweepRows = [];
     $prevCount = 0;
     foreach ($events as $ev) {
         if (($ev['type'] ?? '') === 'phase' && ($ev['phase'] ?? '') === 'unpack_done') {
@@ -105,12 +105,12 @@ foreach ($selected as $appId) {
         if (($ev['type'] ?? '') === 'phase' && ($ev['phase'] ?? '') === 'pack_done') {
             $pack = (int) ($ev['duration_ms'] ?? 0);
         }
-        if (($ev['type'] ?? '') === 'hop_done') {
+        if (($ev['type'] ?? '') === 'sweep_done') {
             $count = (int) ($ev['count'] ?? 0);
             $changes = isset($ev['changes']) ? (int) $ev['changes'] : max(0, $count - $prevCount);
             $prevCount = $count;
-            $hopRows[] = [
-                'hop' => (string) ($ev['hop'] ?? ''),
+            $sweepRows[] = [
+                'sweep' => (string) ($ev['sweep'] ?? ''),
                 'duration_ms' => (int) ($ev['duration_ms'] ?? 0),
                 'changes' => $changes,
             ];
@@ -140,7 +140,7 @@ foreach ($selected as $appId) {
         ],
         'unpack_ms' => $unpack,
         'pack_ms' => $pack,
-        'hops' => $hopRows,
+        'sweeps' => $sweepRows,
     ];
     @unlink($outPath);
 }
@@ -192,15 +192,15 @@ foreach ($runs as $run) {
 $unpackFit = $fitLine($unpackPts);
 $packFit = $fitLine($packPts);
 
-/** @var array<string, list<array{duration_ms:int,changes:int,controls:int,file_mb:float,formula_chars:int,workload:int}>> $byHop */
-$byHop = [];
+/** @var array<string, list<array{duration_ms:int,changes:int,controls:int,file_mb:float,formula_chars:int,workload:int}>> $bySweep */
+$bySweep = [];
 foreach ($runs as $run) {
     $controls = (int) ($run['complexity']['control_count'] ?? 0);
     $formulaChars = (int) ($run['complexity']['formula_chars'] ?? 0);
     $mb = max(0.01, $run['file_bytes'] / 1048576);
     $signals = $run['signals'];
-    foreach ($run['hops'] as $hopRow) {
-        $id = $hopRow['hop'];
+    foreach ($run['sweeps'] as $sweepRow) {
+        $id = $sweepRow['sweep'];
         if ($id === '') {
             continue;
         }
@@ -214,11 +214,11 @@ foreach ($runs as $run) {
             'meaningful_names' => max(1, $signals['generic_names']),
             'translate' => max(1, (int) round($signals['literal_texts'] * 0.35)),
             'normalize_containers', 'strip_default_fill' => max(1, $signals['container_chrome'] + $signals['white_container_fills']),
-            default => max(1, $hopRow['changes'] > 0 ? $hopRow['changes'] : max(1, (int) round($controls * 0.02))),
+            default => max(1, $sweepRow['changes'] > 0 ? $sweepRow['changes'] : max(1, (int) round($controls * 0.02))),
         };
-        $byHop[$id][] = [
-            'duration_ms' => $hopRow['duration_ms'],
-            'changes' => $hopRow['changes'],
+        $bySweep[$id][] = [
+            'duration_ms' => $sweepRow['duration_ms'],
+            'changes' => $sweepRow['changes'],
             'controls' => $controls,
             'file_mb' => $mb,
             'formula_chars' => $formulaChars,
@@ -227,8 +227,8 @@ foreach ($runs as $run) {
     }
 }
 
-$hopModels = [];
-foreach ($byHop as $id => $samples) {
+$sweepModels = [];
+foreach ($bySweep as $id => $samples) {
     // duration ≈ fixed + per_control*controls + per_change*changes + per_mb*file_mb + per_workload*workload
     // Fit with averages / ratios (robust, small-n friendly).
     $n = count($samples);
@@ -256,7 +256,7 @@ foreach ($byHop as $id => $samples) {
         $perWorkload *= $scale;
     }
 
-    $hopModels[$id] = [
+    $sweepModels[$id] = [
         'fixed_ms' => (int) round($fixed),
         'per_control_ms' => round($perControl, 4),
         'per_change_ms' => round($perChange, 4),
@@ -279,14 +279,14 @@ $model = [
         'fixed_ms' => (int) round($packFit['a']),
         'per_mb_ms' => round($packFit['b'], 3),
     ],
-    'default_hop' => [
+    'default_sweep' => [
         'fixed_ms' => 400,
         'per_control_ms' => 0.8,
         'per_change_ms' => 4.0,
         'per_mb_ms' => 40.0,
         'per_workload_ms' => 2.5,
     ],
-    'hops' => $hopModels,
+    'sweeps' => $sweepModels,
     'workload_from_signals' => [
         'enable_dark_mode' => ['opaque_colors', 'modern_themeable_controls', 'white_container_fills'],
         'accessibility_labels' => ['missing_accessible_label'],
@@ -329,5 +329,5 @@ echo json_encode([
     'apps' => count($runs),
     'unpack' => $model['unpack'],
     'pack' => $model['pack'],
-    'hops' => array_map(static fn ($h) => ['avg_ms' => $h['avg_ms'], 'samples' => $h['samples']], $hopModels),
+    'sweeps' => array_map(static fn ($h) => ['avg_ms' => $h['avg_ms'], 'samples' => $h['samples']], $sweepModels),
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";

@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 /**
- * Editable default theme tokens for the enable_dark_mode hop.
+ * Editable default theme tokens for the enable_dark_mode sweep.
  *
  * Makers edit the generated App.Formulas palettes (gblThemeLight / gblThemeDark).
- * Operators can change these defaults (or override via hop options) without
- * touching EnableDarkModeHop — colors stay centralized here.
+ * Operators can change these defaults (or override via sweep options) without
+ * touching EnableDarkModeSweep — colors stay centralized here.
  * Core tokens here always win over first-seen control literals.
  *
  * Each token: ['light' => [r,g,b,a], 'dark' => [r,g,b,a]]

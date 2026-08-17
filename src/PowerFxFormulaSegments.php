@@ -105,7 +105,7 @@ final class PowerFxFormulaSegments
     /**
      * Transform only code segments; comments and strings pass through unchanged.
      *
-     * All formula repair hops should use this (or mapCode) so idempotent rewrites
+     * All formula repair sweeps should use this (or mapCode) so idempotent rewrites
      * never match inside // line comments, block comments, or string literals.
      */
     public static function transformCode(string $formula, callable $callback, bool $opaqueSingleQuotes = true): string

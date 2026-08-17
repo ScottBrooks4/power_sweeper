@@ -1,6 +1,6 @@
 # Dark Mode Kitchen Sink
 
-Exhaustive light-theme sample for testing Power Sweeper’s `enable_dark_mode` hop.
+Exhaustive light-theme sample for testing Power Sweeper’s `enable_dark_mode` sweep.
 
 ## What’s covered
 
@@ -32,14 +32,14 @@ php samples/dark_mode_kitchen_sink/build.php --with-dark-mode
 Outputs:
 
 - `dark_mode_kitchen_sink.msapp` — input for Power Sweeper
-- `dark_mode_kitchen_sink.dark.msapp` — after dark-mode hop (with `--with-dark-mode`)
+- `dark_mode_kitchen_sink.dark.msapp` — after dark-mode sweep (with `--with-dark-mode`)
 - `dark_mode_kitchen_sink.dark.report.json` — full change report
 
 ## Run in the UI
 
 1. Open Power Sweeper
 2. Drop `dark_mode_kitchen_sink.msapp`
-3. Let Analyze pick hops (or add `prefer_classic_theme_controls` + `enable_dark_mode`)
+3. Let Analyze pick sweeps (or add `prefer_classic_theme_controls` + `enable_dark_mode`)
 4. Run → download cleaned app
 5. Open in Power Apps Studio (**File → Open → Browse**), save once
 6. On `HomeScreen`, use **Dark mode** toggle and confirm surfaces/text/borders flip  

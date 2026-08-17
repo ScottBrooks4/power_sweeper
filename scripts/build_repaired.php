@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use PowerSweeper\HopChains;
+use PowerSweeper\SweepChains;
 
 $input = $argv[1] ?? dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
 $output = $argv[2] ?? null;
@@ -28,7 +28,7 @@ if ($output === null) {
     $output = dirname($input) . '/' . preg_replace('/[^A-Za-z0-9_]+/', '_', $base) . '.repaired.msapp';
 }
 
-(new PowerSweeper\Pipeline())->run($input, HopChains::studioRepair(), $output);
+(new PowerSweeper\Pipeline())->run($input, SweepChains::studioRepair(), $output);
 
 $arch = new PowerSweeper\MsappArchive($output);
 $arch->unpack();

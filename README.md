@@ -1,8 +1,8 @@
 # Power Sweeper
 
-Normalize and clean Power Apps canvas `.msapp` files with an ordered **hop** pipeline.
+Normalize and clean Power Apps canvas `.msapp` files with an ordered **sweep** pipeline.
 
-Drop an app — Power Sweeper scans it, picks which hops are needed and in what order, then you can tweak the sequence, run, and download the cleaned `.msapp` plus a change report.
+Drop an app — Power Sweeper scans it, picks which sweeps are needed and in what order, then you can tweak the sequence, run, and download the cleaned `.msapp` plus a change report.
 
 ## Local path
 
@@ -65,14 +65,14 @@ See [`samples/import_debug/from_plain/HOW_TO_TEST.txt`](samples/import_debug/fro
 ## How it works
 
 1. Upload an `.msapp` (ZIP archive of canvas sources).
-2. **Analyze** scans for locale damage, formula errors, a11y gaps, generic names, container chrome, and theme presence — then proposes **only the hops expected to change something**, in order, plus write mode (`missing_only` vs `all`). If nothing actionable is found, the sequence stays empty.
-3. Tweak hops if you want, then run. Power Sweeper unpacks the archive, edits `Src/**/*.pa.yaml` (and control JSON when present), repacks, and returns the file plus a report.
+2. **Analyze** scans for locale damage, formula errors, a11y gaps, generic names, container chrome, and theme presence — then proposes **only the sweeps expected to change something**, in order, plus write mode (`missing_only` vs `all`). If nothing actionable is found, the sequence stays empty.
+3. Tweak sweeps if you want, then run. Power Sweeper unpacks the archive, edits `Src/**/*.pa.yaml` (and control JSON when present), repacks, and returns the file plus a report.
 
-Order matters: the same hops in a different sequence can produce different results. There are no named “profiles” — only hops, detection, and optional CLI convenience chains in [`config/hop_chains/`](config/hop_chains/).
+Order matters: the same sweeps in a different sequence can produce different results. There are no named “profiles” — only sweeps, detection, and optional CLI convenience chains in [`config/sweep_chains/`](config/sweep_chains/).
 
-## Built-in hops
+## Built-in sweeps
 
-| Hop | Purpose |
+| Sweep | Purpose |
 |-----|---------|
 | `normalize_containers` | Clear default drop shadow, border, radius, and padding on containers |
 | `meaningful_names` | Rename auto-generated names (`Button1`, `Container54_2`, …) to PascalCase identifiers from Text / AccessibleLabel / Tooltip / child labels |
@@ -106,11 +106,11 @@ Order matters: the same hops in a different sequence can produce different resul
 | `import_web_ir` | Apply IR heuristics back onto the `.msapp` (document layout, label sync, Navigate renames) — not a full web runtime import |
 | `configure_power_document` | Switch `Properties.json` toward classic Power (`mode=power`) or browser (`mode=web`) ScaleToFit defaults |
 
-## Auto-detect and CLI hop chains
+## Auto-detect and CLI sweep chains
 
-The UI does **not** use named profiles. Drop an `.msapp` and **Analyze** (`HopAdvisor`) decides which hops to run and in which order, plus write mode (`missing_only` vs `all` for hops that honor `force`).
+The UI does **not** use named profiles. Drop an `.msapp` and **Analyze** (`SweepAdvisor`) decides which sweeps to run and in which order, plus write mode (`missing_only` vs `all` for sweeps that honor `force`).
 
-For scripts and batch builds, thin named sequences live in [`config/hop_chains/`](config/hop_chains/) and are exposed via `HopChains`:
+For scripts and batch builds, thin named sequences live in [`config/sweep_chains/`](config/sweep_chains/) and are exposed via `SweepChains`:
 
 | Chain | Purpose |
 |-------|---------|
@@ -124,11 +124,11 @@ For scripts and batch builds, thin named sequences live in [`config/hop_chains/`
 php scripts/build_repaired.php input.msapp
 php scripts/build_powered.php input.msapp
 php scripts/build_smart_repair.php input.msapp
-php scripts/matrix_hops.php --apps=vcr,thcee,tdr,pacs,template
-php scripts/matrix_hops.php --web --skip-powered
+php scripts/matrix_sweeps.php --apps=vcr,thcee,tdr,pacs,template
+php scripts/matrix_sweeps.php --web --skip-powered
 ```
 
-Compose individual hops in the UI anytime — add, remove, and reorder freely.
+Compose individual sweeps in the UI anytime — add, remove, and reorder freely.
 
 ### Power ↔ web conversion (structural, heuristic)
 
@@ -156,15 +156,15 @@ Validate a powered deliverable (formula errors fail; soft advisories warn):
 php scripts/validate_powered.php samples/import_debug/CDLS_L_VCR_App_repair2.powered.msapp
 ```
 
-Dark mode alone does **not** fix locale/formula corruption; run repair hops first when App checker is noisy.
+Dark mode alone does **not** fix locale/formula corruption; run repair sweeps first when App checker is noisy.
 
 ### Locale unwhack
 
-When an app is edited under a comma-decimal locale (German, French, …), Studio can persist locale separators into formulas — including classic JSON rules you cannot open in the formula bar. The `unwhack_locale_formulas` hop converts those back to invariant Power Fx (`.` decimal, `,` list separator, `;` chaining) across `Src/**/*.pa.yaml` and control JSON `InvariantScript` / `AutoRuleBindingString`. Compact invariant colors like `RGBA(0,0,0,0)` are left alone (not mistaken for decimal commas).
+When an app is edited under a comma-decimal locale (German, French, …), Studio can persist locale separators into formulas — including classic JSON rules you cannot open in the formula bar. The `unwhack_locale_formulas` sweep converts those back to invariant Power Fx (`.` decimal, `,` list separator, `;` chaining) across `Src/**/*.pa.yaml` and control JSON `InvariantScript` / `AutoRuleBindingString`. Compact invariant colors like `RGBA(0,0,0,0)` are left alone (not mistaken for decimal commas).
 
 ### Dark mode
 
-The `enable_dark_mode` hop builds an **editable central palette** instead of hard-coding `If(gblDarkMode, …)` / RGBA on every control:
+The `enable_dark_mode` sweep builds an **editable central palette** instead of hard-coding `If(gblDarkMode, …)` / RGBA on every control:
 
 1. `App.OnStart` gets `gblThemeLight` / `gblThemeDark` records (tokens like `Page`, `Surface`, `Text`, `Accent`, …) and `Set(gblTheme, gblThemeLight)`
 2. Toggle sets `gblDarkMode` and swaps `gblTheme` between the two palettes
@@ -175,13 +175,13 @@ The `enable_dark_mode` hop builds an **editable central palette** instead of har
 | Who | Where |
 |-----|--------|
 | App maker (after clean) | `App.OnStart` → `gblThemeLight` / `gblThemeDark` only |
-| Operator / brand defaults | [`config/theme_defaults.php`](config/theme_defaults.php) or hop `theme_defaults` / `theme_defaults_file` options |
+| Operator / brand defaults | [`config/theme_defaults.php`](config/theme_defaults.php) or sweep `theme_defaults` / `theme_defaults_file` options |
 
 Open the cleaned `.msapp` in Studio, save once, then use the toggle.
 
 ### SharePoint correlate
 
-Upload an optional SharePoint schema JSON (UI field or hop option `schema` / `schema_file`) shaped like:
+Upload an optional SharePoint schema JSON (UI field or sweep option `schema` / `schema_file`) shaped like:
 
 ```json
 {
@@ -195,14 +195,14 @@ Upload an optional SharePoint schema JSON (UI field or hop option `schema` / `sc
 }
 ```
 
-The `correlate_sharepoint` hop then:
+The `correlate_sharepoint` sweep then:
 
 1. Reads `References/DataSources.json`, `DataSources/*`, `Connections/*`, and `pkgs/TableDefinitions/*` from the `.msapp`
 2. Flags bad/empty SharePoint connections and lists/columns missing vs the schema
 3. Fuzzy-matches typos (`Reqeusts` → `Requests`, `Statu` → `Status`) using patterns from the schema **or** the app’s own table definitions
 4. Repairs datasource metadata and formula references when `repair` is true (default), with every finding/fix in the sweep report
 
-Hop options: `repair` (bool), `max_distance` (int, default 2), `repair_site_url` (bool, default false), `lists` / `schema` / `schema_file`.
+Sweep options: `repair` (bool), `max_distance` (int, default 2), `repair_site_url` (bool, default false), `lists` / `schema` / `schema_file`.
 
 ### Samples (local only — not published to GitHub)
 
@@ -222,7 +222,7 @@ Import with **make.powerapps.com → Apps → Import app → From file (.msapp)*
 
 ### Studio repair order
 
-When formula/locale damage is detected (or when you run `HopChains::studioRepair()`), hops typically run in this order:
+When formula/locale damage is detected (or when you run `SweepChains::studioRepair()`), sweeps typically run in this order:
 
 1. `unwhack_locale_formulas` — Expected operator, invalid arity, ParseJSON / If / LookUp separator damage (YAML + JSON `InvariantScript` / `AutoRuleBindingString`)
 2. `repair_control_refs` — qualify bare cross-screen control references
@@ -237,7 +237,7 @@ When formula/locale damage is detected (or when you run `HopChains::studioRepair
 11. `repair_delegation` — SharePoint delegation (email filters, collection CountIf, split duplicate-request Filters)
 12. `regenerate_sarif` — write fresh `AppCheckerResult.sarif` from the live App checker
 
-Use hop `scan_studio_issues` afterward for a report-only verify pass, or `regenerate_sarif` alone to refresh SARIF without formula edits.
+Use sweep `scan_studio_issues` afterward for a report-only verify pass, or `regenerate_sarif` alone to refresh SARIF without formula edits.
 
 ## Tests
 
@@ -248,6 +248,6 @@ php tests/run_tests.php
 ## Notes
 
 - Import cleaned apps via **Apps → Import app → From file (.msapp)** (local file picker), then **Save** once. Prefer `~/Downloads/power_sweeper_import/` copies (ASCII filenames).
-- Packed `.msapp` files **preserve** the source zip path style (almost always Windows `\\`). Use hop `set_zip_path_style` only if you intentionally want forward slashes.
-- Only hop-owned properties are changed; media, connections, and unrelated metadata are left alone.
+- Packed `.msapp` files **preserve** the source zip path style (almost always Windows `\\`). Use sweep `set_zip_path_style` only if you intentionally want forward slashes.
+- Only sweep-owned properties are changed; media, connections, and unrelated metadata are left alone.
 - Prefer editing apps you can re-save in Studio; treat this as a companion cleanup tool, not a full source-control substitute.

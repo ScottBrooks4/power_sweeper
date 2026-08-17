@@ -6,16 +6,16 @@ namespace PowerSweeper;
 
 final class Pipeline
 {
-    public function __construct(private readonly HopRegistry $registry = new HopRegistry())
+    public function __construct(private readonly SweepRegistry $registry = new SweepRegistry())
     {
     }
 
     /**
-     * @param list<array{id:string,options?:array<string,mixed>}> $hops
+     * @param list<array{id:string,options?:array<string,mixed>}> $sweeps
      * @param null|callable(array<string,mixed>):void $onProgress
      * @return array{report: array<string,mixed>, output_path: string, elapsed_ms: int}
      */
-    public function run(string $inputMsapp, array $hops, string $outputMsapp, ?callable $onProgress = null): array
+    public function run(string $inputMsapp, array $sweeps, string $outputMsapp, ?callable $onProgress = null): array
     {
         $startedAt = microtime(true);
         $emit = static function (array $event) use ($onProgress, $startedAt): void {
@@ -33,7 +33,7 @@ final class Pipeline
         $report = new Report(static function (array $entry, int $count) use ($emit): void {
             $emit([
                 'type' => 'change',
-                'hop' => $entry['hop'],
+                'sweep' => $entry['sweep'],
                 'control' => $entry['control'],
                 'property' => $entry['property'],
                 // Omit bulky from/to on the wire; UI only needs count + a short hint.
@@ -42,9 +42,9 @@ final class Pipeline
             ]);
         }, 500, 280);
 
-        $hopTotal = count($hops);
-        // unpack + each hop + pack
-        $units = max(1, $hopTotal + 2);
+        $sweepTotal = count($sweeps);
+        // unpack + each sweep + pack
+        $units = max(1, $sweepTotal + 2);
         $completedUnits = 0;
 
         try {
@@ -53,7 +53,7 @@ final class Pipeline
                 'phase' => 'unpack',
                 'message' => 'Unpacking .msapp…',
                 'index' => 0,
-                'total' => $hopTotal,
+                'total' => $sweepTotal,
                 'unit' => 1,
                 'units' => $units,
                 'progress' => 0.0,
@@ -68,7 +68,7 @@ final class Pipeline
                 'message' => 'Unpacked .msapp',
                 'duration_ms' => (int) round((microtime(true) - $unpackStarted) * 1000),
                 'index' => 0,
-                'total' => $hopTotal,
+                'total' => $sweepTotal,
                 'unit' => $completedUnits,
                 'units' => $units,
                 'progress' => $completedUnits / $units,
@@ -76,10 +76,10 @@ final class Pipeline
                 'complexity' => $complexity,
             ]);
 
-            foreach ($hops as $index => $step) {
+            foreach ($sweeps as $index => $step) {
                 $id = $step['id'] ?? '';
                 if ($id === '' || !$this->registry->has($id)) {
-                    throw new \InvalidArgumentException('Unknown hop in pipeline: ' . $id);
+                    throw new \InvalidArgumentException('Unknown sweep in pipeline: ' . $id);
                 }
                 $options = $step['options'] ?? [];
                 if (!is_array($options)) {
@@ -90,40 +90,40 @@ final class Pipeline
                 $options['_on_progress'] = $emit;
                 $options['_progress_base'] = $completedUnits / $units;
                 $options['_progress_span'] = 1.0 / $units;
-                $hop = $this->registry->make($id);
+                $sweep = $this->registry->make($id);
                 $emit([
                     'type' => 'phase',
-                    'phase' => 'hop',
-                    'hop' => $id,
-                    'label' => $hop::label(),
+                    'phase' => 'sweep',
+                    'sweep' => $id,
+                    'label' => $sweep::label(),
                     'index' => $index + 1,
-                    'total' => $hopTotal,
+                    'total' => $sweepTotal,
                     'unit' => $completedUnits,
                     'units' => $units,
                     'progress' => $completedUnits / $units,
-                    'message' => sprintf('Hop %d of %d: %s', $index + 1, $hopTotal, $hop::label()),
+                    'message' => sprintf('Sweep %d of %d: %s', $index + 1, $sweepTotal, $sweep::label()),
                     'count' => $report->count(),
                 ]);
                 $countBefore = $report->count();
-                $hopStarted = microtime(true);
-                $hop->apply($archive->documents(), $report, $options);
+                $sweepStarted = microtime(true);
+                $sweep->apply($archive->documents(), $report, $options);
                 if (function_exists('gc_collect_cycles')) {
                     gc_collect_cycles();
                 }
                 $completedUnits++;
                 $emit([
-                    'type' => 'hop_done',
-                    'hop' => $id,
-                    'label' => $hop::label(),
+                    'type' => 'sweep_done',
+                    'sweep' => $id,
+                    'label' => $sweep::label(),
                     'index' => $index + 1,
-                    'total' => $hopTotal,
-                    'duration_ms' => (int) round((microtime(true) - $hopStarted) * 1000),
+                    'total' => $sweepTotal,
+                    'duration_ms' => (int) round((microtime(true) - $sweepStarted) * 1000),
                     'changes' => max(0, $report->count() - $countBefore),
                     'unit' => $completedUnits,
                     'units' => $units,
                     'progress' => $completedUnits / $units,
                     'count' => $report->count(),
-                    'message' => sprintf('Finished hop %d of %d: %s', $index + 1, $hopTotal, $hop::label()),
+                    'message' => sprintf('Finished sweep %d of %d: %s', $index + 1, $sweepTotal, $sweep::label()),
                 ]);
             }
 
@@ -131,8 +131,8 @@ final class Pipeline
                 'type' => 'phase',
                 'phase' => 'pack',
                 'message' => 'Packing cleaned .msapp…',
-                'index' => $hopTotal,
-                'total' => $hopTotal,
+                'index' => $sweepTotal,
+                'total' => $sweepTotal,
                 'unit' => $completedUnits,
                 'units' => $units,
                 'progress' => $completedUnits / $units,

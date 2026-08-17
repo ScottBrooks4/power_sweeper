@@ -1,6 +1,6 @@
 {
     "name": "freementls/power_sweeper",
-    "description": "Normalize and clean Power Apps .msapp files via ordered hop pipelines",
+    "description": "Normalize and clean Power Apps .msapp files via ordered sweep pipelines",
     "type": "project",
     "require": {
         "php": ">=8.1",

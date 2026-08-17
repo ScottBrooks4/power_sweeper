@@ -1,7 +1,7 @@
 (() => {
   const cfg = window.POWER_SWEEPER || {};
-  const hopMeta = Object.fromEntries((cfg.hops || []).map((h) => [h.id, h]));
-  const forceableHops = new Set(cfg.forceable_hops || [
+  const sweepMeta = Object.fromEntries((cfg.sweeps || []).map((h) => [h.id, h]));
+  const forceableSweeps = new Set(cfg.forceable_sweeps || [
     'fix_control_names_and_refs',
     'fix_formula_errors',
     'repair_sharepoint_data',
@@ -11,8 +11,8 @@
     'translate',
   ]);
 
-  /** Sub-hops for composites (keep in sync with *Hop::subHops). */
-  const COMPOSITE_SUB_HOPS = {
+  /** Sub-sweeps for composites (keep in sync with *Sweep::subSweeps). */
+  const COMPOSITE_SUB_SWEEPS = {
     fix_formula_errors: [
       'unwhack_locale_formulas',
       'repair_double_qualified_refs',
@@ -93,7 +93,7 @@
   const forceModeSelect = document.getElementById('forceModeSelect');
   const scanLive = document.getElementById('scanLive');
   const skipScanBtn = document.getElementById('skipScanBtn');
-  const hopsLayout = document.querySelector('.hops-layout');
+  const sweepsLayout = document.querySelector('.sweeps-layout');
   const palette = document.getElementById('palette');
   const sequenceEl = document.getElementById('sequence');
   const emptySeq = document.getElementById('emptySeq');
@@ -114,9 +114,9 @@
   const reportTable = document.querySelector('#reportTable tbody');
   const downloadLink = document.getElementById('downloadLink');
 
-  /** Baseline ms per hop before file-size scaling (tuned from typical runs). */
-  /** Fallback hop bases used before estimate_model.json loads. */
-  const HOP_COST_MS = {
+  /** Baseline ms per sweep before file-size scaling (tuned from typical runs). */
+  /** Fallback sweep bases used before estimate_model.json loads. */
+  const SWEEP_COST_MS = {
     enable_dark_mode: 2200,
     translate: 40,
     meaningful_names: 50,
@@ -141,7 +141,7 @@
     repair_maintainability: 160,
     repair_checked_booleans: 200,
     repair_var_current_package: 200,
-    // Approx sums of COMPOSITE_SUB_HOPS fallbacks.
+    // Approx sums of COMPOSITE_SUB_SWEEPS fallbacks.
     fix_formula_errors: 55850,
     fix_control_names_and_refs: 155000,
     accessibility_polish: 2520,
@@ -159,9 +159,9 @@
     configure_power_document: 200,
     set_zip_path_style: 80,
   };
-  const DEFAULT_HOP_MS = 900;
-  const LEARNED_SAMPLES_KEY = 'ps_hop_samples_v2';
-  const LEARNED_COSTS_KEY = 'ps_hop_costs_v1';
+  const DEFAULT_SWEEP_MS = 900;
+  const LEARNED_SAMPLES_KEY = 'ps_sweep_samples_v1';
+  const LEARNED_COSTS_KEY = 'ps_sweep_costs_v1';
 
   /** @type {any} */
   let estimateModel = null;
@@ -187,10 +187,10 @@
   let runStartedAt = 0;
   let runProgressFraction = 0;
   /** @type {number[]} */
-  let hopDurationsMs = [];
+  let sweepDurationsMs = [];
   /** @type {Record<string, number>} */
-  let hopDurationById = {};
-  let hopsRemaining = 0;
+  let sweepDurationById = {};
+  let sweepsRemaining = 0;
   let packingPending = false;
   let plannedTotalMs = 0;
   /** Remaining sub-pass ids inside the active composite (including the one in flight). */
@@ -237,7 +237,7 @@
     return hit ? sum : 0;
   }
 
-  function hopWorkload(id, changes = 0) {
+  function sweepWorkload(id, changes = 0) {
     const controls = controlCount();
     const mapped = estimateModel?.workload_from_signals?.[id];
     if (Array.isArray(mapped) && mapped.length) {
@@ -271,14 +271,14 @@
     }
   }
 
-  function rememberHopSample(id, durationMs, changes = 0) {
+  function rememberSweepSample(id, durationMs, changes = 0) {
     if (!id || !(durationMs >= 40) || !(durationMs < 20 * 60 * 1000)) return;
     const sample = {
       duration_ms: Math.round(durationMs),
       changes: Math.max(0, Number(changes) || 0),
       controls: controlCount(),
       file_mb: Number(fileMb().toFixed(4)),
-      workload: hopWorkload(id, Number(changes) || 0),
+      workload: sweepWorkload(id, Number(changes) || 0),
       app: 'live',
     };
     const all = learnedSamples();
@@ -331,23 +331,23 @@
     return kind === 'unpack' ? 80 + 110 * mb : 80 + 160 * mb;
   }
 
-  function hopCostMs(id, options = {}) {
+  function sweepCostMs(id, options = {}) {
     // Composite: prefer summing child estimates (granular learning) and blend
     // with parent samples when available.
-    const compositeKids = COMPOSITE_SUB_HOPS[id];
+    const compositeKids = COMPOSITE_SUB_SWEEPS[id];
     if (Array.isArray(compositeKids) && compositeKids.length) {
-      const childSum = compositeKids.reduce((sum, sid) => sum + hopCostMs(sid, options), 0);
-      const modelHop = estimateModel?.hops?.[id];
+      const childSum = compositeKids.reduce((sum, sid) => sum + sweepCostMs(sid, options), 0);
+      const modelSweep = estimateModel?.sweeps?.[id];
       const learned = learnedSamples()[id];
       const samples = [
-        ...(Array.isArray(modelHop?.samples) ? modelHop.samples : []),
+        ...(Array.isArray(modelSweep?.samples) ? modelSweep.samples : []),
         ...(Array.isArray(learned) ? learned : []),
       ];
       const parentPred = predictFromSamples(
         samples,
         controlCount(),
         fileMb(),
-        hopWorkload(id),
+        sweepWorkload(id),
         true,
       );
       if (parentPred > 0) {
@@ -357,14 +357,14 @@
     }
     const controls = controlCount();
     const mb = fileMb();
-    const workload = hopWorkload(id);
-    const modelHop = estimateModel?.hops?.[id] || estimateModel?.default_hop;
+    const workload = sweepWorkload(id);
+    const modelSweep = estimateModel?.sweeps?.[id] || estimateModel?.default_sweep;
     const learned = learnedSamples()[id];
     const samples = [
-      ...(Array.isArray(modelHop?.samples) ? modelHop.samples : []),
+      ...(Array.isArray(modelSweep?.samples) ? modelSweep.samples : []),
       ...(Array.isArray(learned) ? learned : []),
     ];
-    const heavy = Boolean(modelHop?.heavy)
+    const heavy = Boolean(modelSweep?.heavy)
       || id.startsWith('repair_')
       || id === 'fix_formula_errors'
       || id === 'fix_control_names_and_refs'
@@ -381,21 +381,21 @@
       }
     }
     if (!(ms > 0)) {
-      ms = HOP_COST_MS[id] ?? DEFAULT_HOP_MS;
+      ms = SWEEP_COST_MS[id] ?? DEFAULT_SWEEP_MS;
       // Soft size scaling when model samples are missing.
       ms *= Math.max(0.35, Math.min(2.4, 0.45 + Math.sqrt(mb) * 0.35 + controls / 3500));
     }
-    if (options?.force === true && forceableHops.has(id)) {
+    if (options?.force === true && forceableSweeps.has(id)) {
       ms *= Number(estimateModel?.force_multiplier) || 1.12;
     }
     return Math.max(25, ms);
   }
 
-  function estimateSequenceMs(hops = sequence) {
-    if (!hops.length) return 0;
-    const hopsMs = hops.reduce((sum, step) => sum + hopCostMs(step.id, step.options), 0);
+  function estimateSequenceMs(sweeps = sequence) {
+    if (!sweeps.length) return 0;
+    const sweepsMs = sweeps.reduce((sum, step) => sum + sweepCostMs(step.id, step.options), 0);
     const overhead = Number(estimateModel?.overhead_ms) || 280;
-    return overhead + packagePhaseMs('unpack') + packagePhaseMs('pack') + hopsMs;
+    return overhead + packagePhaseMs('unpack') + packagePhaseMs('pack') + sweepsMs;
   }
 
   function formatEstimateFriendly(ms) {
@@ -408,18 +408,18 @@
   function updateRunEstimate() {
     if (!runEstimate) return;
     if (!sequence.length) {
-      runEstimate.textContent = 'Add hops to estimate runtime';
+      runEstimate.textContent = 'Add sweeps to estimate runtime';
       runEstimate.classList.add('is-empty');
       plannedTotalMs = 0;
       return;
     }
     plannedTotalMs = estimateSequenceMs();
-    const hopWord = sequence.length === 1 ? 'hop' : 'hops';
+    const sweepWord = sequence.length === 1 ? 'sweep' : 'sweeps';
     const sizeNote = file ? ` · ${humanBytes(file.size)}` : '';
     const controlNote = appComplexity?.control_count
       ? ` · ${Number(appComplexity.control_count).toLocaleString()} controls`
       : '';
-    runEstimate.textContent = `Est. ${formatEstimateFriendly(plannedTotalMs)} for ${sequence.length} ${hopWord}${sizeNote}${controlNote}`;
+    runEstimate.textContent = `Est. ${formatEstimateFriendly(plannedTotalMs)} for ${sequence.length} ${sweepWord}${sizeNote}${controlNote}`;
     runEstimate.classList.remove('is-empty');
   }
 
@@ -459,7 +459,7 @@
 
   function withForceOptions(id, options = {}) {
     const opts = { ...(options || {}) };
-    if (forceableHops.has(id)) {
+    if (forceableSweeps.has(id)) {
       opts.force = forceMode === 'all';
     }
     return opts;
@@ -476,8 +476,8 @@
     sequenceEl.innerHTML = '';
     emptySeq.classList.toggle('hidden', sequence.length > 0);
     sequence.forEach((step, index) => {
-      const meta = hopMeta[step.id] || { label: step.id, description: '' };
-      const forced = forceableHops.has(step.id)
+      const meta = sweepMeta[step.id] || { label: step.id, description: '' };
+      const forced = forceableSweeps.has(step.id)
         ? (step.options?.force ? ' · all' : ' · missing only')
         : '';
       const li = document.createElement('li');
@@ -490,7 +490,7 @@
           <span class="seq-label">${escapeHtml(meta.label)}${escapeHtml(forced)}</span>
           <span class="seq-desc">${escapeHtml(meta.description)}</span>
         </span>
-        <button type="button" class="seq-remove" aria-label="Remove hop">&times;</button>
+        <button type="button" class="seq-remove" aria-label="Remove sweep">&times;</button>
       `;
       li.querySelector('.seq-remove').addEventListener('click', () => {
         sequence = sequence.filter((s) => s.uid !== step.uid);
@@ -521,15 +521,15 @@
     updateRunEstimate();
   }
 
-  function addHop(id, options = {}) {
-    if (!hopMeta[id]) return;
+  function addSweep(id, options = {}) {
+    if (!sweepMeta[id]) return;
     sequence.push({ id, options: withForceOptions(id, options), uid: uid() });
     renderSequence();
     updateRunEnabled();
   }
 
-  function loadHops(hops) {
-    sequence = (hops || []).map((h) => ({
+  function loadSweeps(sweeps) {
+    sequence = (sweeps || []).map((h) => ({
       id: h.id,
       options: withForceOptions(h.id, h.options || {}),
       uid: uid(),
@@ -544,10 +544,10 @@
     appSignals = data.signals && typeof data.signals === 'object' ? data.signals : appSignals;
     planPanel?.classList.remove('hidden');
     planPanel?.classList.add('plan-ready');
-    const hopCount = (data.hops || []).length;
-    planHint.textContent = hopCount === 0
-      ? 'No actionable hops detected. Add hops from the left if you still want to run something.'
-      : `Detected ${hopCount} hop${hopCount === 1 ? '' : 's'}. You can still edit the sequence.`;
+    const sweepCount = (data.sweeps || []).length;
+    planHint.textContent = sweepCount === 0
+      ? 'No actionable sweeps detected. Add sweeps from the left if you still want to run something.'
+      : `Detected ${sweepCount} sweep${sweepCount === 1 ? '' : 's'}. You can still edit the sequence.`;
     if (scanLive) scanLive.textContent = '';
     forceHint.textContent = data.force_mode_reason || '';
     forceMode = data.force_mode === 'all' ? 'all' : 'missing_only';
@@ -562,12 +562,12 @@
         planReasons.appendChild(li);
       });
     }
-    (data.forceable_hops || []).forEach((id) => forceableHops.add(id));
-    loadHops(data.hops || []);
+    (data.forceable_sweeps || []).forEach((id) => forceableSweeps.add(id));
+    loadSweeps(data.sweeps || []);
     updateRunEstimate();
     requestAnimationFrame(() => {
       planPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      hopsLayout?.classList.add('sequence-reveal');
+      sweepsLayout?.classList.add('sequence-reveal');
     });
   }
 
@@ -586,9 +586,9 @@
     setSkipScanVisible(false);
     planPanel?.classList.remove('hidden');
     planPanel?.classList.add('plan-ready');
-    hopsLayout?.classList.remove('sequence-reveal');
+    sweepsLayout?.classList.remove('sequence-reveal');
     if (planHint) {
-      planHint.textContent = 'Scan skipped — add hops from the left. Order matters.';
+      planHint.textContent = 'Scan skipped — add sweeps from the left. Order matters.';
     }
     if (scanLive) scanLive.textContent = '';
     if (forceHint) forceHint.textContent = '';
@@ -599,7 +599,7 @@
     updateRunEstimate();
     status.textContent = '';
     requestAnimationFrame(() => {
-      hopsLayout?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      sweepsLayout?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
@@ -726,7 +726,7 @@
     }
     analyzeAbort = new AbortController();
     planPanel?.classList.remove('hidden', 'plan-ready');
-    hopsLayout?.classList.remove('sequence-reveal');
+    sweepsLayout?.classList.remove('sequence-reveal');
     setSkipScanVisible(true);
     if (planHint) planHint.textContent = 'Scanning…';
     setScanProgress('Uploading app for analysis…');
@@ -768,7 +768,7 @@
       if (err?.name === 'AbortError' || epoch !== uiEpoch) return;
       setSkipScanVisible(false);
       if (planHint) {
-        planHint.textContent = 'Could not auto-select hops — add them manually from the left.';
+        planHint.textContent = 'Could not auto-select sweeps — add them manually from the left.';
       }
       if (scanLive) scanLive.textContent = '';
       if (forceHint) {
@@ -846,9 +846,9 @@
     setFile(f);
   });
 
-  palette.querySelectorAll('.hop-card').forEach((btn) => {
+  palette.querySelectorAll('.sweep-card').forEach((btn) => {
     btn.addEventListener('click', () => {
-      addHop(btn.dataset.hopId);
+      addSweep(btn.dataset.sweepId);
     });
   });
 
@@ -864,8 +864,8 @@
     renderSequence();
     if (forceHint) {
       forceHint.textContent = forceMode === 'all'
-        ? 'All: write over existing labels, theme colors, and container chrome where those hops apply.'
-        : 'Missing only: fill gaps and preserve existing values on write-aware hops.';
+        ? 'All: write over existing labels, theme colors, and container chrome where those sweeps apply.'
+        : 'Missing only: fill gaps and preserve existing values on write-aware sweeps.';
     }
   });
 
@@ -878,9 +878,9 @@
     showProgress(false);
     runStartedAt = 0;
     runSequence = [];
-    hopDurationsMs = [];
-    hopDurationById = {};
-    hopsRemaining = 0;
+    sweepDurationsMs = [];
+    sweepDurationById = {};
+    sweepsRemaining = 0;
     packingPending = false;
     plannedTotalMs = 0;
     compositeRemaining = [];
@@ -901,7 +901,7 @@
     }
     if (status) status.textContent = '';
     if (runEstimate) {
-      runEstimate.textContent = 'Add hops to estimate runtime';
+      runEstimate.textContent = 'Add sweeps to estimate runtime';
       runEstimate.classList.add('is-empty');
     }
     updateRunEstimate();
@@ -916,7 +916,7 @@
 
   function setProgressFraction(fraction, { indeterminate = false, allowRetreat = false } = {}) {
     const clamped = Math.max(0, Math.min(1, Number(fraction) || 0));
-    // Keep the bar monotonic during a run (weighted sub-hops should not jump backward).
+    // Keep the bar monotonic during a run (weighted sub-sweeps should not jump backward).
     if (!allowRetreat && !indeterminate && clamped < runProgressFraction) {
       return;
     }
@@ -935,25 +935,25 @@
   }
 
   function remainingHopSteps() {
-    if (!runSequence.length || hopsRemaining <= 0) return [];
-    const start = Math.max(0, runSequence.length - hopsRemaining);
+    if (!runSequence.length || sweepsRemaining <= 0) return [];
+    const start = Math.max(0, runSequence.length - sweepsRemaining);
     return runSequence.slice(start);
   }
 
   function costForStep(step) {
-    const learned = hopDurationById[step.id];
+    const learned = sweepDurationById[step.id];
     if (Number.isFinite(learned) && learned > 0) {
       return learned;
     }
-    return hopCostMs(step.id, step.options);
+    return sweepCostMs(step.id, step.options);
   }
 
   function costForSubhop(id, options = {}) {
-    const learned = hopDurationById[id];
+    const learned = sweepDurationById[id];
     if (Number.isFinite(learned) && learned > 0) {
       return learned;
     }
-    return hopCostMs(id, options);
+    return sweepCostMs(id, options);
   }
 
   function estimateRemainingMs() {
@@ -964,8 +964,8 @@
     const remaining = remainingHopSteps();
     if (remaining.length || packingPending) {
       let weighted = remaining.reduce((sum, step, index) => {
-        // Inside an active composite: only unfinished sub-passes remain for this hop.
-        if (index === 0 && compositeRemaining.length && COMPOSITE_SUB_HOPS[step.id]) {
+        // Inside an active composite: only unfinished sub-passes remain for this sweep.
+        if (index === 0 && compositeRemaining.length && COMPOSITE_SUB_SWEEPS[step.id]) {
           return sum + compositeRemaining.reduce(
             (inner, sid) => inner + costForSubhop(sid, step.options),
             0,
@@ -979,9 +979,9 @@
       eta = weighted;
     }
 
-    if (hopDurationsMs.length > 0 && (hopsRemaining > 0 || packingPending)) {
-      const avg = hopDurationsMs.reduce((a, b) => a + b, 0) / hopDurationsMs.length;
-      const fromAvg = avg * hopsRemaining + (packingPending ? Math.max(avg * 0.35, packagePhaseMs('pack') * 0.65) : 0);
+    if (sweepDurationsMs.length > 0 && (sweepsRemaining > 0 || packingPending)) {
+      const avg = sweepDurationsMs.reduce((a, b) => a + b, 0) / sweepDurationsMs.length;
+      const fromAvg = avg * sweepsRemaining + (packingPending ? Math.max(avg * 0.35, packagePhaseMs('pack') * 0.65) : 0);
       eta = eta == null ? fromAvg : (eta * 0.7 + fromAvg * 0.3);
     }
 
@@ -1018,9 +1018,9 @@
     stopProgressClock();
     runStartedAt = Date.now();
     runSequence = sequence.map((step) => ({ ...step, options: { ...(step.options || {}) } }));
-    hopDurationsMs = [];
-    hopDurationById = {};
-    hopsRemaining = runSequence.length;
+    sweepDurationsMs = [];
+    sweepDurationById = {};
+    sweepsRemaining = runSequence.length;
     packingPending = true;
     compositeRemaining = [];
     plannedTotalMs = estimateSequenceMs(runSequence);
@@ -1042,11 +1042,11 @@
   }
 
   function formatChangeLine(ev) {
-    const hop = hopMeta[ev.hop]?.label || ev.hop || 'change';
+    const sweep = sweepMeta[ev.sweep]?.label || ev.sweep || 'change';
     const control = ev.control || '?';
     const property = ev.property || '';
     const to = ev.to === undefined || ev.to === null || ev.to === '' ? '(empty)' : String(ev.to);
-    return `${hop}: ${control}.${property} → ${to}`;
+    return `${sweep}: ${control}.${property} → ${to}`;
   }
 
   function applyProgressEvent(ev) {
@@ -1058,42 +1058,42 @@
       if (typeof ev.count === 'number') {
         progressCount.textContent = `${ev.count} change${ev.count === 1 ? '' : 's'}`;
       }
-      if (ev.phase === 'hop' && typeof ev.total === 'number' && typeof ev.index === 'number') {
-        hopsRemaining = Math.max(0, ev.total - ev.index + 1);
+      if (ev.phase === 'sweep' && typeof ev.total === 'number' && typeof ev.index === 'number') {
+        sweepsRemaining = Math.max(0, ev.total - ev.index + 1);
         packingPending = true;
-        const kids = COMPOSITE_SUB_HOPS[ev.hop];
+        const kids = COMPOSITE_SUB_SWEEPS[ev.sweep];
         compositeRemaining = Array.isArray(kids) ? kids.slice() : [];
         if (typeof ev.progress !== 'number' && ev.total > 0) {
           setProgressFraction((ev.index - 1) / (ev.total + 2));
         }
       }
-      if (ev.phase === 'subhop') {
-        const kids = COMPOSITE_SUB_HOPS[ev.hop];
+      if (ev.phase === 'subsweep') {
+        const kids = COMPOSITE_SUB_SWEEPS[ev.sweep];
         if (Array.isArray(kids) && kids.length) {
           const at = typeof ev.index === 'number'
             ? Math.max(0, ev.index - 1)
-            : Math.max(0, kids.indexOf(ev.subhop));
+            : Math.max(0, kids.indexOf(ev.subsweep));
           compositeRemaining = kids.slice(at);
-        } else if (ev.subhop) {
-          compositeRemaining = [ev.subhop];
+        } else if (ev.subsweep) {
+          compositeRemaining = [ev.subsweep];
         }
       }
-      if (ev.phase === 'subhop_done') {
-        if (typeof ev.duration_ms === 'number' && ev.subhop) {
-          rememberHopSample(ev.subhop, ev.duration_ms, ev.changes);
-          hopDurationById[ev.subhop] = ev.duration_ms;
+      if (ev.phase === 'subsweep_done') {
+        if (typeof ev.duration_ms === 'number' && ev.subsweep) {
+          rememberSweepSample(ev.subsweep, ev.duration_ms, ev.changes);
+          sweepDurationById[ev.subsweep] = ev.duration_ms;
         }
-        if (ev.subhop) {
-          if (compositeRemaining[0] === ev.subhop) {
+        if (ev.subsweep) {
+          if (compositeRemaining[0] === ev.subsweep) {
             compositeRemaining.shift();
           } else {
-            const i = compositeRemaining.indexOf(ev.subhop);
+            const i = compositeRemaining.indexOf(ev.subsweep);
             if (i >= 0) compositeRemaining.splice(i, 1);
           }
         }
       }
       if (ev.phase === 'pack') {
-        hopsRemaining = 0;
+        sweepsRemaining = 0;
         packingPending = true;
         compositeRemaining = [];
       }
@@ -1104,21 +1104,21 @@
         appComplexity = { ...(appComplexity || {}), ...ev.complexity };
         updateRunEstimate();
       }
-    } else if (ev.type === 'hop_done') {
+    } else if (ev.type === 'sweep_done') {
       compositeRemaining = [];
       if (typeof ev.duration_ms === 'number' && ev.duration_ms >= 0) {
-        hopDurationsMs.push(ev.duration_ms);
-        if (ev.hop) {
-          hopDurationById[ev.hop] = ev.duration_ms;
-          rememberHopSample(ev.hop, ev.duration_ms, ev.changes);
+        sweepDurationsMs.push(ev.duration_ms);
+        if (ev.sweep) {
+          sweepDurationById[ev.sweep] = ev.duration_ms;
+          rememberSweepSample(ev.sweep, ev.duration_ms, ev.changes);
         }
       }
       if (typeof ev.total === 'number' && typeof ev.index === 'number') {
-        hopsRemaining = Math.max(0, ev.total - ev.index);
-      } else if (hopsRemaining > 0) {
-        hopsRemaining -= 1;
+        sweepsRemaining = Math.max(0, ev.total - ev.index);
+      } else if (sweepsRemaining > 0) {
+        sweepsRemaining -= 1;
       }
-      progressPhase.textContent = ev.message || `Finished ${ev.label || ev.hop || 'hop'}`;
+      progressPhase.textContent = ev.message || `Finished ${ev.label || ev.sweep || 'sweep'}`;
       if (typeof ev.count === 'number') {
         progressCount.textContent = `${ev.count} change${ev.count === 1 ? '' : 's'}`;
       }
@@ -1140,7 +1140,7 @@
       progressLast.textContent = 'Sweep complete';
     }
     setProgressFraction(1, { allowRetreat: true });
-    hopsRemaining = 0;
+    sweepsRemaining = 0;
     packingPending = false;
     compositeRemaining = [];
     stopProgressClock();
@@ -1152,8 +1152,8 @@
   function applyResult(data) {
     const elapsedMs = markRunFinished(data);
     const total = data.report?.total ?? 0;
-    const byHop = data.report?.by_hop || {};
-    const parts = Object.entries(byHop).map(([k, v]) => `${hopMeta[k]?.label || k}: ${v}`);
+    const bySweep = data.report?.by_sweep || {};
+    const parts = Object.entries(bySweep).map(([k, v]) => `${sweepMeta[k]?.label || k}: ${v}`);
     if (reportSummary) {
       const truncated = data.report?.entries_truncated
         ? ` (showing ${data.report.entries?.length || 0} of ${total})`
@@ -1168,10 +1168,10 @@
       const rows = data.report?.entries || [];
       const maxRows = 500;
       rows.slice(0, maxRows).forEach((row) => {
-        const hopLabel = hopMeta[row.hop]?.label || row.hop;
+        const sweepLabel = sweepMeta[row.sweep]?.label || row.sweep;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${escapeHtml(hopLabel)}</td>
+          <td>${escapeHtml(sweepLabel)}</td>
           <td>${escapeHtml(row.control)}</td>
           <td>${escapeHtml(row.property)}</td>
           <td><code class="report-from">${escapeHtml(row.from)}</code></td>
@@ -1253,7 +1253,7 @@
 
     const body = new FormData();
     body.append('msapp', file);
-    body.append('hops', JSON.stringify(sequence.map(({ id, options }) => ({ id, options }))));
+    body.append('sweeps', JSON.stringify(sequence.map(({ id, options }) => ({ id, options }))));
     body.append('stream', '1');
 
     let finished = null;
@@ -1278,7 +1278,7 @@
         progressPhase.textContent = res.ok ? 'Running…' : 'Failed';
       }
       if (progressLast && /waiting for first/i.test(progressLast.textContent || '')) {
-        progressLast.textContent = res.ok ? 'Processing hops…' : (res.statusText || 'Request failed');
+        progressLast.textContent = res.ok ? 'Processing sweeps…' : (res.statusText || 'Request failed');
       }
       setProgressFraction(Math.max(runProgressFraction, 0.02));
 
@@ -1337,7 +1337,7 @@
       if (!finished?.ok) {
         throw new Error(
           'Run failed — the server stopped before finishing (often out of memory on large apps like THCEE). '
-          + 'Retry after deploy, or run Enable dark mode / Fix formula errors alone with fewer other hops.'
+          + 'Retry after deploy, or run Enable dark mode / Fix formula errors alone with fewer other sweeps.'
         );
       }
       applyResult(finished);

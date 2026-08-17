@@ -121,7 +121,7 @@ $predictFromSamples = static function (array $samples, int $controls, float $mb,
 
 $unpackPts = [];
 $packPts = [];
-$byHop = [];
+$bySweep = [];
 foreach ($runs as $run) {
     $mb = max(0.01, ((int) ($run['file_bytes'] ?? 0)) / 1048576);
     if (isset($run['unpack_ms'])) {
@@ -132,15 +132,15 @@ foreach ($runs as $run) {
     }
     $controls = max(1, (int) ($run['complexity']['control_count'] ?? 1));
     $signals = is_array($run['signals'] ?? null) ? $run['signals'] : [];
-    foreach ($run['hops'] as $hopRow) {
-        $id = (string) ($hopRow['hop'] ?? '');
+    foreach ($run['sweeps'] as $sweepRow) {
+        $id = (string) ($sweepRow['sweep'] ?? '');
         if ($id === '') {
             continue;
         }
-        $changes = (int) ($hopRow['changes'] ?? 0);
+        $changes = (int) ($sweepRow['changes'] ?? 0);
         $workload = $signalWorkload($id, $signals, $changes, $controls);
-        $byHop[$id][] = [
-            'duration_ms' => max(1, (int) ($hopRow['duration_ms'] ?? 0)),
+        $bySweep[$id][] = [
+            'duration_ms' => max(1, (int) ($sweepRow['duration_ms'] ?? 0)),
             'changes' => $changes,
             'controls' => $controls,
             'file_mb' => round($mb, 4),
@@ -153,9 +153,9 @@ foreach ($runs as $run) {
 $unpackFit = $fitLine($unpackPts);
 $packFit = $fitLine($packPts);
 
-$hopModels = [];
-foreach ($byHop as $id => $samples) {
-    $hopModels[$id] = [
+$sweepModels = [];
+foreach ($bySweep as $id => $samples) {
+    $sweepModels[$id] = [
         'heavy' => $isHeavy($id),
         'samples' => $samples,
         'avg_ms' => (int) round(array_sum(array_column($samples, 'duration_ms')) / count($samples)),
@@ -175,7 +175,7 @@ $model = [
         'fixed_ms' => (int) round($packFit['a']),
         'per_mb_ms' => round($packFit['b'], 3),
     ],
-    'default_hop' => [
+    'default_sweep' => [
         'heavy' => false,
         'samples' => [
             ['duration_ms' => 400, 'controls' => 500, 'file_mb' => 1.5, 'workload' => 200, 'changes' => 50, 'app' => 'default'],
@@ -183,7 +183,7 @@ $model = [
         ],
         'avg_ms' => 900,
     ],
-    'hops' => $hopModels,
+    'sweeps' => $sweepModels,
     'workload_from_signals' => [
         'enable_dark_mode' => ['opaque_colors', 'modern_themeable_controls', 'white_container_fills'],
         'accessibility_labels' => ['missing_accessible_label'],
@@ -208,10 +208,10 @@ foreach ($runs as $run) {
     $est = $model['overhead_ms']
         + $model['unpack']['fixed_ms'] + $model['unpack']['per_mb_ms'] * $mb
         + $model['pack']['fixed_ms'] + $model['pack']['per_mb_ms'] * $mb;
-    foreach ($run['hops'] as $hopRow) {
-        $id = $hopRow['hop'];
-        $h = $model['hops'][$id] ?? $model['default_hop'];
-        $workload = $signalWorkload($id, $signals, (int) $hopRow['changes'], $controls);
+    foreach ($run['sweeps'] as $sweepRow) {
+        $id = $sweepRow['sweep'];
+        $h = $model['sweeps'][$id] ?? $model['default_sweep'];
+        $workload = $signalWorkload($id, $signals, (int) $sweepRow['changes'], $controls);
         // Exclude the same app sample for a leave-one-app-out style check when possible.
         $samples = array_values(array_filter(
             $h['samples'],

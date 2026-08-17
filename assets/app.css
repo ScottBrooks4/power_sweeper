@@ -224,12 +224,12 @@ body::before {
   animation: plan-settle 0.55s ease both;
 }
 
-.hops-layout.sequence-reveal {
-  animation: hop-slide 0.55s ease both;
+.sweeps-layout.sequence-reveal {
+  animation: sweep-slide 0.55s ease both;
   animation-delay: 0.12s;
 }
 
-@keyframes hop-slide {
+@keyframes sweep-slide {
   from {
     opacity: 0;
     transform: translateY(-12px);
@@ -315,14 +315,14 @@ select {
   font: inherit;
 }
 
-.hops-layout {
+.sweeps-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
 }
 
 @media (max-width: 800px) {
-  .hops-layout { grid-template-columns: 1fr; }
+  .sweeps-layout { grid-template-columns: 1fr; }
 }
 
 .palette, .sequence {
@@ -335,7 +335,7 @@ select {
   min-height: 4rem;
 }
 
-.hop-card, .seq-item {
+.sweep-card, .seq-item {
   width: 100%;
   text-align: left;
   border: 1px solid var(--line);
@@ -347,18 +347,18 @@ select {
   transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.hop-card:hover, .seq-item:hover {
+.sweep-card:hover, .seq-item:hover {
   transform: translateY(-1px);
   border-color: rgba(198, 242, 109, 0.4);
 }
 
-.hop-label, .seq-label {
+.sweep-label, .seq-label {
   display: block;
   font-weight: 600;
   margin-bottom: 0.2rem;
 }
 
-.hop-desc, .seq-desc {
+.sweep-desc, .seq-desc {
   display: block;
   color: var(--muted);
   font-size: 0.88rem;
@@ -366,7 +366,7 @@ select {
 }
 
 .sequence {
-  counter-reset: hop;
+  counter-reset: sweep;
 }
 
 .seq-item {

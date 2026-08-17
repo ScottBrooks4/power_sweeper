@@ -286,7 +286,7 @@ final class FormulaRepairConverger
 
     /**
      * When live checker reports missing SharePoint columns (ErrColDNE), run the
-     * SharePoint field hop (union columns + fuzzy rename + fallbacks).
+     * SharePoint field sweep (union columns + fuzzy rename + fallbacks).
      *
      * @param list<ControlDocument> $documents
      * @param list<array<string,mixed>> $findings
@@ -305,7 +305,7 @@ final class FormulaRepairConverger
         }
 
         $report = new Report();
-        (new Hops\RepairSharePointFieldsHop())->apply($documents, $report, [
+        (new Sweeps\RepairSharePointFieldsSweep())->apply($documents, $report, [
             '_extract_dir' => $extractDir,
         ]);
 

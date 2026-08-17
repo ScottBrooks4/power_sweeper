@@ -34,7 +34,7 @@ final class IterativeFormulaRepairer
         $checker = new PowerFxFormulaChecker($catalog, $this->dataContext);
         $totalRepairs = 0;
         $emit = is_callable($options['_on_progress'] ?? null) ? $options['_on_progress'] : null;
-        [$progressBase, $progressSpan] = HopProgress::boundsFromOptions($options);
+        [$progressBase, $progressSpan] = SweepProgress::boundsFromOptions($options);
 
         for ($iter = 0; $iter < $maxIterations; $iter++) {
             $iterRepairs = 0;
@@ -44,7 +44,7 @@ final class IterativeFormulaRepairer
                     'type' => 'phase',
                     'phase' => 'context_refs_iter',
                     'message' => sprintf('Context-aware refs · pass %d/%d', $iter + 1, $maxIterations),
-                    'progress' => HopProgress::map($progressBase, $progressSpan, $frac),
+                    'progress' => SweepProgress::map($progressBase, $progressSpan, $frac),
                     'count' => $totalRepairs,
                 ]);
             }
