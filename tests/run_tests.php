@@ -13,6 +13,7 @@ use PowerSweeper\StudioJson;
 use PowerSweeper\StudioIssueScanner;
 use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaLocaleNormalizer;
+use PowerSweeper\EnglishSpelling;
 use PowerSweeper\Sweeps\AccessibilityLabelsSweep;
 use PowerSweeper\Sweeps\AlignNearMissSweep;
 use PowerSweeper\Sweeps\AnalyzeAppCheckerSweep;
@@ -28,6 +29,7 @@ use PowerSweeper\Sweeps\ScanStudioIssuesSweep;
 use PowerSweeper\Sweeps\StripDefaultFillSweep;
 use PowerSweeper\Sweeps\TooltipFromLabelSweep;
 use PowerSweeper\Sweeps\TranslateSweep;
+use PowerSweeper\Sweeps\SpellingConsistencySweep;
 use PowerSweeper\Sweeps\UnwhackLocaleFormulasSweep;
 use PowerSweeper\Pipeline;
 use PowerSweeper\SweepChains;
@@ -325,6 +327,82 @@ assert_true(is_string($langOnChange) && str_contains($langOnChange, 'gblStrings'
 assert_true(is_string($glyph) && str_contains($glyph, '→'), 'translate leaves arrow glyph alone');
 assert_true($translateReport->count() > 0, 'translate reports changes');
 assert_true((new \PowerSweeper\SweepRegistry())->has('translate'), 'translate sweep registered');
+
+// --- English spelling consistency ---
+assert_true(EnglishSpelling::normalizeLocale('en-CA') === 'ca', 'normalize en-CA → ca');
+assert_true(EnglishSpelling::normalizeLocale('en-GB') === 'uk', 'normalize en-GB → uk');
+assert_true(EnglishSpelling::normalizeLocale('en-US') === 'us', 'normalize en-US → us');
+assert_true(
+    EnglishSpelling::rewriteText('Pick a color for your favourite honour', 'ca') === 'Pick a colour for your favourite honour',
+    'CA: color→colour, favourite/honour kept'
+);
+assert_true(
+    EnglishSpelling::rewriteText('Pick a colour for your favourite honour', 'us') === 'Pick a color for your favorite honor',
+    'US: colour/favourite/honour → American'
+);
+assert_true(
+    EnglishSpelling::rewriteText('Organize the colors', 'uk') === 'Organise the colours',
+    'UK: organize→organise, colors→colours'
+);
+assert_true(
+    EnglishSpelling::rewriteFormulaStrings('=Navigate(\'Colour Screen\'); Notify("honour the color")', 'us')
+        === '=Navigate(\'Colour Screen\'); Notify("honor the color")',
+    'formula rewrite skips single-quoted names; fixes double-quoted strings'
+);
+$spellDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/spelling_consistency.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($spellDoc !== null, 'spelling fixture loads');
+$spellReport = new Report();
+(new SpellingConsistencySweep())->apply([$spellDoc], $spellReport, ['locale' => 'ca']);
+$colourLabel = null;
+$navBtn = null;
+foreach ($spellDoc->controls() as $c) {
+    if ($c->name === 'ColourLabel') {
+        $colourLabel = $c;
+    }
+    if ($c->name === 'NavigateBtn') {
+        $navBtn = $c;
+    }
+}
+assert_true($colourLabel !== null && $navBtn !== null, 'spelling fixture controls found');
+assert_true(
+    (string) $colourLabel->getProperty('Text') === '="Pick a colour for your favourite honour"',
+    'CA sweep rewrites color→colour in Text'
+);
+assert_true(
+    (string) $colourLabel->getProperty('HintText') === '="Organize the colours"',
+    'CA keeps Organize (-ize) and rewrites colors→colours'
+);
+assert_true(
+    (string) $colourLabel->getProperty('Tooltip') === '="Centred grey dialogue"',
+    'CA: Centered→Centred, dialog→dialogue'
+);
+assert_true(
+    str_contains((string) $navBtn->getProperty('OnSelect'), "Navigate('Colour Screen')"),
+    'CA sweep leaves single-quoted screen name alone'
+);
+assert_true(
+    str_contains((string) $navBtn->getProperty('OnSelect'), 'Notify("honour the colour")'),
+    'CA sweep rewrites Notify string color→colour'
+);
+assert_true($spellReport->count() > 0, 'spelling_consistency reports changes');
+assert_true((new \PowerSweeper\SweepRegistry())->has('spelling_consistency'), 'spelling_consistency registered');
+assert_true(
+    in_array('spelling_consistency', \PowerSweeper\SweepRegistry::PALETTE_IDS, true),
+    'spelling_consistency in UI palette'
+);
+
+// US pass on a fresh fixture
+$spellUs = ControlDocument::fromFile(__DIR__ . '/fixtures/spelling_consistency.pa.yaml', 'Src/Screen1.pa.yaml');
+$spellUsReport = new Report();
+(new SpellingConsistencySweep())->apply([$spellUs], $spellUsReport, ['locale' => 'us']);
+foreach ($spellUs->controls() as $c) {
+    if ($c->name === 'ColourLabel') {
+        assert_true(
+            (string) $c->getProperty('Text') === '="Pick a color for your favorite honor"',
+            'US sweep rewrites colour-side words to American'
+        );
+    }
+}
 
 // --- align near miss ---
 $doc = loadFixtureDoc();

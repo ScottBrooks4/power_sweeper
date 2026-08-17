@@ -407,6 +407,35 @@ select {
 
 .seq-remove:hover { color: var(--warn); }
 
+.seq-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.seq-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.seq-opt-label {
+  font-weight: 600;
+}
+
+.seq-locale {
+  font: inherit;
+  color: inherit;
+  background: var(--panel, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
+  border-radius: 0.35rem;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+}
+
 .empty-seq.hidden { display: none; }
 
 .actions-dock {

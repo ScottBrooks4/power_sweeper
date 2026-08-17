@@ -99,6 +99,7 @@ Order matters: the same sweeps in a different sequence can produce different res
 | `scan_studio_issues` | Report remaining locale/boolean/focus issues without modifying the app (verify after repair) |
 | `analyze_app_checker` | Read embedded `AppCheckerResult.sarif`, summarize formula errors, and repair known patterns (locale separators, empty layout formulas, boolean Checked) |
 | `translate` | Centralize label/button text into `gblStringsEn`/`gblStringsFr` packs; bind to `gblStrings.*`; detect or inject a language control (ties into existing English/French / `varLang` settings) |
+| `spelling_consistency` | Normalize English spelling variants in UI string literals (`colour`/`color`, `honour`/`honor`, `-ise`/`-ize`, …). Configure with `options.locale`: `us`, `ca` (default), or `uk` |
 | `enable_dark_mode` | Inject `gblThemeLight` / `gblThemeDark` / `gblTheme` palettes, add or reuse a dark-mode toggle, and point literal colors at `gblTheme.*` tokens |
 | `correlate_sharepoint` | Correlate SharePoint datasources/connections with a list schema (or patterns learned from the package), flag bad connections, and repair list/column typos in metadata + formulas |
 | `set_zip_path_style` | Force zip entry separators to `windows` (`\\`) or `posix` (`/`). Default is to **preserve** the source style (almost always Windows) |

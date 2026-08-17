@@ -119,6 +119,7 @@
   const SWEEP_COST_MS = {
     enable_dark_mode: 2200,
     translate: 40,
+    spelling_consistency: 30,
     meaningful_names: 50,
     unwhack_locale_formulas: 220,
     accessibility_labels: 40,
@@ -472,6 +473,27 @@
     }));
   }
 
+  function spellingLocale(options = {}) {
+    const raw = String(options?.locale || 'ca').toLowerCase();
+    if (raw === 'us' || raw === 'en-us' || raw === 'american') return 'us';
+    if (raw === 'uk' || raw === 'gb' || raw === 'en-gb' || raw === 'british') return 'uk';
+    return 'ca';
+  }
+
+  function spellingLocaleLabel(locale) {
+    if (locale === 'us') return 'US';
+    if (locale === 'uk') return 'UK';
+    return 'Canadian';
+  }
+
+  function withSweepDefaults(id, options = {}) {
+    const opts = withForceOptions(id, options);
+    if (id === 'spelling_consistency') {
+      opts.locale = spellingLocale(opts);
+    }
+    return opts;
+  }
+
   function renderSequence() {
     sequenceEl.innerHTML = '';
     emptySeq.classList.toggle('hidden', sequence.length > 0);
@@ -480,24 +502,51 @@
       const forced = forceableSweeps.has(step.id)
         ? (step.options?.force ? ' · all' : ' · missing only')
         : '';
+      const spelling = step.id === 'spelling_consistency'
+        ? ` · ${spellingLocaleLabel(spellingLocale(step.options))}`
+        : '';
       const li = document.createElement('li');
       li.className = 'seq-item';
       li.draggable = true;
       li.dataset.uid = step.uid;
+      const spellingSelect = step.id === 'spelling_consistency'
+        ? `<label class="seq-opt"><span class="seq-opt-label">Locale</span>
+            <select class="seq-locale" aria-label="English spelling locale for this sweep">
+              <option value="ca">Canadian</option>
+              <option value="us">US</option>
+              <option value="uk">UK</option>
+            </select>
+          </label>`
+        : '';
       li.innerHTML = `
         <span class="seq-num">${index + 1}</span>
-        <span>
-          <span class="seq-label">${escapeHtml(meta.label)}${escapeHtml(forced)}</span>
+        <span class="seq-main">
+          <span class="seq-label">${escapeHtml(meta.label)}${escapeHtml(forced)}${escapeHtml(spelling)}</span>
           <span class="seq-desc">${escapeHtml(meta.description)}</span>
+          ${spellingSelect}
         </span>
         <button type="button" class="seq-remove" aria-label="Remove sweep">&times;</button>
       `;
+      const localeSelect = li.querySelector('.seq-locale');
+      if (localeSelect) {
+        localeSelect.value = spellingLocale(step.options);
+        localeSelect.addEventListener('change', () => {
+          step.options = { ...(step.options || {}), locale: spellingLocale({ locale: localeSelect.value }) };
+          renderSequence();
+        });
+        localeSelect.addEventListener('mousedown', (e) => e.stopPropagation());
+        localeSelect.addEventListener('click', (e) => e.stopPropagation());
+      }
       li.querySelector('.seq-remove').addEventListener('click', () => {
         sequence = sequence.filter((s) => s.uid !== step.uid);
         renderSequence();
         updateRunEnabled();
       });
-      li.addEventListener('dragstart', () => {
+      li.addEventListener('dragstart', (e) => {
+        if (e.target && e.target.closest && e.target.closest('select, label.seq-opt')) {
+          e.preventDefault();
+          return;
+        }
         dragUid = step.uid;
         li.classList.add('dragging');
       });
@@ -523,7 +572,7 @@
 
   function addSweep(id, options = {}) {
     if (!sweepMeta[id]) return;
-    sequence.push({ id, options: withForceOptions(id, options), uid: uid() });
+    sequence.push({ id, options: withSweepDefaults(id, options), uid: uid() });
     renderSequence();
     updateRunEnabled();
   }
@@ -531,7 +580,7 @@
   function loadSweeps(sweeps) {
     sequence = (sweeps || []).map((h) => ({
       id: h.id,
-      options: withForceOptions(h.id, h.options || {}),
+      options: withSweepDefaults(h.id, h.options || {}),
       uid: uid(),
     }));
     renderSequence();

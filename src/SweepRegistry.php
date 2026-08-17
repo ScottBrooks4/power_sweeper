@@ -41,6 +41,7 @@ use PowerSweeper\Sweeps\RepairStudioSyntaxSweep;
 use PowerSweeper\Sweeps\RepairVarCurrentPackageSweep;
 use PowerSweeper\Sweeps\ScanStudioIssuesSweep;
 use PowerSweeper\Sweeps\SetZipPathStyleSweep;
+use PowerSweeper\Sweeps\SpellingConsistencySweep;
 use PowerSweeper\Sweeps\StripDefaultFillSweep;
 use PowerSweeper\Sweeps\TooltipFromLabelSweep;
 use PowerSweeper\Sweeps\TranslateSweep;
@@ -62,6 +63,7 @@ final class SweepRegistry
         'clean_default_chrome',
         'enable_dark_theme',
         'translate',
+        'spelling_consistency',
         'export_to_web_ir',
         'import_from_web_ir',
     ];
@@ -80,6 +82,7 @@ final class SweepRegistry
             CleanDefaultChromeSweep::class,
             EnableDarkThemeSweep::class,
             TranslateSweep::class,
+            SpellingConsistencySweep::class,
             ExportToWebIrSweep::class,
             ImportFromWebIrSweep::class,
             // Internal sub-passes (composites / scripts; hidden from catalog()).
