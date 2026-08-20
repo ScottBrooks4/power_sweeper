@@ -10,7 +10,27 @@ Canonical install: **`/srv/http/power_sweeper`** (same layout as sweeper/convert
 
 ## Azure App Service (Linux PHP)
 
-Publish-ready branch packaging (excludes customer `.msapp` samples):
+### Reliable Azure publish
+
+Tip branch for “what should be live”: **`cursor/deploy-latest-150e`**.
+
+| Path | When to use | Needs |
+|------|-------------|--------|
+| **A. GitHub Actions → Azure** | Preferred once wired | Repo secret `AZURE_WEBAPP_PUBLISH_PROFILE` on **freementls/power_sweeper**; Actions enabled. Deploys on push to `main` / `cursor/deploy-latest-150e`, or **workflow_dispatch**. |
+| **B. Rolling release + Portal Zip Deploy** | Corp laptop cannot reach GitHub, or Actions/secret missing | Download [azure-latest / `power_sweeper-azure.zip`](https://github.com/freementls/power_sweeper/releases/tag/azure-latest) → Azure Portal Zip Deploy. |
+| **C. Agent / CLI Kudu deploy** | Cloud agent or machine with profile + network | `AZURE_WEBAPP_PUBLISH_PROFILE` (XML or file path) → `bash scripts/deploy_azure_zip.sh` |
+
+Do **not** depend on pushing `ScottBrooks4/power_sweeper` `main` for day-to-day publishes; keep that only as a historical mirror if needed.
+
+Refresh the rolling zip without deploying:
+
+```bash
+bash scripts/publish_azure_release.sh
+```
+
+### Package locally
+
+Publish-ready packaging (excludes customer `.msapp` samples):
 
 ```bash
 composer install --no-dev
