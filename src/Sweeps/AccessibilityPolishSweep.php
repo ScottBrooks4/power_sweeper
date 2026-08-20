@@ -13,9 +13,9 @@ final class AccessibilityPolishSweep implements SweepInterface
     public static function subSweeps(): array
     {
         return [
+            ['id' => 'ensure_tab_index', 'options' => ['value' => 0]],
             ['id' => 'accessibility_labels', 'options' => []],
             ['id' => 'ensure_focus_visible', 'options' => ['thickness' => 2]],
-            ['id' => 'ensure_tab_index', 'options' => ['value' => 0]],
             ['id' => 'tooltip_from_label', 'options' => []],
             ['id' => 'regenerate_sarif', 'options' => []],
         ];
@@ -45,7 +45,7 @@ final class AccessibilityPolishSweep implements SweepInterface
 
     public static function description(): string
     {
-        return 'Fill missing AccessibleLabel with spoken purpose (captions, icon meaning, destinations), focus rings, TabIndex, and tooltips, then regenerate App checker SARIF.';
+        return 'Clear Missing tab stop (including TabIndex=-1), fill AccessibleLabel with spoken purpose, add focus rings and tooltips, then regenerate App checker SARIF.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void

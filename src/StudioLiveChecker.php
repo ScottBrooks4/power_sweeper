@@ -171,7 +171,7 @@ final class StudioLiveChecker
      */
     private static function checkAccessibility(ControlNode $control, string $screen, AppControlCatalog $catalog): array
     {
-        if (!$control->isInteractive()) {
+        if (!$control->isAccessibilityInteractive()) {
             return [];
         }
 
@@ -195,7 +195,11 @@ final class StudioLiveChecker
         }
 
         $tab = $control->getProperty('TabIndex');
-        if ($tab === null || trim($tab) === '') {
+        $tabParsed = $control->tabIndexValue();
+        $tabMissing = $tab === null
+            || trim($tab) === ''
+            || ($tabParsed !== null && $tabParsed < 0);
+        if ($tabMissing) {
             $findings[] = self::structFinding(
                 'acc-TabIndexShouldBeDefinedForInteractiveControl',
                 'Medium',

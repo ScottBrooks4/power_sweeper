@@ -34,7 +34,7 @@ final class StudioIssueScanner
                     }
                 }
 
-                if ($control->isInteractive()) {
+                if ($control->isAccessibilityInteractive()) {
                     $ft = $control->getProperty('FocusedBorderThickness');
                     if ($ft === null || self::isBlankOrZero($ft)) {
                         $issues[] = [
@@ -42,6 +42,16 @@ final class StudioIssueScanner
                             'property' => 'FocusedBorderThickness',
                             'kind' => 'focus_not_showing',
                             'snippet' => $ft === null ? '(unset)' : self::preview($ft),
+                        ];
+                    }
+                    $tabParsed = $control->tabIndexValue();
+                    $tabRaw = $control->getProperty('TabIndex');
+                    if ($tabRaw === null || trim($tabRaw) === '' || ($tabParsed !== null && $tabParsed < 0)) {
+                        $issues[] = [
+                            'control' => $control->path,
+                            'property' => 'TabIndex',
+                            'kind' => 'missing_tab_stop',
+                            'snippet' => $tabRaw === null ? '(unset)' : self::preview($tabRaw),
                         ];
                     }
                 }

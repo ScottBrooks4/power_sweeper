@@ -227,14 +227,15 @@ final class SweepAdvisor
                     $modernThemeable++;
                 }
 
-                if ($control->isInteractive()) {
+                if ($control->isAccessibilityInteractive()) {
                     $interactive++;
                     $label = trim((string) ($control->getProperty('AccessibleLabel') ?? ''));
                     if ($label === '' || $label === '=""' || $label === '=Blank()') {
                         $missingLabel++;
                     }
-                    $tab = trim((string) ($control->getProperty('TabIndex') ?? ''));
-                    if ($tab === '') {
+                    $tabParsed = $control->tabIndexValue();
+                    $tabRaw = trim((string) ($control->getProperty('TabIndex') ?? ''));
+                    if ($tabRaw === '' || ($tabParsed !== null && $tabParsed < 0)) {
                         $missingTabIndex++;
                     }
                     $focus = trim((string) ($control->getProperty('FocusedBorderThickness') ?? ''));

@@ -267,6 +267,59 @@ final class ControlNode
         return false;
     }
 
+    /**
+     * True when the control has a real action formula (not blank / false).
+     * Labels, rectangles, and shapes become keyboard targets when OnSelect is set.
+     */
+    public function hasActionHandler(): bool
+    {
+        foreach (['OnSelect', 'OnChange', 'OnCheck', 'OnUncheck'] as $prop) {
+            $raw = $this->getProperty($prop);
+            if ($raw === null) {
+                continue;
+            }
+            $trim = strtolower(trim(ltrim(trim($raw), '=')));
+            if ($trim === '' || $trim === 'false' || $trim === 'true' || $trim === 'blank()' || $trim === '""' || $trim === "''") {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Parsed TabIndex, or null when unset / non-numeric.
+     */
+    public function tabIndexValue(): ?int
+    {
+        $tab = $this->getProperty('TabIndex');
+        if ($tab === null) {
+            return null;
+        }
+        $trim = trim(ltrim(trim($tab), '='));
+        if ($trim === '' || !is_numeric($trim)) {
+            return null;
+        }
+        return (int) $trim;
+    }
+
+    /**
+     * Controls App checker treats as needing AccessibleLabel / TabIndex / focus:
+     * inherent interactive templates, action handlers, or an explicit TabIndex
+     * (including -1 — Studio's "Missing tab stop" on Labels/Images).
+     */
+    public function isAccessibilityInteractive(): bool
+    {
+        if ($this->isApp() || $this->isScreen()) {
+            return false;
+        }
+        if ($this->isInteractive() || $this->hasActionHandler()) {
+            return true;
+        }
+        // Explicit TabIndex (0+, or -1) puts the control in Studio's focus model.
+        return $this->tabIndexValue() !== null;
+    }
+
     public function isButtonLike(): bool
     {
         $t = strtolower($this->type);

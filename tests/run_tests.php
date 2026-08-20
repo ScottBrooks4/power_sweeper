@@ -19,6 +19,8 @@ use PowerSweeper\Sweeps\AlignNearMissSweep;
 use PowerSweeper\Sweeps\AnalyzeAppCheckerSweep;
 use PowerSweeper\Sweeps\EnableDarkModeSweep;
 use PowerSweeper\Sweeps\EnsureFocusVisibleSweep;
+use PowerSweeper\Sweeps\EnsureTabIndexSweep;
+use PowerSweeper\Sweeps\AccessibilityPolishSweep;
 use PowerSweeper\Sweeps\MeaningfulNamesSweep;
 use PowerSweeper\Sweeps\NormalizeClassicButtonChromeSweep;
 use PowerSweeper\Sweeps\NormalizeContainersSweep;
@@ -235,6 +237,61 @@ assert_true(
 $jsonTextNode = (object) ['Name' => 'Hint', 'Template' => (object) ['Name' => 'text'], 'Rules' => []];
 $jsonTextControl = new \PowerSweeper\ControlNode('Hint', 'text', 'Controls/x.json/Hint', 'json', $jsonTextNode);
 assert_true($jsonTextControl->isInteractive(), 'JSON classic TextInput template name "text" is interactive');
+
+// --- Missing tab stop: TabIndex=-1 Labels/Images + OnSelect shapes; static labels untouched ---
+$tabDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/a11y_tab_stops.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($tabDoc !== null, 'a11y tab stops fixture loads');
+$staticBefore = null;
+foreach ($tabDoc->controls() as $c) {
+    if ($c->name === 'StaticCaption') {
+        $staticBefore = $c->getProperty('TabIndex');
+        assert_true(!$c->isAccessibilityInteractive(), 'static Label without TabIndex is not a11y-interactive');
+    }
+    if ($c->name === 'Label3_2') {
+        assert_true($c->isAccessibilityInteractive(), 'Label with TabIndex=-1 is a11y-interactive');
+        assert_true($c->tabIndexValue() === -1, 'Label3_2 starts at TabIndex -1');
+    }
+    if ($c->name === 'ClickableLabel') {
+        assert_true($c->hasActionHandler(), 'Label with Navigate OnSelect has action handler');
+        assert_true($c->isAccessibilityInteractive(), 'OnSelect Label is a11y-interactive');
+    }
+    if ($c->name === 'Rectangle9_1') {
+        assert_true($c->hasActionHandler() && $c->isAccessibilityInteractive(), 'OnSelect rectangle is a11y-interactive');
+    }
+}
+$tabReport = new Report();
+(new AccessibilityPolishSweep())->apply([$tabDoc], $tabReport, ['force' => true]);
+$tabDoc->reindex();
+$by = [];
+foreach ($tabDoc->controls() as $c) {
+    $by[$c->name] = $c;
+}
+assert_true(($by['StaticCaption']->getProperty('TabIndex') ?? null) === $staticBefore, 'static Label TabIndex left alone');
+assert_true($by['Label3_2']->tabIndexValue() === 0, 'Label TabIndex -1 → 0 (Missing tab stop)');
+assert_true($by['tileTitle']->tabIndexValue() === 0, 'tileTitle TabIndex -1 → 0');
+assert_true($by['ClickableLabel']->tabIndexValue() === 0, 'OnSelect Label gets TabIndex 0');
+assert_true($by['Icon1_1']->tabIndexValue() === 0, 'Icon TabIndex -1 → 0');
+assert_true($by['Rectangle9_1']->tabIndexValue() === 0, 'Rectangle hit-target TabIndex -1 → 0');
+assert_true($by['TemplateSVGImg']->tabIndexValue() === 0, 'Image TabIndex -1 → 0');
+assert_true($by['OverViewGallery']->tabIndexValue() === 0, 'Gallery TabIndex -1 → 0');
+assert_true($by['conHeaderHeader_UserProfile_2']->tabIndexValue() === 0, 'header container TabIndex -1 → 0');
+assert_true($by['SaveButton']->tabIndexValue() === 0, 'Button without TabIndex gets 0');
+assert_true(
+    is_string($by['Label3_2']->getProperty('AccessibleLabel'))
+        && str_contains(strtolower((string) $by['Label3_2']->getProperty('AccessibleLabel')), 'help'),
+    'TabIndex=-1 Label gets AccessibleLabel from Text'
+);
+assert_true(
+    (string) ($by['Icon1_1']->getProperty('FocusedBorderThickness') ?? '') !== ''
+        && (string) ($by['Icon1_1']->getProperty('FocusedBorderThickness') ?? '') !== '0'
+        && (string) ($by['Icon1_1']->getProperty('FocusedBorderThickness') ?? '') !== '=0',
+    'interactive Icon gets focus ring'
+);
+$scanLeft = array_values(array_filter(
+    StudioIssueScanner::scan([$tabDoc]),
+    static fn(array $i): bool => ($i['kind'] ?? '') === 'missing_tab_stop'
+));
+assert_true($scanLeft === [], 'no missing_tab_stop left after accessibility_polish');
 
 // --- advisor force mode stamps forceable sweeps ---
 $advisorForce = new SweepAdvisor();

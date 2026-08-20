@@ -24,7 +24,7 @@ final class EnsureFocusVisibleSweep implements SweepInterface
 
     public static function description(): string
     {
-        return 'Set FocusedBorderThickness (and a sensible FocusedBorderColor when missing) on interactive controls so App checker "Focus isn\'t showing" is addressed.';
+        return 'Set FocusedBorderThickness (and a sensible FocusedBorderColor when missing) on interactive / action / TabIndex-flagged controls so App checker "Focus isn\'t showing" is addressed.';
     }
 
     public function apply(array $documents, Report $report, array $options = []): void
@@ -37,7 +37,7 @@ final class EnsureFocusVisibleSweep implements SweepInterface
 
         foreach ($documents as $doc) {
             foreach ($doc->controls() as $control) {
-                if (!$control->isInteractive()) {
+                if (!$control->isAccessibilityInteractive()) {
                     continue;
                 }
 

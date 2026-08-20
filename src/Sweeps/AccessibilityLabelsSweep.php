@@ -46,7 +46,7 @@ final class AccessibilityLabelsSweep implements SweepInterface
             $this->indexDocument($doc);
 
             foreach ($doc->controls() as $control) {
-                if (!$control->isInteractive()) {
+                if (!$control->isAccessibilityInteractive()) {
                     continue;
                 }
 
@@ -101,8 +101,11 @@ final class AccessibilityLabelsSweep implements SweepInterface
             if ($this->isDynamicExpression($text)) {
                 return $this->rolePrefixedRef($control, 'Self.Text');
             }
-
-            return $this->spokenLiteral($control, $this->cleanCaption($this->unwrap($text)));
+            $fromText = $this->spokenLiteral($control, $this->cleanCaption($this->unwrap($text)));
+            // Punctuation-only captions (e.g. ":") clean to empty — keep looking.
+            if ($fromText !== null) {
+                return $fromText;
+            }
         }
 
         foreach (['Tooltip', 'HintText'] as $prop) {
@@ -113,8 +116,10 @@ final class AccessibilityLabelsSweep implements SweepInterface
             if ($this->isDynamicExpression($val)) {
                 return $this->rolePrefixedRef($control, 'Self.' . $prop);
             }
-
-            return $this->spokenLiteral($control, $this->cleanCaption($this->unwrap($val)));
+            $fromProp = $this->spokenLiteral($control, $this->cleanCaption($this->unwrap($val)));
+            if ($fromProp !== null) {
+                return $fromProp;
+            }
         }
 
         // 2) Nested label children (buttons wrapping a Label, etc.)
