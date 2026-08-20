@@ -116,6 +116,13 @@ final class ControlNode
 
     public function getStyleName(): ?string
     {
+        if ($this->format === 'yaml' && is_array($this->node)) {
+            $style = $this->node['StyleName'] ?? null;
+            if ($style === null && isset($this->node['Properties']) && is_array($this->node['Properties'])) {
+                $style = $this->node['Properties']['StyleName'] ?? null;
+            }
+            return is_string($style) || is_numeric($style) ? (string) $style : null;
+        }
         if ($this->format !== 'json' || !is_object($this->node)) {
             return null;
         }
@@ -125,6 +132,23 @@ final class ControlNode
 
     public function clearStyleName(): void
     {
+        if ($this->format === 'yaml' && is_array($this->node)) {
+            $cleared = false;
+            if (array_key_exists('StyleName', $this->node)) {
+                unset($this->node['StyleName']);
+                $cleared = true;
+            }
+            if (isset($this->node['Properties']) && is_array($this->node['Properties'])
+                && array_key_exists('StyleName', $this->node['Properties'])
+            ) {
+                unset($this->node['Properties']['StyleName']);
+                $cleared = true;
+            }
+            if ($cleared) {
+                $this->touch();
+            }
+            return;
+        }
         if ($this->format !== 'json' || !is_object($this->node)) {
             return;
         }

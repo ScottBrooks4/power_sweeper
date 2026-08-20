@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PowerSweeper\Sweeps;
 
+use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
 use PowerSweeper\ControlNode;
 use PowerSweeper\Report;
@@ -165,6 +166,10 @@ final class PreferClassicThemeControlsSweep implements SweepInterface
     /** @param array<string, mixed> $entry */
     private function remapProperties(ControlNode $control, array $entry, Report $report): void
     {
+        $wasTransparent = $this->isTransparentAppearance($control->getProperty('Appearance'));
+        $blankText = $this->isBlankButtonText($control->getProperty('Text'));
+        $key = (string) ($entry['key'] ?? '');
+
         $map = $entry['property_map'] ?? [];
         if (is_array($map)) {
             foreach ($map as $fromProp => $toProp) {
@@ -177,7 +182,14 @@ final class PreferClassicThemeControlsSweep implements SweepInterface
                 }
                 $existing = $control->getProperty($toProp);
                 if ($existing !== null && trim($existing) !== '' && trim($existing) !== '=') {
-                    continue;
+                    // Transparent Fluent CTAs often keep a studio-white Fill while the real
+                    // chrome lives on BasePaletteColor — prefer the palette when Fill is default.
+                    $preferPalette = $fromProp === 'BasePaletteColor'
+                        && $toProp === 'Fill'
+                        && ColorValue::isStudioDefault((string) $existing, 'Fill');
+                    if (!$preferPalette) {
+                        continue;
+                    }
                 }
                 $control->setProperty($toProp, $fromVal);
                 $report->add(self::id(), $control->path, $toProp, $existing ?? '(unset)', $fromVal);
@@ -198,5 +210,39 @@ final class PreferClassicThemeControlsSweep implements SweepInterface
                 $report->add(self::id(), $control->path, $prop, $before, '(removed)');
             }
         }
+
+        // Sidebar / gallery hit-targets use Transparent modern buttons over icons.
+        // Classic buttons default to an opaque Fill and cover the glyph (black squares).
+        if (($key === 'modern_button' || str_contains(strtolower($control->type), 'button'))
+            && $wasTransparent
+            && $blankText
+        ) {
+            $transparent = $control->format === 'yaml' ? '=RGBA(0, 0, 0, 0)' : 'RGBA(0, 0, 0, 0)';
+            $fill = $control->getProperty('Fill');
+            $fillStr = $fill !== null ? (string) $fill : '';
+            if ($fillStr === '' || ColorValue::isStudioDefault($fillStr, 'Fill')) {
+                $control->setProperty('Fill', $transparent);
+                $report->add(self::id(), $control->path, 'Fill', $fillStr !== '' ? $fillStr : '(unset)', $transparent);
+            }
+        }
+    }
+
+    private function isTransparentAppearance(?string $appearance): bool
+    {
+        return is_string($appearance) && preg_match('/Transparent/i', $appearance) === 1;
+    }
+
+    private function isBlankButtonText(?string $text): bool
+    {
+        if ($text === null) {
+            return true;
+        }
+        $trim = trim($text);
+        if ($trim === '' || $trim === '=') {
+            return true;
+        }
+
+        return preg_match('/^=\s*""\s*$/', $trim) === 1
+            || preg_match("/^=\\s*''\\s*$/", $trim) === 1;
     }
 }

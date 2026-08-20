@@ -725,6 +725,7 @@ final class EnableDarkModeSweep implements SweepInterface
         }
 
         // Pass 7: hyperlinks + embedded HTML section chrome (THCEE translation HTML bodies)
+        // + dark SVG icon fills (#333/#000 → TextCss) in Image / gallery Items formulas
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($theme, $report): string {
                 $rewritten = $formula;
@@ -740,6 +741,13 @@ final class EnableDarkModeSweep implements SweepInterface
                         $rewritten = $next;
                     }
                 }
+                if ($this->looksLikeEmbeddedSvg($rewritten)) {
+                    $next = $this->rewriteEmbeddedSvgInk($rewritten, $theme);
+                    if ($next !== $rewritten) {
+                        $report->add(self::id(), $path, 'SvgInk', 'dark SVG fill', $theme . '.TextCss');
+                        $rewritten = $next;
+                    }
+                }
 
                 return $rewritten;
             });
@@ -752,6 +760,14 @@ final class EnableDarkModeSweep implements SweepInterface
                     if ($rewritten !== $html) {
                         $control->setProperty('HtmlText', $rewritten);
                         $report->add(self::id(), $control->path, 'HtmlText', self::preview($html), self::preview($rewritten));
+                    }
+                }
+                $image = $control->getProperty('Image');
+                if (is_string($image) && $image !== '' && $this->looksLikeEmbeddedSvg($image)) {
+                    $rewritten = $this->rewriteEmbeddedSvgInk($image, $theme);
+                    if ($rewritten !== $image) {
+                        $control->setProperty('Image', $rewritten);
+                        $report->add(self::id(), $control->path, 'Image', self::preview($image), self::preview($rewritten));
                     }
                 }
                 if (!$this->isInlineLinkHost($control)) {
@@ -775,8 +791,12 @@ final class EnableDarkModeSweep implements SweepInterface
 
         // Pass 8: buttons with themed fills but missing/black labels; radios already handled above.
         $this->ensureButtonLabelInk($documents, $theme, $report);
+        // Pass 8a: classic / modern icons with unset or near-black Color → Text
+        $this->ensureIconInk($documents, $theme, $report);
         // Pass 8b: pale Modern button BasePaletteColor (Return Home taupe → Surface)
         $this->themePaleModernButtonPalettes($documents, $theme, $var, $themeLight, $themeDark, $force, $report);
+        // Pass 8c: keep blank-text hit-target buttons transparent (sidebar overlays)
+        $this->ensureTransparentHitTargetFills($documents, $report);
         // Pass 9: TextOnLight on dark/page surfaces (status badges, legends) → Text or keep semantic tokens from pass 2.
         $this->rewriteDarkSurfaceInk($documents, $theme, $report);
     }
@@ -1066,9 +1086,6 @@ final class EnableDarkModeSweep implements SweepInterface
                     continue;
                 }
                 $fill = (string) ($control->getProperty('Fill') ?? $control->getProperty('BasePaletteColor') ?? '');
-                $colorProp = $control->getProperty('Color') !== null || !str_contains(strtolower($control->type), 'canvas')
-                    ? 'Color'
-                    : 'Color';
                 // Prefer Color; also set FontColor when the modern control exposes it.
                 foreach (['Color', 'FontColor'] as $prop) {
                     if ($prop === 'FontColor' && $control->getProperty('FontColor') === null && !str_contains(strtolower($control->type), 'canvas')) {
@@ -1093,6 +1110,103 @@ final class EnableDarkModeSweep implements SweepInterface
                 }
             }
         }
+    }
+
+    /**
+     * Classic/modern icons with unset or near-black Color disappear on dark chrome (THCEE sidebar).
+     *
+     * @param list<ControlDocument> $documents
+     */
+    private function ensureIconInk(array $documents, string $theme, Report $report): void
+    {
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$this->isIconControl($control)) {
+                    continue;
+                }
+                foreach (['Color', 'IconColor', 'FontColor'] as $prop) {
+                    $before = $control->getProperty($prop);
+                    if ($prop !== 'Color' && $before === null) {
+                        continue;
+                    }
+                    $beforeStr = $before !== null ? (string) $before : '';
+                    $trim = trim(ltrim($beforeStr, '='));
+                    $parsed = $trim !== '' ? ColorValue::parse($beforeStr) : null;
+                    $missing = $before === null || $trim === '' || $trim === '""';
+                    $darkLiteral = $parsed !== null && ColorValue::luminance($parsed) < 0.35 && ($parsed['a'] ?? 1) > 0.8;
+                    $alreadyOk = $beforeStr !== '' && (
+                        str_contains($beforeStr, $theme . '.Text')
+                        || str_contains($beforeStr, $theme . '.TextOnAccent')
+                        || str_contains($beforeStr, $theme . '.Accent')
+                        || str_contains($beforeStr, $theme . '.Link')
+                    );
+                    if ($alreadyOk || (!$missing && !$darkLiteral)) {
+                        continue;
+                    }
+                    $to = $this->themeFormula($control, $theme, 'Text');
+                    if ($to === $beforeStr) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, $missing ? '(unset)' : self::preview($beforeStr), $to);
+                }
+            }
+        }
+    }
+
+    /**
+     * Blank-text classic buttons that were Transparent hit-targets must stay see-through
+     * so sibling icons remain visible on dark sidebars.
+     *
+     * @param list<ControlDocument> $documents
+     */
+    private function ensureTransparentHitTargetFills(array $documents, Report $report): void
+    {
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if (!$this->isButtonControl($control) || !$this->isBlankButtonText($control->getProperty('Text'))) {
+                    continue;
+                }
+                $fill = $control->getProperty('Fill');
+                $fillStr = $fill !== null ? (string) $fill : '';
+                $parsed = $fillStr !== '' ? ColorValue::parse($fillStr) : null;
+                $needsTransparent = $fillStr === ''
+                    || ($parsed !== null && !ColorValue::isTransparent($parsed) && ColorValue::isStudioDefault($fillStr, 'Fill'))
+                    || ($fillStr !== '' && preg_match('/gblTheme\.(Page|Surface|SurfaceMuted|TextMuted|Text)\b/', $fillStr) === 1
+                        && $this->isBlankButtonText($control->getProperty('Text')));
+                // Only force transparent when there is no meaningful label and fill is default/theme surface
+                // (not Accent/Success CTAs — those have text).
+                if ($fillStr !== '' && preg_match('/gblTheme\.(Accent|Success|Warning)\b/', $fillStr) === 1) {
+                    continue;
+                }
+                if (!$needsTransparent && $parsed !== null && ColorValue::isTransparent($parsed)) {
+                    continue;
+                }
+                if (!$needsTransparent) {
+                    continue;
+                }
+                $to = $control->format === 'yaml' ? '=RGBA(0, 0, 0, 0)' : 'RGBA(0, 0, 0, 0)';
+                if ($to === $fillStr) {
+                    continue;
+                }
+                $control->setProperty('Fill', $to);
+                $report->add(self::id(), $control->path, 'Fill', $fillStr !== '' ? self::preview($fillStr) : '(unset)', $to);
+            }
+        }
+    }
+
+    private function isBlankButtonText(?string $text): bool
+    {
+        if ($text === null) {
+            return true;
+        }
+        $trim = trim($text);
+        if ($trim === '' || $trim === '=') {
+            return true;
+        }
+
+        return preg_match('/^=\s*""\s*$/', $trim) === 1
+            || preg_match("/^=\\s*''\\s*$/", $trim) === 1;
     }
 
     private function isButtonControl(ControlNode $control): bool
@@ -1253,7 +1367,23 @@ final class EnableDarkModeSweep implements SweepInterface
                     continue;
                 }
                 $from = $control->getProperty('BasePaletteColor');
-                if ($from === null || trim($from) === '' || $this->alreadyThemed($from, $var, $theme)) {
+                if ($from === null || trim($from) === '') {
+                    continue;
+                }
+                // Earlier passes sometimes map taupe chrome to TextMuted (foreground token) —
+                // Fluent then paints a washed-out light chip. Force Surface for those.
+                if (
+                    str_contains($from, $theme . '.TextMuted')
+                    || preg_match('/' . preg_quote($theme, '/') . '\.Text\b/', $from) === 1
+                ) {
+                    $to = $this->themeFormula($control, $theme, 'Surface');
+                    if ($to !== $from) {
+                        $control->setProperty('BasePaletteColor', $to, 'Design');
+                        $report->add(self::id(), $control->path, 'BasePaletteColor', $from, $to);
+                    }
+                    continue;
+                }
+                if ($this->alreadyThemed($from, $var, $theme)) {
                     continue;
                 }
                 if ($this->shouldPreserveUserValue($from, 'BasePaletteColor', $force, $theme, $var, $themeLight, $themeDark)) {
@@ -1286,6 +1416,36 @@ final class EnableDarkModeSweep implements SweepInterface
                 $report->add(self::id(), $control->path, 'BasePaletteColor', $from, $to);
             }
         }
+    }
+
+    private function looksLikeEmbeddedSvg(string $formula): bool
+    {
+        return str_contains($formula, 'svg+xml')
+            || (bool) preg_match('/<\s*svg\b/i', $formula)
+            || (bool) preg_match('/fill\s*=\s*[\'"]?#(?:0{3,6}|1{3,6}|222(?:222)?|333(?:333)?|1f1d1a)\b/i', $formula);
+    }
+
+    /**
+     * Homepage / gallery SVG icons hard-code fill='#333333' (invisible on dark cards).
+     * Splice gblTheme.TextCss like HTML chrome does for section headers.
+     */
+    private function rewriteEmbeddedSvgInk(string $formula, string $theme): string
+    {
+        if (!$this->looksLikeEmbeddedSvg($formula) || str_contains($formula, $theme . '.TextCss')) {
+            return $formula;
+        }
+
+        $next = preg_replace_callback(
+            '/fill\s*=\s*(["\'])#(?:000000|000|111111|1a1a1a|1f1d1a|222222|333333|3f3f3f)\1/i',
+            static function (array $m) use ($theme): string {
+                $q = $m[1];
+                // Break out of the surrounding Power Fx string: fill='" & gblTheme.TextCss & "'
+                return 'fill=' . $q . '" & ' . $theme . '.TextCss & "' . $q;
+            },
+            $formula
+        );
+
+        return is_string($next) ? $next : $formula;
     }
 
     private function looksLikeEmbeddedHtml(string $formula): bool

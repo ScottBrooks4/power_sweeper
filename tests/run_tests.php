@@ -862,6 +862,51 @@ assert_true(
     'dark palette includes darkened Success for readable banner text'
 );
 
+// THCEE chrome: classic prep + dark — transparent sidebar hit-targets, SVG ink, remarks, homepage Start
+$thceeChromeDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/thcee_dark_final.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($thceeChromeDoc !== null, 'thcee chrome fixture reloads');
+$thceeChromeClassic = new Report();
+(new PreferClassicThemeControlsSweep())->apply([$thceeChromeDoc], $thceeChromeClassic);
+$thceeChromeDoc->reindex();
+$thceeChromeReport = new Report();
+(new EnableDarkModeSweep())->apply([$thceeChromeDoc], $thceeChromeReport, ['force' => true]);
+$thceeChromeDoc->reindex();
+$hitFill = $navIcon = $startType = $startFill = $cardSvg = $remarksFill = $remarksApp = $objectiveFill = '';
+foreach ($thceeChromeDoc->controls() as $c) {
+    if ($c->name === 'NavHitTarget') {
+        $hitFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'NavIcon') {
+        $navIcon = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'Homepage_Start') {
+        $startType = (string) $c->type;
+        $startFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'CardIcon') {
+        $cardSvg = (string) ($c->getProperty('Image') ?? '');
+    }
+    if ($c->name === 'Remarks') {
+        $remarksFill = (string) ($c->getProperty('Fill') ?? '');
+        $remarksApp = (string) ($c->getProperty('Appearance') ?? '');
+        assert_true($c->getStyleName() === null, 'Remarks StyleName cleared for gblTheme');
+    }
+    if ($c->name === 'ObjectiveBox') {
+        $objectiveFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true(str_starts_with($startType, 'Classic/Button@'), 'homepage Start converted to classic button');
+assert_true(str_contains($startFill, 'gblTheme.Surface'), 'homepage Start Fill uses Surface (not washed TextMuted)');
+assert_true(
+    preg_match('/RGBA\s*\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)/i', $hitFill) === 1,
+    'sidebar hit-target Fill stays transparent so icons show'
+);
+assert_true(str_contains($navIcon, 'gblTheme.Text'), 'sidebar icon Color uses Text');
+assert_true(str_contains($cardSvg, 'gblTheme.TextCss'), 'homepage SVG icon fill splices TextCss');
+assert_true(str_contains($remarksFill, 'gblTheme.InputFill'), 'remarks RichTextEditor Fill → InputFill');
+assert_true(str_contains($remarksApp, 'FilledDarker'), 'remarks RichTextEditor Appearance → FilledDarker');
+assert_true(str_contains($objectiveFill, 'gblTheme.InputFill'), 'unset objective TextInput Fill → InputFill');
+
 // Generalized detection: RTE host by child type; theme component AccessAppScope without TopbarHeader hardcoding
 $generalDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_generalized.pa.yaml', 'Src/Screen1.pa.yaml');
 assert_true($generalDoc !== null, 'generalized dark mode fixture loads');

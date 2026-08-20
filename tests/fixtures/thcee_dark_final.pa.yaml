@@ -39,3 +39,68 @@ Screen1:
         Properties:
           BasePaletteColor: =RGBA(156, 220, 79, 1)
           Text: ="Send Feedback"
+    - HomepageCard:
+        Control: GroupContainer@1.5.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          Width: =200
+          Height: =160
+        Children:
+          - CardIcon:
+              Control: Image@2.2.3
+              Properties:
+                Image: ="data:image/svg+xml;utf8, "& EncodeUrl("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 20 20' fill='#333333'><path d='M4 4h12v12H4z'/></svg>")
+                Width: =40
+                Height: =40
+          - Homepage_Start:
+              Control: Button@0.0.45
+              Properties:
+                Appearance: ='ButtonCanvas.Appearance'.Transparent
+                BasePaletteColor: =RGBA(189, 178, 176, 1)
+                Text: ="Start"
+                Width: =120
+                Height: =40
+    - SidebarSlot:
+        Control: GroupContainer@1.5.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          Width: =75
+          Height: =50
+        Children:
+          - NavIcon:
+              Control: Classic/Icon@2.5.0
+              Properties:
+                Color: =RGBA(51, 51, 51, 1)
+                Icon: =Icon.Home
+                Width: =25
+                Height: =25
+          - NavHitTarget:
+              Control: Button@0.0.45
+              Properties:
+                Appearance: ='ButtonCanvas.Appearance'.Transparent
+                Text: =
+                Width: =25
+                Height: =25
+                X: =0
+                Y: =0
+    - RemarksHost:
+        Control: GroupContainer@1.5.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          Width: =480
+          Height: =220
+        Children:
+          - Remarks:
+              Control: RichTextEditor@2.7.0
+              Properties:
+                StyleName: =defaultRichTextStyle
+                BorderColor: =DefaultBorderColor
+                Width: =460
+                Height: =180
+    - ObjectiveBox:
+        Control: Classic/TextInput@2.3.2
+        Properties:
+          Color: =RGBA(51, 51, 51, 1)
+          Default: =""
+          Width: =400
+          Height: =80
