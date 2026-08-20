@@ -516,6 +516,9 @@ final class PowerFxFormulaChecker
             if ($this->dataContext->isDataSource($id)) {
                 continue;
             }
+            if ($this->dataContext->isSetVariable($id)) {
+                continue;
+            }
             if (preg_match('/^(var|col|gbl)[A-Z]/', $id)) {
                 continue;
             }
@@ -740,6 +743,9 @@ final class PowerFxFormulaChecker
         if ($this->dataContext->isDataSource($name)) {
             return true;
         }
+        if ($this->dataContext->isSetVariable($name)) {
+            return true;
+        }
         if (preg_match('/^(var|col|gbl)[A-Z]/', $name)) {
             return true;
         }
@@ -781,9 +787,11 @@ final class PowerFxFormulaChecker
     private function isRecordFieldInTablePredicate(string $body, string $fieldName): bool
     {
         $q = preg_quote($fieldName, '/');
+        // Two nesting levels: Lower(User().Email) And Roll.Value = …
+        $chunk = '(?:[^()]|\((?:[^()]|\([^()]*\))*\))*';
 
         return preg_match(
-            '/\b(?:LookUp|Filter|Search|CountIf|SumIf|First|Last)\s*\(\s*[^,]+,\s*[^)]*\b' . $q . '\b/',
+            '/\b(?:LookUp|Filter|Search|CountIf|SumIf|First|Last|Sort|SortByColumns|AddColumns|ShowColumns|Distinct|GroupBy)\s*\(' . $chunk . '\b' . $q . '\b/',
             $body
         ) === 1;
     }

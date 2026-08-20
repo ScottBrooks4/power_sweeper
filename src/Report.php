@@ -4,36 +4,109 @@ declare(strict_types=1);
 
 namespace PowerSweeper;
 
+/**
+ * Change log for sweep runs.
+ *
+ * Large apps (THCEE dark mode / formula converge) can produce 10k–30k+ rows.
+ * Keeping every from/to string in RAM OOMs shared hosts, so we:
+ * - track accurate totals / by_sweep counts always
+ * - retain only the first {@see $maxEntries} detail rows (UI preview)
+ * - truncate long from/to snippets when storing or streaming
+ *
+ * Composite sweeps (e.g. fix_formula_errors) can push a sweep alias so child
+ * repairs attribute under the parent sweep id, optionally with a property prefix
+ * naming the repair kind (locale, control refs, …).
+ */
 final class Report
 {
-    /** @var list<array{hop:string,control:string,property:string,from:string,to:string}> */
+    /** @var list<array{sweep:string,control:string,property:string,from:string,to:string}> */
     private array $entries = [];
 
-    /** @var null|callable(array{hop:string,control:string,property:string,from:string,to:string}, int):void */
+    /** @var array<string, int> */
+    private array $bySweep = [];
+
+    private int $total = 0;
+
+    /** @var null|callable(array{sweep:string,control:string,property:string,from:string,to:string}, int):void */
     private $onChange;
 
-    /** @param null|callable(array{hop:string,control:string,property:string,from:string,to:string}, int):void $onChange */
-    public function __construct(?callable $onChange = null)
+    private int $maxEntries;
+
+    private int $snippetChars;
+
+    /** @var list<string> */
+    private array $sweepAliasStack = [];
+
+    /** @var list<string> */
+    private array $propertyPrefixStack = [];
+
+    /**
+     * @param null|callable(array{sweep:string,control:string,property:string,from:string,to:string}, int):void $onChange
+     */
+    public function __construct(?callable $onChange = null, int $maxEntries = 500, int $snippetChars = 240)
     {
         $this->onChange = $onChange;
+        $this->maxEntries = max(0, $maxEntries);
+        $this->snippetChars = max(16, $snippetChars);
     }
 
-    public function add(string $hop, string $control, string $property, string $from, string $to): void
+    /** Attribute subsequent add() rows under this sweep id (composite parent). */
+    public function pushSweepAlias(string $sweepId): void
     {
-        $entry = [
-            'hop' => $hop,
-            'control' => $control,
-            'property' => $property,
-            'from' => $from,
-            'to' => $to,
-        ];
-        $this->entries[] = $entry;
-        if ($this->onChange !== null) {
-            ($this->onChange)($entry, $this->count());
+        $sweepId = trim($sweepId);
+        if ($sweepId !== '') {
+            $this->sweepAliasStack[] = $sweepId;
         }
     }
 
-    /** @return list<array{hop:string,control:string,property:string,from:string,to:string}> */
+    public function popSweepAlias(): void
+    {
+        array_pop($this->sweepAliasStack);
+    }
+
+    /** Prefix property column (e.g. "locale · OnSelect") while a sub-pass runs. */
+    public function pushPropertyPrefix(string $prefix): void
+    {
+        $prefix = trim($prefix);
+        if ($prefix !== '') {
+            $this->propertyPrefixStack[] = $prefix;
+        }
+    }
+
+    public function popPropertyPrefix(): void
+    {
+        array_pop($this->propertyPrefixStack);
+    }
+
+    public function add(string $sweep, string $control, string $property, string $from, string $to): void
+    {
+        if ($this->sweepAliasStack !== []) {
+            $sweep = $this->sweepAliasStack[array_key_last($this->sweepAliasStack)];
+        }
+        if ($this->propertyPrefixStack !== []) {
+            $prefix = $this->propertyPrefixStack[array_key_last($this->propertyPrefixStack)];
+            $property = ($property === '' || $property === '(formula)')
+                ? $prefix
+                : $prefix . ' · ' . $property;
+        }
+        $entry = [
+            'sweep' => $sweep,
+            'control' => $control,
+            'property' => $property,
+            'from' => $this->snippet($from),
+            'to' => $this->snippet($to),
+        ];
+        $this->total++;
+        $this->bySweep[$sweep] = ($this->bySweep[$sweep] ?? 0) + 1;
+        if (count($this->entries) < $this->maxEntries) {
+            $this->entries[] = $entry;
+        }
+        if ($this->onChange !== null) {
+            ($this->onChange)($entry, $this->total);
+        }
+    }
+
+    /** @return list<array{sweep:string,control:string,property:string,from:string,to:string}> */
     public function entries(): array
     {
         return $this->entries;
@@ -41,21 +114,32 @@ final class Report
 
     public function count(): int
     {
-        return count($this->entries);
+        return $this->total;
     }
 
-    /** @return array{total:int,by_hop:array<string,int>,entries:list<array{hop:string,control:string,property:string,from:string,to:string}>} */
+    /** @return array{total:int,by_sweep:array<string,int>,entries:list<array{sweep:string,control:string,property:string,from:string,to:string}>,entries_truncated?:bool,entries_omitted?:int} */
     public function toArray(): array
     {
-        $byHop = [];
-        foreach ($this->entries as $entry) {
-            $byHop[$entry['hop']] = ($byHop[$entry['hop']] ?? 0) + 1;
-        }
-
-        return [
-            'total' => $this->count(),
-            'by_hop' => $byHop,
+        $out = [
+            'total' => $this->total,
+            'by_sweep' => $this->bySweep,
             'entries' => $this->entries,
         ];
+        $kept = count($this->entries);
+        if ($this->total > $kept) {
+            $out['entries_truncated'] = true;
+            $out['entries_omitted'] = $this->total - $kept;
+        }
+
+        return $out;
+    }
+
+    private function snippet(string $value): string
+    {
+        if (strlen($value) <= $this->snippetChars) {
+            return $value;
+        }
+
+        return substr($value, 0, max(1, $this->snippetChars - 3)) . '...';
     }
 }

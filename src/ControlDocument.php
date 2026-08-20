@@ -23,7 +23,7 @@ final class ControlDocument
      * @param array<mixed>|object $data YAML trees are arrays; JSON trees are objects.
      */
     public function __construct(
-        public readonly string $relativePath,
+        public string $relativePath,
         public readonly string $format,
         private array|object $data,
         string $yamlHeader = '',
@@ -527,5 +527,134 @@ final class ControlDocument
     private function isAssoc(array $arr): bool
     {
         return !array_is_list($arr);
+    }
+
+    /**
+     * Rename a control in the document tree (YAML key or JSON Name field).
+     * Screen roots are supported for YAML (key rename); caller may also rename the .pa.yaml file.
+     */
+    public function renameControl(ControlNode $control, string $newName): bool
+    {
+        if ($newName === $control->name) {
+            return false;
+        }
+        if ($control->isScreen()) {
+            if (!ControlNaming::isValidScreenName($newName)) {
+                return false;
+            }
+        } elseif (!ControlNaming::isValidIdentifier($newName)) {
+            return false;
+        }
+
+        if ($control->format === 'yaml') {
+            $ok = $this->renameYamlControl($control->path, $control->name, $newName);
+        } else {
+            $ok = $this->renameJsonControl($control, $newName);
+        }
+
+        if ($ok) {
+            $this->mutations->mark();
+        }
+
+        return $ok;
+    }
+
+    private function renameJsonControl(ControlNode $control, string $newName): bool
+    {
+        return $control->renameJsonName($newName);
+    }
+
+    private function renameYamlControl(string $path, string $oldName, string $newName): bool
+    {
+        if (!is_array($this->data)) {
+            return false;
+        }
+
+        $prefix = $this->relativePath . '/';
+        if (!str_starts_with($path, $prefix)) {
+            return false;
+        }
+
+        $segments = explode('/', substr($path, strlen($prefix)));
+        if ($segments === [] || $segments[count($segments) - 1] !== $oldName) {
+            return false;
+        }
+
+        if (count($segments) === 1) {
+            if (!array_key_exists($oldName, $this->data) || array_key_exists($newName, $this->data)) {
+                return false;
+            }
+            $rebuilt = [];
+            foreach ($this->data as $key => $value) {
+                if ($key === $oldName) {
+                    $rebuilt[$newName] = $value;
+                } else {
+                    $rebuilt[$key] = $value;
+                }
+            }
+            $this->data = $rebuilt;
+
+            return true;
+        }
+
+        $parent = &$this->findYamlNodeBySegments($segments, count($segments) - 1);
+        if ($parent === null || !isset($parent['Children']) || !is_array($parent['Children'])) {
+            return false;
+        }
+
+        foreach ($parent['Children'] as $idx => &$item) {
+            if (!is_array($item) || !array_key_exists($oldName, $item)) {
+                continue;
+            }
+            if (array_key_exists($newName, $item)) {
+                return false;
+            }
+            $body = $item[$oldName];
+            unset($item[$oldName]);
+            $item[$newName] = $body;
+            unset($item);
+
+            return true;
+        }
+        unset($item);
+
+        return false;
+    }
+
+    /**
+     * @param list<string> $segments Path segments under this document (screen name, child, …)
+     * @return array<string, mixed>|null
+     */
+    private function &findYamlNodeBySegments(array $segments, int $depth): ?array
+    {
+        $null = null;
+        if ($depth < 1 || !is_array($this->data)) {
+            return $null;
+        }
+
+        if (!isset($this->data[$segments[0]]) || !is_array($this->data[$segments[0]])) {
+            return $null;
+        }
+
+        $current = &$this->data[$segments[0]];
+        for ($i = 1; $i < $depth; $i++) {
+            $found = false;
+            if (!isset($current['Children']) || !is_array($current['Children'])) {
+                return $null;
+            }
+            foreach ($current['Children'] as &$item) {
+                if (is_array($item) && isset($item[$segments[$i]]) && is_array($item[$segments[$i]])) {
+                    $current = &$item[$segments[$i]];
+                    $found = true;
+                    break;
+                }
+            }
+            unset($item);
+            if (!$found) {
+                return $null;
+            }
+        }
+
+        return $current;
     }
 }

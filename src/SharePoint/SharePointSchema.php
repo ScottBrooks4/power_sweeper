@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PowerSweeper\SharePoint;
 
 /**
- * Expected SharePoint list catalogue supplied by the operator (upload / hop options).
+ * Expected SharePoint list catalogue supplied by the operator (upload / sweep options).
  */
 final class SharePointSchema
 {

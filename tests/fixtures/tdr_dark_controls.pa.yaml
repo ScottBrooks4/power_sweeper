@@ -1,0 +1,47 @@
+Screens:
+  Screen1:
+    Properties:
+      Fill: =RGBA(255, 255, 255, 1)
+    Children:
+      - LangRadio:
+          Control: Radio@0.0.25
+          Properties:
+            Items: =["English", "French"]
+            DefaultSelectedItems: =["English"]
+      - ThemeRadio:
+          Control: Radio@0.0.25
+          Properties:
+            Items: =["Light"]
+            DefaultSelectedItems: =["Light"]
+      - SaveBtn:
+          Control: Button@0.0.45
+          Properties:
+            Text: ="Enregistrer et fermer"
+            Appearance: =Appearance.Primary
+            BasePaletteColor: =RGBA(189, 178, 176, 1)
+      - CancelBtn:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Text: ="Annuler"
+            Fill: =RGBA(240, 240, 240, 1)
+      - lblDraft:
+          Control: Label@2.5.1
+          Properties:
+            Text: ="● Draft"
+            Color: =RGBA(204, 153, 0, 1)
+      - lblSigned:
+          Control: Label@2.5.1
+          Properties:
+            Text: ="● Signed"
+            Color: =RGBA(0, 150, 80, 1)
+      - lblDenied:
+          Control: Label@2.5.1
+          Properties:
+            Text: ="● Denied"
+            Color: =RGBA(200, 30, 30, 1)
+      - lblType:
+          Control: Label@2.5.1
+          Properties:
+            Text: ="THCEE"
+            Fill: =RGBA(220, 252, 231, 1)
+            Color: =RGBA(21, 128, 61, 1)

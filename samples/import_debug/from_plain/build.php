@@ -182,26 +182,23 @@ withUnpacked($plain, static function (MsappArchive $archive): void {
 echo "F_raw_splice_onstart_comment.msapp\n";
 
 $pipeline = new Pipeline();
-$profilesDir = dirname(__DIR__, 3) . '/profiles';
 
 // G — unwhack only
 $pipeline->run($plain, [['id' => 'unwhack_locale_formulas']], $outDir . '/G_unwhack_only.msapp');
 echo "G_unwhack_only.msapp\n";
 
 // H — dark only
-/** @var array{hops: list<array{id:string,options?:array<string,mixed>}>} $dark */
-$dark = include $profilesDir . '/dark_mode.php';
-$pipeline->run($plain, $dark['hops'], $outDir . '/H_dark_only.msapp');
+$dark = \PowerSweeper\HopChains::darkMode();
+$pipeline->run($plain, $dark, $outDir . '/H_dark_only.msapp');
 echo "H_dark_only.msapp\n";
 
-// I — repair_studio_errors
-/** @var array{hops: list<array{id:string,options?:array<string,mixed>}>} $repair */
-$repair = include $profilesDir . '/repair_studio_errors.php';
-$pipeline->run($plain, $repair['hops'], $outDir . '/I_repair_studio_errors.msapp');
+// I — studio repair
+$repair = \PowerSweeper\HopChains::studioRepair();
+$pipeline->run($plain, $repair, $outDir . '/I_repair_studio_errors.msapp');
 echo "I_repair_studio_errors.msapp\n";
 
 // J — repair then dark
-$pipeline->run($plain, array_merge($repair['hops'], $dark['hops']), $outDir . '/J_repair_then_dark.msapp');
+$pipeline->run($plain, array_merge($repair, $dark), $outDir . '/J_repair_then_dark.msapp');
 echo "J_repair_then_dark.msapp\n";
 
 echo "Done.\n";

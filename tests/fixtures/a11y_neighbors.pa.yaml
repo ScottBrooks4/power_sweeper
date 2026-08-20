@@ -1,0 +1,76 @@
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - FormBlock:
+        Control: GroupContainer@1.0.0
+        Properties:
+          X: =20
+          Y: =20
+          Width: =480
+          Height: =360
+        Children:
+          - EmailLabel:
+              Control: Label@2.5.1
+              Properties:
+                Text: ="Email address:"
+                X: =0
+                Y: =0
+                Width: =200
+                Height: =28
+          - EmailInput:
+              Control: Classic/TextInput@2.3.2
+              Properties:
+                Default: =""
+                X: =0
+                Y: =32
+                Width: =280
+                Height: =40
+          - PhoneLabel:
+              Control: Label@2.5.1
+              Properties:
+                Text: ="Phone"
+                X: =0
+                Y: =100
+                Width: =90
+                Height: =40
+          - PhoneInput:
+              Control: Classic/TextInput@2.3.2
+              Properties:
+                Default: =""
+                X: =100
+                Y: =100
+                Width: =200
+                Height: =40
+          - lblDepartment:
+              Control: Label@2.5.1
+              Properties:
+                Text: =If(varLang, "Department", "Service")
+                X: =0
+                Y: =170
+                Width: =200
+                Height: =28
+          - txtDepartment:
+              Control: Classic/TextInput@2.3.2
+              Properties:
+                Default: =""
+                X: =0
+                Y: =202
+                Width: =280
+                Height: =40
+          - SaveIcon:
+              Control: Icon@2.5.0
+              Properties:
+                X: =0
+                Y: =280
+                Width: =40
+                Height: =40
+          - SaveCaption:
+              Control: Label@2.5.1
+              Properties:
+                Text: ="Save draft"
+                X: =48
+                Y: =286
+                Width: =140
+                Height: =28

@@ -1,0 +1,51 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(varLang, true)
+Home:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - LanguageRadio:
+        Control: Classic/Radio@2.1.0
+        Properties:
+          Items: =["English", "French"]
+          OnChange: =Set(varLang, Self.Selected.Value = "English")
+          X: =16
+          Y: =16
+          Width: =240
+          Height: =40
+    - Title:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Welcome"
+          X: =16
+          Y: =80
+          Width: =200
+          Height: =40
+    - Subtitle:
+        Control: Label@2.5.1
+        Properties:
+          Text: =If(varLang, "Open request", "Ouvrir la demande")
+          X: =16
+          Y: =130
+          Width: =280
+          Height: =40
+    - GoBtn:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Continue"
+          Tooltip: ="Continue to form"
+          X: =16
+          Y: =190
+          Width: =140
+          Height: =40
+    - SkipGlyph:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="→"
+          X: =170
+          Y: =190
+          Width: =40
+          Height: =40

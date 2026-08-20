@@ -59,27 +59,32 @@ final class StudioLiveChecker
                         continue;
                     }
                     $location = self::qualifiedLocation($screen, $control->path, $prop);
-                    $findings = array_merge(
-                        $findings,
-                        $formulaChecker->check(
-                            $value,
-                            $screen,
-                            $location,
-                            self::controlTypeFqn($screen, $control),
-                            $prop,
-                            $control->name,
-                            $localNames,
-                            $screenRecordVars,
-                        )
-                    );
+                    foreach ($formulaChecker->check(
+                        $value,
+                        $screen,
+                        $location,
+                        self::controlTypeFqn($screen, $control),
+                        $prop,
+                        $control->name,
+                        $localNames,
+                        $screenRecordVars,
+                    ) as $finding) {
+                        $findings[] = $finding;
+                    }
                 }
 
-                $findings = array_merge($findings, self::checkAccessibility($control, $screen, $catalog));
-                $findings = array_merge($findings, self::checkPerformance($control, $screen));
+                foreach (self::checkAccessibility($control, $screen, $catalog) as $finding) {
+                    $findings[] = $finding;
+                }
+                foreach (self::checkPerformance($control, $screen) as $finding) {
+                    $findings[] = $finding;
+                }
             }
         }
 
-        $findings = array_merge($findings, self::checkAppLevel($scanDocs, $allFormulaText, $catalog));
+        foreach (self::checkAppLevel($scanDocs, $allFormulaText, $catalog) as $finding) {
+            $findings[] = $finding;
+        }
 
         $findings = self::dedupeFindings($findings);
 
@@ -88,9 +93,22 @@ final class StudioLiveChecker
 
     /**
      * @param list<ControlDocument> $documents
+     * @return ($returnReport is true ? array{
+     *   total:int,
+     *   by_category:array<string,int>,
+     *   by_level:array<string,int>,
+     *   by_rule:array<string,int>,
+     *   by_screen:array<string,int>,
+     *   findings:list<array<string,mixed>>,
+     *   path:string
+     * } : string)
      */
-    public static function writeSarifToExtractDir(array $documents, string $extractDir, ?string $templateSarifPath = null): string
-    {
+    public static function writeSarifToExtractDir(
+        array $documents,
+        string $extractDir,
+        ?string $templateSarifPath = null,
+        bool $returnReport = false,
+    ): array|string {
         $template = null;
         if ($templateSarifPath !== null && is_file($templateSarifPath)) {
             $raw = file_get_contents($templateSarifPath);
@@ -115,8 +133,21 @@ final class StudioLiveChecker
 
         $report = self::check($documents, ['extract_dir' => $extractDir, 'template_sarif' => $template]);
         $json = SarifWriter::toJson($report['findings'], $template);
+        unset($template);
         $outPath = $extractDir . '/AppCheckerResult.sarif';
         file_put_contents($outPath, $json);
+        unset($json, $report['findings']);
+        $report['findings'] = [];
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
+
+        if ($returnReport) {
+            $report['path'] = $outPath;
+
+            return $report;
+        }
+
         return $outPath;
     }
 
@@ -140,7 +171,7 @@ final class StudioLiveChecker
      */
     private static function checkAccessibility(ControlNode $control, string $screen, AppControlCatalog $catalog): array
     {
-        if (!$control->isInteractive()) {
+        if (!$control->isAccessibilityInteractive()) {
             return [];
         }
 
@@ -148,7 +179,7 @@ final class StudioLiveChecker
         $locationBase = self::qualifiedLocation($screen, $control->path, '');
 
         $label = $control->getProperty('AccessibleLabel');
-        if ($label === null || trim($label) === '') {
+        if ($label === null || self::isBlankAccessibleLabel($label)) {
             $findings[] = self::structFinding(
                 'acc-AccessibleLabelNeeded',
                 'Medium',
@@ -164,7 +195,11 @@ final class StudioLiveChecker
         }
 
         $tab = $control->getProperty('TabIndex');
-        if ($tab === null || trim($tab) === '') {
+        $tabParsed = $control->tabIndexValue();
+        $tabMissing = $tab === null
+            || trim($tab) === ''
+            || ($tabParsed !== null && $tabParsed < 0);
+        if ($tabMissing) {
             $findings[] = self::structFinding(
                 'acc-TabIndexShouldBeDefinedForInteractiveControl',
                 'Medium',
@@ -504,5 +539,26 @@ final class StudioLiveChecker
     {
         $v = strtolower(trim(ltrim(trim($value), '=')));
         return $v === '' || $v === '0' || $v === '0.0' || $v === 'false';
+    }
+
+    /** Treat "", Blank(), and quote-only values as missing AccessibleLabel. */
+    private static function isBlankAccessibleLabel(string $value): bool
+    {
+        $v = trim($value);
+        if (str_starts_with($v, '=')) {
+            $v = trim(substr($v, 1));
+        }
+        if ($v === '' || strcasecmp($v, 'Blank()') === 0) {
+            return true;
+        }
+        if (
+            (str_starts_with($v, '"') && str_ends_with($v, '"'))
+            || (str_starts_with($v, "'") && str_ends_with($v, "'"))
+        ) {
+            $inner = substr($v, 1, -1);
+            return trim(str_replace('""', '', $inner)) === '';
+        }
+
+        return false;
     }
 }

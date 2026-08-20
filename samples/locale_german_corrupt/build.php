@@ -59,7 +59,7 @@ if ($withUnwhack) {
     // Keep report summary compact — full entry list can be huge
     $summary = [
         'total' => $total,
-        'by_hop' => $result['report']['by_hop'] ?? [],
+        'by_sweep' => $result['report']['by_sweep'] ?? [],
         'sample_entries' => array_slice($result['report']['entries'] ?? [], 0, 40),
     ];
     file_put_contents($reportPath, json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");

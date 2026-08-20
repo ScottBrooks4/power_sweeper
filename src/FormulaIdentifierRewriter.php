@@ -64,11 +64,18 @@ final class FormulaIdentifierRewriter
             return $segment;
         }
 
-        if (str_contains($new, '.')) {
+        // Already a member path or a fully quoted Power Fx name — do not wrap again
+        // (wrapping "'PACS Homepage'" would produce '''PACS Homepage''').
+        if (str_contains($new, '.') || self::isQuotedName($new)) {
             return $new;
         }
 
         return "'" . str_replace("'", "''", $new) . "'";
+    }
+
+    private static function isQuotedName(string $value): bool
+    {
+        return str_starts_with($value, "'") && str_ends_with($value, "'") && strlen($value) >= 2;
     }
 
     private static function replaceIdentifier(string $code, string $old, string $new): string
@@ -77,10 +84,17 @@ final class FormulaIdentifierRewriter
             return $code;
         }
 
+        // Bare-identifier slot: quote replacements that are not bare ids
+        // (e.g. "TDR Trips_ TopMenu_1" must become 'TDR Trips_ TopMenu_1').
+        $replacement = $new;
+        if (!str_contains($new, '.') && !self::isQuotedName($new) && !preg_match('/^[A-Za-z_][\w]*$/', $new)) {
+            $replacement = "'" . str_replace("'", "''", $new) . "'";
+        }
+
         // Unquoted identifier — skip member access (preceded by '.') so
         // 'Screen'.Date is not re-qualified to 'Screen'.'Screen'.Date.
         $pattern = '/(?<![\w.])' . preg_quote($old, '/') . '(?![\w])/';
 
-        return preg_replace($pattern, $new, $code) ?? $code;
+        return preg_replace($pattern, $replacement, $code) ?? $code;
     }
 }

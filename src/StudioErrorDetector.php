@@ -457,7 +457,7 @@ final class StudioErrorDetector
         $lines[] = str_repeat('=', 60);
         $lines[] = '';
         $lines[] = 'TOTAL ISSUES: ' . $report['total'];
-        $lines[] = '  Auto-fixable (current hops): ' . $report['auto_fixable'];
+        $lines[] = '  Auto-fixable (current sweeps): ' . $report['auto_fixable'];
         $lines[] = '  Not auto-fixable: ' . $report['not_auto_fixable'];
         $lines[] = '';
 

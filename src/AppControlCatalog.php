@@ -51,6 +51,15 @@ final class AppControlCatalog
         'Now' => true, 'Today' => true, 'Lower' => true, 'Upper' => true, 'Trim' => true,
         'Coalesce' => true, 'IsBlank' => true, 'Len' => true, 'Concat' => true, 'JSON' => true,
         'Table' => true, 'Record' => true, 'Error' => true, 'GUID' => true, 'Rand' => true,
+        'FirstError' => true, 'LastError' => true, 'Errors' => true, 'IsError' => true, 'IfError' => true,
+        'IsBlankOrError' => true, 'IsEmpty' => true, 'DataSourceInfo' => true, 'Defaults' => true,
+        'EditForm' => true, 'NewForm' => true, 'ViewForm' => true, 'ResetForm' => true,
+        'Select' => true, 'Remove' => true, 'RemoveIf' => true, 'Clear' => true, 'Update' => true,
+        'Sort' => true, 'SortByColumns' => true, 'AddColumns' => true, 'ShowColumns' => true,
+        'Date' => true, 'Time' => true, 'Year' => true, 'Month' => true, 'Day' => true,
+        'Concatenate' => true, 'Char' => true, 'Replace' => true, 'Substitute' => true,
+        'First' => true, 'Last' => true, 'FirstN' => true, 'LastN' => true, 'Index' => true,
+        'CountRows' => true, 'Distinct' => true, 'GroupBy' => true, 'Ungroup' => true,
     ];
 
     /**
@@ -66,7 +75,7 @@ final class AppControlCatalog
                 $cat->componentDefPaths[$defName] = $doc->relativePath;
                 $children = [];
                 foreach ($doc->controls() as $control) {
-                    $children[$control->name] = true;
+                    $children[(string) $control->name] = true;
                 }
                 $cat->componentDefChildren[$defName] = array_keys($children);
             }
@@ -75,7 +84,7 @@ final class AppControlCatalog
         foreach ($documents as $doc) {
             $names = [];
             foreach ($doc->controls() as $control) {
-                $names[$control->name] = true;
+                $names[(string) $control->name] = true;
             }
             if ($names !== []) {
                 $cat->controlsByDocPath[$doc->relativePath] = $names;
@@ -93,15 +102,16 @@ final class AppControlCatalog
             }
 
             foreach ($doc->controls() as $control) {
-                $cat->controlsByScreen[$screen][$control->name] = true;
-                $cat->screensByControl[$control->name][] = $screen;
+                $controlName = (string) $control->name;
+                $cat->controlsByScreen[$screen][$controlName] = true;
+                $cat->screensByControl[$controlName][] = $screen;
 
-                if (str_contains($control->type, 'CanvasComponent')) {
-                    $cat->componentInstances[$control->name] = true;
-                    $def = $cat->componentNameFromInstance($control->name);
+                if ($cat->looksLikeComponentInstance($control)) {
+                    $cat->componentInstances[$controlName] = true;
+                    $def = $cat->componentNameFromInstance($controlName);
                     $children = $cat->componentDefChildren[$def] ?? [];
                     if ($children !== []) {
-                        $cat->componentChildrenByScreen[$screen][$control->name] = $children;
+                        $cat->componentChildrenByScreen[$screen][$controlName] = $children;
                         foreach ($children as $child) {
                             // Component children are addressable as Instance.Child when instance is on screen.
                             $cat->controlsByScreen[$screen][$child] = true;
@@ -139,6 +149,14 @@ final class AppControlCatalog
     /**
      * @return list<string>
      */
+    public function controlNamesOnScreen(string $screen): array
+    {
+        return array_map('strval', array_keys($this->controlsByScreen[$screen] ?? []));
+    }
+
+    /**
+     * @return list<string>
+     */
     public function screensWith(string $name): array
     {
         return $this->screensByControl[$name] ?? [];
@@ -147,6 +165,12 @@ final class AppControlCatalog
     public function isComponentInstance(string $name): bool
     {
         return isset($this->componentInstances[$name]);
+    }
+
+    /** @return list<string> */
+    public function componentInstanceNames(): array
+    {
+        return array_keys($this->componentInstances);
     }
 
     public function quoteScreen(string $screen): string
@@ -332,6 +356,23 @@ final class AppControlCatalog
             return $m[1];
         }
         return $instanceName;
+    }
+
+    /**
+     * YAML uses CanvasComponent; JSON packs often store a GUID template id.
+     * Treat known definition names / com* hosts as instances too.
+     */
+    private function looksLikeComponentInstance(ControlNode $control): bool
+    {
+        if (str_contains($control->type, 'CanvasComponent')) {
+            return true;
+        }
+        $def = $this->componentNameFromInstance($control->name);
+        if (isset($this->componentDefPaths[$def]) || isset($this->componentDefChildren[$def])) {
+            return true;
+        }
+        // Shared chrome hosts: comTranslations, comExternalFunctions, …
+        return (bool) preg_match('/^com[A-Z]/', $control->name);
     }
 
     public function isReserved(string $identifier): bool

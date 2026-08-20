@@ -11,7 +11,7 @@ final class MsappArchive
 {
     private string $extractDir;
 
-    /** @var string ZipTool::STYLE_* preserved from source (or overridden by hop) */
+    /** @var string ZipTool::STYLE_* preserved from source (or overridden by sweep) */
     private string $entryStyle = ZipTool::STYLE_WINDOWS;
 
     /** @var list<string> Source archive entry names in original order */
@@ -68,17 +68,35 @@ final class MsappArchive
             if (!$doc->isDirty()) {
                 continue;
             }
-            $abs = $this->documentPaths[$doc->relativePath] ?? null;
-            if ($abs === null) {
+            $abs = $this->documentPaths[$doc->relativePath]
+                ?? ($this->extractDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $doc->relativePath));
+            if (!is_dir(dirname($abs))) {
                 continue;
             }
             $doc->save($abs);
+            $this->documentPaths[$doc->relativePath] = $abs;
         }
+    }
+
+    /**
+     * Update path bookkeeping after a document file was renamed on disk (e.g. screen rename).
+     */
+    public function rebindDocumentPath(string $oldRelative, string $newRelative, string $absolutePath): void
+    {
+        unset($this->documentPaths[$oldRelative]);
+        $this->documentPaths[$newRelative] = $absolutePath;
     }
 
     public function pack(string $outputPath): void
     {
         $this->saveDocuments();
+        // Control trees for THCEE are ~250MB. Drop them before zipping so pack
+        // peak stays within small App Service RAM (OS-kill looks like mid-run OOM).
+        $this->documents = [];
+        $this->documentPaths = [];
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
         ZipTool::createFromDirectory($this->extractDir, $outputPath, $this->entryStyle, $this->entryOrder);
     }
 

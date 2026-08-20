@@ -78,7 +78,7 @@ App checker counts
   formula errors until Save — use regenerate_sarif hop or import *.powered.msapp.
 - Filter Studio App checker to "Formulas" when verifying repair progress.
 
-Two-step workflow (profiles, not combined):
-1. Profile repair_studio_errors → download
-2. Profile dark_mode on that output → download
+Two-step workflow (hops, not combined):
+1. Run studio repair hops → download
+2. Run dark-mode hops on that output → download
 (Requires Power Sweeper build with PowerAppsYaml fix.)

@@ -6,7 +6,7 @@ namespace PowerSweeper;
 
 /**
  * Safe, mechanical rewrites for common non-delegable SharePoint / collection patterns.
- * Code segments only — comments and strings are never modified.
+ * Pattern-based (not app-specific string tables). Code segments only — comments/strings opaque.
  */
 final class DelegationFormulaRewriter
 {
@@ -15,41 +15,118 @@ final class DelegationFormulaRewriter
         // Single-quoted Power Fx names stay in code; only "..." literals and comments are opaque.
         return PowerFxFormulaSegments::transformCodePreservingLiterals($formula, static function (string $code): string {
             $out = $code;
-
-            $out = self::replaceAll($out, 'Lower(request_user.Email) = Lower(User().Email)', 'request_user.Email = User().Email');
-            $out = self::replaceAll($out, 'Lower(User().Email) = Lower(request_user.Email)', 'request_user.Email = User().Email');
-
-            $out = self::replaceAll($out, 'CountIf(colAnnex1, !IsBlank(Trim(AgencyName)))', 'CountRows(Filter(colAnnex1, !IsBlank(AgencyName)))');
-            $out = self::replaceAll($out, 'CountIf(colAnnex2, !IsBlank(Trim(ParticularSurname)))', 'CountRows(Filter(colAnnex2, !IsBlank(ParticularSurname)))');
-
-            $out = self::splitDuplicateRequestFilters($out);
+            $out = self::rewriteLowerEmailCompare($out);
+            $out = self::rewriteCountIfTrimBlank($out);
+            $out = self::rewriteLocalTrimInStartsWith($out);
+            $out = self::rewriteLocalTrimIsBlank($out);
+            $out = self::rewriteInLowerColumn($out);
             $out = self::rewriteSubstituteInFilter($out);
+            $out = self::splitDateEmailFilters($out);
 
             return $out;
         }, false);
     }
 
-    private static function rewriteSubstituteInFilter(string $formula): string
+    /**
+     * localVar in Lower(columnExpr) → localVar in columnExpr
+     *
+     * Common when searchText is already Lower(Trim(SearchBox.Text)) in a With().
+     * Lower() on the datasource side is non-delegable.
+     */
+    private static function rewriteInLowerColumn(string $formula): string
     {
-        $space = '(?:\x00PFX\d+\x00|" ")';
-        $empty = '(?:\x00PFX\d+\x00|"")';
-        $pattern = '/Substitute\(IDInput\.Text,\s*' . $space . ',\s*' . $empty
-            . '\)\s+in\s+Substitute\(Title,\s*' . $space . ',\s*' . $empty . '\)/';
-        $replaced = preg_replace($pattern, 'StartsWith(Title, IDInput.Text)', $formula);
+        $replaced = preg_replace(
+            '/\b([A-Za-z_][\w]*)\s+in\s+Lower\s*\(\s*((?:\'[^\']+\'|[A-Za-z_][\w]*)(?:\s*,\s*(?:\'[^\']+\'|[A-Za-z_][\w]*|"[^"]*"|""))*|(?:Coalesce|Concatenate)\s*\([^()]*(?:\([^()]*\)[^()]*)*\))\s*\)/i',
+            '$1 in $2',
+            $formula,
+        );
+        if (is_string($replaced) && $replaced !== $formula) {
+            return $replaced;
+        }
+
+        // Simpler / nested-tolerant: localIdent in Lower( …balanced… )
+        return self::replaceInLowerBalanced($formula);
+    }
+
+    private static function replaceInLowerBalanced(string $formula): string
+    {
+        $out = '';
+        $offset = 0;
+        $len = strlen($formula);
+        while ($offset < $len) {
+            if (!preg_match('/\b([A-Za-z_][\w]*)\s+in\s+Lower\s*\(/i', $formula, $m, PREG_OFFSET_CAPTURE, $offset)) {
+                $out .= substr($formula, $offset);
+                break;
+            }
+            $matchStart = (int) $m[0][1];
+            $ident = $m[1][0];
+            $openParen = $matchStart + strlen($m[0][0]) - 1;
+            $depth = 0;
+            $i = $openParen;
+            for (; $i < $len; $i++) {
+                $ch = $formula[$i];
+                if ($ch === '(') {
+                    $depth++;
+                } elseif ($ch === ')') {
+                    $depth--;
+                    if ($depth === 0) {
+                        break;
+                    }
+                }
+            }
+            if ($depth !== 0) {
+                $out .= substr($formula, $offset, $matchStart - $offset + strlen($m[0][0]));
+                $offset = $matchStart + strlen($m[0][0]);
+                continue;
+            }
+            $inner = substr($formula, $openParen + 1, $i - $openParen - 1);
+            $out .= substr($formula, $offset, $matchStart - $offset);
+            $out .= $ident . ' in ' . trim($inner);
+            $offset = $i + 1;
+        }
+
+        return $out;
+    }
+
+    /**
+     * StartsWith(Column, Trim(Control.Text)) → StartsWith(Column, Control.Text)
+     * Trim on a local control argument is unnecessary and trips remote-execution hints.
+     */
+    private static function rewriteLocalTrimInStartsWith(string $formula): string
+    {
+        $replaced = preg_replace(
+            '/StartsWith\s*\(\s*((?:\'[^\']+\'|[A-Za-z_][\w]*))\s*,\s*Trim\s*\(\s*([A-Za-z_][\w]*\.(?:Text|SearchText|Value))\s*\)\s*\)/i',
+            'StartsWith($1, $2)',
+            $formula,
+        );
 
         return is_string($replaced) ? $replaced : $formula;
     }
 
-    private static function splitDuplicateRequestFilters(string $formula): string
+    /**
+     * IsBlank(Trim(Control.Text)) → IsBlank(Control.Text) for local control refs.
+     */
+    private static function rewriteLocalTrimIsBlank(string $formula): string
     {
-        $empty = '(?:\x00PFX\d+\x00|"")';
-        $patterns = [
-            '/Filter\(\s*\'CDLS \(L\) VCR Tracking List\'\s*,\s*request_user\.Email = User\(\)\.Email\s*&&\s*Lower\(Trim\(Destination\)\) = locDestination\s*&&\s*Lower\(Trim\(Requestor\)\) = locRequestor\s*&&\s*Date = locDate\s*&&\s*Lower\(Trim\(Coalesce\(ReferenceNumber, ' . $empty . '\)\)\) = locReferenceNumber\s*\)/s' =>
-                "Filter(\n                                Filter(\n                                    'CDLS (L) VCR Tracking List',\n                                    request_user.Email = User().Email && Date = locDate\n                                ),\n                                Lower(Trim(Destination)) = locDestination &&\n                                Lower(Trim(Requestor)) = locRequestor &&\n                                Lower(Trim(Coalesce(ReferenceNumber, \"\"))) = locReferenceNumber\n                            )",
-            '/Filter\(\s*\'CDLS \(L\) VCR Tracking List\'\s*,\s*request_user\.Email = User\(\)\.Email\s*&&\s*Lower\(Trim\(\'VCR \/ VCN Form\'\.Destination\)\) = locDestination\s*&&\s*Lower\(Trim\(\'VCR \/ VCN Form\'\.Requestor\)\) = locRequestor\s*&&\s*\'VCR \/ VCN Form\'\.Date = locDate\s*&&\s*Lower\(Trim\(Coalesce\(\'VCR \/ VCN Form\'\.ReferenceNumber, ' . $empty . '\)\)\) = locReferenceNumber\s*\)/s' =>
-                "Filter(\n                                Filter(\n                                    'CDLS (L) VCR Tracking List',\n                                    request_user.Email = User().Email && 'VCR / VCN Form'.Date = locDate\n                                ),\n                                Lower(Trim('VCR / VCN Form'.Destination)) = locDestination &&\n                                Lower(Trim('VCR / VCN Form'.Requestor)) = locRequestor &&\n                                Lower(Trim(Coalesce('VCR / VCN Form'.ReferenceNumber, \"\"))) = locReferenceNumber\n                            )",
-        ];
+        $replaced = preg_replace(
+            '/IsBlank\s*\(\s*Trim\s*\(\s*([A-Za-z_][\w]*\.(?:Text|SearchText|Value))\s*\)\s*\)/i',
+            'IsBlank($1)',
+            $formula,
+        );
 
+        return is_string($replaced) ? $replaced : $formula;
+    }
+
+    /**
+     * Lower(x.Email) = Lower(User().Email) (either order) → x.Email = User().Email
+     */
+    private static function rewriteLowerEmailCompare(string $formula): string
+    {
+        $emailRef = '((?:\'[^\']+\'|[A-Za-z_][\w]*)(?:\.(?:\'[^\']+\'|[A-Za-z_][\w]*))?\.Email|[A-Za-z_][\w]*\.Email)';
+        $patterns = [
+            '/Lower\(\s*' . $emailRef . '\s*\)\s*=\s*Lower\(\s*User\(\)\.Email\s*\)/i' => '$1 = User().Email',
+            '/Lower\(\s*User\(\)\.Email\s*\)\s*=\s*Lower\(\s*' . $emailRef . '\s*\)/i' => '$1 = User().Email',
+        ];
         foreach ($patterns as $pattern => $replacement) {
             $replaced = preg_replace($pattern, $replacement, $formula);
             if (is_string($replaced)) {
@@ -60,12 +137,135 @@ final class DelegationFormulaRewriter
         return $formula;
     }
 
-    private static function replaceAll(string $haystack, string $needle, string $replacement): string
+    /**
+     * CountIf(col, !IsBlank(Trim(Field))) → CountRows(Filter(col, !IsBlank(Field)))
+     */
+    private static function rewriteCountIfTrimBlank(string $formula): string
     {
-        if (!str_contains($haystack, $needle)) {
-            return $haystack;
+        $replaced = preg_replace(
+            '/CountIf\(\s*([A-Za-z_][\w]*)\s*,\s*!IsBlank\(\s*Trim\(\s*([A-Za-z_][\w]*)\s*\)\s*\)\s*\)/i',
+            'CountRows(Filter($1, !IsBlank($2)))',
+            $formula,
+        );
+
+        return is_string($replaced) ? $replaced : $formula;
+    }
+
+    /**
+     * Substitute(Control.Text, " ", "") in Substitute(Title, …) → StartsWith(Title, Control.Text)
+     */
+    private static function rewriteSubstituteInFilter(string $formula): string
+    {
+        $space = '(?:\x00PFX\d+\x00|" ")';
+        $empty = '(?:\x00PFX\d+\x00|"")';
+        $pattern = '/Substitute\(\s*([A-Za-z_][\w]*\.Text)\s*,\s*' . $space . '\s*,\s*' . $empty
+            . '\s*\)\s+in\s+Substitute\(\s*Title\s*,\s*' . $space . '\s*,\s*' . $empty . '\s*\)/i';
+        $replaced = preg_replace($pattern, 'StartsWith(Title, $1)', $formula);
+
+        return is_string($replaced) ? $replaced : $formula;
+    }
+
+    /**
+     * Split Filter(list, emailEq && dateEq && Lower(Trim…)…) into nested Filters so the
+     * email+date predicates stay delegable on SharePoint.
+     */
+    private static function splitDateEmailFilters(string $formula): string
+    {
+        $offset = 0;
+        $out = '';
+        $len = strlen($formula);
+        while ($offset < $len) {
+            if (!preg_match('/Filter\s*\(\s*(\'[^\']+\')\s*,/i', $formula, $m, PREG_OFFSET_CAPTURE, $offset)) {
+                $out .= substr($formula, $offset);
+                break;
+            }
+            $matchStart = (int) $m[0][1];
+            $list = $m[1][0];
+            $out .= substr($formula, $offset, $matchStart - $offset);
+            $predStart = $matchStart + strlen($m[0][0]);
+            $pred = self::readBalancedArgs($formula, $predStart);
+            if ($pred === null) {
+                $out .= substr($formula, $matchStart, $predStart - $matchStart);
+                $offset = $predStart;
+                continue;
+            }
+            [$predText, $endPos] = $pred;
+            $original = substr($formula, $matchStart, $endPos - $matchStart);
+            $replaced = self::tryNestFilter($list, trim($predText));
+            $out .= $replaced ?? $original;
+            $offset = $endPos;
         }
 
-        return str_replace($needle, $replacement, $haystack);
+        return $out;
+    }
+
+    /**
+     * Read arguments until the closing ')' of the Filter call (handles nested parens).
+     *
+     * @return null|array{0:string,1:int} [predicate text, position after closing paren]
+     */
+    private static function readBalancedArgs(string $formula, int $start): ?array
+    {
+        $depth = 1;
+        $len = strlen($formula);
+        for ($i = $start; $i < $len; $i++) {
+            $ch = $formula[$i];
+            if ($ch === '(') {
+                $depth++;
+            } elseif ($ch === ')') {
+                $depth--;
+                if ($depth === 0) {
+                    return [substr($formula, $start, $i - $start), $i + 1];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static function tryNestFilter(string $list, string $pred): ?string
+    {
+        if (preg_match('/^\s*Filter\s*\(/i', $pred)) {
+            return null;
+        }
+        if (!preg_match('/\.Email\s*=\s*User\(\)\.Email/', $pred)) {
+            return null;
+        }
+        // Date = <local ident> (locDate, varDate, selectedDate, …)
+        if (!preg_match('/(?:\'[^\']+\'\.)?Date\s*=\s*[A-Za-z_][\w]*/', $pred)) {
+            return null;
+        }
+        if (!preg_match('/Lower\s*\(\s*Trim\s*\(/i', $pred)) {
+            return null;
+        }
+
+        $parts = preg_split('/\s*&&\s*/', $pred) ?: [];
+        if (count($parts) < 3) {
+            return null;
+        }
+
+        $inner = [];
+        $outer = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            if (preg_match('/\.Email\s*=\s*User\(\)\.Email/', $part)
+                || preg_match('/(?:\'[^\']+\'\.)?Date\s*=\s*[A-Za-z_][\w]*/', $part)
+            ) {
+                $inner[] = $part;
+            } else {
+                $outer[] = $part;
+            }
+        }
+        if ($inner === [] || $outer === []) {
+            return null;
+        }
+
+        return 'Filter('
+            . "Filter({$list}, " . implode(' && ', $inner) . '), '
+            . implode(' && ', $outer)
+            . ')';
     }
 }

@@ -107,7 +107,7 @@ final class AppCheckerSarif
             return true;
         }
 
-        // A11y class our hops cover
+        // A11y class our sweeps cover
         if (in_array($rule, [
             'acc-AccessibleLabelNeeded',
             'acc-FocusBorderShouldBeVisible',

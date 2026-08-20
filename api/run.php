@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use PowerSweeper\HopRegistry;
+use PowerSweeper\SweepRegistry;
 use PowerSweeper\Pipeline;
-use PowerSweeper\ProfileLoader;
 use PowerSweeper\ZipTool;
 
 /**
@@ -60,6 +59,38 @@ function ps_human_bytes(int $bytes): string
     return round($bytes / (1024 * 1024), 1) . ' MB';
 }
 
+/**
+ * Keep totals accurate but avoid multi-MB NDJSON "done" payloads that can stall
+ * proxies/browsers after large dark-mode sweeps (THCEE ≈ 9k–30k rows).
+ *
+ * @param array{total?:int,by_sweep?:array<string,int>,entries?:list<array<string,mixed>>} $report
+ * @return array{total:int,by_sweep:array<string,int>,entries:list<array<string,mixed>>,entries_truncated?:bool,entries_omitted?:int}
+ */
+function ps_slim_report(array $report, int $maxEntries = 250): array
+{
+    $entries = $report['entries'] ?? [];
+    if (!is_array($entries)) {
+        $entries = [];
+    }
+    $total = isset($report['total']) ? (int) $report['total'] : count($entries);
+    $bySweep = is_array($report['by_sweep'] ?? null) ? $report['by_sweep'] : [];
+    if (count($entries) <= $maxEntries) {
+        return [
+            'total' => $total,
+            'by_sweep' => $bySweep,
+            'entries' => array_values($entries),
+        ];
+    }
+
+    return [
+        'total' => $total,
+        'by_sweep' => $bySweep,
+        'entries' => array_slice(array_values($entries), 0, $maxEntries),
+        'entries_truncated' => true,
+        'entries_omitted' => max(0, $total - $maxEntries),
+    ];
+}
+
 function ps_upload_error_message(int $code, int $uploadMax, int $postMax): string
 {
     $limits = 'upload_max_filesize=' . ps_ini_size('upload_max_filesize')
@@ -80,8 +111,7 @@ function ps_upload_error_message(int $code, int $uploadMax, int $postMax): strin
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     header('Content-Type: application/json; charset=utf-8');
-    $registry = new HopRegistry();
-    $profiles = (new ProfileLoader(POWER_SWEEPER_PROFILES))->all();
+    $registry = new SweepRegistry();
     echo json_encode([
         'ok' => true,
         'ziptool' => ZipTool::REV,
@@ -93,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'upload_max_filesize_bytes' => ps_bytes((string) ini_get('upload_max_filesize')),
             'post_max_size_bytes' => ps_bytes((string) ini_get('post_max_size')),
         ],
-        'hops' => $registry->catalog(),
-        'profiles' => $profiles,
+        'sweeps' => $registry->catalog(),
+        'forceable_sweeps' => \PowerSweeper\SweepAdvisor::FORCEABLE_SWEEPS,
     ], JSON_UNESCAPED_SLASHES);
     exit;
 }
@@ -107,6 +137,45 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $wantsStream = isset($_POST['stream']) || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'ndjson');
+
+$runFinished = false;
+register_shutdown_function(static function () use (&$runFinished, &$wantsStream): void {
+    if ($runFinished) {
+        return;
+    }
+    $err = error_get_last();
+    if ($err === null) {
+        return;
+    }
+    $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if (!in_array($err['type'], $fatalTypes, true)) {
+        return;
+    }
+    $message = trim((string) ($err['message'] ?? 'Fatal error'));
+    if ($message === '') {
+        $message = 'Fatal error';
+    }
+    if (str_contains($message, 'Allowed memory size')) {
+        $message = 'Out of memory while sweeping this app (' . ps_ini_size('memory_limit')
+            . '). Try fewer sweeps (Enable dark mode alone), or raise memory_limit on a larger host.';
+    } else {
+        $message = 'Server stopped mid-run: ' . $message;
+    }
+    // Best-effort NDJSON/JSON error so the UI does not show a blank "Run failed".
+    if (!headers_sent()) {
+        header('Content-Type: ' . ($wantsStream ? 'application/x-ndjson' : 'application/json') . '; charset=utf-8');
+    }
+    $payload = [
+        'type' => 'error',
+        'ok' => false,
+        'error' => $message,
+    ];
+    echo json_encode($payload, JSON_UNESCAPED_SLASHES) . ($wantsStream ? "\n" : '');
+    if (function_exists('ob_flush')) {
+        @ob_flush();
+    }
+    @flush();
+});
 
 if ($wantsStream) {
     while (ob_get_level() > 0) {
@@ -122,6 +191,11 @@ if ($wantsStream) {
 }
 
 try {
+    // Large sweeps (control-ref repair on THCEE-class apps) need more than the
+    // default 600s; azure/php-uploads.ini + nginx also allow 1800s.
+    @set_time_limit(1800);
+    @ini_set('max_execution_time', '1800');
+
     $contentLength = isset($_SERVER['CONTENT_LENGTH']) ? (int) $_SERVER['CONTENT_LENGTH'] : 0;
     $postMax = ps_bytes((string) ini_get('post_max_size'));
     $uploadMax = ps_bytes((string) ini_get('upload_max_filesize'));
@@ -156,14 +230,14 @@ try {
         }
     }
 
-    $hopsJson = $_POST['hops'] ?? '[]';
-    $hops = json_decode((string) $hopsJson, true);
-    if (!is_array($hops) || $hops === []) {
-        throw new RuntimeException('Select at least one hop');
+    $sweepsJson = $_POST['sweeps'] ?? $_POST['hops'] ?? '[]';
+    $sweeps = json_decode((string) $sweepsJson, true);
+    if (!is_array($sweeps) || $sweeps === []) {
+        throw new RuntimeException('Select at least one sweep');
     }
 
     $normalized = [];
-    foreach ($hops as $step) {
+    foreach ($sweeps as $step) {
         if (!is_array($step) || empty($step['id'])) {
             continue;
         }
@@ -173,7 +247,7 @@ try {
         ];
     }
     if ($normalized === []) {
-        throw new RuntimeException('Select at least one hop');
+        throw new RuntimeException('Select at least one sweep');
     }
 
     $token = bin2hex(random_bytes(16));
@@ -189,7 +263,7 @@ try {
         );
     }
 
-    // Optional SharePoint list schema JSON for correlate_sharepoint hop
+    // Optional SharePoint list schema JSON for correlate_sharepoint sweep
     if (isset($_FILES['sharepoint_schema']) && is_array($_FILES['sharepoint_schema'])) {
         $schemaFile = $_FILES['sharepoint_schema'];
         if (($schemaFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
@@ -264,15 +338,19 @@ try {
     }
 
     $downloadName = preg_replace('/\.msapp$/i', '', $originalName) . '.cleaned.msapp';
+    $fullReport = $result['report'];
+    // Prefer pipeline-capped report; still clamp payload size for the wire/meta.
+    $slimReport = ps_slim_report(is_array($fullReport) ? $fullReport : [], 250);
     $meta = [
         'token' => $token,
         'filename' => $downloadName,
         'created' => time(),
-        'report' => $result['report'],
+        // Never persist the full entry list — THCEE dark mode can be 10MB+ of JSON.
+        'report' => $slimReport,
     ];
     file_put_contents(
         POWER_SWEEPER_STORAGE . '/out/' . $token . '.json',
-        json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        json_encode($meta, JSON_UNESCAPED_SLASHES)
     );
 
     $done = [
@@ -280,7 +358,9 @@ try {
         'ok' => true,
         'download_token' => $token,
         'filename' => $downloadName,
-        'report' => $result['report'],
+        'report' => $slimReport,
+        'elapsed_ms' => (int) ($result['elapsed_ms'] ?? 0),
+        'progress' => 1.0,
     ];
 
     if ($wantsStream) {
@@ -290,10 +370,13 @@ try {
             'ok' => true,
             'download_token' => $token,
             'filename' => $downloadName,
-            'report' => $result['report'],
+            'report' => $slimReport,
+            'elapsed_ms' => (int) ($result['elapsed_ms'] ?? 0),
         ], JSON_UNESCAPED_SLASHES);
     }
+    $runFinished = true;
 } catch (Throwable $e) {
+    $runFinished = true;
     if ($wantsStream) {
         ps_emit([
             'type' => 'error',

@@ -116,6 +116,13 @@ final class ControlNode
 
     public function getStyleName(): ?string
     {
+        if ($this->format === 'yaml' && is_array($this->node)) {
+            $style = $this->node['StyleName'] ?? null;
+            if ($style === null && isset($this->node['Properties']) && is_array($this->node['Properties'])) {
+                $style = $this->node['Properties']['StyleName'] ?? null;
+            }
+            return is_string($style) || is_numeric($style) ? (string) $style : null;
+        }
         if ($this->format !== 'json' || !is_object($this->node)) {
             return null;
         }
@@ -125,6 +132,23 @@ final class ControlNode
 
     public function clearStyleName(): void
     {
+        if ($this->format === 'yaml' && is_array($this->node)) {
+            $cleared = false;
+            if (array_key_exists('StyleName', $this->node)) {
+                unset($this->node['StyleName']);
+                $cleared = true;
+            }
+            if (isset($this->node['Properties']) && is_array($this->node['Properties'])
+                && array_key_exists('StyleName', $this->node['Properties'])
+            ) {
+                unset($this->node['Properties']['StyleName']);
+                $cleared = true;
+            }
+            if ($cleared) {
+                $this->touch();
+            }
+            return;
+        }
         if ($this->format !== 'json' || !is_object($this->node)) {
             return;
         }
@@ -150,6 +174,45 @@ final class ControlNode
             return;
         }
         $this->node[$name] = $value;
+        $this->touch();
+    }
+
+    /**
+     * Change this control's template (classic ↔ modern prep).
+     *
+     * YAML writes the Control: field. JSON updates Template.Id/Name/Version.
+     * Callers should ControlDocument::reindex() after structural batch edits.
+     *
+     * @param array{Id?:string,Name?:string,Version?:string} $jsonTemplate
+     */
+    public function setControlType(string $yamlControl, array $jsonTemplate = []): void
+    {
+        if ($this->format === 'yaml') {
+            if (!is_array($this->node)) {
+                return;
+            }
+            $this->node['Control'] = $yamlControl;
+            $this->type = $yamlControl;
+            $this->touch();
+            return;
+        }
+
+        $node = $this->jsonNode();
+        if (!isset($node->Template) || !is_object($node->Template)) {
+            $node->Template = (object) [];
+        }
+        if (isset($jsonTemplate['Id'])) {
+            $node->Template->Id = (string) $jsonTemplate['Id'];
+        }
+        if (isset($jsonTemplate['Name'])) {
+            $node->Template->Name = (string) $jsonTemplate['Name'];
+        }
+        if (isset($jsonTemplate['Version'])) {
+            $node->Template->Version = (string) $jsonTemplate['Version'];
+        }
+        $this->type = isset($jsonTemplate['Name'])
+            ? (string) $jsonTemplate['Name']
+            : $yamlControl;
         $this->touch();
     }
 
@@ -187,12 +250,74 @@ final class ControlNode
     public function isInteractive(): bool
     {
         $t = strtolower($this->type);
-        foreach (['button', 'icon', 'image', 'toggle', 'checkbox', 'dropdown', 'combobox', 'textinput', 'datepicker', 'slider', 'radio', 'link', 'modernbutton'] as $needle) {
+        // JSON classic TextInput templates are named "text" (not "textinput").
+        // Galleries are flagged by App checker for AccessibleLabel / TabIndex / focus.
+        if ($t === 'text' || $t === 'textarea') {
+            return true;
+        }
+        foreach ([
+            'button', 'icon', 'image', 'toggle', 'checkbox', 'dropdown', 'combobox',
+            'textinput', 'datepicker', 'slider', 'radio', 'link', 'modernbutton',
+            'gallery', 'listbox', 'attachments', 'comboboxcanvas', 'buttoncanvas',
+        ] as $needle) {
             if (str_contains($t, $needle)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * True when the control has a real action formula (not blank / false).
+     * Labels, rectangles, and shapes become keyboard targets when OnSelect is set.
+     */
+    public function hasActionHandler(): bool
+    {
+        foreach (['OnSelect', 'OnChange', 'OnCheck', 'OnUncheck'] as $prop) {
+            $raw = $this->getProperty($prop);
+            if ($raw === null) {
+                continue;
+            }
+            $trim = strtolower(trim(ltrim(trim($raw), '=')));
+            if ($trim === '' || $trim === 'false' || $trim === 'true' || $trim === 'blank()' || $trim === '""' || $trim === "''") {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Parsed TabIndex, or null when unset / non-numeric.
+     */
+    public function tabIndexValue(): ?int
+    {
+        $tab = $this->getProperty('TabIndex');
+        if ($tab === null) {
+            return null;
+        }
+        $trim = trim(ltrim(trim($tab), '='));
+        if ($trim === '' || !is_numeric($trim)) {
+            return null;
+        }
+        return (int) $trim;
+    }
+
+    /**
+     * Controls App checker treats as needing AccessibleLabel / TabIndex / focus:
+     * inherent interactive templates, action handlers, or an explicit TabIndex
+     * (including -1 — Studio's "Missing tab stop" on Labels/Images).
+     */
+    public function isAccessibilityInteractive(): bool
+    {
+        if ($this->isApp() || $this->isScreen()) {
+            return false;
+        }
+        if ($this->isInteractive() || $this->hasActionHandler()) {
+            return true;
+        }
+        // Explicit TabIndex (0+, or -1) puts the control in Studio's focus model.
+        return $this->tabIndexValue() !== null;
     }
 
     public function isButtonLike(): bool
@@ -293,6 +418,21 @@ final class ControlNode
         }
         $this->node['Children'][] = [$name => $body];
         $this->touch();
+    }
+
+    public function renameJsonName(string $newName): bool
+    {
+        if ($this->format !== 'json' || !is_object($this->node)) {
+            return false;
+        }
+        if ($newName === $this->name) {
+            return false;
+        }
+        $this->node->Name = $newName;
+        $this->name = $newName;
+        $this->touch();
+
+        return true;
     }
 
     private function jsonNode(): object

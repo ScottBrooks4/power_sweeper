@@ -1,0 +1,63 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(gblReady, true)
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - StatusChip:
+        Control: GroupContainer@1.5.0
+        Properties:
+          BorderColor: =RGBA(250, 204, 21, 1)
+          Fill: =ColorFade(Self.BorderColor, 80%)
+          X: =20
+          Y: =20
+          Width: =160
+          Height: =36
+          RadiusTopLeft: =10
+          RadiusTopRight: =10
+          RadiusBottomLeft: =10
+          RadiusBottomRight: =10
+        Children:
+          - StatusLabel:
+              Control: Label@2.5.1
+              Properties:
+                Text: ="Draft"
+                Color: =RGBA(0, 0, 0, 1)
+                Fill: =RGBA(0, 0, 0, 0)
+                X: =0
+                Y: =0
+                Width: =160
+                Height: =36
+    - WarningBanner:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="You are in edit mode"
+          Fill: =RGBA(250, 204, 21, 1)
+          Color: =RGBA(0, 0, 0, 1)
+          X: =20
+          Y: =70
+          Width: =400
+          Height: =40
+    - MixedGrayLabel:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Fiscal year"
+          # THCEE pattern: Color enum rewritten first, leftover mid-gray RGBA must also map.
+          Color: =If(true, Color.Red, RGBA(117, 117, 117, 1))
+          X: =20
+          Y: =120
+          Width: =200
+          Height: =30
+    - TitleInput:
+        Control: Classic/TextInput@2.3.2
+        Properties:
+          Default: =""
+          HintText: ="Enter the objective"
+          Fill: =RGBA(255, 255, 255, 1)
+          X: =20
+          Y: =160
+          Width: =300
+          Height: =40

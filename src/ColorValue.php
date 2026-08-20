@@ -68,6 +68,22 @@ final class ColorValue
             'color.brown' => [165, 42, 42, 1.0],
             'color.cyan' => [0, 255, 255, 1.0],
             'color.magenta' => [255, 0, 255, 1.0],
+            'color.azure' => [240, 255, 255, 1.0],
+            'color.skyblue' => [135, 206, 235, 1.0],
+            'color.aliceblue' => [240, 248, 255, 1.0],
+            'color.darkcyan' => [0, 139, 139, 1.0],
+            'color.aquamarine' => [127, 255, 212, 1.0],
+            'color.dodgerblue' => [30, 144, 255, 1.0],
+            'color.cornflowerblue' => [100, 149, 237, 1.0],
+            'color.steelblue' => [70, 130, 180, 1.0],
+            'color.royalblue' => [65, 105, 225, 1.0],
+            'color.mediumblue' => [0, 0, 205, 1.0],
+            'color.navy' => [0, 0, 128, 1.0],
+            'color.midnightblue' => [25, 25, 112, 1.0],
+            'color.teal' => [0, 128, 128, 1.0],
+            'color.turquoise' => [64, 224, 208, 1.0],
+            'color.cadetblue' => [95, 158, 160, 1.0],
+            'color.indigo' => [75, 0, 130, 1.0],
         ];
         if (isset($named[$lower])) {
             [$r, $g, $b, $a] = $named[$lower];
@@ -119,7 +135,9 @@ final class ColorValue
             return $formula;
         }
 
-        $fixed = FormulaLocaleNormalizer::toInvariant($formula);
+        // PAT/PACS formulas often keep prior experiments as // comments after the live value.
+        $stripped = preg_replace('/\/\/[^\n]*/', '', $formula) ?? $formula;
+        $fixed = FormulaLocaleNormalizer::toInvariant($stripped);
         return self::fixLocaleBrokenAlpha($fixed);
     }
 
@@ -182,6 +200,10 @@ final class ColorValue
         if (str_contains($p, 'border')) {
             return 'border';
         }
+        // Modern button/input brand color — background chrome, not text ink.
+        if ($p === 'basepalettecolor' || str_contains($p, 'palette')) {
+            return 'background';
+        }
         if ($p === 'color' || (str_ends_with($p, 'color') && !str_contains($p, 'fill'))) {
             return 'foreground';
         }
@@ -202,6 +224,10 @@ final class ColorValue
         $hue = self::hue($c);
 
         if ($sat > 0.35 && $hue >= 0) {
+            // Translucent blue/azure chips (common PAT review labels) are chrome, not solid Accent.
+            if ($role === 'background' && ($c['a'] ?? 1.0) < 0.45) {
+                return 'SurfaceMuted';
+            }
             $family = match (true) {
                 $hue < 25 || $hue >= 345 => 'Danger',
                 $hue >= 25 && $hue < 70 => 'Warning',
@@ -333,10 +359,12 @@ final class ColorValue
             'SurfaceAlt' => ['r' => 55, 'g' => 55, 'b' => 55, 'a' => 1.0],
             'SurfaceInverse' => ['r' => 241, 'g' => 245, 'b' => 249, 'a' => 1.0],
             'Text' => ['r' => 242, 'g' => 242, 'b' => 242, 'a' => 1.0],
-            'TextMuted' => ['r' => 160, 'g' => 160, 'b' => 160, 'a' => 1.0],
+            'TextMuted' => ['r' => 212, 'g' => 212, 'b' => 220, 'a' => 1.0],
             'TextOnAccent' => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
-            'Border' => ['r' => 80, 'g' => 80, 'b' => 80, 'a' => 1.0],
-            'BorderStrong' => ['r' => 120, 'g' => 120, 'b' => 120, 'a' => 1.0],
+            'TextOnLight' => ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0],
+            'InputFill' => ['r' => 44, 'g' => 44, 'b' => 50, 'a' => 1.0],
+            'Border' => ['r' => 110, 'g' => 110, 'b' => 120, 'a' => 1.0],
+            'BorderStrong' => ['r' => 140, 'g' => 140, 'b' => 150, 'a' => 1.0],
             'Focus' => ['r' => 96, 'g' => 165, 'b' => 250, 'a' => 1.0],
             'Disabled' => ['r' => 60, 'g' => 60, 'b' => 60, 'a' => 1.0],
             'Handle' => ['r' => 240, 'g' => 240, 'b' => 240, 'a' => 1.0],
@@ -351,14 +379,15 @@ final class ColorValue
             'DangerHover' => ['r' => 239, 'g' => 68, 'b' => 68, 'a' => 1.0],
             'DangerPressed' => ['r' => 220, 'g' => 38, 'b' => 38, 'a' => 1.0],
             'DangerText' => ['r' => 254, 'g' => 202, 'b' => 202, 'a' => 1.0],
-            'Warning' => ['r' => 251, 'g' => 191, 'b' => 36, 'a' => 1.0],
-            'WarningHover' => ['r' => 245, 'g' => 158, 'b' => 11, 'a' => 1.0],
-            'WarningPressed' => ['r' => 217, 'g' => 119, 'b' => 6, 'a' => 1.0],
-            'WarningText' => ['r' => 254, 'g' => 243, 'b' => 199, 'a' => 1.0],
-            'Success' => ['r' => 74, 'g' => 222, 'b' => 128, 'a' => 1.0],
-            'SuccessHover' => ['r' => 34, 'g' => 197, 'b' => 94, 'a' => 1.0],
-            'SuccessPressed' => ['r' => 22, 'g' => 163, 'b' => 74, 'a' => 1.0],
-            'SuccessText' => ['r' => 187, 'g' => 247, 'b' => 208, 'a' => 1.0],
+            'Warning' => ['r' => 161, 'g' => 98, 'b' => 7, 'a' => 1.0],
+            'WarningHover' => ['r' => 180, 'g' => 120, 'b' => 20, 'a' => 1.0],
+            'WarningPressed' => ['r' => 146, 'g' => 84, 'b' => 6, 'a' => 1.0],
+            // Dark ink on warning surfaces (not pale yellow-on-yellow).
+            'WarningText' => ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0],
+            'Success' => ['r' => 21, 'g' => 128, 'b' => 61, 'a' => 1.0],
+            'SuccessHover' => ['r' => 22, 'g' => 163, 'b' => 74, 'a' => 1.0],
+            'SuccessPressed' => ['r' => 20, 'g' => 100, 'b' => 50, 'a' => 1.0],
+            'SuccessText' => ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0],
             default => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
         };
     }
@@ -367,8 +396,8 @@ final class ColorValue
     public static function hasNamedDarkDefault(string $token): bool
     {
         return in_array($token, [
-            'Page', 'Surface', 'SurfaceMuted', 'SurfaceAlt', 'SurfaceInverse',
-            'Text', 'TextMuted', 'TextOnAccent', 'Border', 'BorderStrong', 'Focus',
+            'Page', 'Surface', 'SurfaceMuted', 'SurfaceAlt', 'SurfaceInverse', 'InputFill',
+            'Text', 'TextMuted', 'TextOnAccent', 'TextOnLight', 'Border', 'BorderStrong', 'Focus',
             'Disabled', 'Handle', 'Rail', 'Selection', 'Accent', 'AccentHover', 'AccentPressed',
             'Danger', 'DangerHover', 'DangerPressed', 'DangerText',
             'Warning', 'WarningHover', 'WarningPressed', 'WarningText',
@@ -395,6 +424,99 @@ final class ColorValue
     public static function toHex(array $c): string
     {
         return sprintf('#%02X%02X%02X', $c['r'], $c['g'], $c['b']);
+    }
+
+    /**
+     * Whether a literal color/fill looks like an untouched Studio default (safe to rewrite).
+     * Non-literal formulas (theme refs, expressions) return false — treat as user-authored.
+     */
+    public static function isStudioDefault(string $formula, string $property = 'Fill'): bool
+    {
+        $trim = trim($formula);
+        if ($trim === '') {
+            return true;
+        }
+
+        $body = strtolower(ltrim($trim, '='));
+        if (str_contains($body, 'defaultgraybackgroud') || str_contains($body, 'app.theme.colors.')) {
+            return true;
+        }
+        if (preg_match('/\bcolor\.(white|transparent|lightgray|lightgrey|black)\b/', $body)) {
+            return true;
+        }
+
+        $parsed = self::parse($formula);
+        if ($parsed === null) {
+            return false;
+        }
+        if (self::isTransparent($parsed)) {
+            return true;
+        }
+
+        $role = self::roleForProperty($property);
+        $lum = self::luminance($parsed);
+        $sat = self::saturation($parsed);
+
+        if ($role === 'background' || str_contains(strtolower($property), 'fill')) {
+            if ($lum >= 0.92) {
+                return true;
+            }
+            // Near-white Studio / Fluent defaults (incl. slate-100-ish chrome).
+            if ($parsed['r'] >= 220 && $parsed['g'] >= 220 && $parsed['b'] >= 220 && $parsed['a'] >= 0.85) {
+                return true;
+            }
+            // Low-saturation light fills (borders, rails, disabled chrome).
+            if ($sat < 0.15 && $lum >= 0.85 && $parsed['a'] >= 0.85) {
+                return true;
+            }
+            // Pale accent chrome on interactive chrome props (SelectedFill, HoverFill, …).
+            if (self::isChromeColorProperty($property) && $lum >= 0.80 && $sat < 0.45 && $parsed['a'] >= 0.85) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if ($role === 'foreground') {
+            if ($lum <= 0.08) {
+                return true;
+            }
+            if ($sat < 0.12 && $lum > 0.35 && $lum < 0.55) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if ($role === 'border') {
+            if ($lum <= 0.08) {
+                return true;
+            }
+            if ($sat < 0.12 && $lum >= 0.72) {
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Gallery/slider/input chrome properties that Studio seeds with pale slate/blue
+     * literals — treat as themeable defaults when force is off.
+     */
+    public static function isChromeColorProperty(string $property): bool
+    {
+        $p = strtolower($property);
+
+        return (bool) preg_match(
+            '/^(rail|handle|selected|selection|hover|pressed|item|template|inactive|disabled|chevron|iconbackground|falsefill|truefill|indicator|progress|valuefill|active|barcolor)/',
+            $p
+        ) || str_contains($p, 'itemfill')
+            || str_contains($p, 'itemborder')
+            || str_contains($p, 'hoveritem')
+            || str_contains($p, 'presseditem');
     }
 
     /**

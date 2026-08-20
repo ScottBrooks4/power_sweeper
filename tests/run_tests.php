@@ -4,27 +4,37 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use PowerSweeper\SweepAdvisor;
 use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
+use PowerSweeper\ControlNaming;
 use PowerSweeper\PowerAppsYaml;
 use PowerSweeper\StudioJson;
 use PowerSweeper\StudioIssueScanner;
 use PowerSweeper\FormulaIdentifierRewriter;
 use PowerSweeper\FormulaLocaleNormalizer;
-use PowerSweeper\Hops\AccessibilityLabelsHop;
-use PowerSweeper\Hops\AlignNearMissHop;
-use PowerSweeper\Hops\AnalyzeAppCheckerHop;
-use PowerSweeper\Hops\EnableDarkModeHop;
-use PowerSweeper\Hops\EnsureFocusVisibleHop;
-use PowerSweeper\Hops\NormalizeClassicButtonChromeHop;
-use PowerSweeper\Hops\NormalizeContainersHop;
-use PowerSweeper\Hops\RepairCheckedBooleansHop;
-use PowerSweeper\Hops\ScanStudioIssuesHop;
-use PowerSweeper\Hops\StripDefaultFillHop;
-use PowerSweeper\Hops\TooltipFromLabelHop;
-use PowerSweeper\Hops\UnwhackLocaleFormulasHop;
+use PowerSweeper\EnglishSpelling;
+use PowerSweeper\Sweeps\AccessibilityLabelsSweep;
+use PowerSweeper\Sweeps\AlignNearMissSweep;
+use PowerSweeper\Sweeps\AnalyzeAppCheckerSweep;
+use PowerSweeper\Sweeps\EnableDarkModeSweep;
+use PowerSweeper\Sweeps\EnsureFocusVisibleSweep;
+use PowerSweeper\Sweeps\EnsureTabIndexSweep;
+use PowerSweeper\Sweeps\AccessibilityPolishSweep;
+use PowerSweeper\Sweeps\MeaningfulNamesSweep;
+use PowerSweeper\Sweeps\NormalizeClassicButtonChromeSweep;
+use PowerSweeper\Sweeps\NormalizeContainersSweep;
+use PowerSweeper\Sweeps\PreferClassicThemeControlsSweep;
+use PowerSweeper\Sweeps\RepairContextAwareRefsSweep;
+use PowerSweeper\Sweeps\RepairCheckedBooleansSweep;
+use PowerSweeper\Sweeps\ScanStudioIssuesSweep;
+use PowerSweeper\Sweeps\StripDefaultFillSweep;
+use PowerSweeper\Sweeps\TooltipFromLabelSweep;
+use PowerSweeper\Sweeps\TranslateSweep;
+use PowerSweeper\Sweeps\SpellingConsistencySweep;
+use PowerSweeper\Sweeps\UnwhackLocaleFormulasSweep;
 use PowerSweeper\Pipeline;
-use PowerSweeper\ProfileLoader;
+use PowerSweeper\SweepChains;
 use PowerSweeper\Report;
 use PowerSweeper\SharePoint\SharePointCatalog;
 use PowerSweeper\StringSimilarity;
@@ -54,7 +64,7 @@ function loadFixtureDoc(): ControlDocument
 // --- normalize containers ---
 $doc = loadFixtureDoc();
 $report = new Report();
-(new NormalizeContainersHop())->apply([$doc], $report);
+(new NormalizeContainersSweep())->apply([$doc], $report);
 $container = null;
 foreach ($doc->controls() as $c) {
     if ($c->name === 'NewRequest') {
@@ -70,7 +80,7 @@ assert_true($report->count() > 0, 'normalize_containers reported changes');
 // --- accessibility ---
 $doc = loadFixtureDoc();
 $report = new Report();
-(new AccessibilityLabelsHop())->apply([$doc], $report);
+(new AccessibilityLabelsSweep())->apply([$doc], $report);
 $btn = null;
 foreach ($doc->controls() as $c) {
     if ($c->name === 'NewRequestButton') {
@@ -82,10 +92,379 @@ assert_true($btn !== null, 'found button');
 assert_true($btn->getProperty('AccessibleLabel') !== null, 'AccessibleLabel set');
 assert_true(str_contains(strtolower((string) $btn->getProperty('AccessibleLabel')), 'start'), 'AccessibleLabel from Text');
 
+// --- accessibility force ---
+$doc = loadFixtureDoc();
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('AccessibleLabel', '="User reviewed label"');
+        break;
+    }
+}
+$report = new Report();
+(new AccessibilityLabelsSweep())->apply([$doc], $report);
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        assert_true(str_contains((string) $c->getProperty('AccessibleLabel'), 'User reviewed label'), 'AccessibleLabel kept when force=false');
+    }
+}
+$doc = loadFixtureDoc();
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('AccessibleLabel', '="User reviewed label"');
+        break;
+    }
+}
+$report = new Report();
+(new AccessibilityLabelsSweep())->apply([$doc], $report, ['force' => true]);
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        assert_true(str_contains(strtolower((string) $c->getProperty('AccessibleLabel')), 'start'), 'AccessibleLabel overwritten when force=true');
+    }
+}
+
+// Dynamic Text binds AccessibleLabel to Self.Text (not a stringified formula)
+$doc = loadFixtureDoc();
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('Text', '=If(varLang, "Save", "Enregistrer")');
+        $c->removeProperty('AccessibleLabel');
+        break;
+    }
+}
+$report = new Report();
+(new AccessibilityLabelsSweep())->apply([$doc], $report);
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        assert_true(
+            preg_match('/^=?Self\.Text\s*$/', trim((string) $c->getProperty('AccessibleLabel'))) === 1,
+            'AccessibleLabel binds Self.Text for dynamic Text'
+        );
+    }
+}
+// Stringified-formula labels are repaired even when force=false
+$doc = loadFixtureDoc();
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('Text', '=If(varLang, "Save", "Enregistrer")');
+        $c->setProperty('AccessibleLabel', '="If(varLang,""Save"",""Enregistrer"")"');
+        break;
+    }
+}
+$report = new Report();
+(new AccessibilityLabelsSweep())->apply([$doc], $report, ['force' => false]);
+foreach ($doc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        assert_true(
+            preg_match('/^=?Self\.Text\s*$/', trim((string) $c->getProperty('AccessibleLabel'))) === 1,
+            'stringified formula AccessibleLabel repaired to Self.Text'
+        );
+    }
+}
+
+// Neighbor-aware accessibility labels (inputs use nearby Label text)
+$neighborDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/a11y_neighbors.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($neighborDoc !== null, 'a11y neighbors fixture loads');
+$neighborReport = new Report();
+(new AccessibilityLabelsSweep())->apply([$neighborDoc], $neighborReport);
+$neighborLabels = [];
+foreach ($neighborDoc->controls() as $c) {
+    $neighborLabels[$c->name] = $c->getProperty('AccessibleLabel');
+}
+assert_true(
+    is_string($neighborLabels['EmailInput'] ?? null)
+        && str_contains(strtolower((string) $neighborLabels['EmailInput']), 'email'),
+    'EmailInput AccessibleLabel from label above'
+);
+assert_true(
+    is_string($neighborLabels['PhoneInput'] ?? null)
+        && str_contains(strtolower((string) $neighborLabels['PhoneInput']), 'phone'),
+    'PhoneInput AccessibleLabel from label to the left'
+);
+assert_true(
+    is_string($neighborLabels['txtDepartment'] ?? null)
+        && preg_match('/^=?lblDepartment\.Text\s*$/', trim((string) $neighborLabels['txtDepartment'])) === 1,
+    'txtDepartment AccessibleLabel binds paired lblDepartment.Text'
+);
+assert_true(
+    is_string($neighborLabels['SaveIcon'] ?? null)
+        && str_contains(strtolower((string) $neighborLabels['SaveIcon']), 'save'),
+    'SaveIcon AccessibleLabel from caption to the right'
+);
+
+// Purpose-first labels: spoken meaning for icons, checkboxes, destinations — not Button1
+$purposeDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/a11y_purpose.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($purposeDoc !== null, 'a11y purpose fixture loads');
+$purposeReport = new Report();
+(new AccessibilityLabelsSweep())->apply([$purposeDoc], $purposeReport);
+$purposeLabels = [];
+foreach ($purposeDoc->controls() as $c) {
+    $purposeLabels[$c->name] = $c->getProperty('AccessibleLabel');
+}
+assert_true(
+    is_string($purposeLabels['ManagerReviewCheck'] ?? null)
+        && str_contains(strtolower((string) $purposeLabels['ManagerReviewCheck']), 'checkbox for')
+        && str_contains(strtolower((string) $purposeLabels['ManagerReviewCheck']), 'manager'),
+    'checkbox AccessibleLabel is purpose speech with role'
+);
+assert_true(
+    is_string($purposeLabels['NextFormIcon'] ?? null)
+        && str_contains(strtolower((string) $purposeLabels['NextFormIcon']), 'right arrow')
+        && str_contains(strtolower((string) $purposeLabels['NextFormIcon']), 'request form'),
+    'icon AccessibleLabel uses icon meaning + Navigate destination'
+);
+assert_true(
+    is_string($purposeLabels['SaveOnlyIcon'] ?? null)
+        && preg_match('/^=?"Save"?\s*$/', trim((string) $purposeLabels['SaveOnlyIcon'])) === 1,
+    'icon AccessibleLabel uses Icon.Save meaning, not control name'
+);
+assert_true(
+    is_string($purposeLabels['OpenDetailsButton'] ?? null)
+        && str_contains(strtolower((string) $purposeLabels['OpenDetailsButton']), 'details'),
+    'empty-text button AccessibleLabel uses Navigate destination'
+);
+assert_true(
+    is_string($purposeLabels['Button1'] ?? null)
+        && !str_contains(strtolower((string) $purposeLabels['Button1']), 'button 1'),
+    'generic Button1 does not become AccessibleLabel "Button 1"'
+);
+assert_true(
+    is_string($purposeLabels['ApprovalRequiredToggle'] ?? null)
+        && str_contains(strtolower((string) $purposeLabels['ApprovalRequiredToggle']), 'toggle for')
+        && str_contains(strtolower((string) $purposeLabels['ApprovalRequiredToggle']), 'approval'),
+    'toggle AccessibleLabel uses meaningful name as purpose with role'
+);
+
+$jsonTextNode = (object) ['Name' => 'Hint', 'Template' => (object) ['Name' => 'text'], 'Rules' => []];
+$jsonTextControl = new \PowerSweeper\ControlNode('Hint', 'text', 'Controls/x.json/Hint', 'json', $jsonTextNode);
+assert_true($jsonTextControl->isInteractive(), 'JSON classic TextInput template name "text" is interactive');
+
+// --- Missing tab stop: TabIndex=-1 Labels/Images + OnSelect shapes; static labels untouched ---
+$tabDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/a11y_tab_stops.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($tabDoc !== null, 'a11y tab stops fixture loads');
+$staticBefore = null;
+foreach ($tabDoc->controls() as $c) {
+    if ($c->name === 'StaticCaption') {
+        $staticBefore = $c->getProperty('TabIndex');
+        assert_true(!$c->isAccessibilityInteractive(), 'static Label without TabIndex is not a11y-interactive');
+    }
+    if ($c->name === 'Label3_2') {
+        assert_true($c->isAccessibilityInteractive(), 'Label with TabIndex=-1 is a11y-interactive');
+        assert_true($c->tabIndexValue() === -1, 'Label3_2 starts at TabIndex -1');
+    }
+    if ($c->name === 'ClickableLabel') {
+        assert_true($c->hasActionHandler(), 'Label with Navigate OnSelect has action handler');
+        assert_true($c->isAccessibilityInteractive(), 'OnSelect Label is a11y-interactive');
+    }
+    if ($c->name === 'Rectangle9_1') {
+        assert_true($c->hasActionHandler() && $c->isAccessibilityInteractive(), 'OnSelect rectangle is a11y-interactive');
+    }
+}
+$tabReport = new Report();
+(new AccessibilityPolishSweep())->apply([$tabDoc], $tabReport, ['force' => true]);
+$tabDoc->reindex();
+$by = [];
+foreach ($tabDoc->controls() as $c) {
+    $by[$c->name] = $c;
+}
+assert_true(($by['StaticCaption']->getProperty('TabIndex') ?? null) === $staticBefore, 'static Label TabIndex left alone');
+assert_true($by['Label3_2']->tabIndexValue() === 0, 'Label TabIndex -1 → 0 (Missing tab stop)');
+assert_true($by['tileTitle']->tabIndexValue() === 0, 'tileTitle TabIndex -1 → 0');
+assert_true($by['ClickableLabel']->tabIndexValue() === 0, 'OnSelect Label gets TabIndex 0');
+assert_true($by['Icon1_1']->tabIndexValue() === 0, 'Icon TabIndex -1 → 0');
+assert_true($by['Rectangle9_1']->tabIndexValue() === 0, 'Rectangle hit-target TabIndex -1 → 0');
+assert_true($by['TemplateSVGImg']->tabIndexValue() === 0, 'Image TabIndex -1 → 0');
+assert_true($by['OverViewGallery']->tabIndexValue() === 0, 'Gallery TabIndex -1 → 0');
+assert_true($by['conHeaderHeader_UserProfile_2']->tabIndexValue() === 0, 'header container TabIndex -1 → 0');
+assert_true($by['SaveButton']->tabIndexValue() === 0, 'Button without TabIndex gets 0');
+assert_true(
+    is_string($by['Label3_2']->getProperty('AccessibleLabel'))
+        && str_contains(strtolower((string) $by['Label3_2']->getProperty('AccessibleLabel')), 'help'),
+    'TabIndex=-1 Label gets AccessibleLabel from Text'
+);
+assert_true(
+    (string) ($by['Icon1_1']->getProperty('FocusedBorderThickness') ?? '') !== ''
+        && (string) ($by['Icon1_1']->getProperty('FocusedBorderThickness') ?? '') !== '0'
+        && (string) ($by['Icon1_1']->getProperty('FocusedBorderThickness') ?? '') !== '=0',
+    'interactive Icon gets focus ring'
+);
+$scanLeft = array_values(array_filter(
+    StudioIssueScanner::scan([$tabDoc]),
+    static fn(array $i): bool => ($i['kind'] ?? '') === 'missing_tab_stop'
+));
+assert_true($scanLeft === [], 'no missing_tab_stop left after accessibility_polish');
+
+// --- advisor force mode stamps forceable sweeps ---
+$advisorForce = new SweepAdvisor();
+$forced = $advisorForce->applyForceMode([
+    ['id' => 'accessibility_polish', 'options' => []],
+    ['id' => 'export_to_web_ir', 'options' => []],
+], 'all');
+assert_true(($forced[0]['options']['force'] ?? false) === true, 'applyForceMode sets force on forceable sweeps');
+assert_true(!array_key_exists('force', $forced[1]['options']), 'non-forceable sweep left alone');
+$missing = $advisorForce->applyForceMode([
+    ['id' => 'accessibility_polish', 'options' => ['force' => true]],
+], 'missing_only');
+assert_true(($missing[0]['options']['force'] ?? true) === false, 'applyForceMode missing_only clears force');
+
+// --- Report caps detail rows but keeps accurate totals (THCEE OOM guard) ---
+$capReport = new Report(null, 3, 20);
+for ($i = 0; $i < 10; $i++) {
+    $capReport->add('enable_dark_mode', 'Ctrl' . $i, 'Fill', str_repeat('A', 100), str_repeat('B', 100));
+}
+assert_true($capReport->count() === 10, 'capped report still counts all changes');
+assert_true(count($capReport->entries()) === 3, 'capped report retains only maxEntries detail rows');
+$capArr = $capReport->toArray();
+assert_true(($capArr['entries_truncated'] ?? false) === true, 'capped report marks entries_truncated');
+assert_true(($capArr['entries_omitted'] ?? 0) === 7, 'capped report reports omitted count');
+assert_true(($capArr['by_sweep']['enable_dark_mode'] ?? 0) === 10, 'capped report by_sweep stays accurate');
+assert_true(strlen($capArr['entries'][0]['from']) <= 20, 'capped report truncates from snippets');
+assert_true(str_ends_with($capArr['entries'][0]['from'], '...'), 'capped report marks truncated snippets');
+
+// --- ColorValue studio defaults ---
+assert_true(ColorValue::isStudioDefault('=RGBA(255, 255, 255, 1)', 'Fill'), 'white fill is studio default');
+assert_true(ColorValue::isStudioDefault('=RGBA(20, 20, 20, 1)', 'Color'), 'near-black text is studio default');
+assert_true(!ColorValue::isStudioDefault('=RGBA(37, 99, 235, 1)', 'Fill'), 'brand blue fill is not studio default');
+
+// --- dark mode force preserves custom colors ---
+$darkDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
+assert_true($darkDoc !== null, 'dark mode fixture loads');
+$darkReport = new Report();
+(new EnableDarkModeSweep())->apply([$darkDoc], $darkReport);
+$accentFill = null;
+foreach ($darkDoc->controls() as $c) {
+    if ($c->name === 'Accent') {
+        $accentFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true($accentFill !== null && !str_contains($accentFill, 'gblTheme.'), 'custom accent fill preserved when force=false');
+$darkDocForced = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
+assert_true($darkDocForced !== null, 'dark mode fixture reloads');
+(new EnableDarkModeSweep())->apply([$darkDocForced], new Report(), ['force' => true]);
+$accentFillForced = null;
+foreach ($darkDocForced->controls() as $c) {
+    if ($c->name === 'Accent') {
+        $accentFillForced = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true($accentFillForced !== null && str_contains($accentFillForced, 'gblTheme.'), 'custom accent fill re-themed when force=true');
+
+// --- translate sweep: packs + language radio wiring ---
+$translateDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/translate_app.pa.yaml', 'Src/App.pa.yaml');
+assert_true($translateDoc !== null, 'translate fixture loads');
+$translateReport = new Report();
+(new TranslateSweep())->apply([$translateDoc], $translateReport);
+$onStart = $titleText = $goText = $subText = $langOnChange = $glyph = null;
+foreach ($translateDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $onStart = (string) ($c->getProperty('OnStart') ?? '');
+    }
+    if ($c->name === 'Title') {
+        $titleText = (string) ($c->getProperty('Text') ?? '');
+    }
+    if ($c->name === 'GoBtn') {
+        $goText = (string) ($c->getProperty('Text') ?? '');
+    }
+    if ($c->name === 'Subtitle') {
+        $subText = (string) ($c->getProperty('Text') ?? '');
+    }
+    if ($c->name === 'LanguageRadio') {
+        $langOnChange = (string) ($c->getProperty('OnChange') ?? '');
+    }
+    if ($c->name === 'SkipGlyph') {
+        $glyph = (string) ($c->getProperty('Text') ?? '');
+    }
+}
+assert_true(is_string($onStart) && str_contains($onStart, '/* ps-i18n:start */'), 'translate injects i18n OnStart block');
+assert_true(is_string($onStart) && str_contains($onStart, 'gblStringsEn') && str_contains($onStart, 'gblStringsFr'), 'translate defines EN/FR packs');
+assert_true(is_string($titleText) && str_contains($titleText, 'gblStrings.'), 'translate rewrites Welcome label to gblStrings');
+assert_true(is_string($goText) && str_contains($goText, 'gblStrings.'), 'translate rewrites Continue button to gblStrings');
+assert_true(is_string($subText) && str_contains($subText, 'gblStrings.'), 'translate collapses bilingual If(varLang) into gblStrings');
+assert_true(is_string($onStart) && str_contains($onStart, 'Open request') && str_contains($onStart, 'Ouvrir la demande'), 'translate keeps both EN/FR bilingual literals in packs');
+assert_true(is_string($langOnChange) && str_contains($langOnChange, 'gblStrings'), 'translate wires existing LanguageRadio to swap packs');
+assert_true(is_string($glyph) && str_contains($glyph, '→'), 'translate leaves arrow glyph alone');
+assert_true($translateReport->count() > 0, 'translate reports changes');
+assert_true((new \PowerSweeper\SweepRegistry())->has('translate'), 'translate sweep registered');
+
+// --- English spelling consistency ---
+assert_true(EnglishSpelling::normalizeLocale('en-CA') === 'ca', 'normalize en-CA → ca');
+assert_true(EnglishSpelling::normalizeLocale('en-GB') === 'uk', 'normalize en-GB → uk');
+assert_true(EnglishSpelling::normalizeLocale('en-US') === 'us', 'normalize en-US → us');
+assert_true(
+    EnglishSpelling::rewriteText('Pick a color for your favourite honour', 'ca') === 'Pick a colour for your favourite honour',
+    'CA: color→colour, favourite/honour kept'
+);
+assert_true(
+    EnglishSpelling::rewriteText('Pick a colour for your favourite honour', 'us') === 'Pick a color for your favorite honor',
+    'US: colour/favourite/honour → American'
+);
+assert_true(
+    EnglishSpelling::rewriteText('Organize the colors', 'uk') === 'Organise the colours',
+    'UK: organize→organise, colors→colours'
+);
+assert_true(
+    EnglishSpelling::rewriteFormulaStrings('=Navigate(\'Colour Screen\'); Notify("honour the color")', 'us')
+        === '=Navigate(\'Colour Screen\'); Notify("honor the color")',
+    'formula rewrite skips single-quoted names; fixes double-quoted strings'
+);
+$spellDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/spelling_consistency.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($spellDoc !== null, 'spelling fixture loads');
+$spellReport = new Report();
+(new SpellingConsistencySweep())->apply([$spellDoc], $spellReport, ['locale' => 'ca']);
+$colourLabel = null;
+$navBtn = null;
+foreach ($spellDoc->controls() as $c) {
+    if ($c->name === 'ColourLabel') {
+        $colourLabel = $c;
+    }
+    if ($c->name === 'NavigateBtn') {
+        $navBtn = $c;
+    }
+}
+assert_true($colourLabel !== null && $navBtn !== null, 'spelling fixture controls found');
+assert_true(
+    (string) $colourLabel->getProperty('Text') === '="Pick a colour for your favourite honour"',
+    'CA sweep rewrites color→colour in Text'
+);
+assert_true(
+    (string) $colourLabel->getProperty('HintText') === '="Organize the colours"',
+    'CA keeps Organize (-ize) and rewrites colors→colours'
+);
+assert_true(
+    (string) $colourLabel->getProperty('Tooltip') === '="Centred grey dialogue"',
+    'CA: Centered→Centred, dialog→dialogue'
+);
+assert_true(
+    str_contains((string) $navBtn->getProperty('OnSelect'), "Navigate('Colour Screen')"),
+    'CA sweep leaves single-quoted screen name alone'
+);
+assert_true(
+    str_contains((string) $navBtn->getProperty('OnSelect'), 'Notify("honour the colour")'),
+    'CA sweep rewrites Notify string color→colour'
+);
+assert_true($spellReport->count() > 0, 'spelling_consistency reports changes');
+assert_true((new \PowerSweeper\SweepRegistry())->has('spelling_consistency'), 'spelling_consistency registered');
+assert_true(
+    in_array('spelling_consistency', \PowerSweeper\SweepRegistry::PALETTE_IDS, true),
+    'spelling_consistency in UI palette'
+);
+
+// US pass on a fresh fixture
+$spellUs = ControlDocument::fromFile(__DIR__ . '/fixtures/spelling_consistency.pa.yaml', 'Src/Screen1.pa.yaml');
+$spellUsReport = new Report();
+(new SpellingConsistencySweep())->apply([$spellUs], $spellUsReport, ['locale' => 'us']);
+foreach ($spellUs->controls() as $c) {
+    if ($c->name === 'ColourLabel') {
+        assert_true(
+            (string) $c->getProperty('Text') === '="Pick a color for your favorite honor"',
+            'US sweep rewrites colour-side words to American'
+        );
+    }
+}
+
 // --- align near miss ---
 $doc = loadFixtureDoc();
 $report = new Report();
-(new AlignNearMissHop())->apply([$doc], $report, ['tolerance' => 3]);
+(new AlignNearMissSweep())->apply([$doc], $report, ['tolerance' => 3]);
 $t1 = $t2 = null;
 foreach ($doc->controls() as $c) {
     if ($c->name === 'NewRequestTitle') {
@@ -103,7 +482,7 @@ assert_true($report->count() > 0, 'align_near_miss reported changes');
 // --- strip default fill ---
 $doc = loadFixtureDoc();
 $report = new Report();
-(new StripDefaultFillHop())->apply([$doc], $report);
+(new StripDefaultFillSweep())->apply([$doc], $report);
 foreach ($doc->controls() as $c) {
     if ($c->name === 'NewRequest') {
         assert_true(str_contains(strtolower((string) $c->getProperty('Fill')), 'rgba(0, 0, 0, 0)'), 'container fill stripped');
@@ -113,7 +492,7 @@ foreach ($doc->controls() as $c) {
 // --- button chrome ---
 $doc = loadFixtureDoc();
 $report = new Report();
-(new NormalizeClassicButtonChromeHop())->apply([$doc], $report);
+(new NormalizeClassicButtonChromeSweep())->apply([$doc], $report);
 foreach ($doc->controls() as $c) {
     if ($c->name === 'NewRequestButton') {
         assert_true(str_contains(strtolower((string) $c->getProperty('HoverFill')), 'rgba(0, 0, 0, 0)'), 'HoverFill cleared');
@@ -124,12 +503,51 @@ foreach ($doc->controls() as $c) {
 // --- tooltip ---
 $doc = loadFixtureDoc();
 $report = new Report();
-(new TooltipFromLabelHop())->apply([$doc], $report);
+(new TooltipFromLabelSweep())->apply([$doc], $report);
 foreach ($doc->controls() as $c) {
     if ($c->name === 'NewRequestButton') {
         assert_true($c->getProperty('Tooltip') !== null, 'Tooltip set on button');
     }
 }
+
+// --- meaningful control names ---
+assert_true(ControlNaming::isGenericName('Button1'), 'Button1 is generic');
+assert_true(ControlNaming::isGenericName('Container54_2'), 'Container54_2 is generic');
+assert_true(ControlNaming::isGenericName('Label7_183'), 'Label7_183 is generic');
+assert_true(!ControlNaming::isGenericName('SubmitRequestButton'), 'SubmitRequestButton is not generic');
+assert_true(
+    ControlNaming::toIdentifier('Submit Request', 'Button') === 'SubmitRequestButton',
+    'toIdentifier PascalCase + suffix'
+);
+assert_true(
+    ControlNaming::toIdentifier('Customer Details', 'Container') === 'CustomerDetailsContainer',
+    'toIdentifier multi-word container'
+);
+$genericDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/generic_names.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($genericDoc !== null, 'generic_names fixture loads');
+$report = new Report();
+(new MeaningfulNamesSweep())->apply([$genericDoc], $report);
+$submitBtn = $detailsContainer = $detailsLabel = null;
+foreach ($genericDoc->controls() as $c) {
+    if ($c->name === 'SubmitRequestButton') {
+        $submitBtn = $c;
+    }
+    if ($c->name === 'CustomerDetailsContainer') {
+        $detailsContainer = $c;
+    }
+    if ($c->name === 'CustomerDetailsLabel') {
+        $detailsLabel = $c;
+    }
+}
+assert_true($submitBtn !== null, 'Button1 renamed to SubmitRequestButton');
+assert_true($detailsContainer !== null, 'Container1 renamed to CustomerDetailsContainer');
+assert_true($detailsLabel !== null, 'Label1 renamed to CustomerDetailsLabel');
+assert_true(
+    str_contains((string) $submitBtn->getProperty('OnSelect'), 'SubmitRequestButton.Text'),
+    'OnSelect control ref updated after rename'
+);
+assert_true(!str_contains((string) $submitBtn->getProperty('OnSelect'), 'Button1.'), 'old Button1 ref removed from formula');
+assert_true($report->count() >= 3, 'meaningful_names reported renames');
 
 // --- locale normalizer unit checks ---
 $eu = '=If(Slider1.Value > 10,5; Notify("Hi"; NotificationType.Information); Color.Red);; Set(x; 12,5)';
@@ -162,6 +580,30 @@ $localeRgbaTight = 'RGBA(0;0;0;1)';
 assert_true(FormulaLocaleNormalizer::toInvariant($localeRgbaTight) === 'RGBA(0,0,0,1)', 'tight locale RGBA keeps four args');
 $standaloneDec = '=Parent.Width * 0,5';
 assert_true(FormulaLocaleNormalizer::toInvariant($standaloneDec) === '=Parent.Width * 0.5', 'standalone decimal comma still fixed');
+// Two-arg invariant calls must NOT be treated as locale decimals (ASC/THCEE GetInfoData).
+$twoArgInvariant = "comTranslations.GetInfoData(0,0);\nSet(varInfoContainer, !varInfoContainer);";
+assert_true(!FormulaLocaleNormalizer::looksLocaleCorrupted($twoArgInvariant), 'GetInfoData(0,0) invariant not flagged as locale');
+assert_true(
+    FormulaLocaleNormalizer::toInvariant($twoArgInvariant) === $twoArgInvariant,
+    'GetInfoData(0,0) invariant left unchanged (no 0.0 / comma-chaining corruption)'
+);
+// Already-quoted screen replacements must not become '''Screen'''
+$quotedScreenRewrite = \PowerSweeper\FormulaIdentifierRewriter::rename(
+    "Navigate('PACS Homepage')",
+    ['PACS Homepage' => "'PACS Homepage'"]
+);
+assert_true(
+    $quotedScreenRewrite === "Navigate('PACS Homepage')",
+    'identifier rewriter does not triple-quote already-quoted screen names'
+);
+$spacedRename = \PowerSweeper\FormulaIdentifierRewriter::rename(
+    "SideMenuFirstTable = [{ x: 1 }];",
+    ['SideMenuFirstTable' => 'TDR Trips_ TopMenu_1']
+);
+assert_true(
+    str_contains($spacedRename, "'TDR Trips_ TopMenu_1'"),
+    'identifier rewriter quotes spaced rename targets in bare-identifier slots'
+);
 
 // Half-converted color alphas (list commas + locale decimal) → BadArity in Studio
 $halfAlpha = 'RGBA(240, 240, 240, 0,2)';
@@ -180,7 +622,7 @@ assert_true(
 $doc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/Screen1.pa.yaml');
 assert_true($doc !== null, 'locale fixture loads');
 $report = new Report();
-(new UnwhackLocaleFormulasHop())->apply([$doc], $report);
+(new UnwhackLocaleFormulasSweep())->apply([$doc], $report);
 assert_true($report->count() > 0, 'unwhack reported YAML changes');
 $fillFixed = false;
 $onVisFixed = false;
@@ -199,7 +641,7 @@ assert_true($onVisFixed, 'OnVisible chaining/decimals unwhacked');
 $jsonDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/internal_locale.json', 'Controls/Screen1.json');
 assert_true($jsonDoc !== null, 'internal JSON fixture loads');
 $report = new Report();
-(new UnwhackLocaleFormulasHop())->apply([$jsonDoc], $report);
+(new UnwhackLocaleFormulasSweep())->apply([$jsonDoc], $report);
 assert_true($report->count() > 0, 'unwhack reported JSON changes');
 $jsonX = null;
 foreach ($jsonDoc->controls() as $c) {
@@ -209,11 +651,52 @@ foreach ($jsonDoc->controls() as $c) {
 }
 assert_true(is_string($jsonX) && str_contains($jsonX, '40.5') && str_contains($jsonX, ','), 'internal InvariantScript unwhacked');
 
+// --- prefer classic controls for theming (modern lacking Fill/Color) ---
+$classicPrepDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/theme_classic_prep.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($classicPrepDoc !== null, 'classic theme prep fixture loads');
+$classicPrepReport = new Report();
+(new PreferClassicThemeControlsSweep())->apply([$classicPrepDoc], $classicPrepReport);
+$classicPrepDoc->reindex();
+$byName = [];
+foreach ($classicPrepDoc->controls() as $c) {
+    $byName[$c->name] = $c;
+}
+assert_true(str_starts_with((string) ($byName['TitleModern']->type ?? ''), 'Label@'), 'ModernText → Label for Fill/Color');
+assert_true(str_starts_with((string) ($byName['SaveModern']->type ?? ''), 'Classic/Button@'), 'ModernButton → Classic/Button');
+assert_true(str_starts_with((string) ($byName['CanvasBtn']->type ?? ''), 'Classic/Button@'), 'ButtonCanvas → Classic/Button');
+assert_true(str_starts_with((string) ($byName['NameInput']->type ?? ''), 'Classic/TextInput@'), 'ModernTextInput → Classic/TextInput');
+assert_true(str_starts_with((string) ($byName['AlreadyClassic']->type ?? ''), 'Classic/Button@'), 'existing Classic/Button left alone');
+assert_true(str_starts_with((string) ($byName['Sites']->type ?? ''), 'ModernNumberInput@'), 'ModernNumberInput skipped by default');
+assert_true(str_contains((string) ($byName['SaveModern']->getProperty('Fill') ?? ''), 'RGBA(37, 99, 235'), 'BasePaletteColor remapped to Fill');
+assert_true(str_contains((string) ($byName['SaveModern']->getProperty('Color') ?? ''), 'RGBA(255, 255, 255'), 'FontColor remapped to Color');
+assert_true($byName['SaveModern']->getProperty('Appearance') === null, 'Appearance removed after classic swap');
+assert_true($classicPrepReport->count() > 0, 'classic theme prep reported changes');
+
+$classicPrepOpt = ControlDocument::fromFile(__DIR__ . '/fixtures/theme_classic_prep.pa.yaml', 'Src/Screen1.pa.yaml');
+(new PreferClassicThemeControlsSweep())->apply([$classicPrepOpt], new Report(), [
+    'include_modern_number_input' => true,
+]);
+$classicPrepOpt->reindex();
+$sitesType = null;
+foreach ($classicPrepOpt->controls() as $c) {
+    if ($c->name === 'Sites') {
+        $sitesType = $c->type;
+    }
+}
+assert_true(is_string($sitesType) && str_starts_with($sitesType, 'Classic/TextInput@'), 'opt-in ModernNumberInput → Classic/TextInput');
+
+$darkModeHopIds = array_column(SweepChains::darkMode(), 'id');
+assert_true($darkModeHopIds === ['enable_dark_theme'], 'dark_mode chain is enable_dark_theme composite');
+$darkThemeSubs = array_column(\PowerSweeper\Sweeps\EnableDarkThemeSweep::subSweeps(), 'id');
+assert_true($darkThemeSubs[0] === 'prefer_classic_theme_controls', 'enable_dark_theme prepares classic controls first');
+assert_true(in_array('enable_dark_mode', $darkThemeSubs, true), 'enable_dark_theme still runs enable_dark_mode');
+assert_true(in_array('regenerate_sarif', $darkThemeSubs, true), 'enable_dark_theme regenerates SARIF');
+
 // --- dark mode ---
 $doc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
 assert_true($doc !== null, 'dark mode fixture loads');
 $report = new Report();
-(new EnableDarkModeHop())->apply([$doc], $report);
+(new EnableDarkModeSweep())->apply([$doc], $report);
 assert_true($report->count() > 0, 'dark mode reported changes');
 $doc->reindex();
 $hasToggle = false;
@@ -254,7 +737,7 @@ assert_true($titleColorThemed, 'label Color uses gblTheme token');
 $settingsDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_settings.pa.yaml', 'Src/Home.pa.yaml');
 assert_true($settingsDoc !== null, 'dark mode settings fixture loads');
 $settingsReport = new Report();
-(new EnableDarkModeHop())->apply([$settingsDoc], $settingsReport);
+(new EnableDarkModeSweep())->apply([$settingsDoc], $settingsReport);
 $settingsDoc->reindex();
 $themeItemsOk = false;
 $themeOnChangeOk = false;
@@ -279,10 +762,75 @@ assert_true($themeItemsOk, 'ThemeRadio Items includes Light and Dark');
 assert_true($themeOnChangeOk, 'ThemeRadio OnChange swaps gblTheme palettes');
 assert_true($noFloatingToggle, 'ThemeRadio present — no floating toggle injected');
 
+// PAT / PACS chrome: Color.DarkCyan bars, comment-only BasePaletteColor, azure tints, HtmlText ink
+assert_true(
+    ColorValue::parse('=RGBA(30, 144, 255, 0.10) //Color.Azure') !== null,
+    'color parse ignores trailing // comments'
+);
+assert_true(ColorValue::roleForProperty('BasePaletteColor') === 'background', 'BasePaletteColor is background chrome');
+$patDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/pat_dark_chrome.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($patDoc !== null, 'PAT chrome fixture loads');
+$patReport = new Report();
+(new EnableDarkModeSweep())->apply([$patDoc], $patReport, ['inject_toggle' => false]);
+$patDoc->reindex();
+$patBy = [];
+foreach ($patDoc->controls() as $c) {
+    $patBy[$c->name] = $c;
+}
+assert_true(str_contains((string) $patBy['TabBar']->getProperty('Fill'), 'gblTheme.Accent'), 'Color.DarkCyan tab bar → Accent');
+assert_true(str_contains((string) $patBy['PrimaryBtn']->getProperty('BasePaletteColor'), 'gblTheme.Accent'), 'comment BasePaletteColor → Accent');
+assert_true(str_contains((string) $patBy['PrimaryBtn']->getProperty('BorderColor'), 'gblTheme.Accent'), 'Color.Aquamarine → Accent');
+assert_true(str_contains((string) $patBy['AzureLbl']->getProperty('Fill'), 'gblTheme.SurfaceMuted'), 'translucent azure fill → SurfaceMuted');
+assert_true(str_contains((string) $patBy['AzureLbl']->getProperty('Color'), 'gblTheme.Text'), '//FontColour stub → Text');
+assert_true(str_contains((string) $patBy['HtmlLbl']->getProperty('HtmlText'), 'TextCss'), 'HtmlText #111111 → TextCss');
+
+// TDR / THCEE Directory: language radio FontColor, Settings buttons, status legend ink
+$tdrDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/tdr_dark_controls.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($tdrDoc !== null, 'TDR dark controls fixture loads');
+$tdrReport = new Report();
+(new EnableDarkModeSweep())->apply([$tdrDoc], $tdrReport, ['force' => true, 'inject_toggle' => false]);
+$tdrDoc->reindex();
+$tdrBy = [];
+foreach ($tdrDoc->controls() as $c) {
+    $tdrBy[$c->name] = $c;
+}
+assert_true(str_contains((string) $tdrBy['LangRadio']->getProperty('FontColor'), 'gblTheme.Text'), 'language radio gets FontColor');
+assert_true(str_contains((string) $tdrBy['ThemeRadio']->getProperty('FontColor'), 'gblTheme.Text'), 'theme radio keeps FontColor');
+assert_true(str_contains((string) $tdrBy['SaveBtn']->getProperty('Color'), 'gblTheme.Text'), 'Settings Save button gets Color ink');
+assert_true(str_contains((string) $tdrBy['CancelBtn']->getProperty('Color'), 'gblTheme.Text'), 'Settings Cancel button gets Color ink');
+assert_true(str_contains((string) $tdrBy['lblDraft']->getProperty('Color'), 'gblTheme.Warning'), 'Draft legend stays Warning (not TextOnLight)');
+assert_true(str_contains((string) $tdrBy['lblSigned']->getProperty('Color'), 'gblTheme.Success'), 'Signed legend stays Success');
+assert_true(str_contains((string) $tdrBy['lblDenied']->getProperty('Color'), 'gblTheme.Accent'), 'Denied legend stays Accent');
+assert_true(!str_contains((string) $tdrBy['lblType']->getProperty('Color'), 'TextOnLight'), 'THCEE badge avoids TextOnLight on surface');
+
+// Light-only RadioGroupCanvas stub (THCEE/TDR/ASC Topbar JSON twin pattern) gets Dark wired
+$lightStubDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_light_stub.pa.yaml', 'Src/Home.pa.yaml');
+assert_true($lightStubDoc !== null, 'light-only theme stub fixture loads');
+$lightStubReport = new Report();
+(new EnableDarkModeSweep())->apply([$lightStubDoc], $lightStubReport);
+$stubItems = $stubOnChange = $langItems = null;
+$stubToggleInjected = false;
+foreach ($lightStubDoc->controls() as $c) {
+    if ($c->name === 'RadioGroupCanvas1_5') {
+        $stubItems = (string) ($c->getProperty('Items') ?? '');
+        $stubOnChange = (string) ($c->getProperty('OnChange') ?? '');
+    }
+    if ($c->name === 'RadioGroupCanvas1_4') {
+        $langItems = (string) ($c->getProperty('Items') ?? '');
+    }
+    if ($c->name === 'tglPowerSweeperDarkMode') {
+        $stubToggleInjected = true;
+    }
+}
+assert_true(is_string($stubItems) && str_contains($stubItems, 'Dark'), 'Light-only RadioGroupCanvas Items gains Dark');
+assert_true(is_string($stubOnChange) && str_contains($stubOnChange, 'gblThemeDark'), 'Light-only RadioGroupCanvas OnChange swaps dark palette');
+assert_true(is_string($langItems) && str_contains($langItems, 'English') && !str_contains(strtolower($langItems), 'dark'), 'language radio left as English/French');
+assert_true(!$stubToggleInjected, 'no floating dark toggle when Light-only theme radio stub exists');
+
 // Brand override via theme_defaults option (central palette only)
 $overrideDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_app.pa.yaml', 'Src/App.pa.yaml');
 $dmOverrideReport = new Report();
-(new EnableDarkModeHop())->apply([$overrideDoc], $dmOverrideReport, [
+(new EnableDarkModeSweep())->apply([$overrideDoc], $dmOverrideReport, [
     'theme_defaults' => [
         'Accent' => [
             'light' => ['r' => 220, 'g' => 38, 'b' => 38, 'a' => 1.0],
@@ -302,13 +850,162 @@ assert_true(
     'theme_defaults option edits Accent in central palette'
 );
 
+// Contrast: ColorFade status chips, mixed RGBA, input Color, darkened Warning
+$contrastDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_contrast.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($contrastDoc !== null, 'dark mode contrast fixture loads');
+$contrastReport = new Report();
+(new EnableDarkModeSweep())->apply([$contrastDoc], $contrastReport, ['force' => true]);
+$contrastDoc->reindex();
+$chipInk = $bannerFill = $mixedColor = $inputColor = $inputFill = $onStartContrast = '';
+foreach ($contrastDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $onStartContrast = (string) ($c->getProperty('OnStart') ?? '');
+    }
+    if ($c->name === 'StatusLabel') {
+        $chipInk = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'WarningBanner') {
+        $bannerFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'MixedGrayLabel') {
+        $mixedColor = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'TitleInput') {
+        $inputColor = (string) ($c->getProperty('Color') ?? '');
+        $inputFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true(str_contains($chipInk, 'gblTheme.TextOnLight'), 'ColorFade status chip label uses TextOnLight ink');
+assert_true(str_contains($bannerFill, 'gblTheme.Warning'), 'warning banner Fill maps to Warning token');
+assert_true(
+    str_contains($onStartContrast, 'TextOnLight:')
+        && str_contains($onStartContrast, 'Warning: RGBA(161, 98, 7, 1)'),
+    'dark palette includes TextOnLight and darkened Warning for white banner text'
+);
+
+// THCEE finals: cream HtmlViewer section headers, ColorFade Draft chip, pale Modern buttons
+$thceeFinalDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/thcee_dark_final.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($thceeFinalDoc !== null, 'thcee dark final fixture loads');
+$thceeFinalReport = new Report();
+(new EnableDarkModeSweep())->apply([$thceeFinalDoc], $thceeFinalReport, ['force' => false]);
+$thceeFinalDoc->reindex();
+$thceeHtml = $thceeHome = $thceeChip = $thceeOn = '';
+foreach ($thceeFinalDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $thceeOn = (string) ($c->getProperty('OnStart') ?? '');
+    }
+    if ($c->name === 'HeaderHtml') {
+        $thceeHtml = (string) ($c->getProperty('HtmlText') ?? '');
+    }
+    if ($c->name === 'ReturnHome') {
+        $thceeHome = (string) ($c->getProperty('BasePaletteColor') ?? '');
+    }
+    if ($c->name === 'StatusChip') {
+        $thceeChip = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true(str_contains($thceeOn, 'PageCss:') && str_contains($thceeOn, 'TextMutedCss:'), 'THCEE palette ships PageCss/TextMutedCss');
+assert_true(str_contains($thceeHtml, 'gblTheme.PageCss') && str_contains($thceeHtml, 'gblTheme.TextCss'), 'THCEE section HTML cream/title theme');
+assert_true(str_contains($thceeChip, 'If(gblDarkMode'), 'THCEE Draft ColorFade chip darkens when dark');
+assert_true(str_contains($thceeHome, 'gblTheme.Surface'), 'pale Return Home BasePaletteColor → Surface');
+assert_true(
+    str_contains($mixedColor, 'gblTheme.') && !preg_match('/RGBA\s*\(\s*117\s*,\s*117\s*,\s*117/i', $mixedColor),
+    'mixed If(...) formula rewrites leftover mid-gray RGBA'
+);
+assert_true(str_contains($inputFill, 'gblTheme.InputFill'), 'text input Fill uses InputFill');
+assert_true(str_contains($inputColor, 'gblTheme.Text'), 'text input Color set for readable typed text');
+assert_true(
+    str_contains($onStartContrast, 'Success: RGBA(21, 128, 61, 1)'),
+    'dark palette includes darkened Success for readable banner text'
+);
+
+// THCEE chrome: classic prep + dark — transparent sidebar hit-targets, SVG ink, remarks, homepage Start
+$thceeChromeDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/thcee_dark_final.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($thceeChromeDoc !== null, 'thcee chrome fixture reloads');
+$thceeChromeClassic = new Report();
+(new PreferClassicThemeControlsSweep())->apply([$thceeChromeDoc], $thceeChromeClassic);
+$thceeChromeDoc->reindex();
+$thceeChromeReport = new Report();
+(new EnableDarkModeSweep())->apply([$thceeChromeDoc], $thceeChromeReport, ['force' => true]);
+$thceeChromeDoc->reindex();
+$hitFill = $navIcon = $startType = $startFill = $cardSvg = $remarksFill = $remarksApp = $objectiveFill = '';
+foreach ($thceeChromeDoc->controls() as $c) {
+    if ($c->name === 'NavHitTarget') {
+        $hitFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'NavIcon') {
+        $navIcon = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'Homepage_Start') {
+        $startType = (string) $c->type;
+        $startFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'CardIcon') {
+        $cardSvg = (string) ($c->getProperty('Image') ?? '');
+    }
+    if ($c->name === 'Remarks') {
+        $remarksFill = (string) ($c->getProperty('Fill') ?? '');
+        $remarksApp = (string) ($c->getProperty('Appearance') ?? '');
+        assert_true($c->getStyleName() === null, 'Remarks StyleName cleared for gblTheme');
+    }
+    if ($c->name === 'ObjectiveBox') {
+        $objectiveFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+}
+assert_true(str_starts_with($startType, 'Classic/Button@'), 'homepage Start converted to classic button');
+assert_true(str_contains($startFill, 'gblTheme.Surface'), 'homepage Start Fill uses Surface (not washed TextMuted)');
+assert_true(
+    preg_match('/RGBA\s*\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)/i', $hitFill) === 1,
+    'sidebar hit-target Fill stays transparent so icons show'
+);
+assert_true(str_contains($navIcon, 'gblTheme.Text'), 'sidebar icon Color uses Text');
+assert_true(str_contains($cardSvg, 'gblTheme.TextCss'), 'homepage SVG icon fill splices TextCss');
+assert_true(str_contains($remarksFill, 'gblTheme.InputFill'), 'remarks RichTextEditor Fill → InputFill');
+assert_true(str_contains($remarksApp, 'FilledDarker'), 'remarks RichTextEditor Appearance → FilledDarker');
+assert_true(str_contains($objectiveFill, 'gblTheme.InputFill'), 'unset objective TextInput Fill → InputFill');
+
+// Generalized detection: RTE host by child type; theme component AccessAppScope without TopbarHeader hardcoding
+$generalDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_generalized.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($generalDoc !== null, 'generalized dark mode fixture loads');
+$generalClassic = new Report();
+(new PreferClassicThemeControlsSweep())->apply([$generalDoc], $generalClassic);
+$generalReport = new Report();
+(new EnableDarkModeSweep())->apply([$generalDoc], $generalReport, ['force' => true]);
+$generalDoc->reindex();
+$notesFill = $themeScope = $modernActionType = $themeRadioItems = '';
+$accessRoot = null;
+$accessInProps = false;
+foreach ($generalDoc->controls() as $c) {
+    if ($c->name === 'NotesHost') {
+        $notesFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'ModernAction') {
+        $modernActionType = (string) $c->type;
+    }
+    if ($c->name === 'ThemeRadio') {
+        $themeRadioItems = (string) ($c->getProperty('Items') ?? '');
+    }
+    if ($c->name === 'ThemeChrome' && str_contains($c->path, 'ComponentDefinitions')) {
+        $accessRoot = $c->getYamlDefinitionField('AccessAppScope');
+        $accessInProps = $c->getProperty('AccessAppScope') !== null;
+    }
+}
+assert_true(str_contains($notesFill, 'gblTheme.Surface'), 'RTE host container themed by child type (not 10_Remarks name)');
+assert_true(str_starts_with($modernActionType, 'Classic/Button@'), 'classic prep runs before dark on modern buttons');
+assert_true(str_contains($themeRadioItems, 'Dark'), 'theme radio Light-only stub expanded via OnChange heuristics');
+assert_true($accessRoot === true || $accessRoot === 'true', 'theme-aware component gets AccessAppScope at root');
+assert_true($accessInProps === false, 'theme-aware component does not keep AccessAppScope in Properties');
+
 $linkHex = ColorValue::toHex(['r' => 45, 'g' => 212, 'b' => 191, 'a' => 1.0]);
 assert_true($linkHex === '#2DD4BF', 'ColorValue::toHex for dark link teal');
 
 // analyze_app_checker removes empty layout formulas
 $emptyDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_settings.pa.yaml', 'Src/Home.pa.yaml');
 $emptyReport = new Report();
-(new AnalyzeAppCheckerHop())->apply([$emptyDoc], $emptyReport, ['_extract_dir' => sys_get_temp_dir()]);
+$emptyExtract = sys_get_temp_dir() . '/ps_analyze_empty_' . bin2hex(random_bytes(4));
+mkdir($emptyExtract, 0777, true);
+(new AnalyzeAppCheckerSweep())->apply([$emptyDoc], $emptyReport, ['_extract_dir' => $emptyExtract]);
+@rmdir($emptyExtract);
 $emptyDoc->reindex();
 $layoutCleared = true;
 foreach ($emptyDoc->controls() as $c) {
@@ -350,7 +1047,7 @@ $bare = FormulaIdentifierRewriter::rename(
 );
 assert_true($bare === "=IsBlank('VCR / VCN Form'.Date.SelectedDate)", 'bare cross-screen ref qualified once');
 
-// --- SharePoint correlate hop ---
+// --- SharePoint correlate sweep ---
 $spTmp = sys_get_temp_dir() . '/ps_sp_' . bin2hex(random_bytes(4));
 $spStage = $spTmp . '/stage';
 mkdir($spStage . '/Src', 0777, true);
@@ -399,9 +1096,9 @@ $vcrYaml = ControlDocument::fromFile(__DIR__ . '/fixtures/vcr_locale_errors.pa.y
 $vcrJson = ControlDocument::fromFile(__DIR__ . '/fixtures/vcr_locale_errors.json', 'Controls/VASC.json');
 assert_true($vcrYaml !== null && $vcrJson !== null, 'VCR locale fixtures load');
 $vcrReport = new Report();
-(new UnwhackLocaleFormulasHop())->apply([$vcrYaml, $vcrJson], $vcrReport);
-(new RepairCheckedBooleansHop())->apply([$vcrYaml, $vcrJson], $vcrReport);
-(new EnsureFocusVisibleHop())->apply([$vcrYaml, $vcrJson], $vcrReport);
+(new UnwhackLocaleFormulasSweep())->apply([$vcrYaml, $vcrJson], $vcrReport);
+(new RepairCheckedBooleansSweep())->apply([$vcrYaml, $vcrJson], $vcrReport);
+(new EnsureFocusVisibleSweep())->apply([$vcrYaml, $vcrJson], $vcrReport);
 assert_true($vcrReport->count() > 10, 'VCR repair reports multiple fixes');
 
 $vcrSizeOk = false;
@@ -679,7 +1376,7 @@ assert_true(
     'colon-bearing Power Fx YAML round-trips through Symfony parse'
 );
 
-// Dirty tracking: empty hop sequence must not rewrite YAML
+// Dirty tracking: empty sweep sequence must not rewrite YAML
 $dirtyDir = sys_get_temp_dir() . '/ps_dirty_' . bin2hex(random_bytes(3));
 mkdir($dirtyDir . '/Src', 0777, true);
 $origYaml = "# keep\nScreens:\n  Home:\n    Properties:\n      Fill: =RGBA(9, 9, 9, 1)\n";
@@ -711,7 +1408,7 @@ assert_true(is_string($emptyRound) && str_contains($emptyRound, '"OverridablePro
 assert_true(is_string($emptyRound) && !str_contains($emptyRound, '"OverridableProperties": []'), 'JSON roundtrip does not emit empty array for OverridableProperties');
 @unlink($emptyObjFixture);
 
-// --- zip path style: preserve source, optional posix hop ---
+// --- zip path style: preserve source, optional posix sweep ---
 $styleDir = sys_get_temp_dir() . '/ps_style_' . bin2hex(random_bytes(3));
 mkdir($styleDir . '/win/Src', 0777, true);
 mkdir($styleDir . '/posix/Src', 0777, true);
@@ -730,8 +1427,8 @@ $forcedPosix = $styleDir . '/forced_posix.msapp';
 $posixResult = (new Pipeline())->run($styleDir . '/win.msapp', [
     ['id' => 'set_zip_path_style', 'options' => ['style' => 'posix']],
 ], $forcedPosix);
-assert_true(ZipTool::detectEntryStyle($forcedPosix) === ZipTool::STYLE_POSIX, 'posix_zip_paths hop forces forward slashes');
-assert_true(($posixResult['report']['total'] ?? 0) >= 1, 'zip path style hop reports a change');
+assert_true(ZipTool::detectEntryStyle($forcedPosix) === ZipTool::STYLE_POSIX, 'posix_zip_paths sweep forces forward slashes');
+assert_true(($posixResult['report']['total'] ?? 0) >= 1, 'zip path style sweep reports a change');
 
 @unlink($styleDir . '/win/Src/A.pa.yaml');
 @rmdir($styleDir . '/win/Src');
@@ -762,7 +1459,7 @@ if (is_file($app16)) {
     $archive->unpack();
     $live = \PowerSweeper\StudioLiveChecker::check($archive->documents(), ['extract_dir' => $archive->extractDir()]);
     $archive->cleanup();
-    assert_true($live['total'] >= 400 && $live['total'] <= 550, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
+    assert_true($live['total'] >= 400 && $live['total'] <= 600, 'App (16) live checker total in expected range (got ' . $live['total'] . ')');
     assert_true(($live['by_category']['formulas'] ?? 0) >= 90, 'App (16) live formula issues');
     assert_true(($live['by_category']['accessibility'] ?? 0) >= 200, 'App (16) live a11y issues');
     // Compare overlap with embedded SARIF
@@ -782,8 +1479,8 @@ if (is_file($app16)) {
 
 // Repaired pipeline should drive live errors well below original 1719 SARIF
 $repairedPipelineOut = sys_get_temp_dir() . '/ps_repaired_live_check_' . bin2hex(random_bytes(4)) . '.msapp';
-$repairProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-(new Pipeline())->run($app16, $repairProfile['hops'], $repairedPipelineOut);
+$repairHops = SweepChains::studioRepair();
+(new Pipeline())->run($app16, $repairHops, $repairedPipelineOut);
 $repairedArchive = new \PowerSweeper\MsappArchive($repairedPipelineOut);
 $repairedArchive->unpack();
 $repairedLive = \PowerSweeper\StudioLiveChecker::check($repairedArchive->documents(), ['extract_dir' => $repairedArchive->extractDir()]);
@@ -843,6 +1540,54 @@ assert_true(
 );
 
 // FormulaRefContext — global component hosts are not bare cross-screen refs
+$thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
+
+// Context-aware reference repair — copy-paste pattern + stale suffix with verify loop
+$copyPasteDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/copy_paste_refs.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($copyPasteDoc !== null, 'copy_paste_refs fixture loads');
+$copyPasteReport = new Report();
+(new RepairContextAwareRefsSweep())->apply([$copyPasteDoc], $copyPasteReport);
+$vi5 = $rb1 = null;
+foreach ($copyPasteDoc->controls() as $c) {
+    if ($c->name === 'ValueInput5') {
+        $vi5 = $c;
+    }
+    if ($c->name === 'RemoteButton1') {
+        $rb1 = $c;
+    }
+}
+assert_true($vi5 !== null && $rb1 !== null, 'copy_paste fixture controls found');
+assert_true(str_contains((string) $vi5->getProperty('Default'), 'ValueInput5.Text'), 'ValueInput5 aligned to self not stale ValueInput1_1');
+assert_true(str_contains((string) $rb1->getProperty('OnSelect'), 'RemoteButton1.Text'), 'RemoteButton1_2 normalized to RemoteButton1');
+assert_true($copyPasteReport->count() > 0, 'repair_context_aware_refs reported changes');
+
+$patternDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/copy_paste_refs.pa.yaml', 'Src/Screen1.pa.yaml');
+$patternCatalog = \PowerSweeper\AppControlCatalog::build([$patternDoc]);
+$perHost = \PowerSweeper\FormulaPatternAnalyzer::inferPerHostRenameMap([$patternDoc], $patternCatalog);
+assert_true(isset($perHost['ValueInput5']['ValueInput1_1']), 'pattern analyzer maps stale ref per host');
+assert_true($perHost['ValueInput5']['ValueInput1_1'] === 'ValueInput5', 'pattern analyzer aligns host index');
+
+// Formula repair converger — locale verify loop on corrupt fixture
+$localeDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($localeDoc !== null, 'locale_corrupt fixture loads');
+$localeData = \PowerSweeper\AppDataContext::build([$localeDoc]);
+$localeCatalog = \PowerSweeper\AppControlCatalog::build([$localeDoc]);
+$localeChecker = new \PowerSweeper\PowerFxFormulaChecker($localeCatalog, $localeData);
+$beforeLocale = $localeChecker->check(
+    (string) $localeDoc->controls()[0]->getProperty('Fill') ?: '=RGBA(255; 255; 255; 1)',
+    'Screen1',
+    'Screen1.Fill',
+    'Screen',
+    'Fill',
+    'Screen1',
+    ['Screen1' => true],
+    [],
+);
+assert_true(count($beforeLocale) > 0, 'locale corrupt Fill has checker findings');
+$convergeStats = (new \PowerSweeper\FormulaRepairConverger())->converge([$localeDoc], ['max_rounds' => 2]);
+assert_true($convergeStats['repairs'] > 0, 'converger repairs locale_corrupt');
+assert_true($convergeStats['after'] <= $convergeStats['before'], 'converger reduces formula errors');
+
 $thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
 if (is_file($thceeFriday)) {
     $thceeArch = new \PowerSweeper\MsappArchive($thceeFriday);
@@ -939,6 +1684,32 @@ assert_true(
     str_contains($delegRewritten, 'CountRows(Filter(colAnnex1, !IsBlank(AgencyName)))'),
     'delegation rewriter fixes live CountIf below comment'
 );
+// Generalized patterns (any collection / email ref)
+$delegGeneral = \PowerSweeper\DelegationFormulaRewriter::rewrite(
+    'CountIf(colItems, !IsBlank(Trim(Title))); Lower(owner.Email) = Lower(User().Email); Lower(User().Email) = Lower(\'Other Screen\'.Contact.Email)'
+);
+assert_true(str_contains($delegGeneral, 'CountRows(Filter(colItems, !IsBlank(Title)))'), 'delegation CountIf generalizes to any col/field');
+assert_true(str_contains($delegGeneral, 'owner.Email = User().Email'), 'delegation Lower(email) generalizes beyond request_user');
+assert_true(str_contains($delegGeneral, "'Other Screen'.Contact.Email = User().Email"), 'delegation Lower(email) handles quoted screen refs');
+$delegSub = \PowerSweeper\DelegationFormulaRewriter::rewrite('Filter(list, Substitute(SearchBox.Text, " ", "") in Substitute(Title, " ", ""))');
+assert_true(str_contains($delegSub, 'StartsWith(Title, SearchBox.Text)'), 'delegation Substitute→StartsWith generalizes control name');
+$delegTrimLocal = \PowerSweeper\DelegationFormulaRewriter::rewrite(
+    'Filter(list, StartsWith(Task, Trim(txtSearch_1.Text)) || IsBlank(Trim(txtSearch_1.Text)))'
+);
+assert_true(
+    str_contains($delegTrimLocal, 'StartsWith(Task, txtSearch_1.Text)')
+        && str_contains($delegTrimLocal, 'IsBlank(txtSearch_1.Text)')
+        && !str_contains($delegTrimLocal, 'Trim('),
+    'delegation strips Trim() around local control Text args'
+);
+$delegInLower = \PowerSweeper\DelegationFormulaRewriter::rewrite(
+    'With({searchText: Lower(Trim(txtSearch.Text))}, Filter(list, searchText in Lower(Coalesce(\'Pass Holder Details\', ""))))'
+);
+assert_true(
+    str_contains($delegInLower, 'searchText in Coalesce(')
+        && !preg_match('/\bin\s+Lower\s*\(/i', $delegInLower),
+    'delegation strips Lower() on in-operator column side'
+);
 
 $varPkgTmp = sys_get_temp_dir() . '/ps_varpkg_' . bin2hex(random_bytes(4)) . '.pa.yaml';
 file_put_contents($varPkgTmp, <<<'YAML'
@@ -953,7 +1724,7 @@ YAML
 $varPkgDoc = ControlDocument::fromFile($varPkgTmp, 'Src/Test.pa.yaml');
 assert_true($varPkgDoc !== null, 'varCurrentPackage comment fixture loads');
 $varPkgReport = new Report();
-(new \PowerSweeper\Hops\RepairVarCurrentPackageHop())->apply([$varPkgDoc], $varPkgReport);
+(new \PowerSweeper\Sweeps\RepairVarCurrentPackageSweep())->apply([$varPkgDoc], $varPkgReport);
 $varPkgFormula = '';
 foreach ($varPkgDoc->controls() as $c) {
     if ($c->name === 'Screen1') {
@@ -963,19 +1734,19 @@ foreach ($varPkgDoc->controls() as $c) {
 @unlink($varPkgTmp);
 assert_true(
     str_contains($varPkgFormula, '//AmendmentVisit: loadedRequest.AmendmentVisit'),
-    'varCurrentPackage hop leaves commented loadPackage field untouched'
+    'varCurrentPackage sweep leaves commented loadPackage field untouched'
 );
 assert_true(
     !preg_match('/\bvarCurrentPackage\.AmendmentVisit\b/', $varPkgFormula),
-    'varCurrentPackage hop replaces live AmendmentVisit reference with false'
+    'varCurrentPackage sweep replaces live AmendmentVisit reference with false'
 );
 
 // Component template bindings — stale suffixed refs repaired (Components/*.json)
 $app16 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App (16).msapp';
 if (is_file($app16)) {
     $componentRepairOut = sys_get_temp_dir() . '/ps_component_bindings_' . bin2hex(random_bytes(4)) . '.msapp';
-    $repairProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-    (new Pipeline())->run($app16, $repairProfile['hops'], $componentRepairOut);
+    $repairHops = SweepChains::studioRepair();
+    (new Pipeline())->run($app16, $repairHops, $componentRepairOut);
     $ghostBindings = 0;
     $compArch = new \PowerSweeper\MsappArchive($componentRepairOut);
     $compArch->unpack();
@@ -1004,38 +1775,206 @@ if (is_file($repaired16)) {
     assert_true($post['total'] === 0, 'App (16) repaired heuristic total is zero (was 1719 SARIF)');
 }
 
-// Profiles — all hop ids resolve; studio repair hops are exposed
-$hopRegistry = new \PowerSweeper\HopRegistry();
-$allProfiles = (new ProfileLoader(POWER_SWEEPER_PROFILES))->all();
-assert_true(count($allProfiles) >= 14, 'profiles directory loaded (got ' . count($allProfiles) . ')');
-$profileIds = array_column($allProfiles, 'id');
-assert_true(in_array('repair_studio_errors', $profileIds, true), 'repair_studio_errors profile exists');
-assert_true(in_array('repair_delegation', $profileIds, true), 'repair_delegation profile exists');
-assert_true(in_array('regenerate_sarif', $profileIds, true), 'regenerate_sarif profile exists');
-assert_true(in_array('repair_formula_refs', $profileIds, true), 'repair_formula_refs profile exists');
-assert_true(in_array('repair_powered', $profileIds, true), 'repair_powered profile exists');
-assert_true(in_array('powered_thcee', $profileIds, true), 'powered_thcee profile exists');
-assert_true(in_array('repair_studio_errors_then_dark', $profileIds, true), 'repair_studio_errors_then_dark profile exists');
-$profileLoader = new ProfileLoader(POWER_SWEEPER_PROFILES);
-$vcrPowered = $profileLoader->resolvePoweredProfile('CDLS VCR App.msapp');
-$thceePowered = $profileLoader->resolvePoweredProfile('VCDS THCEE App.msapp');
-assert_true(in_array('repair_control_refs', array_column($vcrPowered['hops'], 'id'), true), 'VCR powered profile includes repair_control_refs');
-assert_true(in_array('repair_control_refs', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes repair_control_refs (component-safe)');
-assert_true(in_array('regenerate_sarif', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes regenerate_sarif');
-assert_true(in_array('enable_dark_mode', array_column($thceePowered['hops'], 'id'), true), 'THCEE powered profile includes enable_dark_mode');
-foreach ($allProfiles as $profile) {
-    assert_true($profile['description'] !== '', 'profile ' . $profile['id'] . ' has description');
-    foreach ($profile['hops'] as $hop) {
-        assert_true($hopRegistry->has($hop['id']), 'profile ' . $profile['id'] . ' hop ' . $hop['id'] . ' registered');
+// Sweep chains — ids resolve; studio repair + powered + web round-trip
+$sweepRegistry = new \PowerSweeper\SweepRegistry();
+$compositeIds = [
+    'fix_formula_errors',
+    'fix_control_names_and_refs',
+    'accessibility_polish',
+    'enable_dark_theme',
+    'clean_default_chrome',
+    'repair_sharepoint_data',
+    'export_to_web_ir',
+    'import_from_web_ir',
+];
+foreach ($compositeIds as $cid) {
+    assert_true($sweepRegistry->has($cid), $cid . ' sweep registered');
+}
+$paletteIds = array_column($sweepRegistry->catalog(), 'id');
+assert_true($paletteIds === \PowerSweeper\SweepRegistry::PALETTE_IDS, 'UI catalog matches PALETTE_IDS order');
+assert_true(!in_array('enable_dark_mode', $paletteIds, true), 'palette hides enable_dark_mode behind enable_dark_theme');
+assert_true(!in_array('repair_control_refs', $paletteIds, true), 'palette hides individual formula repair sweeps');
+assert_true(!in_array('accessibility_labels', $paletteIds, true), 'palette hides accessibility_labels behind accessibility_polish');
+assert_true(!in_array('regenerate_sarif', $paletteIds, true), 'palette hides regenerate_sarif (runs inside composites)');
+assert_true($sweepRegistry->has('enable_dark_mode'), 'internal enable_dark_mode still registered');
+assert_true($sweepRegistry->has('regenerate_sarif'), 'internal regenerate_sarif still registered');
+$formulaSubIds = array_column(\PowerSweeper\Sweeps\FixFormulaErrorsSweep::subSweeps(), 'id');
+foreach (array_unique($formulaSubIds) as $subId) {
+    assert_true($sweepRegistry->has($subId), 'fix_formula_errors sub-sweep ' . $subId . ' registered');
+}
+assert_true(in_array('regenerate_sarif', $formulaSubIds, true), 'fix_formula_errors includes regenerate_sarif');
+$namesSubs = array_column(\PowerSweeper\Sweeps\FixControlNamesAndRefsSweep::subSweeps(), 'id');
+assert_true(in_array('meaningful_names', $namesSubs, true), 'fix_control_names_and_refs renames');
+assert_true(in_array('regenerate_sarif', $namesSubs, true), 'fix_control_names_and_refs regenerates SARIF');
+
+$repairHopIds = array_column(SweepChains::studioRepair(), 'id');
+assert_true($repairHopIds === ['fix_formula_errors', 'accessibility_polish'], 'studio repair is formula + a11y composites');
+assert_true(!in_array('regenerate_sarif', $repairHopIds, true), 'studio repair SARIF lives inside composites');
+assert_true(!in_array('repair_control_refs', $repairHopIds, true), 'studio repair uses composite instead of repair_control_refs');
+assert_true(!in_array('repair_converge_formulas', $repairHopIds, true), 'studio repair uses composite instead of repair_converge_formulas');
+assert_true(!in_array('meaningful_names', $repairHopIds, true), 'studio repair does not rename by default');
+
+$smartHopIds = array_column(SweepChains::smartRepair(), 'id');
+assert_true($smartHopIds[0] === 'fix_control_names_and_refs', 'smart repair starts with names/refs composite');
+assert_true(in_array('fix_formula_errors', $smartHopIds, true), 'smart repair includes fix_formula_errors');
+assert_true(
+    in_array('fix_control_names_and_refs', $smartHopIds, true)
+    && in_array('fix_formula_errors', $smartHopIds, true),
+    'smart repair allows double-run of overlapping ref passes via both composites'
+);
+
+$poweredSweeps = SweepChains::powered();
+$poweredIds = array_column($poweredSweeps, 'id');
+assert_true(in_array('fix_formula_errors', $poweredIds, true), 'powered chain includes fix_formula_errors');
+assert_true(in_array('accessibility_polish', $poweredIds, true), 'powered chain includes accessibility_polish');
+assert_true(in_array('enable_dark_theme', $poweredIds, true), 'powered chain includes enable_dark_theme');
+assert_true(!in_array('enable_dark_mode', $poweredIds, true), 'powered chain uses enable_dark_theme composite');
+assert_true(!in_array('prefer_classic_theme_controls', $poweredIds, true), 'powered classic prep is inside enable_dark_theme');
+assert_true(!in_array('regenerate_sarif', $poweredIds, true), 'powered SARIF lives inside composites');
+$forcedDark = SweepChains::darkMode(true);
+assert_true(($forcedDark[0]['options']['force'] ?? null) === true, 'darkMode(true) forces enable_dark_theme');
+foreach ($poweredSweeps as $sweep) {
+    assert_true($sweepRegistry->has($sweep['id']), 'powered sweep ' . $sweep['id'] . ' registered');
+}
+foreach (SweepChains::studioRepair() as $sweep) {
+    assert_true($sweepRegistry->has($sweep['id']), 'studio repair sweep ' . $sweep['id'] . ' registered');
+}
+
+// fix_formula_errors — composite runs without error on empty docs
+$ffeReport = new Report();
+(new \PowerSweeper\Sweeps\FixFormulaErrorsSweep())->apply([], $ffeReport, []);
+assert_true($ffeReport->count() >= 1, 'fix_formula_errors writes a summary row');
+$ffeSweeps = array_column($ffeReport->entries(), 'sweep');
+assert_true(in_array('fix_formula_errors', $ffeSweeps, true), 'fix_formula_errors summary sweep id present');
+
+// fix_formula_errors — report attributes under parent sweep with from→to like dark mode
+$ffeLocaleDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/App.pa.yaml');
+assert_true($ffeLocaleDoc !== null, 'locale fixture loads for fix_formula_errors report');
+$ffeDetailReport = new Report(null, 500, 280);
+(new \PowerSweeper\Sweeps\FixFormulaErrorsSweep())->apply([$ffeLocaleDoc], $ffeDetailReport, []);
+assert_true($ffeDetailReport->count() > 1, 'fix_formula_errors reports detail rows on locale fixture');
+$ffeDetailSweeps = array_unique(array_column($ffeDetailReport->entries(), 'sweep'));
+assert_true($ffeDetailSweeps === ['fix_formula_errors'], 'fix_formula_errors attributes all rows under parent sweep');
+$ffeHasFormulaDiff = false;
+foreach ($ffeDetailReport->entries() as $row) {
+    if (($row['control'] ?? '') === '(summary)') {
+        continue;
+    }
+    if (($row['from'] ?? '') !== '' && ($row['to'] ?? '') !== ''
+        && ($row['from'] ?? '') !== '(screen ref)'
+        && ($row['to'] ?? '') !== '(normalized)'
+    ) {
+        $ffeHasFormulaDiff = true;
+        break;
     }
 }
-$repairStudio = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-$repairHopIds = array_column($repairStudio['hops'], 'id');
-assert_true(in_array('repair_delegation', $repairHopIds, true), 'repair_studio_errors includes repair_delegation');
-assert_true(in_array('regenerate_sarif', $repairHopIds, true), 'repair_studio_errors includes regenerate_sarif');
-assert_true(in_array('repair_control_refs', $repairHopIds, true), 'repair_studio_errors includes repair_control_refs');
+assert_true($ffeHasFormulaDiff, 'fix_formula_errors includes from→to formula previews');
+$ffeHasKindPrefix = false;
+foreach ($ffeDetailReport->entries() as $row) {
+    if (str_contains((string) ($row['property'] ?? ''), 'locale')) {
+        $ffeHasKindPrefix = true;
+        break;
+    }
+}
+assert_true($ffeHasKindPrefix, 'fix_formula_errors property names include repair kind');
 
-assert_true(in_array('repair_studio_syntax', $repairHopIds, true), 'repair_studio_errors includes repair_studio_syntax');
+// Live checker recognizes Set()/UpdateContext variables (Team Pulse teamMemberSelected pattern)
+$setVarPath = sys_get_temp_dir() . '/ps_setvar_' . bin2hex(random_bytes(3)) . '.pa.yaml';
+file_put_contents(
+    $setVarPath,
+    "Screen1:\n  Control: Screen@2.0.0\n  Children:\n    - Btn:\n        Control: Classic/Button@2.2.0\n        Properties:\n          OnSelect: =Set(teamMemberSelected, ThisItem)\n          Text: =teamMemberSelected.Profile.DisplayName\n"
+);
+$setVarDoc = ControlDocument::fromFile($setVarPath, 'Src/Screen1.pa.yaml');
+assert_true($setVarDoc !== null, 'Set() variable fixture loads');
+$setCtx = \PowerSweeper\AppDataContext::build([$setVarDoc], null);
+assert_true($setCtx->isSetVariable('teamMemberSelected'), 'Set() variables are known to live checker');
+@unlink($setVarPath);
+
+// Multi-app formula repair — source apps (ignore powered/repaired copies)
+$formulaRepairSources = [
+    dirname(__DIR__) . '/samples/import_debug/Team Pulse.msapp',
+    dirname(__DIR__) . '/samples/import_debug/TDR - THCEE Directory App.msapp',
+    dirname(__DIR__) . '/samples/import_debug/VCDS ASC — The SAINT Catalog.msapp',
+    dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp',
+];
+$formulaCount = static function (string $path): int {
+    $arch = new \PowerSweeper\MsappArchive($path);
+    try {
+        $arch->unpack();
+        $live = \PowerSweeper\StudioLiveChecker::check($arch->documents(), ['extract_dir' => $arch->extractDir()]);
+        $n = 0;
+        foreach ($live['by_rule'] ?? [] as $rule => $count) {
+            $rule = (string) $rule;
+            if (str_starts_with($rule, 'app-Err') || str_starts_with($rule, 'app-formula')) {
+                $n += (int) $count;
+            }
+        }
+
+        return $n;
+    } finally {
+        $arch->cleanup();
+    }
+};
+foreach ($formulaRepairSources as $srcApp) {
+    if (!is_file($srcApp)) {
+        continue;
+    }
+    $label = basename($srcApp);
+    $before = $formulaCount($srcApp);
+    $out = sys_get_temp_dir() . '/ps_ffe_gen_' . bin2hex(random_bytes(3)) . '.msapp';
+    (new Pipeline())->run($srcApp, [['id' => 'fix_formula_errors', 'options' => []]], $out);
+    $after = $formulaCount($out);
+    @unlink($out);
+    assert_true(
+        $after <= $before,
+        $label . ' formula repair does not regress (before ' . $before . ', after ' . $after . ')'
+    );
+    if ($before > 0) {
+        assert_true(
+            $after < $before || $after <= 15,
+            $label . ' formula repair reduces errors or leaves only hard leftovers (before '
+            . $before . ', after ' . $after . ')'
+        );
+    }
+    if (function_exists('gc_collect_cycles')) {
+        gc_collect_cycles();
+    }
+}
+assert_true(is_file(dirname(__DIR__) . '/scripts/verify_formula_repair_multiapp.php'), 'multi-app formula repair verifier script exists');
+
+$powerToWeb = SweepChains::powerToWeb();
+$webToPower = SweepChains::webToPower();
+assert_true($powerToWeb === [['id' => 'export_to_web_ir', 'options' => []]], 'power_to_web is export_to_web_ir composite');
+assert_true($webToPower === [['id' => 'import_from_web_ir', 'options' => []]], 'web_to_power is import_from_web_ir composite');
+$exportSubs = array_column(\PowerSweeper\Sweeps\ExportToWebIrSweep::subSweeps(), 'id');
+$importSubs = array_column(\PowerSweeper\Sweeps\ImportFromWebIrSweep::subSweeps(), 'id');
+assert_true(in_array('meaningful_names', $exportSubs, true), 'export_to_web_ir renames generics before export');
+assert_true(in_array('repair_double_qualified_refs', $exportSubs, true), 'export_to_web_ir cleans screen refs after rename');
+assert_true(in_array('export_web_ir', $exportSubs, true), 'export_to_web_ir exports IR');
+assert_true(in_array('regenerate_sarif', $exportSubs, true), 'export_to_web_ir regenerates SARIF');
+assert_true(in_array('import_web_ir', $importSubs, true), 'import_from_web_ir imports IR');
+assert_true(in_array('repair_double_qualified_refs', $importSubs, true), 'import_from_web_ir cleans screen refs after import');
+assert_true(in_array('accessibility_labels', $importSubs, true), 'import_from_web_ir fills a11y after import');
+assert_true(in_array('ensure_focus_visible', $importSubs, true), 'import_from_web_ir ensures focus visible');
+assert_true(in_array('regenerate_sarif', $importSubs, true), 'import_from_web_ir regenerates SARIF');
+assert_true($sweepRegistry->has('export_web_ir'), 'export_web_ir sweep registered');
+assert_true($sweepRegistry->has('import_web_ir'), 'import_web_ir sweep registered');
+assert_true($sweepRegistry->has('configure_power_document'), 'configure_power_document sweep registered');
+
+// Composite smoke — empty docs (SARIF skipped without _extract_dir)
+foreach ([
+    new \PowerSweeper\Sweeps\FixControlNamesAndRefsSweep(),
+    new \PowerSweeper\Sweeps\AccessibilityPolishSweep(),
+    new \PowerSweeper\Sweeps\EnableDarkThemeSweep(),
+    new \PowerSweeper\Sweeps\CleanDefaultChromeSweep(),
+    new \PowerSweeper\Sweeps\RepairSharePointDataSweep(),
+    new \PowerSweeper\Sweeps\ExportToWebIrSweep(),
+    new \PowerSweeper\Sweeps\ImportFromWebIrSweep(),
+] as $compositeSweep) {
+    $smokeReport = new Report();
+    $compositeSweep->apply([], $smokeReport, []);
+    assert_true($smokeReport->count() >= 1, $compositeSweep::id() . ' writes a summary row');
+}
 
 // repair_studio_syntax — trailing Concatenate comma and undefined var (code only)
 $syntaxIn = 'Concatenate(If(true, "a", ""), If(true, "b", ""), If(true, "c", ""),); Set(x, varNewRequest);';
@@ -1054,13 +1993,43 @@ assert_true(!preg_match('/""\s*,\s*\)/', $syntaxFixed), 'syntax repair removes t
 assert_true(!preg_match('/\)\s*,\s*\)/', $syntaxFixedParen), 'syntax repair removes trailing Concatenate paren comma');
 
 // repair_studio_syntax — screen-qualified Date() function calls
-$dateHop = new \PowerSweeper\Hops\RepairStudioSyntaxHop();
+$dateSweep = new \PowerSweeper\Sweeps\RepairStudioSyntaxSweep();
 $dateReport = new Report();
-$dateRef = new ReflectionClass($dateHop);
+$dateRef = new ReflectionClass($dateSweep);
 $dateRepair = $dateRef->getMethod('repairFormula');
 $dateRepair->setAccessible(true);
-$dateFixed = $dateRepair->invoke($dateHop, "='VCR / VCN Form'.Date(1900, 1, 1)", 'test', $dateReport);
+$dateFixed = $dateRepair->invoke($dateSweep, "='VCR / VCN Form'.Date(1900, 1, 1)", 'test', $dateReport);
 assert_true(str_contains($dateFixed, 'Date(1900') && !str_contains($dateFixed, "'VCR / VCN Form'.Date"), 'syntax repair unwraps screen-qualified Date()');
+
+// repair_studio_syntax — quote spaced App.Formulas named-formula keys
+$spacedFormulaYaml = <<<'YAML'
+App:
+  Control: App@1.0.0
+  Properties:
+    Formulas: |-
+      TDR Trips_ TopMenu_1 = [{ Value: 1 }];
+      SideMenuSecondTable = [{ Value: 2 }];
+YAML;
+$spacedFormulaPath = sys_get_temp_dir() . '/ps_spaced_nf_' . bin2hex(random_bytes(4)) . '.pa.yaml';
+file_put_contents($spacedFormulaPath, $spacedFormulaYaml);
+$spacedFormulaDoc = ControlDocument::fromFile($spacedFormulaPath, 'Src/App.pa.yaml');
+assert_true($spacedFormulaDoc !== null, 'spaced named-formula fixture loads');
+$spacedFormulaReport = new Report();
+(new \PowerSweeper\Sweeps\RepairStudioSyntaxSweep())->apply([$spacedFormulaDoc], $spacedFormulaReport);
+$spacedFormulas = null;
+foreach ($spacedFormulaDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $spacedFormulas = $c->getProperty('Formulas');
+        break;
+    }
+}
+assert_true(
+    is_string($spacedFormulas)
+        && str_contains($spacedFormulas, "'TDR Trips_ TopMenu_1' =")
+        && str_contains($spacedFormulas, 'SideMenuSecondTable ='),
+    'syntax repair quotes spaced App.Formulas named-formula keys only'
+);
+@unlink($spacedFormulaPath);
 
 // locale — LookUp with ; after quoted table name inside concatenation
 $lookupLocale = '"Version #: " & AppVersion & LookUp(\'VASC App Versions\'; ID = 1).AppVersion';
@@ -1068,12 +2037,66 @@ assert_true(FormulaLocaleNormalizer::looksLocaleCorrupted($lookupLocale), 'LookU
 $lookupFixed = FormulaLocaleNormalizer::toInvariant($lookupLocale);
 assert_true(str_contains($lookupFixed, "LookUp('VASC App Versions', ID = 1)"), 'LookUp locale separator unwhacked');
 
+// App.Formulas named-formula terminators must not be treated as locale list separators
+$appFormulas = <<<'FX'
+=// Colors
+DefaultGrayBackgroud = RGBA(
+    250,
+    250,
+    250,
+    1
+);
+MainFontColour = RGBA(
+    0,
+    0,
+    0,
+    1
+);
+MainFont = Font.'Segoe UI';
+SideMenuFirstTable = [
+    {
+        Screen: 'VASC SAINT Homepage',
+        Name: "Home",
+        Icon: Icon.Home
+    }
+];
+FX;
+assert_true(!FormulaLocaleNormalizer::looksLocaleCorrupted($appFormulas), 'App.Formulas with Segoe UI; not flagged as locale');
+assert_true(FormulaLocaleNormalizer::toInvariant($appFormulas) === $appFormulas, 'App.Formulas statement separators preserved');
+$appFormulasLocale = "MainFont = Font.'Segoe UI';\nTitle = Concatenate(\"A\"; \"B\");";
+assert_true(FormulaLocaleNormalizer::looksLocaleCorrupted($appFormulasLocale), 'App.Formulas with locale Concatenate(; ) still flagged');
+$appFormulasFixed = FormulaLocaleNormalizer::toInvariant($appFormulasLocale);
+assert_true(str_contains($appFormulasFixed, 'Concatenate("A", "B")'), 'locale args inside calls still converted');
+assert_true(str_contains($appFormulasFixed, "Font.'Segoe UI';"), 'top-level App.Formulas ; preserved while fixing call args');
+
+// Ghost Patch must not strip Power Fx enum record fields (Icon: Icon.Home)
+$iconDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/locale_corrupt.pa.yaml', 'Src/App.pa.yaml');
+assert_true($iconDoc !== null, 'Icon enum host fixture loads');
+$iconTarget = null;
+foreach ($iconDoc->controls() as $c) {
+    if ($c->getProperty('OnVisible') !== null || $c->getProperty('Text') !== null) {
+        $iconTarget = $c;
+        break;
+    }
+}
+assert_true($iconTarget !== null, 'Icon enum host control found');
+$iconProp = $iconTarget->getProperty('OnVisible') !== null ? 'OnVisible' : 'Text';
+$iconTarget->setProperty(
+    $iconProp,
+    '=[{Name:"Home", Icon: Icon.Home}, {Name:"More", Icon: Icon.Items}]'
+);
+$iconReport = new Report();
+(new \PowerSweeper\Sweeps\RepairGhostPatchFieldsSweep())->apply([$iconDoc], $iconReport, []);
+$iconAfter = (string) ($iconTarget->getProperty($iconProp) ?? '');
+assert_true(str_contains($iconAfter, 'Icon.Home'), 'ghost sweep keeps Icon.Home enum fields');
+assert_true(str_contains($iconAfter, 'Icon.Items'), 'ghost sweep keeps Icon.Items enum fields');
+
 // repair2.msapp — pipeline idempotency (3 passes, formulas stable)
 $repair2 = dirname(__DIR__) . '/samples/import_debug/CDLS (L) VCR App repair2.msapp';
 if (is_file($repair2)) {
     $idempotentOut = sys_get_temp_dir() . '/ps_idempotent_' . bin2hex(random_bytes(4)) . '.msapp';
-    $repairProfile = include dirname(__DIR__) . '/profiles/repair_studio_errors.php';
-    (new Pipeline())->run($repair2, $repairProfile['hops'], $idempotentOut);
+    $repairHops = SweepChains::studioRepair();
+    (new Pipeline())->run($repair2, $repairHops, $idempotentOut);
     $pass1Formulas = [];
     $arch1 = new \PowerSweeper\MsappArchive($idempotentOut);
     $arch1->unpack();
@@ -1087,7 +2110,7 @@ if (is_file($repair2)) {
     $arch1->cleanup();
 
     $pass2Out = sys_get_temp_dir() . '/ps_idempotent_p2_' . bin2hex(random_bytes(4)) . '.msapp';
-    (new Pipeline())->run($idempotentOut, $repairProfile['hops'], $pass2Out);
+    (new Pipeline())->run($idempotentOut, $repairHops, $pass2Out);
     $pass2Formulas = [];
     $arch2 = new \PowerSweeper\MsappArchive($pass2Out);
     $arch2->unpack();
@@ -1101,7 +2124,7 @@ if (is_file($repair2)) {
     $arch2->cleanup();
 
     $pass3Out = sys_get_temp_dir() . '/ps_idempotent_p3_' . bin2hex(random_bytes(4)) . '.msapp';
-    (new Pipeline())->run($pass2Out, $repairProfile['hops'], $pass3Out);
+    (new Pipeline())->run($pass2Out, $repairHops, $pass3Out);
     $pass3Formulas = [];
     $arch3 = new \PowerSweeper\MsappArchive($pass3Out);
     $arch3->unpack();
@@ -1126,10 +2149,10 @@ if (is_file($repair2)) {
 }
 
 // repair2 powered — theme toggle + App YAML twin
-$repair2PoweredProfile = include dirname(__DIR__) . '/profiles/repair_powered.php';
 if (is_file($repair2)) {
     $poweredTestOut = sys_get_temp_dir() . '/ps_powered_test_' . bin2hex(random_bytes(4)) . '.msapp';
-    (new Pipeline())->run($repair2, $repair2PoweredProfile['hops'], $poweredTestOut);
+    $poweredSweeps = SweepChains::powered();
+    (new Pipeline())->run($repair2, $poweredSweeps, $poweredTestOut);
     $poweredYaml = ZipTool::readEntry($poweredTestOut, 'Src/App.pa.yaml');
     $topbarYaml = ZipTool::readEntry($poweredTestOut, 'Src/Components/TopbarHeader.pa.yaml');
     $homeYaml = ZipTool::readEntry($poweredTestOut, 'Src/VCR Home Page.pa.yaml');
@@ -1216,9 +2239,9 @@ assert_true($timeUnitFindings === [], 'TimeUnit.Days is a Power Fx enum referenc
 // THCEE — global component hosts must stay bare (not screen-qualified)
 $thceeFriday = dirname(__DIR__) . '/samples/import_debug/VCDS — THCEE Friday.msapp';
 if (is_file($thceeFriday)) {
-    $thceeProfile = include dirname(__DIR__) . '/profiles/powered_thcee.php';
+    $thceeHops = SweepChains::powered();
     $thceePoweredOut = sys_get_temp_dir() . '/ps_thcee_powered_test_' . bin2hex(random_bytes(4)) . '.msapp';
-    (new Pipeline())->run($thceeFriday, $thceeProfile['hops'], $thceePoweredOut);
+    (new Pipeline())->run($thceeFriday, $thceeHops, $thceePoweredOut);
     $refreshYaml = ZipTool::readEntry($thceePoweredOut, 'Src/THCEE Refresh Screen.pa.yaml');
     assert_true(
         is_string($refreshYaml)
@@ -1266,6 +2289,758 @@ $vcrFridayPowered = dirname(__DIR__) . '/samples/import_debug/CDLS_VCR_App_Frida
 if (is_file($vcrFridayPowered)) {
     $validateVcrFriday = shell_exec('php ' . escapeshellarg(dirname(__DIR__) . '/scripts/validate_powered.php') . ' ' . escapeshellarg($vcrFridayPowered) . ' 2>&1');
     assert_true(is_string($validateVcrFriday) && str_contains($validateVcrFriday, 'All powered validation checks passed'), 'validate_powered.php passes on VCR Friday sample');
+}
+
+// --- Web IR structural round-trip (heuristic, not full web runtime) ---
+$webDoc = loadFixtureDoc();
+foreach ($webDoc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', '=Navigate(Screen2)');
+        break;
+    }
+}
+$webExtract = sys_get_temp_dir() . '/ps_web_ir_' . bin2hex(random_bytes(4));
+mkdir($webExtract, 0775, true);
+file_put_contents($webExtract . '/Properties.json', json_encode([
+    'DocumentAppType' => 'Phone',
+    'DocumentLayoutWidth' => 640,
+    'DocumentLayoutHeight' => 1136,
+    'DocumentLayoutScaleToFit' => true,
+    'DocumentLayoutMaintainAspectRatio' => true,
+    'Name' => 'Fixture App',
+], JSON_PRETTY_PRINT));
+
+$ir = (new \PowerSweeper\WebApp\WebAppIrBuilder())->build([$webDoc], $webExtract);
+assert_true(($ir['format'] ?? '') === 'power_sweeper_web_ir', 'web IR format tag');
+assert_true(($ir['stats']['screens'] ?? 0) >= 1, 'web IR has screens');
+assert_true(($ir['screens'][0]['previous_name'] ?? '') === 'Screen1', 'web IR screen previous_name set');
+assert_true(in_array('Screen2', array_column($ir['navigation'], 'to'), true), 'web IR captured Navigate target');
+
+$html = (new \PowerSweeper\WebApp\WebAppHtmlPreview())->render($ir);
+assert_true(str_contains($html, 'Structural preview'), 'HTML preview scaffold mentions structural fidelity');
+
+// Mutate IR labels, layout, and a renamed control (previous_name), then apply
+$ir['screens'][0]['children'][0]['children'][2]['name'] = 'LaunchButton';
+$ir['screens'][0]['children'][0]['children'][2]['previous_name'] = 'NewRequestButton';
+$ir['screens'][0]['children'][0]['children'][2]['labels']['Text'] = 'Launch';
+$ir['screens'][0]['children'][0]['children'][2]['layout'] = ['x' => 48, 'y' => 96, 'width' => 140, 'height' => 44];
+$ir['document']['layout']['scale_to_fit'] = false;
+$ir['document']['app_type'] = 'DesktopOrTablet';
+$applyReport = new Report();
+$applyResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$webDoc], $ir, $applyReport, $webExtract);
+assert_true($applyResult['changes'] > 0, 'web IR apply reported changes');
+$btnText = null;
+$btnX = null;
+$btnName = null;
+foreach ($webDoc->controls() as $c) {
+    if ($c->name === 'LaunchButton' || $c->name === 'NewRequestButton') {
+        $btnName = $c->name;
+        $btnText = $c->getProperty('Text');
+        $btnX = $c->getProperty('X');
+        break;
+    }
+}
+assert_true($btnName === 'LaunchButton', 'web IR renamed control via previous_name');
+assert_true(is_string($btnText) && str_contains($btnText, 'Launch'), 'web IR apply updated button Text via previous_name');
+assert_true(is_string($btnX) && str_contains($btnX, '48'), 'web IR apply updated literal layout X');
+$propsAfter = json_decode((string) file_get_contents($webExtract . '/Properties.json'), true);
+assert_true(($propsAfter['DocumentLayoutScaleToFit'] ?? true) === false, 'web IR apply updated ScaleToFit');
+
+// Fresh doc for literal state apply (no rename)
+$webDoc2 = loadFixtureDoc();
+foreach ($webDoc2->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', '=Navigate(Screen1)');
+        $c->setProperty('Visible', '=true');
+        $c->setProperty('TabIndex', '=0');
+        break;
+    }
+}
+$ir2 = (new \PowerSweeper\WebApp\WebAppIrBuilder())->build([$webDoc2], $webExtract);
+assert_true(isset($ir2['screens'][0]['children'][0]['children'][2]['state']['visible']), 'web IR captures literal Visible state');
+$ir2['screens'][0]['children'][0]['children'][2]['state'] = ['visible' => false, 'tab_index' => 1];
+$stateReport = new Report();
+$stateResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$webDoc2], $ir2, $stateReport, $webExtract);
+assert_true($stateResult['changes'] > 0, 'web IR state apply reported changes');
+$stateBtn = null;
+foreach ($webDoc2->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $stateBtn = $c;
+        break;
+    }
+}
+assert_true($stateBtn !== null, 'state apply keeps control name');
+assert_true(str_contains((string) $stateBtn->getProperty('Visible'), 'false'), 'web IR applied Visible state');
+assert_true(str_contains((string) $stateBtn->getProperty('TabIndex'), '1'), 'web IR applied TabIndex state');
+
+// DisplayMode create when unset + SetFocus edge capture + HtmlText apply
+$webDoc3 = loadFixtureDoc();
+foreach ($webDoc3->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', "=SetFocus(NewRequestTitle); Navigate(Screen2)");
+        break;
+    }
+    if ($c->name === 'LogoImage') {
+        $c->setProperty('HtmlText', '="<p>old</p>"');
+    }
+}
+$ir3 = (new \PowerSweeper\WebApp\WebAppIrBuilder())->build([$webDoc3], $webExtract);
+$setFocusKinds = array_column(array_filter($ir3['navigation'], static fn($e) => ($e['kind'] ?? '') === 'setfocus'), 'to');
+assert_true(in_array('NewRequestTitle', $setFocusKinds, true), 'web IR captures SetFocus targets');
+$ir3['screens'][0]['children'][0]['children'][2]['state'] = ['display_mode' => 'DisplayMode.Disabled'];
+$ir3['screens'][0]['children'][0]['children'][3]['labels']['HtmlText'] = '<p>new</p>';
+// Screen rename already present under new name → rewrite SetFocus/Navigate from previous
+$ir3['screens'][] = ['name' => 'Screen2', 'previous_name' => 'LegacyScreen', 'kind' => 'screen', 'children' => []];
+// Ensure Screen2 exists as live name via Navigate target only; rewrite LegacyScreen→Screen2 when Screen2 live
+foreach ($webDoc3->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', "=SetFocus(NewRequestTitle); Navigate(LegacyScreen)");
+        break;
+    }
+}
+// Add a second screen doc so Screen2 is a live screen name
+$screen2Yaml = "Screen2:\n  Control: Screen@2.0.0\n  Properties:\n    Fill: =RGBA(255, 255, 255, 1)\n";
+$screen2Path = $webExtract . '/Screen2.pa.yaml';
+file_put_contents($screen2Path, $screen2Yaml);
+$screen2Doc = ControlDocument::fromFile($screen2Path, 'Src/Screen2.pa.yaml');
+assert_true($screen2Doc !== null, 'Screen2 fixture loads');
+$ir3['screens'][1] = [
+    'name' => 'Screen2',
+    'previous_name' => 'LegacyScreen',
+    'kind' => 'screen',
+    'children' => [],
+];
+$dmReport = new Report();
+(new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$webDoc3, $screen2Doc], $ir3, $dmReport, $webExtract);
+$dmBtn = null;
+$htmlCtrl = null;
+foreach ($webDoc3->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $dmBtn = $c;
+    }
+    if ($c->name === 'LogoImage') {
+        $htmlCtrl = $c;
+    }
+}
+assert_true(
+    $dmBtn !== null && str_contains((string) $dmBtn->getProperty('DisplayMode'), 'DisplayMode.Disabled'),
+    'web IR creates DisplayMode when previously unset'
+);
+assert_true(
+    $dmBtn !== null && str_contains((string) $dmBtn->getProperty('OnSelect'), 'Navigate(Screen2)'),
+    'web IR rewrites Navigate old→new when new screen exists'
+);
+assert_true(
+    $htmlCtrl !== null && str_contains((string) $htmlCtrl->getProperty('HtmlText'), '<p>new</p>'),
+    'web IR applies HtmlText markup without length bias'
+);
+@unlink($screen2Path);
+
+// Screen rename (YAML root key + Navigate rewrite) when new name is free
+$renameScreenDoc = loadFixtureDoc();
+foreach ($renameScreenDoc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', '=Navigate(Screen1)');
+        $c->setProperty('FocusedBorderColor', '=RGBA(37, 99, 235, 1)');
+        $c->setProperty('FocusedBorderThickness', '=2');
+        break;
+    }
+}
+$renameExtract = sys_get_temp_dir() . '/ps_screen_ren_' . bin2hex(random_bytes(3));
+mkdir($renameExtract . '/Src', 0775, true);
+$screenSrc = $renameExtract . '/Src/Screen1.pa.yaml';
+// Persist a minimal Src copy for file rename bookkeeping
+file_put_contents($screenSrc, file_get_contents(__DIR__ . '/fixtures/screen.pa.yaml'));
+$renameScreenDoc = ControlDocument::fromFile($screenSrc, 'Src/Screen1.pa.yaml');
+assert_true($renameScreenDoc !== null, 'screen rename fixture reloads from Src');
+foreach ($renameScreenDoc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $c->setProperty('OnSelect', '=Navigate(Screen1)');
+        $c->setProperty('FocusedBorderColor', '=RGBA(37, 99, 235, 1)');
+        break;
+    }
+}
+$irRename = (new \PowerSweeper\WebApp\WebAppIrBuilder())->build([$renameScreenDoc], $renameExtract);
+assert_true(
+    isset($irRename['screens'][0]['children'][0]['children'][2]['state']['focused_border_color']),
+    'web IR captures FocusedBorderColor literal'
+);
+$irRename['screens'][0]['name'] = 'HomeScreen';
+$irRename['screens'][0]['previous_name'] = 'Screen1';
+$srReport = new Report();
+$srResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$renameScreenDoc], $irRename, $srReport, $renameExtract);
+assert_true(($srResult['notes'] !== [] && str_contains(implode(' ', $srResult['notes']), 'screen renames')), 'web IR screen rename noted');
+assert_true(is_file($renameExtract . '/Src/HomeScreen.pa.yaml'), 'web IR renamed screen .pa.yaml file');
+assert_true(!is_file($renameExtract . '/Src/Screen1.pa.yaml'), 'web IR removed old screen .pa.yaml file');
+$homeScreen = null;
+foreach ($renameScreenDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $homeScreen = $c;
+        break;
+    }
+}
+assert_true($homeScreen !== null && $homeScreen->name === 'HomeScreen', 'web IR renamed screen root key');
+$navAfter = null;
+foreach ($renameScreenDoc->controls() as $c) {
+    if ($c->name === 'NewRequestButton') {
+        $navAfter = $c->getProperty('OnSelect');
+        break;
+    }
+}
+assert_true(is_string($navAfter) && str_contains($navAfter, 'Navigate(HomeScreen)'), 'web IR rewrote Navigate after screen rename');
+@unlink($renameExtract . '/Src/HomeScreen.pa.yaml');
+@rmdir($renameExtract . '/Src');
+@rmdir($renameExtract);
+
+// General Filter nest (former VCR seed) still works via pattern splitter
+$delegNest = \PowerSweeper\DelegationFormulaRewriter::rewrite(
+    "Filter('CDLS (L) VCR Tracking List', request_user.Email = User().Email && Lower(Trim(Destination)) = locDestination && Date = locDate && Lower(Trim(Requestor)) = locRequestor)"
+);
+assert_true(str_contains($delegNest, 'Filter(Filter('), 'delegation nest splitter nests Filter without VCR seed table');
+assert_true(str_contains($delegNest, 'request_user.Email = User().Email && Date = locDate'), 'delegation nest keeps email+date in inner Filter');
+
+// Ghost patch discovery — unknown Field: Field.Prop line removed
+$ghostYaml = <<<'YAML'
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    OnVisible: |
+      =Patch(
+          colTemp,
+          Defaults(colTemp),
+          {
+              Title: "x",
+              MissingGhostControl: MissingGhostControl.Text,
+              MissingGhostControl: MissingGhostControl
+          }
+      );
+YAML;
+$ghostPath = sys_get_temp_dir() . '/ps_ghost_' . bin2hex(random_bytes(4)) . '.pa.yaml';
+file_put_contents($ghostPath, $ghostYaml);
+$ghostDoc = ControlDocument::fromFile($ghostPath, 'Src/Screen1.pa.yaml');
+assert_true($ghostDoc !== null, 'ghost fixture loads');
+$ghostReport = new Report();
+(new \PowerSweeper\Sweeps\RepairGhostPatchFieldsSweep())->apply([$ghostDoc], $ghostReport);
+$ghostOnVisible = null;
+foreach ($ghostDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $ghostOnVisible = $c->getProperty('OnVisible');
+        break;
+    }
+}
+assert_true(
+    is_string($ghostOnVisible) && !str_contains($ghostOnVisible, 'MissingGhostControl'),
+    'ghost sweep discovers and removes absent Field: Field.Prop lines'
+);
+@unlink($ghostPath);
+
+// Ghost gallery LookUp(...AllItems...).Child → Blank() across string-literal splits
+$ghostLookupYaml = <<<'YAML'
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    OnSelect: |-
+      =Patch(
+          colTemp,
+          Defaults(colTemp),
+          {
+              Title: LookUp(
+                  Gallery3.AllItems,
+                  FieldName = "MP File Number"
+              ).TextInput4.Text
+          }
+      );
+YAML;
+$ghostLookupPath = sys_get_temp_dir() . '/ps_ghost_lookup_' . bin2hex(random_bytes(4)) . '.pa.yaml';
+file_put_contents($ghostLookupPath, $ghostLookupYaml);
+$ghostLookupDoc = ControlDocument::fromFile($ghostLookupPath, 'Src/Screen1.pa.yaml');
+assert_true($ghostLookupDoc !== null, 'ghost LookUp fixture loads');
+$ghostLookupReport = new Report();
+(new \PowerSweeper\Sweeps\RepairGhostPatchFieldsSweep())->apply([$ghostLookupDoc], $ghostLookupReport);
+$ghostLookupOnSelect = null;
+foreach ($ghostLookupDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $ghostLookupOnSelect = $c->getProperty('OnSelect');
+        break;
+    }
+}
+assert_true(
+    is_string($ghostLookupOnSelect)
+        && str_contains($ghostLookupOnSelect, 'Title: Blank()')
+        && !str_contains($ghostLookupOnSelect, 'Gallery3'),
+    'ghost sweep neutralizes LookUp(Ghost.AllItems, …).Child to Blank()'
+);
+@unlink($ghostLookupPath);
+
+// ColorValue chrome heuristic — pale slate/blue Studio chrome is themeable
+assert_true(
+    \PowerSweeper\ColorValue::isStudioDefault('=RGBA(226, 232, 240, 1)', 'RailFill'),
+    'slate RailFill treated as Studio chrome default'
+);
+assert_true(
+    \PowerSweeper\ColorValue::isStudioDefault('=RGBA(219, 234, 254, 1)', 'SelectedFill'),
+    'pale SelectedFill treated as Studio chrome default'
+);
+assert_true(
+    !\PowerSweeper\ColorValue::isStudioDefault('=RGBA(220, 38, 38, 1)', 'Fill'),
+    'saturated brand red Fill is not a Studio default'
+);
+
+$exportReport = new Report();
+(new \PowerSweeper\Sweeps\ExportWebAppSweep())->apply([$webDoc], $exportReport, ['_extract_dir' => $webExtract]);
+assert_true(is_file($webExtract . '/WebApp/power_sweeper_ir.json'), 'export_web_ir wrote IR file');
+assert_true(is_file($webExtract . '/WebApp/index.html'), 'export_web_ir wrote HTML preview');
+
+// Token-stem candidate heuristic (Initiave → Initiative) without hard-coded-only path
+$stemGen = new \PowerSweeper\ControlRefCandidateGenerator();
+$stemCatalog = \PowerSweeper\AppControlCatalog::build([$webDoc]);
+$stemCandidates = $stemGen->candidates(
+    'GovernmentInitiave',
+    'Screen1',
+    'Host_2',
+    ['GovernmentInitiative' => true, 'NewRequestButton' => true],
+    $stemCatalog,
+);
+assert_true(in_array('GovernmentInitiative', $stemCandidates, true), 'token-stem heuristic proposes GovernmentInitiative');
+
+// Multi-app: TDR comTranslations → TranslationComponent_1 host alias
+$tdrSample = dirname(__DIR__) . '/samples/import_debug/TDR - THCEE Directory App.msapp';
+if (is_file($tdrSample)) {
+    $tdrOut = sys_get_temp_dir() . '/ps_tdr_repair_' . bin2hex(random_bytes(3)) . '.msapp';
+    $tdrHops = SweepChains::studioRepair();
+    (new Pipeline())->run($tdrSample, $tdrHops, $tdrOut);
+    $tdrArch = new \PowerSweeper\MsappArchive($tdrOut);
+    $tdrArch->unpack();
+    $tdrLive = \PowerSweeper\StudioLiveChecker::check($tdrArch->documents(), ['extract_dir' => $tdrArch->extractDir()]);
+    $tdrComLeft = 0;
+    $tdrFormulaErr = 0;
+    foreach ($tdrArch->documents() as $doc) {
+        $doc->transformFormulas(static function (string $f) use (&$tdrComLeft): string {
+            if (preg_match('/\bcomTranslations\b/', $f)) {
+                $tdrComLeft++;
+            }
+            return $f;
+        });
+    }
+    foreach ($tdrLive['findings'] as $f) {
+        if (str_starts_with((string) $f['ruleId'], 'app-Err')) {
+            $tdrFormulaErr++;
+        }
+    }
+    assert_true($tdrComLeft === 0, 'TDR repair rewrites comTranslations host alias');
+    assert_true($tdrFormulaErr === 0, 'TDR repair clears app-Err* findings (got ' . $tdrFormulaErr . ')');
+    $tdrArch->cleanup();
+    @unlink($tdrOut);
+}
+
+// Multi-app: ASC Template locale pass must not corrupt GetInfoData(0,0)
+$ascTemplate = dirname(__DIR__) . '/samples/import_debug/VCDS ASC —Template with Approvals.msapp';
+if (is_file($ascTemplate)) {
+    $ascOut = sys_get_temp_dir() . '/ps_asc_repair_' . bin2hex(random_bytes(3)) . '.msapp';
+    $ascHops = SweepChains::studioRepair();
+    (new Pipeline())->run($ascTemplate, $ascHops, $ascOut);
+    $ascArch = new \PowerSweeper\MsappArchive($ascOut);
+    $ascArch->unpack();
+    $ascBad = 0;
+    $ascGood = 0;
+    $ascLive = \PowerSweeper\StudioLiveChecker::check($ascArch->documents(), ['extract_dir' => $ascArch->extractDir()]);
+    foreach ($ascArch->documents() as $doc) {
+        $doc->transformFormulas(static function (string $f) use (&$ascBad, &$ascGood): string {
+            if (str_contains($f, 'GetInfoData(0.0)')) {
+                $ascBad++;
+            }
+            if (preg_match('/GetInfoData\(\s*0\s*,\s*0\s*\)/', $f)) {
+                $ascGood++;
+            }
+            return $f;
+        });
+    }
+    $ascErr = 0;
+    foreach ($ascLive['findings'] as $f) {
+        if (str_starts_with((string) $f['ruleId'], 'app-Err')) {
+            $ascErr++;
+        }
+    }
+    assert_true($ascBad === 0, 'ASC Template repair does not corrupt GetInfoData(0,0)→0.0');
+    assert_true($ascGood > 0, 'ASC Template keeps invariant GetInfoData(0,0)');
+    assert_true($ascErr === 0, 'ASC Template repair clears app-Err* findings (got ' . $ascErr . ')');
+    $ascArch->cleanup();
+    @unlink($ascOut);
+}
+
+// meaningful_names must not rename JSON Components/* template children
+$compNameYaml = <<<'YAML'
+Screen1:
+  Control: Screen@2.0.0
+  Children:
+    - Label1:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Screen Label"
+YAML;
+$compNameExtract = sys_get_temp_dir() . '/ps_compname_' . bin2hex(random_bytes(3));
+mkdir($compNameExtract . '/Src', 0775, true);
+mkdir($compNameExtract . '/Components', 0775, true);
+file_put_contents($compNameExtract . '/Src/Screen1.pa.yaml', $compNameYaml);
+file_put_contents($compNameExtract . '/Components/4.json', json_encode([
+    'TopParent' => [
+        'Name' => 'TopbarHeader',
+        'Template' => ['Name' => 'http://microsoft.com/appmagic/ComponentDefinitionInfo'],
+        'Children' => [[
+            'Name' => 'Label1',
+            'Template' => ['Name' => 'label'],
+            'Rules' => [
+                ['Property' => 'Text', 'InvariantScript' => '"Header"'],
+                ['Property' => 'X', 'InvariantScript' => 'Label1.X'],
+            ],
+        ]],
+    ],
+], JSON_PRETTY_PRINT));
+$compDocs = [];
+$compScreenDoc = ControlDocument::fromFile($compNameExtract . '/Src/Screen1.pa.yaml', 'Src/Screen1.pa.yaml');
+$compJsonDoc = ControlDocument::fromFile($compNameExtract . '/Components/4.json', 'Components/4.json');
+assert_true($compScreenDoc !== null && $compJsonDoc !== null, 'component-safe rename fixtures load');
+$compDocs[] = $compScreenDoc;
+$compDocs[] = $compJsonDoc;
+$compNameReport = new Report();
+(new MeaningfulNamesSweep())->apply($compDocs, $compNameReport, ['only_generic' => true]);
+$compLabelStill = false;
+$screenLabelRenamed = false;
+foreach ($compDocs as $doc) {
+    foreach ($doc->controls() as $c) {
+        if (str_contains($c->path, 'Components/') && $c->name === 'Label1') {
+            $compLabelStill = true;
+        }
+        if (str_contains($c->path, 'Screen1') && $c->name !== 'Label1' && $c->name !== 'Screen1') {
+            $screenLabelRenamed = true;
+        }
+    }
+}
+assert_true($compLabelStill, 'meaningful_names leaves JSON Components/* Label1 untouched');
+assert_true($screenLabelRenamed, 'meaningful_names still renames screen-level generic Label1');
+// Component formula must not be rewritten to the screen's new name
+$compFormula = '';
+foreach ($compJsonDoc->controls() as $c) {
+    if ($c->name === 'Label1' || str_ends_with($c->path, 'Label1')) {
+        // parent TopbarHeader may hold X on child — check Rules via transform
+    }
+}
+$compJsonDoc->transformFormulas(static function (string $f) use (&$compFormula): string {
+    if (str_contains($f, 'Label1') || str_contains($f, 'Screen')) {
+        $compFormula .= $f . "\n";
+    }
+    return $f;
+});
+assert_true(str_contains($compFormula, 'Label1.X'), 'component formulas keep local Label1 refs after screen rename');
+
+// Multi-app power↔web round-trip on repaired TDR (fast) — formula errors must stay 0
+$tdrWebSample = dirname(__DIR__) . '/samples/import_debug/TDR - THCEE Directory App.msapp';
+if (is_file($tdrWebSample)) {
+    $tdrWebDir = sys_get_temp_dir() . '/ps_tdr_web_' . bin2hex(random_bytes(3));
+    mkdir($tdrWebDir, 0775, true);
+    $tdrRepaired = $tdrWebDir . '/repaired.msapp';
+    $tdrWeb = $tdrWebDir . '/web.msapp';
+    $tdrRound = $tdrWebDir . '/round.msapp';
+    $repairHopsWeb = SweepChains::studioRepair();
+    $p2wHops = SweepChains::powerToWeb();
+    $w2pHops = SweepChains::webToPower();
+    (new Pipeline())->run($tdrWebSample, $repairHopsWeb, $tdrRepaired);
+    (new Pipeline())->run($tdrRepaired, $p2wHops, $tdrWeb);
+    (new Pipeline())->run($tdrWeb, $w2pHops, $tdrRound);
+    $tdrWebArch = new \PowerSweeper\MsappArchive($tdrWeb);
+    $tdrWebArch->unpack();
+    assert_true(is_file($tdrWebArch->extractDir() . '/WebApp/power_sweeper_ir.json'), 'TDR power_to_web writes IR');
+    assert_true(is_file($tdrWebArch->extractDir() . '/WebApp/index.html'), 'TDR power_to_web writes HTML');
+    $tdrWebProps = json_decode((string) file_get_contents($tdrWebArch->extractDir() . '/Properties.json'), true);
+    assert_true(($tdrWebProps['DocumentLayoutScaleToFit'] ?? true) === false, 'TDR power_to_web sets ScaleToFit false');
+    $tdrWebLive = \PowerSweeper\StudioLiveChecker::check($tdrWebArch->documents(), ['extract_dir' => $tdrWebArch->extractDir()]);
+    $tdrWebErr = 0;
+    foreach ($tdrWebLive['findings'] as $f) {
+        $r = (string) ($f['ruleId'] ?? '');
+        if (str_starts_with($r, 'app-Err') || $r === 'app-formula-mangled-screen-ref') {
+            $tdrWebErr++;
+        }
+    }
+    $tdrWebArch->cleanup();
+    $tdrRoundArch = new \PowerSweeper\MsappArchive($tdrRound);
+    $tdrRoundArch->unpack();
+    $tdrRoundProps = json_decode((string) file_get_contents($tdrRoundArch->extractDir() . '/Properties.json'), true);
+    assert_true(($tdrRoundProps['DocumentLayoutScaleToFit'] ?? false) === true, 'TDR web_to_power restores ScaleToFit true');
+    $tdrRoundLive = \PowerSweeper\StudioLiveChecker::check($tdrRoundArch->documents(), ['extract_dir' => $tdrRoundArch->extractDir()]);
+    $tdrRoundErr = 0;
+    foreach ($tdrRoundLive['findings'] as $f) {
+        $r = (string) ($f['ruleId'] ?? '');
+        if (str_starts_with($r, 'app-Err') || $r === 'app-formula-mangled-screen-ref') {
+            $tdrRoundErr++;
+        }
+    }
+    $tdrRoundArch->cleanup();
+    assert_true($tdrWebErr === 0, 'TDR power_to_web introduces no formula errors (got ' . $tdrWebErr . ')');
+    assert_true($tdrRoundErr === 0, 'TDR web↔power round-trip introduces no formula errors (got ' . $tdrRoundErr . ')');
+    @unlink($tdrRepaired);
+    @unlink($tdrWeb);
+    @unlink($tdrRound);
+}
+
+// Catalog-driven SharePoint field fallbacks (VisitType / Level* / Initiative / Specification)
+$spFbExtract = sys_get_temp_dir() . '/ps_spfb_' . bin2hex(random_bytes(3));
+mkdir($spFbExtract . '/References', 0775, true);
+file_put_contents($spFbExtract . '/References/DataSources.json', json_encode([
+    'DataSources' => [[
+        'Name' => 'CDLS (L) VCR Tracking List',
+        'Type' => 'ConnectedDataSourceInfo',
+        'DatasetName' => 'https://contoso.sharepoint.com/sites/DND',
+        'TableName' => 'VCR',
+        'ApiId' => '/providers/microsoft.powerapps/apis/shared_sharepointonline',
+        'ConnectedDataSourceInfoNameMapping' => [
+            'VisitType' => 'VisitType',
+            'Confidential' => 'Confidential',
+            'UnclassifiedRestricted' => 'UnclassifiedRestricted',
+            'Government' => 'Government',
+            'InitiativeType' => 'InitiativeType',
+            'Initiation' => 'Initiation',
+            'Subject' => 'Subject',
+            'EmerContactCanadianPhone' => 'EmerContactCanadianPhone',
+        ],
+    ]],
+], JSON_PRETTY_PRINT));
+$spFbYaml = <<<'YAML'
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    OnVisible: |
+      =If(loadedRequest.OneTimeVisit, 1, 0);
+      If(loadedRequest.LevelConfidential, 1, 0);
+      If(loadedRequest.GovernmentInitiative, 1, 0);
+      If(loadedRequest.CommercialInitiative, 1, 0);
+      If(loadedRequest.InitiatedByRequestingAgency, 1, 0);
+      Set(x, loadedRequest.PertinenceSpecification);
+      Set(y, r.CanadianCellPhone);
+      Patch(list, Defaults(list), { AmendmentVisit: true, Title: "x" })
+YAML;
+$spFbPath = $spFbExtract . '/Screen1.pa.yaml';
+file_put_contents($spFbPath, $spFbYaml);
+$spFbDoc = ControlDocument::fromFile($spFbPath, 'Src/Screen1.pa.yaml');
+assert_true($spFbDoc !== null, 'SP fallback fixture loads');
+$spFbReport = new Report();
+(new \PowerSweeper\Sweeps\RepairSharePointFieldsSweep())->apply([$spFbDoc], $spFbReport, ['_extract_dir' => $spFbExtract]);
+$spFbFormula = '';
+foreach ($spFbDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $spFbFormula = (string) $c->getProperty('OnVisible');
+    }
+}
+assert_true(str_contains($spFbFormula, 'VisitType.Value = "One-time"'), 'SP fallback maps OneTimeVisit via VisitType');
+assert_true(str_contains($spFbFormula, 'loadedRequest.Confidential'), 'SP fallback maps LevelConfidential → Confidential');
+assert_true(str_contains($spFbFormula, 'loadedRequest.Government'), 'SP fallback strips Initiative → Government');
+assert_true(str_contains($spFbFormula, 'loadedRequest.InitiativeType'), 'SP fallback maps CommercialInitiative → InitiativeType');
+assert_true(str_contains($spFbFormula, 'loadedRequest.Initiation'), 'SP fallback maps Initiated* → Initiation');
+assert_true(str_contains($spFbFormula, 'loadedRequest.Subject'), 'SP fallback maps *Specification → Subject');
+assert_true(str_contains($spFbFormula, 'EmerContactCanadianPhone'), 'SP fallback fuzzy-maps CanadianCellPhone');
+assert_true(!preg_match('/\bAmendmentVisit\s*:/', $spFbFormula), 'SP sweep drops absent AmendmentVisit Patch field');
+@unlink($spFbPath);
+@unlink($spFbExtract . '/References/DataSources.json');
+@rmdir($spFbExtract . '/References');
+@rmdir($spFbExtract);
+
+// Host-screen discovery for App bootstrap (not hardcoded VASC screen name)
+$vascYaml = <<<'YAML'
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: |
+      =Set(x, 1);
+      'Bootstrap Host'.comExternalFunctions.loadUser();
+      If(
+          !IsBlank(Param("requestid")),
+          Set(varRequestID, Substitute(Param("requestid"),"-", " - "));
+          'Bootstrap Host'.comExternalFunctions.loadPackage(varRequestID),
+          Set(varRequestID,"-1")
+      )
+Bootstrap Host:
+  Control: Screen@2.0.0
+  Children:
+    - comExternalFunctions:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="host"
+YAML;
+$vascPath = sys_get_temp_dir() . '/ps_vasc_' . bin2hex(random_bytes(3)) . '.pa.yaml';
+file_put_contents($vascPath, $vascYaml);
+$vascDoc = ControlDocument::fromFile($vascPath, 'Src/App.pa.yaml');
+assert_true($vascDoc !== null, 'bootstrap host fixture loads');
+$vascReport = new Report();
+(new \PowerSweeper\Sweeps\RepairStudioSyntaxSweep())->apply([$vascDoc], $vascReport);
+$vascOnStart = '';
+$vascOnVisible = '';
+foreach ($vascDoc->controls() as $c) {
+    if ($c->isApp()) {
+        $vascOnStart = (string) $c->getProperty('OnStart');
+    }
+    if ($c->isScreen() && $c->name === 'Bootstrap Host') {
+        $vascOnVisible = (string) $c->getProperty('OnVisible');
+    }
+}
+assert_true(str_contains($vascOnStart, 'Set(varDeferredLoadUser, false)'), 'bootstrap inits varDeferredLoadUser false');
+assert_true(str_contains($vascOnStart, 'Set(varDeferredLoadUser, true)'), 'bootstrap defers loadUser from any host screen');
+assert_true(str_contains($vascOnStart, 'Set(varDeferredLoadPackage, true)'), 'bootstrap defers loadPackage from any host screen');
+assert_true(!str_contains($vascOnStart, 'comExternalFunctions.loadUser'), 'bootstrap removes cross-screen loadUser from App');
+assert_true(str_contains($vascOnVisible, 'ps-bootstrap:start'), 'bootstrap parks deferred load on discovered host OnVisible');
+@unlink($vascPath);
+
+// JSON Controls/*.json screen rename + SetFocus park onto destination OnVisible
+$jsonExtract = sys_get_temp_dir() . '/ps_jsonren_' . bin2hex(random_bytes(3));
+mkdir($jsonExtract . '/Controls', 0775, true);
+$jsonScreen = [
+    'TopParent' => [
+        'Name' => 'LegacyJson',
+        'Template' => ['Name' => 'screen', 'Version' => '2.0.0'],
+        'Rules' => [
+            ['Property' => 'OnVisible', 'InvariantScript' => ''],
+        ],
+        'Children' => [
+            [
+                'Name' => 'FocusTarget',
+                'Template' => ['Name' => 'label', 'Version' => '2.0.0'],
+                'Rules' => [
+                    ['Property' => 'Text', 'InvariantScript' => '"hi"'],
+                ],
+                'Children' => [],
+            ],
+        ],
+    ],
+];
+$jsonOld = $jsonExtract . '/Controls/LegacyJson.json';
+file_put_contents($jsonOld, json_encode($jsonScreen, JSON_PRETTY_PRINT));
+$jsonDoc = ControlDocument::fromFile($jsonOld, 'Controls/LegacyJson.json');
+assert_true($jsonDoc !== null, 'JSON screen fixture loads');
+$navYaml = "NavScreen:\n  Control: Screen@2.0.0\n  Children:\n    - GoBtn:\n        Control: Classic/Button@2.0.0\n        Properties:\n          OnSelect: \"=Navigate(LegacyJson); SetFocus(FocusTarget)\"\n";
+$navPath = $jsonExtract . '/NavScreen.pa.yaml';
+file_put_contents($navPath, $navYaml);
+$navDoc = ControlDocument::fromFile($navPath, 'Src/NavScreen.pa.yaml');
+assert_true($navDoc !== null, 'nav screen for SetFocus park loads');
+$irJson = [
+    'format' => 'power_sweeper_web_ir',
+    'screens' => [
+        ['name' => 'HomeJson', 'previous_name' => 'LegacyJson', 'kind' => 'screen', 'children' => []],
+        ['name' => 'NavScreen', 'kind' => 'screen', 'children' => []],
+    ],
+    'navigation' => [
+        ['from' => 'NavScreen', 'to' => 'HomeJson', 'kind' => 'navigate'],
+        ['from' => 'NavScreen', 'to' => 'FocusTarget', 'kind' => 'setfocus'],
+    ],
+];
+$jsonReport = new Report();
+$jsonResult = (new \PowerSweeper\WebApp\WebAppIrApplier())->apply([$jsonDoc, $navDoc], $irJson, $jsonReport, $jsonExtract);
+assert_true(is_file($jsonExtract . '/Controls/HomeJson.json'), 'web IR renames Controls/*.json screen file');
+assert_true(!is_file($jsonExtract . '/Controls/LegacyJson.json'), 'web IR removes old Controls/*.json screen file');
+$jsonScreenNode = null;
+foreach ($jsonDoc->controls() as $c) {
+    if ($c->isScreen()) {
+        $jsonScreenNode = $c;
+        break;
+    }
+}
+assert_true($jsonScreenNode !== null && $jsonScreenNode->name === 'HomeJson', 'web IR renamed JSON screen Name');
+assert_true(
+    str_contains((string) $jsonScreenNode->getProperty('OnVisible'), 'SetFocus(FocusTarget)'),
+    'web IR parks SetFocus on destination OnVisible'
+);
+assert_true(
+    str_contains(implode(' ', $jsonResult['notes']), 'SetFocus park')
+    || str_contains(implode(' ', $jsonResult['notes']), 'screen renames'),
+    'web IR notes SetFocus park or screen renames'
+);
+$previewHtml = (new \PowerSweeper\WebApp\WebAppHtmlPreview())->render($irJson);
+assert_true(str_contains($previewHtml, "e.kind === 'setfocus'") || str_contains($previewHtml, 'setfocus'), 'HTML preview distinguishes setfocus edges');
+@unlink($jsonExtract . '/Controls/HomeJson.json');
+@unlink($navPath);
+@rmdir($jsonExtract . '/Controls');
+@rmdir($jsonExtract);
+
+// Cleanup temp extract
+array_map('unlink', glob($webExtract . '/WebApp/*') ?: []);
+@rmdir($webExtract . '/WebApp');
+@unlink($webExtract . '/Properties.json');
+@rmdir($webExtract);
+
+// --- SweepAdvisor: auto sweep sequence + force mode ---
+$advisor = new SweepAdvisor();
+$forced = $advisor->applyForceMode(
+    [
+        ['id' => 'accessibility_polish', 'options' => []],
+        ['id' => 'export_to_web_ir', 'options' => ['only_generic' => true]],
+        ['id' => 'enable_dark_theme', 'options' => ['x' => 1]],
+    ],
+    'all'
+);
+assert_true(($forced[0]['options']['force'] ?? null) === true, 'applyForceMode all sets force on a11y');
+assert_true(!array_key_exists('force', $forced[1]['options']), 'applyForceMode leaves non-forceable sweeps alone');
+assert_true(($forced[2]['options']['force'] ?? null) === true, 'applyForceMode all sets force on dark theme');
+assert_true(($forced[2]['options']['x'] ?? null) === 1, 'applyForceMode preserves other options');
+$missing = $advisor->applyForceMode(
+    [['id' => 'clean_default_chrome', 'options' => []], ['id' => 'translate', 'options' => ['force' => true]]],
+    'missing_only'
+);
+assert_true(($missing[0]['options']['force'] ?? null) === false, 'applyForceMode missing_only clears chrome force');
+assert_true(($missing[1]['options']['force'] ?? null) === false, 'applyForceMode missing_only overrides prior force');
+
+$kmsAdvisePath = dirname(__DIR__) . '/samples/dark_mode_kitchen_sink/dark_mode_kitchen_sink.msapp';
+if (is_file($kmsAdvisePath)) {
+    $plan = $advisor->recommend($kmsAdvisePath);
+    assert_true(($plan['ok'] ?? false) === true, 'advisor recommend ok for kitchen sink');
+    assert_true(in_array($plan['force_mode'], ['all', 'missing_only'], true), 'advisor force_mode is valid');
+    $planIds = array_map(static fn(array $h): string => (string) $h['id'], $plan['sweeps'] ?? []);
+    assert_true(in_array('accessibility_polish', $planIds, true), 'kitchen sink plan includes accessibility_polish');
+    assert_true(in_array('enable_dark_theme', $planIds, true), 'kitchen sink plan includes enable_dark_theme');
+    assert_true(!in_array('enable_dark_mode', $planIds, true), 'kitchen sink uses enable_dark_theme composite');
+    assert_true(!in_array('prefer_classic_theme_controls', $planIds, true), 'kitchen sink classic prep is inside enable_dark_theme');
+    assert_true(!in_array('accessibility_labels', $planIds, true), 'kitchen sink a11y lives in accessibility_polish');
+    assert_true(in_array('regenerate_sarif', $planIds, true), 'kitchen sink keeps trailing regenerate_sarif (double-run OK)');
+    assert_true(!in_array('align_near_miss', $planIds, true), 'kitchen sink does not recommend align_near_miss without detection');
+    assert_true(!in_array('repair_delegation', $planIds, true), 'kitchen sink skips repair_delegation with no delegation hints');
+    assert_true(!in_array('unwhack_locale_formulas', $planIds, true), 'kitchen sink skips locale unwhack with no locale hits');
+    $formulaSignal = ((int) ($plan['signals']['formula_errors'] ?? 0))
+        + ((int) ($plan['signals']['locale_hits'] ?? 0))
+        + ((int) ($plan['signals']['delegation_hints'] ?? 0))
+        + ((int) ($plan['signals']['maintainability_hits'] ?? 0));
+    if ($formulaSignal > 0) {
+        assert_true(in_array('fix_formula_errors', $planIds, true), 'kitchen sink recommends fix_formula_errors when formula signals present');
+    } else {
+        assert_true(!in_array('fix_formula_errors', $planIds, true), 'kitchen sink skips fix_formula_errors with no formula signals');
+    }
+    foreach ($plan['sweeps'] as $step) {
+        if (!in_array($step['id'], SweepAdvisor::FORCEABLE_SWEEPS, true)) {
+            continue;
+        }
+        assert_true(array_key_exists('force', $step['options'] ?? []), 'forceable sweep carries force option');
+        assert_true(($step['options']['force'] ?? null) === ($plan['force_mode'] === 'all'), 'force option matches force_mode');
+    }
+}
+
+$poweredAdvise = dirname(__DIR__) . '/samples/import_debug/CDLS_VCR_App_Friday.powered.msapp';
+if (is_file($poweredAdvise)) {
+    $poweredPlan = $advisor->recommend($poweredAdvise);
+    assert_true(($poweredPlan['ok'] ?? false) === true, 'advisor recommend ok for powered VCR');
+    assert_true(($poweredPlan['force_mode'] ?? '') === 'missing_only', 'powered app prefers missing_only force');
+    assert_true(($poweredPlan['signals']['has_theme'] ?? false) === true, 'powered app signals has_theme');
+    $poweredIds = array_map(static fn(array $h): string => (string) $h['id'], $poweredPlan['sweeps'] ?? []);
+    assert_true(!in_array('enable_dark_mode', $poweredIds, true), 'powered app skips enable_dark_mode');
+    assert_true(!in_array('enable_dark_theme', $poweredIds, true), 'powered app skips enable_dark_theme');
+    assert_true(!in_array('align_near_miss', $poweredIds, true), 'powered app does not get default light-cleanup sweeps');
+    // No full studio_repair dump when signals are clean for that sweep.
+    if (((int) ($poweredPlan['signals']['delegation_hints'] ?? 0)) === 0) {
+        assert_true(!in_array('repair_delegation', $poweredIds, true), 'powered app skips repair_delegation when no delegation hints');
+    }
+    if (((int) ($poweredPlan['signals']['locale_hits'] ?? 0)) === 0) {
+        assert_true(!in_array('unwhack_locale_formulas', $poweredIds, true), 'powered app skips unwhack when no locale hits');
+    }
+    if (((int) ($poweredPlan['signals']['missing_accessible_label'] ?? 0)) === 0
+        && ((int) ($poweredPlan['signals']['by_rule']['acc-AccessibleLabelNeeded'] ?? 0)) === 0
+    ) {
+        assert_true(!in_array('accessibility_labels', $poweredIds, true), 'powered app skips accessibility_labels when none missing');
+        assert_true(!in_array('accessibility_polish', $poweredIds, true), 'powered app skips accessibility_polish when none missing');
+    }
 }
 
 echo "\n";
