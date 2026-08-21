@@ -155,6 +155,7 @@ $brandIconHref = 'assets/favicon.svg?v=' . rawurlencode($brandIconVer);
       apiRun: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/run.php', JSON_UNESCAPED_SLASHES) ?>,
       apiAnalyze: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/analyze.php', JSON_UNESCAPED_SLASHES) ?>,
       apiDownload: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/download.php', JSON_UNESCAPED_SLASHES) ?>,
+      apiEstimateModel: <?= json_encode(($basePath === '' ? '' : $basePath) . '/api/estimate_model.php', JSON_UNESCAPED_SLASHES) ?>,
       upload_limits: {
         upload_max_filesize: <?= json_encode((string) ini_get('upload_max_filesize'), JSON_UNESCAPED_SLASHES) ?>,
         post_max_size: <?= json_encode((string) ini_get('post_max_size'), JSON_UNESCAPED_SLASHES) ?>,

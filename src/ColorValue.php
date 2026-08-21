@@ -259,7 +259,8 @@ final class ColorValue
             if ($lum > 0.8) {
                 return 'TextOnAccent';
             }
-            if ($lum > 0.4) {
+            // sRGB-linear: 117,117,117 ≈ 0.18 (secondary captions); 51,51,51 ≈ 0.03 (body).
+            if ($lum > 0.10) {
                 return 'TextMuted';
             }
             return 'Text';
@@ -291,13 +292,12 @@ final class ColorValue
         if ($lum > 0.93) {
             return 'Page';
         }
-        if ($lum > 0.85) {
-            return 'Surface';
-        }
+        // Light grey chips (completed steps ~227) stay SurfaceMuted, not white Surface.
         if ($lum > 0.65) {
             return 'SurfaceMuted';
         }
-        if ($lum > 0.35) {
+        // Slate selected chrome (79,90,94 ≈ 0.10) stays a dark shade — not inverse white.
+        if ($lum > 0.06) {
             return 'SurfaceAlt';
         }
         return 'SurfaceInverse';
@@ -318,12 +318,14 @@ final class ColorValue
         $lum = self::luminance($c);
         $sat = self::saturation($c);
 
-        if ($sat > 0.35 && $lum > 0.15 && $lum < 0.9) {
+        if ($sat > 0.35 && $lum > 0.15 && $lum < 0.95) {
             if ($role === 'foreground' && $lum < 0.45) {
                 return self::mix($c, ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0], 0.35);
             }
-            if ($role === 'background' && $lum > 0.75) {
-                return self::mix($c, ['r' => 30, 'g' => 30, 'b' => 30, 'a' => 1.0], 0.55);
+            if ($role === 'background' && $lum > 0.42) {
+                $mix = min(0.72, 0.28 + ($lum - 0.42) * 0.9);
+
+                return self::mix($c, ['r' => 18, 'g' => 18, 'b' => 18, 'a' => 1.0], $mix);
             }
             return ['r' => $c['r'], 'g' => $c['g'], 'b' => $c['b'], 'a' => $c['a']];
         }
@@ -333,8 +335,8 @@ final class ColorValue
                 ? ['r' => 242, 'g' => 242, 'b' => 242, 'a' => $c['a']]
                 : ['r' => max(20, (int) round($c['r'] * 0.15)), 'g' => max(20, (int) round($c['g'] * 0.15)), 'b' => max(20, (int) round($c['b'] * 0.15)), 'a' => $c['a']],
             'border' => $lum > 0.5
-                ? ['r' => 80, 'g' => 80, 'b' => 80, 'a' => max($c['a'], 0.7)]
-                : ['r' => 160, 'g' => 160, 'b' => 160, 'a' => max($c['a'], 0.7)],
+                ? ['r' => 168, 'g' => 168, 'b' => 178, 'a' => max($c['a'], 0.85)]
+                : ['r' => 200, 'g' => 200, 'b' => 210, 'a' => max($c['a'], 0.85)],
             default => $lum > 0.85
                 ? ['r' => 18, 'g' => 18, 'b' => 18, 'a' => $c['a']]
                 : ($lum > 0.65
@@ -363,30 +365,33 @@ final class ColorValue
             'TextOnAccent' => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
             'TextOnLight' => ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0],
             'InputFill' => ['r' => 44, 'g' => 44, 'b' => 50, 'a' => 1.0],
-            'Border' => ['r' => 110, 'g' => 110, 'b' => 120, 'a' => 1.0],
-            'BorderStrong' => ['r' => 140, 'g' => 140, 'b' => 150, 'a' => 1.0],
+            'Border' => ['r' => 168, 'g' => 168, 'b' => 178, 'a' => 1.0],
+            'BorderStrong' => ['r' => 200, 'g' => 200, 'b' => 210, 'a' => 1.0],
             'Focus' => ['r' => 96, 'g' => 165, 'b' => 250, 'a' => 1.0],
-            'Disabled' => ['r' => 60, 'g' => 60, 'b' => 60, 'a' => 1.0],
+            // Lifted from InputFill (44) so disabled fields stay visibly greyed-out.
+            'Disabled' => ['r' => 72, 'g' => 72, 'b' => 78, 'a' => 1.0],
+            // Lifted slate so the current stepper step stays distinct from completed chips.
+            'Selected' => ['r' => 110, 'g' => 118, 'b' => 124, 'a' => 1.0],
             'Handle' => ['r' => 240, 'g' => 240, 'b' => 240, 'a' => 1.0],
             'Rail' => ['r' => 70, 'g' => 70, 'b' => 70, 'a' => 1.0],
             'Selection' => ['r' => 30, 'g' => 64, 'b' => 175, 'a' => 1.0],
             'Link' => ['r' => 45, 'g' => 212, 'b' => 191, 'a' => 1.0],
             'LinkHover' => ['r' => 94, 'g' => 234, 'b' => 212, 'a' => 1.0],
-            'Accent' => ['r' => 96, 'g' => 165, 'b' => 250, 'a' => 1.0],
-            'AccentHover' => ['r' => 59, 'g' => 130, 'b' => 246, 'a' => 1.0],
-            'AccentPressed' => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
-            'Danger' => ['r' => 248, 'g' => 113, 'b' => 113, 'a' => 1.0],
-            'DangerHover' => ['r' => 239, 'g' => 68, 'b' => 68, 'a' => 1.0],
-            'DangerPressed' => ['r' => 220, 'g' => 38, 'b' => 38, 'a' => 1.0],
+            'Accent' => ['r' => 30, 'g' => 64, 'b' => 175, 'a' => 1.0],
+            'AccentHover' => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
+            'AccentPressed' => ['r' => 30, 'g' => 58, 'b' => 138, 'a' => 1.0],
+            'Danger' => ['r' => 136, 'g' => 32, 'b' => 48, 'a' => 1.0],
+            'DangerHover' => ['r' => 153, 'g' => 38, 'b' => 56, 'a' => 1.0],
+            'DangerPressed' => ['r' => 127, 'g' => 29, 'b' => 29, 'a' => 1.0],
             'DangerText' => ['r' => 254, 'g' => 202, 'b' => 202, 'a' => 1.0],
             'Warning' => ['r' => 161, 'g' => 98, 'b' => 7, 'a' => 1.0],
             'WarningHover' => ['r' => 180, 'g' => 120, 'b' => 20, 'a' => 1.0],
             'WarningPressed' => ['r' => 146, 'g' => 84, 'b' => 6, 'a' => 1.0],
             // Dark ink on warning surfaces (not pale yellow-on-yellow).
             'WarningText' => ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0],
-            'Success' => ['r' => 21, 'g' => 128, 'b' => 61, 'a' => 1.0],
-            'SuccessHover' => ['r' => 22, 'g' => 163, 'b' => 74, 'a' => 1.0],
-            'SuccessPressed' => ['r' => 20, 'g' => 100, 'b' => 50, 'a' => 1.0],
+            'Success' => ['r' => 20, 'g' => 83, 'b' => 45, 'a' => 1.0],
+            'SuccessHover' => ['r' => 22, 'g' => 101, 'b' => 52, 'a' => 1.0],
+            'SuccessPressed' => ['r' => 16, 'g' => 64, 'b' => 36, 'a' => 1.0],
             'SuccessText' => ['r' => 15, 'g' => 23, 'b' => 42, 'a' => 1.0],
             default => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
         };
@@ -398,7 +403,7 @@ final class ColorValue
         return in_array($token, [
             'Page', 'Surface', 'SurfaceMuted', 'SurfaceAlt', 'SurfaceInverse', 'InputFill',
             'Text', 'TextMuted', 'TextOnAccent', 'TextOnLight', 'Border', 'BorderStrong', 'Focus',
-            'Disabled', 'Handle', 'Rail', 'Selection', 'Accent', 'AccentHover', 'AccentPressed',
+            'Disabled', 'Selected', 'Handle', 'Rail', 'Selection', 'Accent', 'AccentHover', 'AccentPressed',
             'Danger', 'DangerHover', 'DangerPressed', 'DangerText',
             'Warning', 'WarningHover', 'WarningPressed', 'WarningText',
             'Success', 'SuccessHover', 'SuccessPressed', 'SuccessText',
@@ -438,10 +443,10 @@ final class ColorValue
         }
 
         $body = strtolower(ltrim($trim, '='));
-        if (str_contains($body, 'defaultgraybackgroud') || str_contains($body, 'app.theme.colors.')) {
-            return true;
-        }
-        if (preg_match('/\bcolor\.(white|transparent|lightgray|lightgrey|black)\b/', $body)) {
+        $bodyCompact = preg_replace('/\s+/', '', $body) ?? $body;
+        if ($bodyCompact === 'defaultgraybackgroud'
+            || preg_match('/^app\\.theme\\.colors\\.[a-z0-9]+$/', $bodyCompact) === 1
+            || preg_match('/^color\\.(white|transparent|lightgray|lightgrey|black)$/', $bodyCompact) === 1) {
             return true;
         }
 

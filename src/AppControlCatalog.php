@@ -38,6 +38,9 @@ final class AppControlCatalog
     /** @var array<string, true> canvas component instance names (global host pattern — never screen-qualify) */
     private array $componentInstances = [];
 
+    /** @var array<string, string> control name => Control/Template type */
+    private array $typeByName = [];
+
     /** @var array<string, string> */
     private const RESERVED = [
         'true' => true, 'false' => true, 'Blank' => true, 'Self' => true, 'Parent' => true,
@@ -85,6 +88,7 @@ final class AppControlCatalog
             $names = [];
             foreach ($doc->controls() as $control) {
                 $names[(string) $control->name] = true;
+                $cat->typeByName[(string) $control->name] = (string) $control->type;
             }
             if ($names !== []) {
                 $cat->controlsByDocPath[$doc->relativePath] = $names;
@@ -105,6 +109,7 @@ final class AppControlCatalog
                 $controlName = (string) $control->name;
                 $cat->controlsByScreen[$screen][$controlName] = true;
                 $cat->screensByControl[$controlName][] = $screen;
+                $cat->typeByName[$controlName] = (string) $control->type;
 
                 if ($cat->looksLikeComponentInstance($control)) {
                     $cat->componentInstances[$controlName] = true;
@@ -144,6 +149,11 @@ final class AppControlCatalog
     public function hasOnScreen(string $screen, string $name): bool
     {
         return isset($this->controlsByScreen[$screen][$name]);
+    }
+
+    public function typeOf(string $name): ?string
+    {
+        return $this->typeByName[$name] ?? null;
     }
 
     /**

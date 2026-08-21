@@ -54,7 +54,8 @@ return [
     ],
     'Accent' => [
         'light' => ['r' => 37, 'g' => 99, 'b' => 235, 'a' => 1.0],
-        'dark' => ['r' => 96, 'g' => 165, 'b' => 250, 'a' => 1.0],
+        // Filled CTAs — not sky-blue; white label stays ≥4.5:1.
+        'dark' => ['r' => 30, 'g' => 64, 'b' => 175, 'a' => 1.0],
     ],
     // Hyperlinks only — blue in light mode, accessible teal in dark (≥4.5:1 on Page).
     'Link' => [
@@ -75,8 +76,23 @@ return [
     ],
     'Success' => [
         'light' => ['r' => 22, 'g' => 163, 'b' => 74, 'a' => 1.0],
-        // Darker green so white Text/TextOnAccent stays ≥4.5:1 on banners.
-        'dark' => ['r' => 21, 'g' => 128, 'b' => 61, 'a' => 1.0],
+        // Forest — neon lime (8,222,8) is light-only; dark CTAs stay green, not glowing.
+        'dark' => ['r' => 20, 'g' => 83, 'b' => 45, 'a' => 1.0],
+    ],
+    'Danger' => [
+        'light' => ['r' => 249, 'g' => 83, 'b' => 109, 'a' => 1.0],
+        // Wine — original pink (249,83,109) is light-only.
+        'dark' => ['r' => 136, 'g' => 32, 'b' => 48, 'a' => 1.0],
+    ],
+    // Current step / selected tab — darker than completed chips in light, lifted in dark.
+    'Selected' => [
+        'light' => ['r' => 79, 'g' => 90, 'b' => 94, 'a' => 1.0],
+        'dark' => ['r' => 110, 'g' => 118, 'b' => 124, 'a' => 1.0],
+    ],
+    // Distinct from InputFill so DisplayMode.Disabled still reads as greyed-out.
+    'Disabled' => [
+        'light' => ['r' => 244, 'g' => 244, 'b' => 244, 'a' => 1.0],
+        'dark' => ['r' => 72, 'g' => 72, 'b' => 78, 'a' => 1.0],
     ],
     'Warning' => [
         'light' => ['r' => 234, 'g' => 179, 'b' => 8, 'a' => 1.0],

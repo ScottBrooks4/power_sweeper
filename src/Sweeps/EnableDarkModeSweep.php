@@ -8,6 +8,7 @@ use PowerSweeper\ColorValue;
 use PowerSweeper\ControlDocument;
 use PowerSweeper\ControlNaming;
 use PowerSweeper\ControlNode;
+use PowerSweeper\PowerFxFormulaSegments;
 use PowerSweeper\SweepOptions;
 use PowerSweeper\Report;
 
@@ -106,8 +107,8 @@ final class EnableDarkModeSweep implements SweepInterface
     /** Tokens guaranteed in gblThemeLight/gblThemeDark — all control colors map here. */
     private const CORE_THEME_TOKENS = [
         'Page', 'Surface', 'SurfaceMuted', 'InputFill', 'Text', 'TextMuted', 'TextOnAccent',
-        'TextOnLight', 'Border', 'BorderStrong', 'Accent', 'Focus', 'Rail', 'Link', 'LinkHover',
-        'Disabled', 'Success', 'Warning',
+        'TextOnLight', 'Border', 'BorderStrong', 'Accent', 'AccentHover', 'Focus', 'Rail', 'Link', 'LinkHover',
+        'Disabled', 'Success', 'SuccessHover', 'Warning', 'WarningHover', 'Danger', 'DangerHover', 'SurfaceAlt', 'Selected',
     ];
 
     /** @var array<string, string> Power Apps Color enum → gblTheme token */
@@ -137,6 +138,7 @@ final class EnableDarkModeSweep implements SweepInterface
     ];
 
     private const LEGACY_SURFACE = 'DefaultGrayBackgroud';
+    private const LEGACY_BORDER = 'DefaultBorderColor';
 
     public static function id(): string
     {
@@ -238,9 +240,16 @@ final class EnableDarkModeSweep implements SweepInterface
                     'Border' => ['r' => 200, 'g' => 200, 'b' => 200, 'a' => 1.0],
                     'BorderStrong' => ['r' => 0, 'g' => 0, 'b' => 0, 'a' => 1.0],
                     'Accent' => ['r' => 0, 'g' => 18, 'b' => 107, 'a' => 1.0],
+                    'AccentHover' => ['r' => 30, 'g' => 64, 'b' => 175, 'a' => 1.0],
                     'Success' => ['r' => 22, 'g' => 163, 'b' => 74, 'a' => 1.0],
+                    'SuccessHover' => ['r' => 21, 'g' => 128, 'b' => 61, 'a' => 1.0],
                     'Warning' => ['r' => 234, 'g' => 179, 'b' => 8, 'a' => 1.0],
-                    'Disabled' => ['r' => 119, 'g' => 119, 'b' => 119, 'a' => 0.4],
+                    'WarningHover' => ['r' => 202, 'g' => 138, 'b' => 4, 'a' => 1.0],
+                    'Danger' => ['r' => 220, 'g' => 38, 'b' => 38, 'a' => 1.0],
+                    'DangerHover' => ['r' => 185, 'g' => 28, 'b' => 28, 'a' => 1.0],
+                    'SurfaceAlt' => ['r' => 226, 'g' => 232, 'b' => 240, 'a' => 1.0],
+                    'Disabled' => ['r' => 244, 'g' => 244, 'b' => 244, 'a' => 1.0],
+                    'Selected' => ['r' => 79, 'g' => 90, 'b' => 94, 'a' => 1.0],
                     default => ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0],
                 },
                 'dark' => ColorValue::defaultDarkForToken($core),
@@ -328,6 +337,13 @@ final class EnableDarkModeSweep implements SweepInterface
                     if ($from === null || trim($from) === '') {
                         continue;
                     }
+                    if ($this->shouldKeepTransparentFill($control, $prop, $from)) {
+                        $this->ensureExplicitTransparentFill($control, $prop, $from, $report);
+                        continue;
+                    }
+                    if ($this->shouldLeaveModernChrome($control, $prop)) {
+                        continue;
+                    }
                     $from = $this->recoverCommentedColorFormula($from, $prop);
                     $activeBody = trim(ltrim(trim(preg_replace('/\/\/[^\n]*/', '', $from) ?? $from), '='));
                     // Comment-only Color stubs like //FontColour → treat as unset text ink.
@@ -356,6 +372,19 @@ final class EnableDarkModeSweep implements SweepInterface
                         continue;
                     }
                     if ($this->usesActiveThemeToken($from, $theme)) {
+                        continue;
+                    }
+                    // Stepper / selection Ifs must keep App.ActiveScreen — theme the literals inside.
+                    if ($this->isAppStateColorFormula($from)) {
+                        $embedded = $this->rewriteEmbeddedRgba($from, $prop, $theme, $var, true);
+                        if ($embedded !== $from) {
+                            $to = $control->format === 'yaml' && !str_starts_with(trim($embedded), '=')
+                                && str_starts_with(trim($from), '=')
+                                ? '=' . ltrim($embedded, '=')
+                                : $embedded;
+                            $control->setProperty($prop, $to);
+                            $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($to));
+                        }
                         continue;
                     }
                     if ($this->shouldPreserveUserValue($from, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
@@ -409,7 +438,7 @@ final class EnableDarkModeSweep implements SweepInterface
 
                     $token = $this->coreTokenForLiteral($parsed, $prop);
 
-                    $to = $this->themeFormula($control, $theme, $token);
+                    $to = $this->themePropertyFormula($control, $theme, $var, $token, $from, $prop);
                     if ($to === $from || trim(ltrim(trim($from), '=')) === $theme . '.' . $token) {
                         continue;
                     }
@@ -425,15 +454,29 @@ final class EnableDarkModeSweep implements SweepInterface
                 if (!$this->isColorPropertyPath($path)) {
                     return $formula;
                 }
+                $prop = $this->propertyFromPath($path);
+                if ($this->isAppStateColorFormula($formula)) {
+                    $embedded = $this->rewriteEmbeddedRgba($formula, $prop, $theme, $var, true);
+                    if ($embedded !== $formula) {
+                        $report->add(self::id(), $path, 'formula', 'App.ActiveScreen If', self::preview($embedded));
+                    }
+
+                    return $embedded;
+                }
                 if ($this->usesActiveThemeToken($formula, $theme)) {
                     return $formula;
                 }
-                $prop = $this->propertyFromPath($path);
                 if ($this->shouldPreserveUserValue($formula, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
                     return $formula;
                 }
                 $trim = trim(ltrim(trim($formula), '='));
                 $parsed = ColorValue::parse($trim);
+                if ($parsed !== null && !ColorValue::isTransparent($parsed)
+                    && $this->isInkHostFillPath($path)
+                    && ColorValue::isStudioDefault($trim, $this->propertyFromPath($path))
+                ) {
+                    return $formula;
+                }
                 if ($parsed === null || ColorValue::isTransparent($parsed)) {
                     if ($this->usesStaticThemePalette($formula, $themeLight, $themeDark)) {
                         $token = $this->extractStaticThemeToken($formula, $themeLight, $themeDark);
@@ -464,10 +507,18 @@ final class EnableDarkModeSweep implements SweepInterface
                 if (!$this->isColorPropertyPath($path)) {
                     return $formula;
                 }
+                $prop = $this->propertyFromPath($path);
+                if ($this->isAppStateColorFormula($formula)) {
+                    $embedded = $this->rewriteEmbeddedRgba($formula, $prop, $theme, $var, true);
+                    if ($embedded !== $formula) {
+                        $report->add(self::id(), $path, 'formula', 'App.ActiveScreen If', self::preview($embedded));
+                    }
+
+                    return $embedded;
+                }
                 if ($this->usesActiveThemeToken($formula, $theme)) {
                     return $formula;
                 }
-                $prop = $this->propertyFromPath($path);
                 if ($this->shouldPreserveUserValue($formula, $prop, $force, $theme, $var, $themeLight, $themeDark)) {
                     return $formula;
                 }
@@ -530,7 +581,43 @@ final class EnableDarkModeSweep implements SweepInterface
                     if ($from === null || !str_contains($from, self::LEGACY_SURFACE)) {
                         continue;
                     }
-                    $to = $this->themeFormula($control, $theme, 'Surface');
+                    // Don't smash If(App.ActiveScreen, …, DefaultGray, …) into a single token.
+                    if ($this->isAppStateColorFormula($from) || preg_match('/If\s*\(/i', $from) === 1) {
+                        $legacyToken = $this->isAppChromeSurface($control) ? 'Page' : 'Surface';
+                        $to = preg_replace(
+                            '/\b' . preg_quote(self::LEGACY_SURFACE, '/') . '\b/',
+                            $theme . '.' . $legacyToken,
+                            $from
+                        ) ?? $from;
+                    } else {
+                        $legacyToken = $this->isAppChromeSurface($control) ? 'Page' : 'Surface';
+                        $to = $this->themePropertyFormula($control, $theme, $var, $legacyToken, $from, $prop);
+                    }
+                    if ($to === $from) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, $from, $to);
+                }
+            }
+        }
+
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                foreach (self::COLOR_PROPERTIES as $prop) {
+                    $from = $control->getProperty($prop);
+                    if ($from === null || !str_contains($from, self::LEGACY_BORDER)) {
+                        continue;
+                    }
+                    if ($this->isAppStateColorFormula($from) || preg_match('/If\s*\(/i', $from) === 1) {
+                        $to = preg_replace(
+                            '/\b' . preg_quote(self::LEGACY_BORDER, '/') . '\b/',
+                            $theme . '.Border',
+                            $from
+                        ) ?? $from;
+                    } else {
+                        $to = $this->themeFormula($control, $theme, 'Border');
+                    }
                     if ($to === $from) {
                         continue;
                     }
@@ -624,6 +711,7 @@ final class EnableDarkModeSweep implements SweepInterface
                     }
                 }
                 $this->ensureInputReadableChrome($control, $theme, $var, $themeLight, $themeDark, $force, $report);
+                $this->ensureDisabledInputChrome($control, $theme, $var, $report);
             }
         }
 
@@ -729,7 +817,13 @@ final class EnableDarkModeSweep implements SweepInterface
         foreach ($documents as $doc) {
             $doc->transformFormulas(function (string $formula, string $path) use ($theme, $report): string {
                 $rewritten = $formula;
-                if (str_contains(strtolower($path), 'htmltext') || $this->looksLikeEmbeddedHtml($formula)) {
+                if ($this->isTranslationHtmlBinding($formula)) {
+                    $next = $this->wrapTranslationHtmlBinding($rewritten, $theme);
+                    if ($next !== $rewritten) {
+                        $report->add(self::id(), $path, 'HtmlText', 'Labels.*Html', $theme . '.*Css');
+                        $rewritten = $next;
+                    }
+                } elseif ($this->shouldThemeInAppHtml($formula, $path)) {
                     $next = $this->rewriteInlineLinkHtml($rewritten, $theme);
                     if ($next !== $rewritten) {
                         $report->add(self::id(), $path, 'HtmlText', 'color: blue', $theme . '.LinkCss');
@@ -753,13 +847,22 @@ final class EnableDarkModeSweep implements SweepInterface
             });
 
             foreach ($doc->controls() as $control) {
-                $html = $control->getProperty('HtmlText');
-                if (is_string($html) && $html !== '') {
-                    $rewritten = $this->rewriteInlineLinkHtml($html, $theme);
-                    $rewritten = $this->rewriteEmbeddedHtmlSurfaces($rewritten, $theme);
+                foreach (['HtmlText', 'OnReset', 'OnStart'] as $htmlProp) {
+                    $html = $control->getProperty($htmlProp);
+                    if (!is_string($html) || $html === '') {
+                        continue;
+                    }
+                    if ($htmlProp === 'HtmlText' && $this->isTranslationHtmlBinding($html)) {
+                        $rewritten = $this->wrapTranslationHtmlBinding($html, $theme);
+                    } elseif ($this->shouldThemeInAppHtml($html, $control->path . '.' . $htmlProp)) {
+                        $rewritten = $this->rewriteInlineLinkHtml($html, $theme);
+                        $rewritten = $this->rewriteEmbeddedHtmlSurfaces($rewritten, $theme);
+                    } else {
+                        continue;
+                    }
                     if ($rewritten !== $html) {
-                        $control->setProperty('HtmlText', $rewritten);
-                        $report->add(self::id(), $control->path, 'HtmlText', self::preview($html), self::preview($rewritten));
+                        $control->setProperty($htmlProp, $rewritten);
+                        $report->add(self::id(), $control->path, $htmlProp, self::preview($html), self::preview($rewritten));
                     }
                 }
                 $image = $control->getProperty('Image');
@@ -799,6 +902,13 @@ final class EnableDarkModeSweep implements SweepInterface
         $this->ensureTransparentHitTargetFills($documents, $report);
         // Pass 9: TextOnLight on dark/page surfaces (status badges, legends) → Text or keep semantic tokens from pass 2.
         $this->rewriteDarkSurfaceInk($documents, $theme, $report);
+        // Pass 10: bare gblTheme.Page on children paints black in Studio / light mode.
+        $this->unwrapBareSurfaceFills($documents, $theme, $var, $report);
+        // Pass 11: borders + hovers so controls stay distinct on dark surfaces.
+        $this->ensureInteractiveChrome($documents, $theme, $var, $report);
+        // HTML in component OnReset (comTranslations.Labels.*) is spliced in pass 7 —
+        // AccessAppScope must run after those gblTheme.*Css references exist.
+        $this->ensureThemeComponentAppScope($documents, $report);
     }
 
     /**
@@ -822,7 +932,17 @@ final class EnableDarkModeSweep implements SweepInterface
                 && $dark['g'] === $pair['light']['g']
                 && $dark['b'] === $pair['light']['b']
                 && abs($dark['a'] - $pair['light']['a']) < 0.001
-                && in_array($token, ['Page', 'Surface', 'SurfaceMuted', 'Text', 'TextMuted', 'Border'], true)
+                && in_array($token, ['Page', 'Surface', 'SurfaceMuted', 'Text', 'TextMuted', 'Border', 'Success', 'Warning', 'Danger'], true)
+            ) {
+                $dark = ColorValue::defaultDarkForToken($token);
+            }
+            if (in_array($token, ['Success', 'Warning', 'Danger'], true)
+                && ColorValue::luminance($dark) > 0.42
+            ) {
+                $dark = ColorValue::defaultDarkForToken($token);
+            }
+            if (in_array($token, ['Border', 'BorderStrong'], true)
+                && ColorValue::luminance($dark) < 0.35
             ) {
                 $dark = ColorValue::defaultDarkForToken($token);
             }
@@ -1219,6 +1339,183 @@ final class EnableDarkModeSweep implements SweepInterface
         return str_starts_with($n, 'btn') || str_contains($n, 'button');
     }
 
+    private function isTransparentAppearance(?string $appearance): bool
+    {
+        return is_string($appearance) && preg_match('/Transparent/i', $appearance) === 1;
+    }
+
+    /**
+     * Transparent / default fills on ink hosts and overlay containers must stay see-through.
+     * Mapping them to gblTheme.Page paints an opaque box over images and loading chrome.
+     */
+    private function shouldKeepTransparentFill(ControlNode $control, string $prop, ?string $from): bool
+    {
+        if ($control->isScreen() || $control->isApp()) {
+            return false;
+        }
+        if (!preg_match('/Fill|BackgroundColor/i', $prop)) {
+            return false;
+        }
+        if (preg_match('/HoverFill|PressedFill|ItemHoverFill|RailHoverFill/i', $prop) === 1) {
+            return false;
+        }
+        if ($this->shouldLeaveModernChrome($control, $prop)) {
+            return true;
+        }
+        if ($from !== null && preg_match('/Color\.Transparent\b/i', $from) === 1) {
+            return true;
+        }
+        if ($from !== null && trim($from) !== '') {
+            $parsed = ColorValue::parse($from);
+            if ($parsed !== null && ColorValue::isTransparent($parsed)) {
+                return true;
+            }
+        }
+        $inkHost = $this->isTextControl($control)
+            || $this->isIconControl($control)
+            || $this->isHtmlViewer($control);
+        if ($inkHost && $from !== null && preg_match('/gblTheme\.(Page|Surface|SurfaceMuted|SurfaceAlt)\b/i', $from) === 1
+            && preg_match('/If\s*\(/i', $from) !== 1) {
+            return true;
+        }
+        if ($inkHost && ($from === null || trim((string) $from) === '' || ColorValue::isStudioDefault((string) $from, 'Fill'))) {
+            // HtmlViewer white Fill is a section card (Activities header), not unpainted chrome.
+            if ($this->isHtmlViewer($control) && $from !== null && trim((string) $from) !== '') {
+                $parsedHost = ColorValue::parse((string) $from);
+                if ($parsedHost !== null && !ColorValue::isTransparent($parsedHost) && ColorValue::luminance($parsedHost) > 0.85) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        if ($control->isContainer() && $this->isOverlayContainer($control, $from)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /** Transparent Fluent buttons keep their own chrome — do not invent Fill/BasePaletteColor. */
+    private function shouldLeaveModernChrome(ControlNode $control, string $prop): bool
+    {
+        if (!$this->isTransparentAppearance($control->getProperty('Appearance'))) {
+            return false;
+        }
+
+        return (bool) preg_match('/Fill|BackgroundColor|BasePaletteColor/i', $prop);
+    }
+
+    private function isOverlayContainer(ControlNode $control, ?string $from): bool
+    {
+        if ($from !== null && trim($from) !== '') {
+            $parsed = ColorValue::parse($from);
+            if ($parsed !== null && ColorValue::isTransparent($parsed)) {
+                return true;
+            }
+        }
+        $whiteOrEmpty = $from === null
+            || trim($from) === ''
+            || $this->isUnpaintedFill((string) $from);
+        if (!$whiteOrEmpty) {
+            return false;
+        }
+
+        return !$this->containerHasVisibleChrome($control);
+    }
+
+    /** True grouping default (white / empty) — not DefaultGray rails or painted mid-grays. */
+    private function isUnpaintedFill(string $from): bool
+    {
+        $trim = trim($from);
+        if ($trim === '' || $trim === '=') {
+            return true;
+        }
+        if (preg_match('/DefaultGrayBackgroud|App\\.Theme\\.Colors\\./i', $trim) === 1) {
+            return false;
+        }
+        $parsed = ColorValue::parse($from);
+        if ($parsed !== null && ColorValue::isTransparent($parsed)) {
+            return true;
+        }
+        if (preg_match('/^[=]?\\s*Color\\.(White|Transparent)\\b/i', $trim) === 1) {
+            return true;
+        }
+        if ($parsed === null) {
+            return false;
+        }
+
+        return ColorValue::luminance($parsed) >= 0.93 && ($parsed['a'] ?? 1.0) >= 0.85;
+    }
+
+    /** Narrow nav rails / DefaultGray chrome should follow Page, not a lighter Surface. */
+    private function isAppChromeSurface(ControlNode $control): bool
+    {
+        $hay = strtolower($control->name . ' ' . $control->path);
+        if (preg_match('/sidebar|side_bar|sidemenu|navbar|navpane|navrail|menurail|iconrail/i', $hay) === 1) {
+            return true;
+        }
+        $fill = (string) ($control->getProperty('Fill') ?? '');
+
+        return preg_match('/DefaultGrayBackgroud/i', $fill) === 1;
+    }
+
+    private function containerHasVisibleChrome(ControlNode $control): bool
+    {
+        $border = (string) ($control->getProperty('BorderThickness') ?? '');
+        $borderActive = trim((string) preg_replace('/\/\/[^\n]*/', '', $border));
+        if (preg_match('/[1-9]/', $borderActive) === 1) {
+            return true;
+        }
+        $shadow = (string) ($control->getProperty('DropShadow') ?? '');
+        if ($shadow !== '' && preg_match('/None|false|^\\s*0\\s*$/i', $shadow) !== 1) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function isHtmlViewer(ControlNode $control): bool
+    {
+        $t = strtolower($control->type);
+
+        return str_contains($t, 'htmlviewer') || str_contains($t, 'htmltext');
+    }
+
+    private function isInkHostFillPath(string $path): bool
+    {
+        if (preg_match('/\.(Fill|HoverFill|PressedFill|DisabledFill|BackgroundColor)(\.|$)/i', $path) !== 1) {
+            return false;
+        }
+
+        return preg_match('/(Label|TextCanvas|ModernText|HtmlViewer|HtmlText|Icon|ModernIcon)(?:@|\\/|$)/i', $path) === 1;
+    }
+
+    private function ensureExplicitTransparentFill(
+        ControlNode $control,
+        string $prop,
+        string $from,
+        Report $report,
+    ): void {
+        $parsed = ColorValue::parse($from);
+        if ($parsed !== null && ColorValue::isTransparent($parsed)) {
+            return;
+        }
+        if (preg_match('/Color\\.Transparent\\b/i', $from) === 1) {
+            return;
+        }
+        // Unset/empty stays Studio-transparent; only rewrite painted defaults (white / Page).
+        if (trim($from) === '') {
+            return;
+        }
+        $to = $control->format === 'yaml' ? '=RGBA(0, 0, 0, 0)' : 'RGBA(0, 0, 0, 0)';
+        if ($to === $from) {
+            return;
+        }
+        $control->setProperty($prop, $to);
+        $report->add(self::id(), $control->path, $prop, self::preview($from), $to);
+    }
+
     private function buttonInkTokenForFill(string $fill, string $theme): string
     {
         if (str_contains($fill, $theme . '.Accent') || str_contains($fill, $theme . '.Success') || str_contains($fill, $theme . '.Warning')) {
@@ -1320,28 +1617,18 @@ final class EnableDarkModeSweep implements SweepInterface
                 if ($from === null || !$this->isPastelChipFill($from)) {
                     continue;
                 }
-                if (str_contains($from, $var)) {
+                if (str_contains($from, $var) && preg_match('/gblTheme\.(Warning|Success|Danger)\b/i', $from) === 1) {
                     continue;
                 }
-                // ColorFade(expr, 80%) → ColorFade(expr, If(gblDarkMode, -55%, 80%))
-                $rewritten = preg_replace_callback(
-                    '/ColorFade\s*\(\s*(.+?)\s*,\s*(\d+)\s*%\s*\)/is',
-                    static function (array $m) use ($var): string {
-                        $pct = (int) $m[2];
-                        if ($pct < 35) {
-                            return $m[0];
-                        }
-                        $darkPct = max(35, min(70, (int) round($pct * 0.7)));
-
-                        return 'ColorFade(' . $m[1] . ', If(' . $var . ', -' . $darkPct . '%, ' . $pct . '%))';
-                    },
-                    $from
-                );
-                if (!is_string($rewritten) || $rewritten === $from) {
+                $token = $this->pastelChipDarkToken($control, $from);
+                $light = trim(ltrim(trim($from), '='));
+                $body = 'If(' . $var . ', ' . 'gblTheme.' . $token . ', ' . $light . ')';
+                $to = $control->format === 'yaml' ? '=' . $body : $body;
+                if ($to === $from) {
                     continue;
                 }
-                $control->setProperty('Fill', $rewritten);
-                $report->add(self::id(), $control->path, 'Fill', self::preview($from), self::preview($rewritten));
+                $control->setProperty('Fill', $to);
+                $report->add(self::id(), $control->path, 'Fill', self::preview($from), self::preview($to));
             }
         }
     }
@@ -1364,6 +1651,9 @@ final class EnableDarkModeSweep implements SweepInterface
             foreach ($doc->controls() as $control) {
                 $t = strtolower($control->type);
                 if (!str_contains($t, 'button') && !str_contains($t, 'modernbutton')) {
+                    continue;
+                }
+                if ($this->isTransparentAppearance($control->getProperty('Appearance'))) {
                     continue;
                 }
                 $from = $control->getProperty('BasePaletteColor');
@@ -1408,7 +1698,9 @@ final class EnableDarkModeSweep implements SweepInterface
                         continue;
                     }
                 }
-                $to = $this->themeFormula($control, $theme, 'Surface');
+                $orig = $this->lightFallbackLiteral($from, 'Surface');
+                $body = 'If(' . $var . ', ' . $theme . '.Surface, ' . $orig . ')';
+                $to = $control->format === 'yaml' ? '=' . $body : $body;
                 if ($to === $from) {
                     continue;
                 }
@@ -1431,7 +1723,9 @@ final class EnableDarkModeSweep implements SweepInterface
      */
     private function rewriteEmbeddedSvgInk(string $formula, string $theme): string
     {
-        if (!$this->looksLikeEmbeddedSvg($formula) || str_contains($formula, $theme . '.TextCss')) {
+        if (!$this->looksLikeEmbeddedSvg($formula) || str_contains($formula, $theme . '.TextCss')
+            || $this->isUnsafeHtmlConcatHost($formula)
+        ) {
             return $formula;
         }
 
@@ -1450,55 +1744,268 @@ final class EnableDarkModeSweep implements SweepInterface
 
     private function looksLikeEmbeddedHtml(string $formula): bool
     {
-        return (bool) preg_match('/<\s*(?:!doctype|html|body|div)\b/i', $formula)
+        return (bool) preg_match('/<\s*(?:!doctype|html|body|div|span|p|table|h[1-6])\b/i', $formula)
             || str_contains($formula, 'tdr-section-header')
-            || (bool) preg_match('/background\s*:\s*#(?:f7f6f3|ffffff|fff\b|f5f5f5|fafafa)/i', $formula);
+            || (bool) preg_match('/background(?:-color)?\s*:\s*(?:#|rgb|white)/i', $formula);
     }
 
     /**
-     * THCEE translation HTML uses light body backgrounds (#f7f6f3) and near-black titles.
-     * Splice theme CSS tokens so HtmlViewer section headers follow dark mode.
+     * Outlook / $"" email HTML must not be spliced — " & gblTheme.X & " closes the
+     * interpolated string and floods Email_SendReminder with Expected operator errors.
      */
-    private function rewriteEmbeddedHtmlSurfaces(string $formula, string $theme): string
+    private function isUnsafeHtmlConcatHost(string $formula): bool
     {
-        if (!$this->looksLikeEmbeddedHtml($formula)) {
+        if (preg_match('/Office365Outlook|SendEmailV2?\b|SendEmail\s*\(/i', $formula) === 1) {
+            return true;
+        }
+
+        // $"<table ...> email bodies — not "Exceeds DoA $" (dollar + closing quote).
+        return preg_match('/\$\s*"<\s*table\b/i', $formula) === 1;
+    }
+
+    /** HtmlText that only points at translation Labels.*Html — colors live in OnReset. */
+    private function isTranslationHtmlBinding(string $formula): bool
+    {
+        return preg_match('/\.Labels\.[A-Za-z_][\w]*\.[A-Za-z_]*Html[\w]*/i', $formula) === 1;
+    }
+
+    /**
+     * Theme Labels HTML at display time so section cards follow gblTheme without
+     * baking hex in OnReset (OnReset does not re-run when dark mode toggles).
+     * Only CSS backgrounds / dark ink — never color:#ffffff (badge text).
+     */
+    private function wrapTranslationHtmlBinding(string $formula, string $theme): string
+    {
+        if (str_contains($formula, 'Substitute(') && str_contains($formula, $theme . '.SurfaceCss')) {
             return $formula;
         }
 
-        // Quote-aware splice for HTML string literals (OnReset translation packs, HtmlText, etc.).
-        $spliced = preg_replace_callback(
-            '/(")([^"]*?)(")/s',
-            static function (array $m) use ($theme): string {
-                $chunk = $m[2];
-                if (!preg_match('/<\s*(?:!doctype|html|body|div)\b|tdr-section-header|background\s*:/i', $chunk)) {
-                    return $m[0];
-                }
-                $q = '"';
-                $map = [
-                    '/background(?:-color)?\s*:\s*#(?:f7f6f3|f5f5f5|fafafa|ffffff|fff)\b/i'
-                        => 'background:' . $q . ' & ' . $theme . '.PageCss & ' . $q,
-                    '/color\s*:\s*#(?:1f1d1a|111111|000000|0{3,6}|1a1a1a|222222)\b/i'
-                        => 'color:' . $q . ' & ' . $theme . '.TextCss & ' . $q,
-                    '/color\s*:\s*#(?:6b6760|6b7280|64748b|757575|767676|888888|999999)\b/i'
-                        => 'color:' . $q . ' & ' . $theme . '.TextMutedCss & ' . $q,
-                ];
-                $next = $chunk;
-                foreach ($map as $pat => $replacement) {
-                    $replaced = preg_replace($pat, $replacement, $next);
-                    if (is_string($replaced)) {
-                        $next = $replaced;
-                    }
-                }
-                if ($next === $chunk) {
-                    return $m[0];
-                }
+        $eq = str_starts_with(trim($formula), '=');
+        $body = ltrim(trim($formula), '=');
+        [$head, $tail] = $this->splitFormulaLead($body);
+        if (!$this->isSimpleLabelsHtmlExpr($head) || $this->isUnsafeHtmlConcatHost($head)) {
+            return $formula;
+        }
 
-                return $q . $next . $q;
+        $expr = $head;
+        foreach (array_reverse($this->translationHtmlSubstitutePairs()) as [$needle, $token]) {
+            $prop = preg_match('/^(background(?:-color)?|color)\s*:/i', $needle, $m) === 1
+                ? strtolower($m[1]) . ':'
+                : '';
+            $expr = 'Substitute(' . $expr . ', "' . $needle . '", "' . $prop . '" & ' . $theme . '.' . $token . ')';
+        }
+        if ($tail !== '') {
+            $expr .= (str_starts_with($tail, "\n") ? '' : "\n") . $tail;
+        }
+
+        return $eq ? '=' . $expr : $expr;
+    }
+
+    /** @return array{0:string,1:string} head (code+strings) and trailing comments */
+    private function splitFormulaLead(string $body): array
+    {
+        $head = '';
+        $tail = '';
+        $inTail = false;
+        foreach (PowerFxFormulaSegments::split($body) as [$type, $text]) {
+            if (!$inTail && $type === 'comment') {
+                $inTail = true;
+            }
+            if ($inTail) {
+                $tail .= $text;
+            } else {
+                $head .= $text;
+            }
+        }
+
+        return [trim($head), $tail];
+    }
+
+    private function isSimpleLabelsHtmlExpr(string $head): bool
+    {
+        if ($head === '' || !$this->isTranslationHtmlBinding($head)) {
+            return false;
+        }
+        $stripped = preg_replace('/"(?:[^"]|"")*"/s', '', $head) ?? $head;
+        $stripped = preg_replace("/'(?:[^']|'')*'/", '', $stripped) ?? $stripped;
+        $stripped = trim((string) preg_replace('/\s+/', '', $stripped));
+
+        return preg_match('/^[A-Za-z_][\w.]*&*$/', $stripped) === 1;
+    }
+
+    /** @return list<array{0:string,1:string}> */
+    private function translationHtmlSubstitutePairs(): array
+    {
+        $pairs = [];
+        foreach (['#ffffff', '#FFFFFF'] as $hex) {
+            foreach (['background: ', 'background:', 'background-color: ', 'background-color:'] as $prop) {
+                $pairs[] = [$prop . $hex, 'SurfaceCss'];
+            }
+        }
+        foreach (['#f7f6f3', '#F7F6F3'] as $hex) {
+            foreach (['background: ', 'background:'] as $prop) {
+                $pairs[] = [$prop . $hex, 'PageCss'];
+            }
+        }
+        foreach (['#1f1d1a', '#1F1D1A', '#0F172A', '#0f172a'] as $hex) {
+            foreach (['color: ', 'color:'] as $prop) {
+                $pairs[] = [$prop . $hex, 'TextCss'];
+            }
+        }
+        foreach (['#6b6760', '#6B6760'] as $hex) {
+            foreach (['color: ', 'color:'] as $prop) {
+                $pairs[] = [$prop . $hex, 'TextMutedCss'];
+            }
+        }
+
+        return $pairs;
+    }
+
+    /** In-app section chrome (translation Labels / HtmlText), not outbound mail. */
+    private function shouldThemeInAppHtml(string $formula, string $path = ''): bool
+    {
+        if ($this->isUnsafeHtmlConcatHost($formula)) {
+            return false;
+        }
+        if (preg_match('/htmltext/i', $path) === 1) {
+            return $this->looksLikeEmbeddedHtml($formula);
+        }
+        if (preg_match('/tdr-section-header|tdr-section-card|varTranslations/i', $formula) === 1) {
+            return true;
+        }
+
+        return (bool) preg_match('/<\s*(?:!doctype|html|body)\b/i', $formula)
+            && preg_match('/<\s*table\b[^>]*(?:role|bgcolor|cellpadding)/i', $formula) !== 1;
+    }
+
+    /**
+     * Splice gblTheme.*Css into HTML string literals (VCR / THCEE section headers).
+     * Works inside both "..." and '...' Power Fx strings so light/dark follow the palette.
+     */
+    private function rewriteEmbeddedHtmlSurfaces(string $formula, string $theme): string
+    {
+        if (!$this->looksLikeEmbeddedHtml($formula) || $this->isUnsafeHtmlConcatHost($formula)) {
+            return $formula;
+        }
+        if (str_contains($formula, $theme . '.PageCss')
+            && str_contains($formula, $theme . '.TextCss')
+            && str_contains($formula, $theme . '.TextMutedCss')
+        ) {
+            return $formula;
+        }
+
+        $spliced = $this->mapCssInQuotedChunks($formula, function (string $chunk, string $q) use ($theme): string {
+            if (!preg_match('/<\s*(?:!doctype|html|body|div|span|p|table|h[1-6])\b|tdr-section-header|background|color\s*:/i', $chunk)) {
+                return $chunk;
+            }
+            $next = $this->rewriteHtmlColorDeclarations($chunk, $q, $theme);
+
+            return $next;
+        });
+
+        return $spliced;
+    }
+
+    /** Light HTML backgrounds / dark ink → gblTheme.*Css by luminance, not a hex whitelist. */
+    private function rewriteHtmlColorDeclarations(string $chunk, string $q, string $theme): string
+    {
+        $replaced = preg_replace_callback(
+            '/(background(?:-color)?|color)\s*:\s*(#[0-9a-f]{3,8}|rgb[a]?\([^)]+\)|white|black|whitesmoke|ghostwhite|snow)/i',
+            function (array $m) use ($q, $theme): string {
+                $prop = strtolower($m[1]);
+                $raw = $m[2];
+                $parsed = $this->parseCssColor($raw);
+                if ($parsed === null) {
+                    return $m[0];
+                }
+                $lum = ColorValue::luminance($parsed);
+                if (str_starts_with($prop, 'background')) {
+                    if ($lum < 0.72) {
+                        return $m[0];
+                    }
+                    // Pure white cards → Surface; cream page slabs → Page.
+                    $token = $lum >= 0.98 ? 'SurfaceCss' : 'PageCss';
+
+                    return 'background:' . $q . ' & ' . $theme . '.' . $token . ' & ' . $q;
+                }
+                if ($lum > 0.62) {
+                    return $m[0];
+                }
+                $token = $lum > 0.10 ? 'TextMutedCss' : 'TextCss';
+
+                return 'color:' . $q . ' & ' . $theme . '.' . $token . ' & ' . $q;
+            },
+            $chunk
+        );
+
+        return is_string($replaced) ? $replaced : $chunk;
+    }
+
+    /** @return array{r:int,g:int,b:int,a:float}|null */
+    private function parseCssColor(string $raw): ?array
+    {
+        $trim = strtolower(trim($raw));
+        if (in_array($trim, ['white', 'whitesmoke', 'ghostwhite', 'snow'], true)) {
+            return ['r' => 255, 'g' => 255, 'b' => 255, 'a' => 1.0];
+        }
+        if ($trim === 'black') {
+            return ['r' => 0, 'g' => 0, 'b' => 0, 'a' => 1.0];
+        }
+        if (preg_match('/^#([0-9a-f]{3,8})$/i', $trim, $m) === 1) {
+            $hex = $m[1];
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            if (strlen($hex) < 6) {
+                return null;
+            }
+
+            return [
+                'r' => hexdec(substr($hex, 0, 2)),
+                'g' => hexdec(substr($hex, 2, 2)),
+                'b' => hexdec(substr($hex, 4, 2)),
+                'a' => 1.0,
+            ];
+        }
+        $fromRgba = ColorValue::parse($raw);
+        if ($fromRgba !== null) {
+            return $fromRgba;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param callable(string, string): string $rewriter chunk + quote char
+     */
+    private function mapCssInQuotedChunks(string $formula, callable $rewriter): string
+    {
+        $out = preg_replace_callback(
+            '/(")([^"]*?)(")/s',
+            static function (array $m) use ($rewriter): string {
+                $next = $rewriter($m[2], '"');
+
+                return $next === $m[2] ? $m[0] : '"' . $next . '"';
+            },
+            $formula
+        );
+        $formula = is_string($out) ? $out : $formula;
+
+        $out = preg_replace_callback(
+            '/(\')([^\']*?)(\')/s',
+            static function (array $m) use ($rewriter): string {
+                $chunk = $m[2];
+                if (!preg_match('/background|color\s*:|<\s*(?:div|body|span)/i', $chunk)) {
+                    return $m[0];
+                }
+                $next = $rewriter($chunk, "'");
+
+                return $next === $chunk ? $m[0] : "'" . $next . "'";
             },
             $formula
         );
 
-        return is_string($spliced) ? $spliced : $formula;
+        return is_string($out) ? $out : $formula;
     }
 
     /** @param list<ControlDocument> $documents */
@@ -1710,15 +2217,14 @@ final class EnableDarkModeSweep implements SweepInterface
                     continue;
                 }
                 $ownFill = (string) ($control->getProperty('Fill') ?? '');
-                // ColorFade chips stay pastel/light in both themes — need dark ink.
-                // Solid Warning/Success banners use darkened palette + white Text instead.
-                $needsDarkInk = $this->isPastelChipFill($ownFill);
-                if (!$needsDarkInk) {
-                    foreach ($this->ancestorFills($control->path, $fillByPath) as $parentFill) {
-                        if ($this->isPastelChipFill($parentFill)) {
-                            $needsDarkInk = true;
-                            break;
-                        }
+                // ColorFade chips use Warning/Success in dark mode — keep Text (light ink).
+                if ($this->isPastelChipFill($ownFill)) {
+                    continue;
+                }
+                $needsDarkInk = false;
+                foreach ($this->ancestorFills($control->path, $fillByPath) as $parentFill) {
+                    if ($this->isPastelChipFill($parentFill)) {
+                        continue 2;
                     }
                 }
                 if (!$needsDarkInk) {
@@ -1761,6 +2267,30 @@ final class EnableDarkModeSweep implements SweepInterface
     private function isPastelChipFill(string $fill): bool
     {
         return (bool) preg_match('/ColorFade\s*\(/i', $fill);
+    }
+
+    /** Status chips (Draft / In-process) follow the same dark token as warning/success banners. */
+    private function pastelChipDarkToken(ControlNode $control, string $from): string
+    {
+        $candidates = [
+            (string) ($control->getProperty('BorderColor') ?? ''),
+            $from,
+        ];
+        foreach ($candidates as $formula) {
+            $parsed = ColorValue::parse($formula);
+            if ($parsed === null && preg_match('/RGBA\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+/i', $formula, $m) === 1) {
+                $parsed = ColorValue::parse($m[0]);
+            }
+            if ($parsed === null || ColorValue::isTransparent($parsed)) {
+                continue;
+            }
+            $token = ColorValue::themeToken($parsed, 'Fill');
+            if (in_array($token, ['Warning', 'Success', 'Danger', 'Accent'], true)) {
+                return $token;
+            }
+        }
+
+        return 'Warning';
     }
 
     private function isLightInkCandidate(string $colorFormula, string $theme): bool
@@ -1850,6 +2380,69 @@ final class EnableDarkModeSweep implements SweepInterface
         }
     }
 
+    /**
+     * Disabled / view-mode fields must not share InputFill — that is what makes
+     * L1/L2/Submission Type look enabled after a dark-theme pass.
+     */
+    private function ensureDisabledInputChrome(ControlNode $control, string $theme, string $var, Report $report): void
+    {
+        $mode = (string) ($control->getProperty('DisplayMode') ?? '');
+        $from = $control->getProperty('DisabledFill');
+        $fromStr = $from !== null ? (string) $from : '';
+        $canDisable = preg_match('/DisplayMode\.(Disabled|View)/i', $mode) === 1;
+        $followsFill = preg_match('/Self\\.Fill/i', $fromStr) === 1;
+        if (!$this->isInputControl($control) && !$canDisable && !$followsFill) {
+            return;
+        }
+        if (!$canDisable && !$followsFill && $fromStr === '') {
+            return;
+        }
+
+        if (preg_match('/' . preg_quote($theme, '/') . '\\.Disabled\\b/', $fromStr) === 1
+            && preg_match('/If\s*\(\s*' . preg_quote($var, '/') . '/i', $fromStr) === 1
+        ) {
+            return;
+        }
+
+        $seed = $fromStr;
+        if ($followsFill || $fromStr === ''
+            || preg_match('/' . preg_quote($theme, '/') . '\\.(InputFill|Surface|SurfaceMuted|Page)\\b/', $fromStr) === 1
+        ) {
+            $seed = 'RGBA(244, 244, 244, 1)';
+        }
+        $to = $this->themePropertyFormula($control, $theme, $var, 'Disabled', $seed, 'DisabledFill');
+        if ($to === $fromStr) {
+            return;
+        }
+        $control->setProperty('DisabledFill', $to);
+        $report->add(self::id(), $control->path, 'DisabledFill', $fromStr !== '' ? $fromStr : '(unset)', $to);
+
+        $dc = $control->getProperty('DisabledColor');
+        $dcStr = $dc !== null ? (string) $dc : '';
+        if ($dcStr === '' || preg_match('/Self\\.Color/i', $dcStr) === 1) {
+            $ink = $this->themeFormula($control, $theme, 'TextMuted');
+            if ($ink !== $dcStr) {
+                $control->setProperty('DisabledColor', $ink);
+                $report->add(self::id(), $control->path, 'DisabledColor', $dcStr !== '' ? $dcStr : '(unset)', $ink);
+            }
+        }
+    }
+
+    private function disabledLightFallback(string $from): string
+    {
+        if (preg_match('/Self\\.Fill/i', $from) === 1
+            || preg_match('/gblTheme\\.(InputFill|Surface|SurfaceMuted|Page)\\b/', $from) === 1
+        ) {
+            return 'RGBA(244, 244, 244, 1)';
+        }
+        $parsed = ColorValue::parse($from);
+        if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
+            return ColorValue::formatRgba($parsed);
+        }
+
+        return 'RGBA(244, 244, 244, 1)';
+    }
+
     private function isNumberInput(ControlNode $control): bool
     {
         $t = strtolower($control->type);
@@ -1891,11 +2484,12 @@ final class EnableDarkModeSweep implements SweepInterface
             'FocusedBorderColor' => 'Accent',
             'Color' => 'Text',
             'DisabledColor' => 'TextMuted',
-            'DisabledFill' => 'InputFill',
+            'DisabledFill' => 'Disabled',
         ];
         foreach ($props as $prop => $token) {
             $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $themeLight, $themeDark, $force, $report, 'Design', $prop === 'BorderColor');
         }
+        $this->ensureDisabledInputChrome($control, $theme, $var, $report);
     }
 
     private function applyDataTableChrome(ControlNode $control, string $theme, string $var, string $themeLight, string $themeDark, bool $force, Report $report): void
@@ -1945,7 +2539,7 @@ final class EnableDarkModeSweep implements SweepInterface
             'BorderColor' => ['token' => 'Border', 'category' => 'Design'],
             'HoverFill' => ['token' => 'InputFill', 'category' => 'Design'],
             'HoverColor' => ['token' => 'Text', 'category' => 'Design'],
-            'DisabledFill' => ['token' => 'InputFill', 'category' => 'Design'],
+            'DisabledFill' => ['token' => 'Disabled', 'category' => 'Design'],
             'DisabledColor' => ['token' => 'TextMuted', 'category' => 'Design'],
             'LoadingSpinnerColor' => ['token' => 'Accent', 'category' => 'Design'],
         ];
@@ -1959,6 +2553,7 @@ final class EnableDarkModeSweep implements SweepInterface
             $control->setProperty('Appearance', $to, 'Design');
             $report->add(self::id(), $control->path, 'Appearance', $appearance !== '' ? $appearance : '(unset)', $to);
         }
+        $this->ensureDisabledInputChrome($control, $theme, $var, $report);
     }
 
     private function applyModernInputChrome(ControlNode $control, string $theme, string $var, string $themeLight, string $themeDark, bool $force, Report $report): void
@@ -1970,12 +2565,13 @@ final class EnableDarkModeSweep implements SweepInterface
             'BorderColor' => 'Border',
             'HoverFill' => 'InputFill',
             'HoverColor' => 'Text',
-            'DisabledFill' => 'InputFill',
+            'DisabledFill' => 'Disabled',
             'DisabledColor' => 'TextMuted',
         ];
         foreach ($props as $prop => $token) {
             $this->applyThemedControlProperty($control, $prop, $token, $theme, $var, $themeLight, $themeDark, $force, $report, 'Data', false);
         }
+        $this->ensureDisabledInputChrome($control, $theme, $var, $report);
     }
 
     private function applyThemedControlProperty(
@@ -2039,6 +2635,335 @@ final class EnableDarkModeSweep implements SweepInterface
         return $control->format === 'yaml' ? '=' . $theme . '.' . $token : $theme . '.' . $token;
     }
 
+    /**
+     * Child surface fills must not be bare gblTheme.Page — Studio leaves gblTheme
+     * blank, so Page paints black on the default/light canvas.
+     */
+    private function themePropertyFormula(
+        ControlNode $control,
+        string $theme,
+        string $var,
+        string $token,
+        string $from,
+        string $prop,
+    ): string {
+        if (preg_match('/DisabledFill|DisabledItemFill|ChevronDisabledBackground/i', $prop) === 1) {
+            $orig = $this->disabledLightFallback($from);
+            $body = 'If(' . $var . ', ' . $theme . '.Disabled, ' . $orig . ')';
+
+            return $control->format === 'yaml' ? '=' . $body : $body;
+        }
+        if ($this->isButtonControl($control) && preg_match('/^(Fill|BasePaletteColor)$/i', $prop) === 1
+            && in_array($token, ['Success', 'Danger', 'Warning', 'Accent'], true)
+        ) {
+            $orig = $this->lightFallbackLiteral($from, $token);
+            if (preg_match('/RGBA\s*\(/i', $orig) === 1) {
+                $body = 'If(' . $var . ', ' . $theme . '.' . $token . ', ' . $orig . ')';
+
+                return $control->format === 'yaml' ? '=' . $body : $body;
+            }
+        }
+        if (preg_match('/HoverFill|ItemHoverFill|RailHoverFill|HoverDateFill/i', $prop) === 1) {
+            $token = $this->hoverTokenForSurface($token);
+            $orig = $this->lightFallbackLiteral($from, $token);
+            $body = 'If(' . $var . ', ' . $theme . '.' . $token . ', ' . $orig . ')';
+
+            return $control->format === 'yaml' ? '=' . $body : $body;
+        }
+        if (preg_match('/PressedFill|PressedItemFill/i', $prop) === 1) {
+            $token = $this->pressedTokenForSurface($token);
+        }
+        if (!$this->isLightSurfaceToken($token) || $control->isScreen() || $control->isApp()) {
+            return $this->themeFormula($control, $theme, $token);
+        }
+        if (!preg_match('/Fill|BackgroundColor/i', $prop)) {
+            return $this->themeFormula($control, $theme, $token);
+        }
+        $darkToken = $token === 'Page' ? 'Surface' : $token;
+        if ($this->isInputControl($control) && $this->isLightSurfaceToken($token)
+            && preg_match('/DisabledFill/i', $prop) !== 1
+        ) {
+            $darkToken = 'InputFill';
+        }
+        if ($this->isAppChromeSurface($control) && $this->isLightSurfaceToken($token)) {
+            $darkToken = 'Page';
+        }
+        $orig = $this->lightFallbackLiteral($from, $token);
+        $body = 'If(' . $var . ', ' . $theme . '.' . $darkToken . ', ' . $orig . ')';
+
+        return $control->format === 'yaml' ? '=' . $body : $body;
+    }
+
+    private function isLightSurfaceToken(string $token): bool
+    {
+        return in_array($token, ['Page', 'Surface', 'SurfaceMuted', 'SurfaceAlt', 'InputFill'], true);
+    }
+
+    private function hoverTokenForSurface(string $token): string
+    {
+        return match ($token) {
+            'Page', 'Surface' => 'SurfaceMuted',
+            'SurfaceMuted', 'InputFill' => 'SurfaceAlt',
+            'Success' => 'SuccessHover',
+            'Warning' => 'WarningHover',
+            'Danger' => 'DangerHover',
+            'Accent' => 'AccentHover',
+            default => 'SurfaceAlt',
+        };
+    }
+
+    private function pressedTokenForSurface(string $token): string
+    {
+        return match ($token) {
+            'Success' => 'SuccessHover',
+            'Warning' => 'WarningHover',
+            'Danger' => 'DangerHover',
+            'Accent' => 'AccentHover',
+            default => 'SurfaceAlt',
+        };
+    }
+
+    private function fillTokenFromFormula(?string $formula, string $theme): ?string
+    {
+        if ($formula === null || trim($formula) === '') {
+            return null;
+        }
+        if (preg_match('/' . preg_quote($theme, '/') . '\\.([A-Za-z_][\\w]*)/', $formula, $m) === 1) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
+    private function lightFallbackLiteral(string $from, string $token): string
+    {
+        $parsed = ColorValue::parse($from);
+        if ($parsed !== null && !ColorValue::isTransparent($parsed)) {
+            return ColorValue::formatRgba($parsed);
+        }
+        if (preg_match('/Color\.White\b/i', $from) === 1) {
+            return 'RGBA(255, 255, 255, 1)';
+        }
+        if (preg_match('/DefaultGrayBackgroud/i', $from) === 1) {
+            return 'DefaultGrayBackgroud';
+        }
+
+        return 'RGBA(255, 255, 255, 1)';
+    }
+
+    /**
+     * Screen-state chips (steppers, selected tabs) are not theme pairs — leave them.
+     */
+    private function isAppStateColorFormula(string $from): bool
+    {
+        if (preg_match('/If\s*\(/i', $from) !== 1) {
+            return false;
+        }
+
+        return preg_match('/App\\.ActiveScreen|ThisItem\\.|varNewSelectedRole|var[A-Z][A-Za-z0-9_]*\\s*=/i', $from) === 1;
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     */
+    private function unwrapBareSurfaceFills(array $documents, string $theme, string $var, Report $report): void
+    {
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($control->isScreen() || $control->isApp() || $control->name === self::TOGGLE_NAME) {
+                    continue;
+                }
+                foreach (['Fill', 'HoverFill', 'PressedFill', 'DisabledFill', 'BackgroundColor', 'TemplateFill'] as $prop) {
+                    $from = $control->getProperty($prop);
+                    $inkHost = $this->isTextControl($control)
+                        || $this->isIconControl($control)
+                        || $this->isHtmlViewer($control);
+                    if (($from === null || trim($from) === '') && $prop === 'Fill' && $inkHost
+                        && preg_match('/label@|classic\\/label/i', $control->type) === 1) {
+                        $to = $control->format === 'yaml' ? '=RGBA(0, 0, 0, 0)' : 'RGBA(0, 0, 0, 0)';
+                        $control->setProperty($prop, $to);
+                        $report->add(self::id(), $control->path, $prop, '(unset)', $to);
+                        continue;
+                    }
+                    if ($from === null || trim($from) === '') {
+                        continue;
+                    }
+                    if ($this->isAppStateColorFormula($from)) {
+                        continue;
+                    }
+                    if ($this->shouldKeepTransparentFill($control, $prop, $from)) {
+                        $this->ensureExplicitTransparentFill($control, $prop, $from, $report);
+                        continue;
+                    }
+                    $body = trim(ltrim(trim($from), '='));
+                    if (preg_match('/^' . preg_quote($theme, '/') . '\\.(Page|Surface|SurfaceMuted|SurfaceAlt|InputFill)\\s*$/i', $body, $m) !== 1) {
+                        continue;
+                    }
+                    $token = $m[1];
+                    $to = $this->themePropertyFormula($control, $theme, $var, $token, $from, $prop);
+                    if ($to === $from) {
+                        continue;
+                    }
+                    $control->setProperty($prop, $to);
+                    $report->add(self::id(), $control->path, $prop, self::preview($from), self::preview($to));
+                }
+            }
+        }
+    }
+
+    /**
+     * Buttons, inputs, and bordered cards need a visible edge and a hover that is
+     * not the same token as Fill — otherwise dark mode flattens every control.
+     *
+     * @param list<ControlDocument> $documents
+     */
+    private function ensureInteractiveChrome(array $documents, string $theme, string $var, Report $report): void
+    {
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($control->isScreen() || $control->isApp() || $control->name === self::TOGGLE_NAME) {
+                    continue;
+                }
+                if ($this->shouldLeaveModernChrome($control, 'Fill')) {
+                    continue;
+                }
+                $fill = (string) ($control->getProperty('Fill') ?? $control->getProperty('BasePaletteColor') ?? '');
+                $fillToken = $this->fillTokenFromFormula($fill, $theme);
+                $wantsHover = $this->shouldThemeHoverChrome($control, $fill);
+                $wantsBorder = $this->shouldThemeBorderChrome($control, $theme);
+
+                if ($wantsBorder) {
+                    $this->ensureThemedEdge($control, 'BorderColor', 'Border', $theme, $report);
+                    $focus = $this->isInputControl($control) || $this->isButtonControl($control);
+                    if ($focus) {
+                        $this->ensureThemedEdge($control, 'FocusedBorderColor', 'Accent', $theme, $report, false);
+                    }
+                }
+
+                if ($wantsHover) {
+                    $hoverToken = $this->hoverTokenForSurface($fillToken ?? 'Surface');
+                    $this->ensureDistinctHoverFill($control, $theme, $var, $hoverToken, $fillToken, $report);
+                    $this->ensureThemedEdge($control, 'HoverBorderColor', 'BorderStrong', $theme, $report, false);
+                    if ($this->isButtonControl($control)) {
+                        $ink = $this->buttonInkTokenForFill($fill, $theme);
+                        $hoverInk = $ink === 'TextOnAccent' ? 'TextOnAccent' : 'Text';
+                        $this->ensureThemedEdge($control, 'HoverColor', $hoverInk, $theme, $report, false);
+                    }
+                }
+            }
+        }
+    }
+
+    private function shouldThemeHoverChrome(ControlNode $control, string $fill): bool
+    {
+        if ($this->isTransparentAppearance($control->getProperty('Appearance'))) {
+            return false;
+        }
+        $parsed = $fill !== '' ? ColorValue::parse($fill) : null;
+        if ($parsed !== null && ColorValue::isTransparent($parsed)) {
+            return false;
+        }
+        if ($this->isButtonControl($control) && $this->isBlankButtonText($control->getProperty('Text'))) {
+            return false;
+        }
+        if ($this->isInputControl($control) || $this->isButtonControl($control)) {
+            return true;
+        }
+
+        return $control->getProperty('HoverFill') !== null;
+    }
+
+    private function shouldThemeBorderChrome(ControlNode $control, string $theme = 'gblTheme'): bool
+    {
+        if ($this->isInputControl($control)) {
+            return true;
+        }
+        if ($this->isButtonControl($control) && !$this->isTransparentAppearance($control->getProperty('Appearance'))
+            && !$this->isBlankButtonText($control->getProperty('Text'))) {
+            $fill = (string) ($control->getProperty('Fill') ?? '');
+            $parsed = $fill !== '' ? ColorValue::parse($fill) : null;
+            if ($parsed !== null && ColorValue::isTransparent($parsed)) {
+                return false;
+            }
+            $thickness = (string) ($control->getProperty('BorderThickness') ?? '');
+            $hasThickness = preg_match('/[1-9]/', trim((string) preg_replace('/\/\/[^\n]*/', '', $thickness))) === 1;
+            $fillToken = $this->fillTokenFromFormula($fill, $theme);
+            $chromatic = in_array($fillToken, ['Success', 'Danger', 'Warning', 'Accent'], true)
+                || ($parsed !== null && ColorValue::saturation($parsed) > 0.35);
+            // Filled CTAs are color blocks — don't invent a Border token edge.
+            if ($chromatic && !$hasThickness) {
+                return false;
+            }
+
+            return true;
+        }
+        $thickness = (string) ($control->getProperty('BorderThickness') ?? '');
+        $active = trim((string) preg_replace('/\/\/[^\n]*/', '', $thickness));
+
+        return $control->isContainer() && preg_match('/[1-9]/', $active) === 1;
+    }
+
+    private function ensureThemedEdge(
+        ControlNode $control,
+        string $prop,
+        string $token,
+        string $theme,
+        Report $report,
+        bool $replaceTransparent = true,
+    ): void {
+        $from = $control->getProperty($prop);
+        $fromStr = $from !== null ? (string) $from : '';
+        if ($this->usesActiveThemeToken($fromStr, $theme)) {
+            return;
+        }
+        if ($fromStr !== '' && preg_match('/If\s*\(\s*gblDarkMode|App\\.ActiveScreen/i', $fromStr) === 1) {
+            return;
+        }
+        $parsed = $fromStr !== '' ? ColorValue::parse($fromStr) : null;
+        $empty = $from === null || trim($fromStr) === '' || trim($fromStr) === '=';
+        $transparent = $parsed !== null && ColorValue::isTransparent($parsed);
+        $legacy = $fromStr !== '' && str_contains($fromStr, self::LEGACY_BORDER);
+        if (!$empty && !$legacy && !($transparent && $replaceTransparent)) {
+            return;
+        }
+        $to = $this->themeFormula($control, $theme, $token);
+        if ($to === $fromStr) {
+            return;
+        }
+        $control->setProperty($prop, $to);
+        $report->add(self::id(), $control->path, $prop, $empty ? '(unset)' : self::preview($fromStr), $to);
+    }
+
+    private function ensureDistinctHoverFill(
+        ControlNode $control,
+        string $theme,
+        string $var,
+        string $hoverToken,
+        ?string $fillToken,
+        Report $report,
+    ): void {
+        $from = $control->getProperty('HoverFill');
+        $fromStr = $from !== null ? (string) $from : '';
+        $parsed = $fromStr !== '' ? ColorValue::parse($fromStr) : null;
+        $empty = $from === null || trim($fromStr) === '' || trim($fromStr) === '=';
+        $transparent = $parsed !== null && ColorValue::isTransparent($parsed);
+        $sameAsFill = $fillToken !== null && $this->fillTokenFromFormula($fromStr, $theme) === $fillToken;
+        $flatSurface = $this->fillTokenFromFormula($fromStr, $theme);
+        $tooFlat = $flatSurface !== null && in_array($flatSurface, ['Page', 'Surface', 'InputFill'], true)
+            && in_array($fillToken, [null, 'Page', 'Surface', 'InputFill', 'SurfaceMuted'], true);
+        if (!$empty && !$transparent && !$sameAsFill && !$tooFlat) {
+            return;
+        }
+        $orig = $empty || $transparent ? 'ColorFade(Self.Fill, 20%)' : $this->lightFallbackLiteral($fromStr, $hoverToken);
+        $body = 'If(' . $var . ', ' . $theme . '.' . $hoverToken . ', ' . $orig . ')';
+        $to = $control->format === 'yaml' ? '=' . $body : $body;
+        if ($to === $fromStr) {
+            return;
+        }
+        $control->setProperty('HoverFill', $to);
+        $report->add(self::id(), $control->path, 'HoverFill', $empty ? '(unset)' : self::preview($fromStr), self::preview($to));
+    }
+
     private function isInlineLinkHost(ControlNode $control): bool
     {
         $t = strtolower($control->type);
@@ -2058,6 +2983,9 @@ final class EnableDarkModeSweep implements SweepInterface
 
     private function rewriteInlineLinkHtml(string $formula, string $theme): string
     {
+        if ($this->isUnsafeHtmlConcatHost($formula)) {
+            return $formula;
+        }
         if (str_contains($formula, $theme . '.LinkCss') && str_contains($formula, $theme . '.TextCss')) {
             // Still allow partial rewrites below when only one was applied.
         }
@@ -2193,21 +3121,53 @@ final class EnableDarkModeSweep implements SweepInterface
 
     private function rewriteEmbeddedRgba(string $formula, string $property, string $theme, string $var, bool $allowMixedTheme = false): string
     {
-        if (!$allowMixedTheme && $this->usesActiveThemeToken($formula, $theme)) {
+        $stateFormula = $this->isAppStateColorFormula($formula);
+        if (!$stateFormula && !$allowMixedTheme && $this->usesActiveThemeToken($formula, $theme)) {
             return $formula;
         }
         $changed = false;
-        $out = \PowerSweeper\PowerFxFormulaSegments::transformCode($formula, function (string $code) use ($property, $theme, &$changed): string {
-            $replaced = preg_replace_callback('/RGBA\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[0-9.]+)?\s*\)/i', function (array $m) use ($property, $theme, &$changed): string {
+        $out = \PowerSweeper\PowerFxFormulaSegments::transformCode($formula, function (string $code) use ($property, $theme, $var, $stateFormula, &$changed): string {
+            $replaced = preg_replace_callback('/RGBA\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[0-9.]+)?\s*\)/i', function (array $m) use ($property, $theme, $var, $stateFormula, $code, &$changed): string {
                 $parsed = ColorValue::parse($m[0]);
                 if ($parsed === null || ColorValue::isTransparent($parsed)) {
                     return $m[0];
                 }
+                if (preg_match(
+                    '/If\s*\(\s*' . preg_quote($var, '/') . '\s*,\s*' . preg_quote($theme, '/') . '\\.[A-Za-z_]+\\s*,\\s*' . preg_quote($m[0], '/') . '/i',
+                    $code
+                ) === 1) {
+                    return $m[0];
+                }
+                $token = $stateFormula
+                    ? $this->shadeTokenForStateLiteral($parsed, $property)
+                    : $this->coreTokenForLiteral($parsed, $property);
                 $changed = true;
+                if ($stateFormula) {
+                    return 'If(' . $var . ', ' . $theme . '.' . $token . ', ' . $m[0] . ')';
+                }
 
-                return $theme . '.' . $this->coreTokenForLiteral($parsed, $property);
+                return $theme . '.' . $token;
             }, $code);
-            $replaced = preg_replace('/\bColor\.White\b/i', $theme . '.Page', $replaced ?? $code);
+            if ($stateFormula) {
+                $src = $replaced ?? $code;
+                if (preg_match('/If\s*\(\s*' . preg_quote($var, '/') . '\s*,\s*' . preg_quote($theme, '/') . '\\.[A-Za-z_]+\\s*,\\s*Color\\.White/i', $src) !== 1) {
+                    $src = preg_replace(
+                        '/\bColor\.White\b/i',
+                        'If(' . $var . ', ' . $theme . '.' . $this->shadeTokenForWhite($property) . ', Color.White)',
+                        $src
+                    ) ?? $src;
+                }
+                if (preg_match('/If\s*\(\s*' . preg_quote($var, '/') . '\s*,\s*' . preg_quote($theme, '/') . '\\.[A-Za-z_]+\\s*,\\s*' . preg_quote(self::LEGACY_SURFACE, '/') . '/i', $src) !== 1) {
+                    $src = preg_replace(
+                        '/\b' . preg_quote(self::LEGACY_SURFACE, '/') . '\b/',
+                        'If(' . $var . ', ' . $theme . '.SurfaceMuted, ' . self::LEGACY_SURFACE . ')',
+                        $src
+                    ) ?? $src;
+                }
+                $replaced = $src;
+            } else {
+                $replaced = preg_replace('/\bColor\.White\b/i', $theme . '.Page', $replaced ?? $code);
+            }
             $replaced = $this->rewriteColorEnums($replaced ?? $code, $theme);
             if ($replaced !== $code) {
                 $changed = true;
@@ -2223,6 +3183,47 @@ final class EnableDarkModeSweep implements SweepInterface
         }
 
         return $changed ? $out : $formula;
+    }
+
+    /**
+     * Shade tokens for App.ActiveScreen steppers: keep the original literal in light
+     * mode and use a distinct dark surface/ink so completed pills are not white-on-black.
+     *
+     * @param array{r:int,g:int,b:int,a:float} $parsed
+     */
+    private function shadeTokenForStateLiteral(array $parsed, string $property): string
+    {
+        $role = ColorValue::roleForProperty($property);
+        $lum = ColorValue::luminance($parsed);
+        if ($role === 'foreground' || (preg_match('/Color$/i', $property) === 1 && preg_match('/Fill|Border|Background/i', $property) !== 1)) {
+            if ($lum > 0.10 && $lum < 0.85) {
+                return 'TextMuted';
+            }
+
+            return 'Text';
+        }
+        if ($lum >= 0.92) {
+            return 'Surface';
+        }
+        if ($lum >= 0.70) {
+            return 'SurfaceMuted';
+        }
+        // Active stepper slate (79,90,94) — lifted Selected, not the same grey as completed.
+        if ($lum < 0.25) {
+            return 'Selected';
+        }
+
+        return 'SurfaceAlt';
+    }
+
+    private function shadeTokenForWhite(string $property): string
+    {
+        $role = ColorValue::roleForProperty($property);
+        if ($role === 'foreground' || (preg_match('/Color$/i', $property) === 1 && preg_match('/Fill|Border|Background/i', $property) !== 1)) {
+            return 'Text';
+        }
+
+        return 'Surface';
     }
 
     private function rewriteColorEnums(string $formula, string $theme): string
@@ -2250,6 +3251,7 @@ final class EnableDarkModeSweep implements SweepInterface
                 'App.Theme.Colors.Lighter30' => $theme . '.SurfaceMuted',
                 'App.Theme.Colors.Darker70' => $theme . '.Accent',
                 'App.Theme.Colors.Darker30' => $theme . '.Accent',
+                'DefaultBorderColor' => $theme . '.Border',
             ];
             foreach ($legacyTheme as $from => $to) {
                 if (str_contains($chunk, $from)) {
@@ -2318,14 +3320,16 @@ final class EnableDarkModeSweep implements SweepInterface
             // Colored legend/status ink must stay chromatic on dark pages — not TextOnLight (dark slate).
             $token === 'WarningText' => 'Warning',
             $token === 'SuccessText' => 'Success',
-            $token === 'DangerText' => 'Accent',
+            $token === 'DangerText' => 'Danger',
+            preg_match('/^(Accent|Success|Warning|Danger)(Hover|Pressed)$/', $token) === 1 => $token,
             str_contains($token, 'OnLight') => 'TextOnLight',
             str_contains($token, 'Text') || str_ends_with($token, 'Text') => 'Text',
             str_contains($token, 'Border') || $token === 'Focus' => str_contains($token, 'Strong') ? 'BorderStrong' : 'Border',
             str_contains($token, 'Success') => 'Success',
             str_contains($token, 'Warning') => 'Warning',
+            str_contains($token, 'Danger') => 'Danger',
             str_contains($token, 'Accent') || str_contains($token, 'Selection') || str_contains($token, 'Highlight')
-                || str_contains($token, 'Checkmark') || str_contains($token, 'Progress') || str_contains($token, 'Danger') => 'Accent',
+                || str_contains($token, 'Checkmark') || str_contains($token, 'Progress') => 'Accent',
             str_contains($token, 'Disabled') => 'Disabled',
             str_contains($token, 'Rail') || str_contains($token, 'Handle') || str_contains($token, 'Track') => 'Rail',
             str_contains($token, 'Input') => 'InputFill',
@@ -2378,13 +3382,19 @@ final class EnableDarkModeSweep implements SweepInterface
         string $themeLight,
         string $themeDark,
     ): bool {
+        if ($this->isAppStateColorFormula($from)) {
+            return true;
+        }
+        if ($this->isMutedHierarchyInk($from, $prop)) {
+            return false;
+        }
         if ($force || trim($from) === '') {
             return false;
         }
         if ($this->usesActiveThemeToken($from, $theme)) {
             return true;
         }
-        if (str_contains($from, self::LEGACY_SURFACE)) {
+        if (str_contains($from, self::LEGACY_SURFACE) || str_contains($from, self::LEGACY_BORDER)) {
             return false;
         }
         if ($this->usesStaticThemePalette($from, $themeLight, $themeDark)) {
@@ -2409,6 +3419,22 @@ final class EnableDarkModeSweep implements SweepInterface
         }
 
         return !ColorValue::isStudioDefault($from, $prop);
+    }
+
+    /** Mid-grey labels ("Step 3 of 4", field captions) must become TextMuted, not stay #757575. */
+    private function isMutedHierarchyInk(string $from, string $prop): bool
+    {
+        if (preg_match('/^(Color|FontColor)$/i', $prop) !== 1) {
+            return false;
+        }
+        $parsed = ColorValue::parse($from);
+        if ($parsed === null || ColorValue::isTransparent($parsed)) {
+            return false;
+        }
+        $sat = ColorValue::saturation($parsed);
+        $lum = ColorValue::luminance($parsed);
+
+        return $sat <= 0.22 && $lum >= 0.10 && $lum <= 0.62;
     }
 
     /**

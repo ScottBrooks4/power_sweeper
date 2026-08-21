@@ -49,8 +49,9 @@ return [
         'property_map' => [
             'FontColor' => 'Color',
             'BasePaletteColor' => 'Fill',
+            'FontSize' => 'Size',
         ],
-        'remove' => ['Appearance', 'BasePaletteColor', 'FontColor', 'IconStyle', 'Layout'],
+        'remove' => ['Appearance', 'BasePaletteColor', 'FontColor', 'FontSize', 'IconStyle', 'Layout'],
     ],
     [
         'key' => 'modern_text',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use PowerSweeper\EstimateModel;
 use PowerSweeper\SweepRegistry;
 use PowerSweeper\Pipeline;
 use PowerSweeper\ZipTool;
@@ -316,13 +317,33 @@ try {
         $lastFlush = $now;
     };
 
+    $inputBytes = is_file($tmpInput) ? (int) filesize($tmpInput) : 0;
+
+    $clientComplexity = json_decode((string) ($_POST['complexity'] ?? ''), true);
+    $clientSignals = json_decode((string) ($_POST['signals'] ?? ''), true);
+    if (!is_array($clientComplexity)) {
+        $clientComplexity = [];
+    }
+    if (!is_array($clientSignals)) {
+        $clientSignals = [];
+    }
+
+    $timingEvents = [];
     $pipeline = new Pipeline();
     $result = $pipeline->run(
         $tmpInput,
         $normalized,
         $tmpOutput,
-        static function (array $event) use ($wantsStream, &$pendingChange, $flushChange): void {
-            if (($event['type'] ?? '') === 'change') {
+        static function (array $event) use ($wantsStream, &$pendingChange, $flushChange, &$timingEvents): void {
+            $type = (string) ($event['type'] ?? '');
+            $phase = (string) ($event['phase'] ?? '');
+            if (
+                $type === 'sweep_done'
+                || ($type === 'phase' && in_array($phase, ['unpack_done', 'pack_done', 'subsweep_done'], true))
+            ) {
+                $timingEvents[] = $event;
+            }
+            if ($type === 'change') {
                 $pendingChange = $event;
                 $flushChange(false);
                 return;
@@ -332,6 +353,23 @@ try {
         }
     );
     $flushChange(true);
+
+    $estimateLearn = null;
+    try {
+        $runRecord = EstimateModel::buildRunFromEvents($timingEvents, [
+            'app' => $originalName,
+            'file_bytes' => $inputBytes > 0 ? $inputBytes : (int) ($clientComplexity['file_bytes'] ?? 0),
+            'elapsed_ms' => (int) ($result['elapsed_ms'] ?? 0),
+            'signals' => $clientSignals,
+            'complexity' => $clientComplexity,
+        ]);
+        if (is_array($runRecord)) {
+            $estimateLearn = EstimateModel::recordRun($runRecord);
+        }
+    } catch (Throwable $learnErr) {
+        $estimateLearn = ['ok' => false, 'reason' => $learnErr->getMessage()];
+    }
+
     @unlink($tmpInput);
     if (is_string($schemaPath) && is_file($schemaPath)) {
         @unlink($schemaPath);
@@ -361,6 +399,7 @@ try {
         'report' => $slimReport,
         'elapsed_ms' => (int) ($result['elapsed_ms'] ?? 0),
         'progress' => 1.0,
+        'estimate_learn' => $estimateLearn,
     ];
 
     if ($wantsStream) {
@@ -372,6 +411,7 @@ try {
             'filename' => $downloadName,
             'report' => $slimReport,
             'elapsed_ms' => (int) ($result['elapsed_ms'] ?? 0),
+            'estimate_learn' => $estimateLearn,
         ], JSON_UNESCAPED_SLASHES);
     }
     $runFinished = true;

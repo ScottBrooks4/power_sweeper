@@ -66,9 +66,15 @@ final class PreferClassicThemeControlsSweep implements SweepInterface
                 if ($this->alreadyTarget($control, $entry)) {
                     continue;
                 }
+                // Chrome-less modern controls (transparent buttons, icons) stay modern.
+                // Converting them to classic invents an opaque Fill and a larger Size.
+                if ($this->shouldLeaveModern($control, $key)) {
+                    continue;
+                }
 
                 $fromType = $control->type;
                 $this->remapProperties($control, $entry, $report);
+                $this->preserveModernButtonChrome($control, $key);
                 $yaml = (string) $entry['yaml'];
                 /** @var array{Id?:string,Name?:string,Version?:string} $json */
                 $json = is_array($entry['json'] ?? null) ? $entry['json'] : [];
@@ -244,5 +250,99 @@ final class PreferClassicThemeControlsSweep implements SweepInterface
 
         return preg_match('/^=\s*""\s*$/', $trim) === 1
             || preg_match("/^=\\s*''\\s*$/", $trim) === 1;
+    }
+
+    /**
+     * Transparent / icon-only modern controls are layout chrome, not themed surfaces.
+     * Leave them so dark mode can keep RGBA(0,0,0,0) instead of a classic Fill.
+     */
+    private function shouldLeaveModern(ControlNode $control, string $key): bool
+    {
+        if ($key === 'modern_icon') {
+            return true;
+        }
+        // Classic CheckBox has Value, not Checked — converting breaks
+        // If(Self.Checked, DisplayMode.View, …) and OnCheck formulas.
+        if ($key === 'modern_checkbox') {
+            return true;
+        }
+        // Classic ComboBox/Dropdown SelectedItems is a record table. Gallery
+        // Items that use `x in Combo.SelectedItems` then fail:
+        // "Invalid schema, expected a one-column table".
+        if ($key === 'modern_combobox' || $key === 'modern_dropdown') {
+            return true;
+        }
+        // Modern text is already transparent chrome (loading titles, step numerals).
+        // Classic Label invents an opaque Fill → black bars on light screens.
+        if ($key === 'modern_text') {
+            $fill = $control->getProperty('Fill');
+            if ($fill === null || trim($fill) === '' || trim($fill) === '=') {
+                return true;
+            }
+            $parsed = ColorValue::parse($fill);
+            if ($parsed !== null && ColorValue::isTransparent($parsed)) {
+                return true;
+            }
+        }
+        $isButton = $key === 'modern_button' || str_contains(strtolower($control->type), 'button');
+        if (!$isButton) {
+            return false;
+        }
+        if ($this->isTransparentAppearance($control->getProperty('Appearance'))) {
+            return true;
+        }
+        $fill = $control->getProperty('Fill');
+        if ($fill === null || trim($fill) === '') {
+            return false;
+        }
+        $parsed = ColorValue::parse($fill);
+
+        return $parsed !== null && ColorValue::isTransparent($parsed);
+    }
+
+    /**
+     * Classic buttons default Size=14 and a 2px black border. Copy modern FontSize
+     * and drop the invented border. Do not invent Radius — keep the modern control's
+     * corners (pixel-perfect). Self.Height / 2 turns every CTA into a pill.
+     */
+    private function preserveModernButtonChrome(ControlNode $control, string $key): void
+    {
+        if ($key !== 'modern_button' && !str_contains(strtolower($control->type), 'button')) {
+            return;
+        }
+        $eq = $control->format === 'yaml';
+        $size = $control->getProperty('Size');
+        if ($size === null || trim($size) === '' || trim($size) === '=') {
+            $fontSize = $control->getProperty('FontSize');
+            if ($fontSize !== null && trim($fontSize) !== '' && trim($fontSize) !== '=') {
+                $control->setProperty('Size', $fontSize);
+            } else {
+                $control->setProperty('Size', $eq ? '=10.5' : '10.5');
+            }
+        }
+
+        $thickness = $control->getProperty('BorderThickness');
+        $thicknessEmpty = $thickness === null || trim($thickness) === '' || trim($thickness) === '=';
+        if ($thicknessEmpty) {
+            $control->setProperty('BorderThickness', $eq ? '=0' : '0');
+        }
+
+        // Fluent Primary with no Radius still paints a capsule. Classic with no
+        // Radius inherits that look. Pin a 4px rounded-rect (not Height/2).
+        $radii = ['RadiusTopLeft', 'RadiusTopRight', 'RadiusBottomLeft', 'RadiusBottomRight'];
+        $hasRadius = false;
+        foreach ($radii as $prop) {
+            $val = $control->getProperty($prop);
+            if ($val !== null && trim($val) !== '' && trim($val) !== '=') {
+                $hasRadius = true;
+                break;
+            }
+        }
+        if (!$hasRadius) {
+            $radius = $eq ? '=4' : '4';
+            foreach ($radii as $prop) {
+                $control->setProperty($prop, $radius);
+            }
+        }
     }
 }

@@ -34,6 +34,7 @@ use PowerSweeper\Sweeps\TranslateSweep;
 use PowerSweeper\Sweeps\SpellingConsistencySweep;
 use PowerSweeper\Sweeps\UnwhackLocaleFormulasSweep;
 use PowerSweeper\Pipeline;
+use PowerSweeper\EstimateModel;
 use PowerSweeper\SweepChains;
 use PowerSweeper\Report;
 use PowerSweeper\SharePoint\SharePointCatalog;
@@ -661,11 +662,27 @@ $byName = [];
 foreach ($classicPrepDoc->controls() as $c) {
     $byName[$c->name] = $c;
 }
-assert_true(str_starts_with((string) ($byName['TitleModern']->type ?? ''), 'Label@'), 'ModernText → Label for Fill/Color');
+assert_true(str_contains(strtolower((string) ($byName['TitleModern']->type ?? '')), 'moderntext'), 'ModernText without Fill stays modern (classic Label invents a dark box)');
 assert_true(str_starts_with((string) ($byName['SaveModern']->type ?? ''), 'Classic/Button@'), 'ModernButton → Classic/Button');
 assert_true(str_starts_with((string) ($byName['CanvasBtn']->type ?? ''), 'Classic/Button@'), 'ButtonCanvas → Classic/Button');
 assert_true(str_starts_with((string) ($byName['NameInput']->type ?? ''), 'Classic/TextInput@'), 'ModernTextInput → Classic/TextInput');
 assert_true(str_starts_with((string) ($byName['AlreadyClassic']->type ?? ''), 'Classic/Button@'), 'existing Classic/Button left alone');
+assert_true(str_contains(strtolower((string) ($byName['GhostHit']->type ?? '')), 'button@0.0'), 'transparent modern button is not converted to classic');
+assert_true(str_contains(strtolower((string) ($byName['WarningGlyph']->type ?? '')), 'modernicon')
+    || str_contains(strtolower((string) ($byName['WarningGlyph']->type ?? '')), 'icon@0.0'),
+    'modern icon is not converted to classic');
+assert_true((string) ($byName['SaveModern']->getProperty('Size') ?? '') === '=12', 'converted classic button copies modern FontSize');
+assert_true(!str_contains((string) ($byName['SaveModern']->getProperty('RadiusTopLeft') ?? ''), 'Self.Height'), 'converted classic button does not invent a pill radius');
+assert_true(trim((string) ($byName['SaveModern']->getProperty('RadiusTopLeft') ?? '')) === '=4', 'converted classic button uses 4px corners, not a capsule');
+assert_true(str_contains(strtolower((string) ($byName['RoleCheck']->type ?? '')), 'checkbox@0.0'), 'modern checkbox is not converted (Self.Checked stays valid)');
+assert_true(
+    !str_contains(strtolower((string) ($byName['StatusCombo']->type ?? '')), 'classic/')
+        && (str_contains(strtolower((string) ($byName['StatusCombo']->type ?? '')), 'moderncombobox')
+            || (bool) preg_match('/combobox@0\\./i', (string) ($byName['StatusCombo']->type ?? ''))),
+    'modern combobox is not converted (SelectedItems schema stays one-column)'
+);
+assert_true((string) ($byName['SaveModern']->getProperty('BorderThickness') ?? '') === '=0', 'converted filled button does not gain a classic black border');
+assert_true((string) ($byName['CanvasBtn']->getProperty('Size') ?? '') === '=10.5', 'converted classic button defaults Size when FontSize is unset');
 assert_true(str_starts_with((string) ($byName['Sites']->type ?? ''), 'ModernNumberInput@'), 'ModernNumberInput skipped by default');
 assert_true(str_contains((string) ($byName['SaveModern']->getProperty('Fill') ?? ''), 'RGBA(37, 99, 235'), 'BasePaletteColor remapped to Fill');
 assert_true(str_contains((string) ($byName['SaveModern']->getProperty('Color') ?? ''), 'RGBA(255, 255, 255'), 'FontColor remapped to Color');
@@ -857,6 +874,7 @@ $contrastReport = new Report();
 (new EnableDarkModeSweep())->apply([$contrastDoc], $contrastReport, ['force' => true]);
 $contrastDoc->reindex();
 $chipInk = $bannerFill = $mixedColor = $inputColor = $inputFill = $onStartContrast = '';
+$inputBorder = $inputHover = $saveHover = $saveFill = $hoverChip = $hoverChipBorder = $cardBorder = $lockedFill = $mutedColor = '';
 foreach ($contrastDoc->controls() as $c) {
     if ($c->isApp()) {
         $onStartContrast = (string) ($c->getProperty('OnStart') ?? '');
@@ -873,10 +891,38 @@ foreach ($contrastDoc->controls() as $c) {
     if ($c->name === 'TitleInput') {
         $inputColor = (string) ($c->getProperty('Color') ?? '');
         $inputFill = (string) ($c->getProperty('Fill') ?? '');
+        $inputBorder = (string) ($c->getProperty('BorderColor') ?? '');
+        $inputHover = (string) ($c->getProperty('HoverFill') ?? '');
+    }
+    if ($c->name === 'SaveAction') {
+        $saveHover = (string) ($c->getProperty('HoverFill') ?? '');
+        $saveFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'LockedDropdown') {
+        $lockedFill = (string) ($c->getProperty('DisabledFill') ?? '');
+    }
+    if ($c->name === 'MutedCaption') {
+        $mutedColor = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'HoverChip') {
+        $hoverChip = (string) ($c->getProperty('HoverFill') ?? '');
+        $hoverChipBorder = (string) ($c->getProperty('BorderColor') ?? '');
+    }
+    if ($c->name === 'CardEdge') {
+        $cardBorder = (string) ($c->getProperty('BorderColor') ?? '');
     }
 }
-assert_true(str_contains($chipInk, 'gblTheme.TextOnLight'), 'ColorFade status chip label uses TextOnLight ink');
+assert_true(str_contains($chipInk, 'gblTheme.Text') && !str_contains($chipInk, 'TextOnLight'), 'ColorFade status chip keeps Text so dark mode ink is light');
 assert_true(str_contains($bannerFill, 'gblTheme.Warning'), 'warning banner Fill maps to Warning token');
+assert_true(str_contains($inputBorder, 'gblTheme.Border'), 'input BorderColor is themed');
+assert_true(str_contains($inputHover, 'gblTheme.SurfaceAlt') || str_contains($inputHover, 'gblTheme.SurfaceMuted'), 'input HoverFill is a lift, not the same as Fill');
+assert_true(str_contains($saveHover, 'SuccessHover'), 'semantic button HoverFill uses SuccessHover');
+assert_true(str_contains($saveFill, 'RGBA(8, 222, 8') && str_contains($saveFill, 'If(gblDarkMode'), 'Save button keeps original lime in light mode');
+assert_true(str_contains($lockedFill, 'gblTheme.Disabled') && !str_contains($lockedFill, 'InputFill'), 'disabled dropdown fill is Disabled, not InputFill');
+assert_true(str_contains($mutedColor, 'gblTheme.TextMuted'), 'secondary grey caption uses TextMuted, not Text');
+assert_true(str_contains($hoverChip, 'SurfaceMuted') || str_contains($hoverChip, 'SurfaceAlt'), 'white HoverFill becomes a distinct hover surface');
+assert_true(str_contains($hoverChipBorder, 'gblTheme.Border'), 'DefaultBorderColor → Border');
+assert_true(str_contains($cardBorder, 'gblTheme.Border'), 'dark-gray card BorderColor is themed so it stays visible');
 assert_true(
     str_contains($onStartContrast, 'TextOnLight:')
         && str_contains($onStartContrast, 'Warning: RGBA(161, 98, 7, 1)'),
@@ -898,14 +944,18 @@ foreach ($thceeFinalDoc->controls() as $c) {
         $thceeHtml = (string) ($c->getProperty('HtmlText') ?? '');
     }
     if ($c->name === 'ReturnHome') {
-        $thceeHome = (string) ($c->getProperty('BasePaletteColor') ?? '');
+        $thceeHome = (string) ($c->getProperty('BasePaletteColor') ?? $c->getProperty('Fill') ?? '');
     }
     if ($c->name === 'StatusChip') {
         $thceeChip = (string) ($c->getProperty('Fill') ?? '');
     }
 }
 assert_true(str_contains($thceeOn, 'PageCss:') && str_contains($thceeOn, 'TextMutedCss:'), 'THCEE palette ships PageCss/TextMutedCss');
-assert_true(str_contains($thceeHtml, 'gblTheme.PageCss') && str_contains($thceeHtml, 'gblTheme.TextCss'), 'THCEE section HTML cream/title theme');
+assert_true(
+    (str_contains($thceeHtml, 'gblTheme.PageCss') || str_contains($thceeHtml, 'gblTheme.SurfaceCss'))
+        && str_contains($thceeHtml, 'gblTheme.TextCss'),
+    'THCEE section HTML cream/title theme'
+);
 assert_true(str_contains($thceeChip, 'If(gblDarkMode'), 'THCEE Draft ColorFade chip darkens when dark');
 assert_true(str_contains($thceeHome, 'gblTheme.Surface'), 'pale Return Home BasePaletteColor → Surface');
 assert_true(
@@ -915,7 +965,7 @@ assert_true(
 assert_true(str_contains($inputFill, 'gblTheme.InputFill'), 'text input Fill uses InputFill');
 assert_true(str_contains($inputColor, 'gblTheme.Text'), 'text input Color set for readable typed text');
 assert_true(
-    str_contains($onStartContrast, 'Success: RGBA(21, 128, 61, 1)'),
+    str_contains($onStartContrast, 'Success: RGBA(20, 83, 45, 1)'),
     'dark palette includes darkened Success for readable banner text'
 );
 
@@ -928,7 +978,10 @@ $thceeChromeDoc->reindex();
 $thceeChromeReport = new Report();
 (new EnableDarkModeSweep())->apply([$thceeChromeDoc], $thceeChromeReport, ['force' => true]);
 $thceeChromeDoc->reindex();
-$hitFill = $navIcon = $startType = $startFill = $cardSvg = $remarksFill = $remarksApp = $objectiveFill = '';
+$hitFill = $navIcon = $startType = $startFill = $startApp = $cardSvg = $remarksFill = $remarksApp = $objectiveFill = '';
+$loadFill = $emptyColor = $overlayFill = $warnType = $warnColor = $attType = $attSize = $cardFill = '';
+$chipFill = $stepFill = $loadModernType = $loadModernFill = $railFill = '';
+$execColor = $approvalsStep = $transOnReset = $transAccess = $boundHtml = $adminHtml = null;
 foreach ($thceeChromeDoc->controls() as $c) {
     if ($c->name === 'NavHitTarget') {
         $hitFill = (string) ($c->getProperty('Fill') ?? '');
@@ -939,6 +992,7 @@ foreach ($thceeChromeDoc->controls() as $c) {
     if ($c->name === 'Homepage_Start') {
         $startType = (string) $c->type;
         $startFill = (string) ($c->getProperty('Fill') ?? '');
+        $startApp = (string) ($c->getProperty('Appearance') ?? '');
     }
     if ($c->name === 'CardIcon') {
         $cardSvg = (string) ($c->getProperty('Image') ?? '');
@@ -951,9 +1005,59 @@ foreach ($thceeChromeDoc->controls() as $c) {
     if ($c->name === 'ObjectiveBox') {
         $objectiveFill = (string) ($c->getProperty('Fill') ?? '');
     }
+    if ($c->name === 'LoadingScreen_LoadingTitle') {
+        $loadFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'Text1_5') {
+        $emptyColor = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'Container28') {
+        $overlayFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'WarningScreen_Icon') {
+        $warnType = (string) $c->type;
+        $warnColor = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'Details_AttendeesBtn') {
+        $attType = (string) $c->type;
+        $attSize = (string) ($c->getProperty('Size') ?? '');
+    }
+    if ($c->name === 'CardSurface') {
+        $cardFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'HeaderInfoChip') {
+        $chipFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'StepDot') {
+        $stepFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'LoadingTitleModern') {
+        $loadModernType = (string) $c->type;
+        $loadModernFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'SidebarRail') {
+        $railFill = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'Approvals_ExecutiveSummary') {
+        $execColor = (string) ($c->getProperty('Color') ?? '');
+    }
+    if ($c->name === 'ApprovalsStep') {
+        $approvalsStep = (string) ($c->getProperty('Fill') ?? '');
+    }
+    if ($c->name === 'TranslationHost') {
+        $transOnReset = (string) ($c->getProperty('OnReset') ?? '');
+        $transAccess = $c->getYamlDefinitionField('AccessAppScope');
+    }
+    if ($c->name === 'DetailsHtmlBound') {
+        $boundHtml = (string) ($c->getProperty('HtmlText') ?? '');
+    }
+    if ($c->name === 'AdminChangesHtml') {
+        $adminHtml = (string) ($c->getProperty('HtmlText') ?? '');
+    }
 }
-assert_true(str_starts_with($startType, 'Classic/Button@'), 'homepage Start converted to classic button');
-assert_true(str_contains($startFill, 'gblTheme.Surface'), 'homepage Start Fill uses Surface (not washed TextMuted)');
+assert_true(str_contains($startType, 'Button@0.0') || str_contains(strtolower($startType), 'buttoncanvas'), 'homepage Start stays modern transparent button');
+assert_true(str_contains($startApp, 'Transparent'), 'homepage Start keeps Transparent appearance');
+assert_true($startFill === '' || preg_match('/RGBA\\s*\\(\\s*0\\s*,\\s*0\\s*,\\s*0\\s*,\\s*0\\s*\\)/i', $startFill) === 1, 'homepage Start Fill is not painted as a theme surface');
 assert_true(
     preg_match('/RGBA\s*\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)/i', $hitFill) === 1,
     'sidebar hit-target Fill stays transparent so icons show'
@@ -963,6 +1067,60 @@ assert_true(str_contains($cardSvg, 'gblTheme.TextCss'), 'homepage SVG icon fill 
 assert_true(str_contains($remarksFill, 'gblTheme.InputFill'), 'remarks RichTextEditor Fill → InputFill');
 assert_true(str_contains($remarksApp, 'FilledDarker'), 'remarks RichTextEditor Appearance → FilledDarker');
 assert_true(str_contains($objectiveFill, 'gblTheme.InputFill'), 'unset objective TextInput Fill → InputFill');
+assert_true(preg_match('/RGBA\\s*\\(\\s*0\\s*,\\s*0\\s*,\\s*0\\s*,\\s*0\\s*\\)/i', $loadFill) === 1, 'loading title Fill stays transparent, not Page');
+assert_true(str_contains($emptyColor, 'gblTheme.Text'), 'empty text Color binds gblTheme.Text');
+assert_true(preg_match('/RGBA\\s*\\(\\s*0\\s*,\\s*0\\s*,\\s*0\\s*,\\s*0\\s*\\)/i', $overlayFill) === 1, 'borderless overlay container Fill stays transparent');
+assert_true(str_contains(strtolower($warnType), 'modernicon') || str_contains(strtolower($warnType), 'icon@0.0'), 'warning icon stays modern');
+assert_true(str_contains($warnColor, 'gblTheme.Text'), 'modern icon Color uses Text');
+assert_true(str_contains($attType, 'Button@0.0') || str_contains(strtolower($attType), 'buttoncanvas'), 'Attendees interface button stays modern');
+assert_true(str_contains($attSize, '10.5'), 'Attendees button Size is unchanged');
+assert_true(str_contains($cardFill, 'gblTheme.'), 'bordered card container still gets a theme surface');
+assert_true(str_contains($chipFill, 'gblDarkMode') && str_contains($chipFill, 'RGBA(255, 255, 255'), 'header chip stays white in light mode');
+assert_true(str_contains($stepFill, 'App.ActiveScreen') && str_contains($stepFill, 'RGBA(255,255,255'), 'stepper fill keeps ActiveScreen formula');
+assert_true(str_contains($stepFill, 'gblDarkMode') && (str_contains($stepFill, 'Surface') || str_contains($stepFill, 'SurfaceMuted')), 'stepper off-state white becomes a dark surface shade');
+assert_true(str_contains(strtolower($loadModernType), 'text@0.0'), 'loading title stays modern text');
+assert_true($loadModernFill === '' || preg_match('/RGBA\\s*\\(\\s*0\\s*,\\s*0\\s*,\\s*0\\s*,\\s*0\\s*\\)/i', $loadModernFill) === 1, 'loading modern text Fill is not Page');
+assert_true(str_contains($railFill, 'gblDarkMode') && str_contains($railFill, 'gblTheme.Page'), 'sidebar DefaultGray follows Page in dark mode');
+assert_true(str_contains((string) $execColor, 'varTransmitalContainer') && str_contains((string) $execColor, 'gblTheme.Text'), 'Executive Summary unselected ink becomes Text in dark mode');
+assert_true(str_contains((string) $approvalsStep, 'App.ActiveScreen') && str_contains((string) $approvalsStep, 'gblTheme.Selected'), 'active Approvals step uses Selected token');
+assert_true(str_contains((string) $transOnReset, 'gblTheme.SurfaceCss') && str_contains((string) $transOnReset, 'gblTheme.TextCss'), 'Approvals_HTML in translation OnReset splices theme CSS');
+assert_true($transAccess === true || $transAccess === 'true', 'translation host gets AccessAppScope after HTML splice');
+assert_true(
+    str_contains((string) $boundHtml, 'comTranslations.Labels.THCEEDetails.Details_GeneralHtml')
+        && str_contains((string) $boundHtml, 'Substitute(')
+        && str_contains((string) $boundHtml, 'gblTheme.SurfaceCss')
+        && str_contains((string) $boundHtml, 'gblTheme.PageCss'),
+    'Labels.*Html HtmlText is themed at display time'
+);
+assert_true(
+    str_contains((string) $adminHtml, 'Substitute(')
+        && str_contains((string) $adminHtml, 'Admin_ChangesHTML')
+        && str_contains((string) $adminHtml, '//"<div')
+        && !str_contains((string) $adminHtml, "Substitute(comTranslations.Labels.THCEEAdminScreen.Admin_ChangesHTML\n\n//"),
+    'commented Admin_ChangesHTML is wrapped on the Labels path only'
+);
+$thceeLive = \PowerSweeper\StudioLiveChecker::check([$thceeChromeDoc]);
+$thceeSyntax = (int) ($thceeLive['by_rule']['app-ErrBadToken'] ?? 0);
+assert_true($thceeSyntax === 0, 'THCEE chrome fixture has 0 parse errors after dark theme');
+
+$emailDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/email_send_reminder.pa.yaml', 'Src/Screen1.pa.yaml');
+assert_true($emailDoc !== null, 'email reminder fixture loads');
+$emailBefore = '';
+foreach ($emailDoc->controls() as $c) {
+    if ($c->name === 'ExternalFunctions') {
+        $emailBefore = (string) ($c->getProperty('Email_SendReminder') ?? '');
+    }
+}
+(new EnableDarkModeSweep())->apply([$emailDoc], new Report(), ['force' => true]);
+$emailDoc->reindex();
+$emailAfter = '';
+foreach ($emailDoc->controls() as $c) {
+    if ($c->name === 'ExternalFunctions') {
+        $emailAfter = (string) ($c->getProperty('Email_SendReminder') ?? '');
+    }
+}
+assert_true($emailBefore !== '' && $emailAfter === $emailBefore, 'SendEmailV2 interpolated HTML is not spliced (keeps formula valid)');
+assert_true(!str_contains($emailAfter, 'gblTheme.'), 'outbound email body does not reference gblTheme');
 
 // Generalized detection: RTE host by child type; theme component AccessAppScope without TopbarHeader hardcoding
 $generalDoc = ControlDocument::fromFile(__DIR__ . '/fixtures/dark_mode_generalized.pa.yaml', 'Src/Screen1.pa.yaml');
@@ -3041,6 +3199,54 @@ if (is_file($poweredAdvise)) {
         assert_true(!in_array('accessibility_labels', $poweredIds, true), 'powered app skips accessibility_labels when none missing');
         assert_true(!in_array('accessibility_polish', $poweredIds, true), 'powered app skips accessibility_polish when none missing');
     }
+}
+
+// --- Shared estimate model learns from run timings (not per-browser) ---
+{
+    $estRoot = sys_get_temp_dir() . '/ps_estimate_test_' . bin2hex(random_bytes(4));
+    mkdir($estRoot . '/config', 0777, true);
+    mkdir($estRoot . '/public/assets', 0777, true);
+    mkdir($estRoot . '/assets', 0777, true);
+    mkdir($estRoot . '/storage/benchmarks', 0777, true);
+    $seed = EstimateModel::load(dirname(__DIR__));
+    file_put_contents($estRoot . '/config/estimate_model.json', json_encode($seed, JSON_UNESCAPED_SLASHES));
+    $beforeDark = count($seed['sweeps']['enable_dark_mode']['samples'] ?? []);
+    $run = EstimateModel::buildRunFromEvents([
+        [
+            'type' => 'phase',
+            'phase' => 'unpack_done',
+            'duration_ms' => 900,
+            'complexity' => [
+                'control_count' => 1200,
+                'file_bytes' => 4_000_000,
+                'formula_chars' => 20_000,
+                'document_count' => 8,
+                'property_count' => 4000,
+                'screen_count' => 6,
+                'extract_bytes' => 8_000_000,
+            ],
+        ],
+        ['type' => 'sweep_done', 'sweep' => 'enable_dark_mode', 'duration_ms' => 12_500, 'changes' => 400],
+        ['type' => 'phase', 'phase' => 'subsweep_done', 'subsweep' => 'normalize_containers', 'duration_ms' => 250, 'changes' => 12],
+        ['type' => 'phase', 'phase' => 'pack_done', 'duration_ms' => 1100],
+    ], [
+        'app' => 'Sample App.msapp',
+        'file_bytes' => 4_000_000,
+        'elapsed_ms' => 15_000,
+        'signals' => ['opaque_colors' => 300, 'white_container_fills' => 40],
+    ]);
+    assert_true(is_array($run), 'estimate buildRunFromEvents returns run');
+    assert_true(($run['app'] ?? '') === 'Sample_App', 'estimate sanitizes app label');
+    $learned = EstimateModel::recordRun($run, $estRoot);
+    assert_true(($learned['ok'] ?? false) === true, 'estimate recordRun ok');
+    assert_true(((int) ($learned['samples_added'] ?? 0)) >= 2, 'estimate recordRun adds sweep + subsweep samples');
+    $updated = json_decode((string) file_get_contents($estRoot . '/public/assets/estimate_model.json'), true);
+    assert_true(is_array($updated), 'estimate model written to public assets');
+    assert_true(((int) ($updated['version'] ?? 0)) === EstimateModel::VERSION, 'estimate model version bumped');
+    $afterDark = count($updated['sweeps']['enable_dark_mode']['samples'] ?? []);
+    assert_true($afterDark === $beforeDark + 1 || $afterDark === min(EstimateModel::MAX_SAMPLES_PER_SWEEP, $beforeDark + 1), 'estimate appends dark-mode sample');
+    assert_true(isset($updated['sweeps']['normalize_containers']['samples']), 'estimate records subsweep samples');
+    assert_true(is_file($estRoot . '/storage/benchmarks/live_runs.jsonl'), 'estimate appends live_runs.jsonl');
 }
 
 echo "\n";

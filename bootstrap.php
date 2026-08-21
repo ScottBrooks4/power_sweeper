@@ -54,7 +54,7 @@ function ps_ini_bytes(string $val): int
     };
 }
 
-foreach (['tmp', 'out'] as $sub) {
+foreach (['tmp', 'out', 'benchmarks'] as $sub) {
     $dir = POWER_SWEEPER_STORAGE . '/' . $sub;
     if (!is_dir($dir)) {
         mkdir($dir, 0777, true);

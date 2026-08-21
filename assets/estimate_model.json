@@ -1,15 +1,15 @@
 {
-    "version": 6,
-    "generated_at": "2026-08-15T14:50:16+00:00",
-    "source_runs": "estimate_runs_20260815_144516.json",
+    "version": 7,
+    "generated_at": "2026-08-21T17:52:53+00:00",
+    "source_runs": "live_runs.jsonl",
     "overhead_ms": 280,
     "unpack": {
-        "fixed_ms": 0,
-        "per_mb_ms": 111.77
+        "fixed_ms": 100,
+        "per_mb_ms": 838.926
     },
     "pack": {
-        "fixed_ms": 0,
-        "per_mb_ms": 190.572
+        "fixed_ms": 80,
+        "per_mb_ms": 671.141
     },
     "default_sweep": {
         "heavy": false,
@@ -392,9 +392,17 @@
                     "file_mb": 9.3792,
                     "workload": 939,
                     "app": "thcee"
+                },
+                {
+                    "duration_ms": 120,
+                    "changes": 3,
+                    "controls": 100,
+                    "file_mb": 0.4768,
+                    "workload": 3,
+                    "app": "smoke"
                 }
             ],
-            "avg_ms": 16
+            "avg_ms": 33
         },
         "enable_dark_mode": {
             "heavy": true,
@@ -887,5 +895,22 @@
             "modern_themeable_controls"
         ]
     },
-    "force_multiplier": 1.12
+    "force_multiplier": 1.12,
+    "phase_samples": {
+        "unpack": [
+            {
+                "file_mb": 0.4768,
+                "duration_ms": 500,
+                "app": "smoke"
+            }
+        ],
+        "pack": [
+            {
+                "file_mb": 0.4768,
+                "duration_ms": 400,
+                "app": "smoke"
+            }
+        ]
+    },
+    "live_run_count": 1
 }

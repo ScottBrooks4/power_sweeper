@@ -57,6 +57,9 @@ final class PowerFxFormulaChecker
         $body = ltrim(trim($formula), '=');
         $screenRecordVars ??= [];
 
+        $findings = array_merge($findings, $this->checkSyntax($body, $location, $screen, $controlType, $property));
+        $findings = array_merge($findings, $this->checkClassicChecked($body, $location, $screen, $controlType, $property));
+        $findings = array_merge($findings, $this->checkSelectedItemsSchema($body, $location, $screen, $controlType, $property));
         $findings = array_merge($findings, $this->checkLocale($body, $location, $screen, $controlType, $property));
         $findings = array_merge($findings, $this->checkBooleans($body, $location, $screen, $controlType, $property, $controlName));
 
@@ -85,6 +88,145 @@ final class PowerFxFormulaChecker
         $findings = array_merge($findings, $this->checkScreenQualifiedDateCalls($body, $location, $screen, $controlType, $property));
 
         return $findings;
+    }
+
+    /**
+     * Unbalanced quotes/parens and # tokens in code (Studio: Unexpected characters).
+     *
+     * @return list<Finding>
+     */
+    private function checkSyntax(
+        string $body,
+        string $location,
+        string $screen,
+        string $controlType,
+        string $property,
+    ): array {
+        $parts = PowerFxFormulaSegments::split($body);
+        $code = '';
+        $unclosed = false;
+        foreach ($parts as [$type, $text]) {
+            if ($type === 'string') {
+                $q = $text[0] ?? '';
+                if (($q === '"' || $q === "'") && (strlen($text) < 2 || !str_ends_with($text, $q))) {
+                    $unclosed = true;
+                }
+            }
+            if ($type === 'code') {
+                $code .= $text;
+            }
+        }
+        $depth = 0;
+        $len = strlen($code);
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $code[$i];
+            if ($ch === '(' || $ch === '[' || $ch === '{') {
+                $depth++;
+            } elseif ($ch === ')' || $ch === ']' || $ch === '}') {
+                $depth--;
+                if ($depth < 0) {
+                    return [$this->syntaxFinding($location, $screen, $controlType, $property, $body)];
+                }
+            }
+        }
+        if ($unclosed || $depth !== 0) {
+            return [$this->syntaxFinding($location, $screen, $controlType, $property, $body)];
+        }
+
+        return [];
+    }
+
+    /**
+     * Classic CheckBox has Value, not Checked (Studio: Name isn't valid. 'Checked').
+     *
+     * @return list<Finding>
+     */
+    private function checkClassicChecked(
+        string $body,
+        string $location,
+        string $screen,
+        string $controlType,
+        string $property,
+    ): array {
+        if (preg_match('/classic\\/checkbox|appmagic\\/checkbox/i', $controlType) !== 1) {
+            return [];
+        }
+        if (preg_match('/\\b(?:Self\\.)?Checked\\b/', $body) !== 1) {
+            return [];
+        }
+
+        return [$this->makeFinding(
+            'app-ErrInvalidName',
+            'error',
+            ['Checked'],
+            $location,
+            $screen,
+            $controlType,
+            $property,
+            'Checked',
+            0,
+            7
+        )];
+    }
+
+    /**
+     * `x in ClassicCombo.SelectedItems` — Studio: Invalid schema, expected a one-column table.
+     *
+     * @return list<Finding>
+     */
+    private function checkSelectedItemsSchema(
+        string $body,
+        string $location,
+        string $screen,
+        string $controlType,
+        string $property,
+    ): array {
+        if (preg_match_all('/\bin\s+([A-Za-z_][\w]*)\.SelectedItems\b(?!\s*\.)/', $body, $matches) < 1) {
+            return [];
+        }
+        $findings = [];
+        foreach (array_unique($matches[1]) as $name) {
+            $type = (string) ($this->catalog->typeOf($name) ?? '');
+            if ($type === '' || preg_match('/classic\\/(?:combobox|dropdown)|appmagic\\/(?:combobox|dropdown)/i', $type) !== 1) {
+                continue;
+            }
+            $findings[] = $this->makeFinding(
+                'app-ErrInvalidSchema',
+                'error',
+                ['expected a one-column table'],
+                $location,
+                $screen,
+                $controlType,
+                $property,
+                $name . '.SelectedItems',
+                0,
+                strlen($name) + 14
+            );
+        }
+
+        return $findings;
+    }
+
+    /** @return Finding */
+    private function syntaxFinding(
+        string $location,
+        string $screen,
+        string $controlType,
+        string $property,
+        string $body,
+    ): array {
+        return $this->makeFinding(
+            'app-ErrBadToken',
+            'error',
+            ['Unexpected characters'],
+            $location,
+            $screen,
+            $controlType,
+            $property,
+            StudioIssueScanner::preview($body),
+            0,
+            min(strlen($body), 80)
+        );
     }
 
     /**

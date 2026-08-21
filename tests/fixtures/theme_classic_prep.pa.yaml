@@ -19,6 +19,8 @@ Screen1:
           Appearance: =Appearance.Primary
           BasePaletteColor: =RGBA(37, 99, 235, 1)
           FontColor: =RGBA(255, 255, 255, 1)
+          FontSize: =12
+          FontWeight: =FontWeight.Semibold
           X: =20
           Y: =80
           Width: =120
@@ -44,6 +46,23 @@ Screen1:
           Y: =80
           Width: =120
           Height: =40
+    - GhostHit:
+        Control: Button@0.0.45
+        Properties:
+          Text: ="Open"
+          Appearance: =Appearance.Transparent
+          X: =20
+          Y: =200
+          Width: =120
+          Height: =40
+    - WarningGlyph:
+        Control: ModernIcon@0.0.8
+        Properties:
+          Icon: =Icon.Warning
+          X: =300
+          Y: =80
+          Width: =32
+          Height: =32
     - AlreadyClassic:
         Control: Classic/Button@2.2.0
         Properties:
@@ -54,6 +73,17 @@ Screen1:
           Y: =200
           Width: =120
           Height: =40
+    - RoleCheck:
+        Control: CheckBox@0.0.30
+        Properties:
+          Checked: =Value(varRole) = 1
+          DisplayMode: =If(Self.Checked, DisplayMode.View, DisplayMode.Edit)
+          Label: ="Admin"
+    - StatusCombo:
+        Control: ModernCombobox@1.1.1
+        Properties:
+          Items: =["Draft", "Open"]
+          InputTextPlaceholder: ="Status"
     - Sites:
         Control: ModernNumberInput@1.1.1
         Properties:

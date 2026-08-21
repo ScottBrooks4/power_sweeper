@@ -161,8 +161,6 @@
     set_zip_path_style: 80,
   };
   const DEFAULT_SWEEP_MS = 900;
-  const LEARNED_SAMPLES_KEY = 'ps_sweep_samples_v1';
-  const LEARNED_COSTS_KEY = 'ps_sweep_costs_v1';
 
   /** @type {any} */
   let estimateModel = null;
@@ -262,48 +260,6 @@
     return Math.max(1, Math.round(controls * 0.02));
   }
 
-  function learnedSamples() {
-    try {
-      const raw = localStorage.getItem(LEARNED_SAMPLES_KEY);
-      const parsed = raw ? JSON.parse(raw) : {};
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch {
-      return {};
-    }
-  }
-
-  function rememberSweepSample(id, durationMs, changes = 0) {
-    if (!id || !(durationMs >= 40) || !(durationMs < 20 * 60 * 1000)) return;
-    const sample = {
-      duration_ms: Math.round(durationMs),
-      changes: Math.max(0, Number(changes) || 0),
-      controls: controlCount(),
-      file_mb: Number(fileMb().toFixed(4)),
-      workload: sweepWorkload(id, Number(changes) || 0),
-      app: 'live',
-    };
-    const all = learnedSamples();
-    const list = Array.isArray(all[id]) ? all[id] : [];
-    list.push(sample);
-    all[id] = list.slice(-12);
-    try {
-      localStorage.setItem(LEARNED_SAMPLES_KEY, JSON.stringify(all));
-    } catch {
-      /* ignore quota / private mode */
-    }
-    // Keep legacy scalar cache as a quick blend for remaining-ETA mid-run.
-    try {
-      const costs = JSON.parse(localStorage.getItem(LEARNED_COSTS_KEY) || '{}') || {};
-      const prev = Number(costs[id]);
-      costs[id] = Number.isFinite(prev) && prev > 0
-        ? Math.round(prev * 0.55 + durationMs * 0.45)
-        : Math.round(durationMs);
-      localStorage.setItem(LEARNED_COSTS_KEY, JSON.stringify(costs));
-    } catch {
-      /* ignore */
-    }
-  }
-
   function predictFromSamples(samples, controls, mb, workload, heavy) {
     if (!Array.isArray(samples) || !samples.length) return null;
     let num = 0;
@@ -333,17 +289,13 @@
   }
 
   function sweepCostMs(id, options = {}) {
-    // Composite: prefer summing child estimates (granular learning) and blend
-    // with parent samples when available.
+    // Composite: prefer summing child estimates (granular shared-model samples)
+    // and blend with parent samples when available.
     const compositeKids = COMPOSITE_SUB_SWEEPS[id];
     if (Array.isArray(compositeKids) && compositeKids.length) {
       const childSum = compositeKids.reduce((sum, sid) => sum + sweepCostMs(sid, options), 0);
       const modelSweep = estimateModel?.sweeps?.[id];
-      const learned = learnedSamples()[id];
-      const samples = [
-        ...(Array.isArray(modelSweep?.samples) ? modelSweep.samples : []),
-        ...(Array.isArray(learned) ? learned : []),
-      ];
+      const samples = Array.isArray(modelSweep?.samples) ? modelSweep.samples : [];
       const parentPred = predictFromSamples(
         samples,
         controlCount(),
@@ -360,11 +312,7 @@
     const mb = fileMb();
     const workload = sweepWorkload(id);
     const modelSweep = estimateModel?.sweeps?.[id] || estimateModel?.default_sweep;
-    const learned = learnedSamples()[id];
-    const samples = [
-      ...(Array.isArray(modelSweep?.samples) ? modelSweep.samples : []),
-      ...(Array.isArray(learned) ? learned : []),
-    ];
+    const samples = Array.isArray(modelSweep?.samples) ? modelSweep.samples : [];
     const heavy = Boolean(modelSweep?.heavy)
       || id.startsWith('repair_')
       || id === 'fix_formula_errors'
@@ -373,14 +321,6 @@
       || id === 'enable_dark_theme'
       || id === 'regenerate_sarif';
     let ms = predictFromSamples(samples, controls, mb, workload, heavy);
-    if (!(ms > 0)) {
-      try {
-        const legacy = Number(JSON.parse(localStorage.getItem(LEARNED_COSTS_KEY) || '{}')?.[id]);
-        if (Number.isFinite(legacy) && legacy > 0) ms = legacy;
-      } catch {
-        /* ignore */
-      }
-    }
     if (!(ms > 0)) {
       ms = SWEEP_COST_MS[id] ?? DEFAULT_SWEEP_MS;
       // Soft size scaling when model samples are missing.
@@ -426,12 +366,25 @@
 
   async function loadEstimateModel() {
     try {
-      const res = await fetch('assets/estimate_model.json', { cache: 'no-store' });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data && typeof data === 'object') {
-        estimateModel = data;
-        updateRunEstimate();
+      // Prefer API so the shared learned model is served even when static
+      // assets/estimate_model.json is stale or not writable on the host.
+      const endpoints = [
+        `${cfg.apiEstimateModel || 'api/estimate_model.php'}?v=${Date.now()}`,
+        `assets/estimate_model.json?v=${Date.now()}`,
+      ];
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url, { cache: 'no-store' });
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data && typeof data === 'object' && (data.sweeps || data.unpack)) {
+            estimateModel = data;
+            updateRunEstimate();
+            return;
+          }
+        } catch {
+          /* try next */
+        }
       }
     } catch {
       /* keep fallbacks */
@@ -1129,7 +1082,6 @@
       }
       if (ev.phase === 'subsweep_done') {
         if (typeof ev.duration_ms === 'number' && ev.subsweep) {
-          rememberSweepSample(ev.subsweep, ev.duration_ms, ev.changes);
           sweepDurationById[ev.subsweep] = ev.duration_ms;
         }
         if (ev.subsweep) {
@@ -1159,7 +1111,6 @@
         sweepDurationsMs.push(ev.duration_ms);
         if (ev.sweep) {
           sweepDurationById[ev.sweep] = ev.duration_ms;
-          rememberSweepSample(ev.sweep, ev.duration_ms, ev.changes);
         }
       }
       if (typeof ev.total === 'number' && typeof ev.index === 'number') {
@@ -1200,6 +1151,10 @@
 
   function applyResult(data) {
     const elapsedMs = markRunFinished(data);
+    if (data?.estimate_learn?.ok) {
+      // Shared server model was updated from this run — refresh for everyone.
+      loadEstimateModel();
+    }
     const total = data.report?.total ?? 0;
     const bySweep = data.report?.by_sweep || {};
     const parts = Object.entries(bySweep).map(([k, v]) => `${sweepMeta[k]?.label || k}: ${v}`);
@@ -1304,6 +1259,12 @@
     body.append('msapp', file);
     body.append('sweeps', JSON.stringify(sequence.map(({ id, options }) => ({ id, options }))));
     body.append('stream', '1');
+    if (appComplexity && typeof appComplexity === 'object') {
+      body.append('complexity', JSON.stringify(appComplexity));
+    }
+    if (appSignals && typeof appSignals === 'object') {
+      body.append('signals', JSON.stringify(appSignals));
+    }
 
     let finished = null;
     try {
