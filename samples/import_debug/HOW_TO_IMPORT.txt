@@ -1,6 +1,10 @@
 Power Sweeper — import debug (Studio "unknown error")
 =====================================================
 
+.msapp files are no longer stored in git. Keep local copies; scripts still
+look for the same filenames in this folder when present.
+
+
 Root causes (seen on failing cleans)
 ------------------------------------
 1) YAML shape: Symfony dump quoted Power Fx (`Fill: '=…'`) and broke Children lists.
