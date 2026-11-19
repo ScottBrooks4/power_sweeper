@@ -1,0 +1,43 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(varLang, true)
+Home:
+  Control: Screen@2.0.0
+  Children:
+    - Greeting:
+        Control: Label@2.5.1
+        Properties:
+          Text: |-
+            =If(
+                Hour(Now()) < 12, "Good Morning",
+                Hour(Now()) < 17, "Good Afternoon",
+                "Good Evening"
+            ) & ", " & User().FullName
+    - Steps:
+        Control: Gallery@2.15.0
+        Properties:
+          Items: |-
+            =Table(
+                {StepNum: "1", StepTitle: "Register", StepDesc: "Tell us about yourself"},
+                {StepNum: "2", StepTitle: "Get matched", StepDesc: "Every 2 months, with someone new"}
+            )
+    - AccountHtml:
+        Control: HtmlViewer@2.1.0
+        Properties:
+          HtmlText: ="<!doctype html><div>My Account</div><p>View and manage your account details and participant information.</p>"
+    - StyleHtml:
+        Control: HtmlViewer@2.1.0
+        Properties:
+          HtmlText: |-
+            ="<div style='width: " & Parent.Width & "px;
+            height: " & Parent.Height & "px;
+            background:" & gblTheme.SurfaceCss & ";'></div>"
+    - RankCard:
+        Control: TypedDataCard@1.0.7
+        Properties:
+          DisplayName: =DataSourceInfo([@'VHCP - Participants'],DataSourceInfo.DisplayName,Rank)
+    - PairGate:
+        Control: Classic/Button@2.2.0
+        Properties:
+          DisplayMode: =If(ThisItem.StepTitle = "Register", DisplayMode.Edit, DisplayMode.View)

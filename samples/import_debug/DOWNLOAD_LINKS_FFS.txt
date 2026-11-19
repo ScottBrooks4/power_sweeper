@@ -1,0 +1,33 @@
+Power Sweeper — App (16) download links (ffs / file host)
+=========================================================
+Generated: 2026-07-31
+
+START HERE
+----------
+CDLS_L_VCR_App_16.repair_then_dark.msapp  (repair + dark theme — recommended)
+  https://litter.catbox.moe/82vev1.msapp
+  Expires: 72 hours
+
+Other outputs
+-------------
+CDLS_L_VCR_App_16.repaired.msapp  (checker repair only)
+  https://litter.catbox.moe/sdkdab.msapp
+
+CDLS (L) VCR App (16).msapp  (original, 1719 issues)
+  https://litter.catbox.moe/uqsqi6.msapp
+
+CDLS_L_VCR_App_16.post_repair_validation.txt  (36 delegation warnings left)
+  https://litter.catbox.moe/bixwb4.txt
+
+CDLS_L_VCR_App_16.errors.txt  (pre-repair inventory)
+  https://litter.catbox.moe/9niso4.txt
+
+ffsend (send.vis.ee) — small files only; large .msapp uploads fail from CI.
+Use litterbox links above for .msapp files.
+
+Import in Studio
+----------------
+1. Download repair_then_dark.msapp (link above)
+2. make.powerapps.com → Apps → Import app → From file (.msapp)
+3. Open → App checker → Save once to refresh results
+4. Settings → Theme → Dark to verify theme

@@ -1,0 +1,201 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  ExternalFunctions:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    CustomProperties:
+      ClearCollections:
+        PropertyKind: Action
+        DisplayName: ClearCollections
+        Description: A custom property
+        ReturnType: None
+      LoadApprovals:
+        PropertyKind: Action
+        DisplayName: LoadApprovals
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - inputEHCRID:
+              Description: A parameter
+              DataType: Number
+              Default: =-1
+      LoadAttachments:
+        PropertyKind: Action
+        DisplayName: LoadAttachments
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - inputItemID:
+              Description: A parameter
+              IsOptional: true
+              DataType: Number
+              Default: =-1
+      LoadTemplate:
+        PropertyKind: Action
+        DisplayName: LoadTemplate
+        Description: Loads in a template of approvals
+        ReturnType: None
+        Parameters:
+          - OrgID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+          - TemplateName:
+              Description: A parameter
+              DataType: Text
+              Default: ="Text"
+          - EHCRID:
+              Description: A parameter
+              IsOptional: true
+              DataType: Number
+              Default: =100
+      MoveApprovalListItem:
+        PropertyKind: Action
+        DisplayName: MoveApprovalListItem
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - inputCurrentOrder:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+          - inputNewOrder:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+          - inputItemID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+      MoveTemplateItemOrder:
+        PropertyKind: Action
+        DisplayName: MoveTemplateItemOrder
+        Description: Changes the order of items in the edit template screen
+        ReturnType: None
+        Parameters:
+          - inputCurrentOrder:
+              Description: inputCurrentOrder
+              DataType: Number
+              Default: =100
+          - inputNewOrder:
+              Description: inputNewOrder
+              DataType: Number
+              Default: =100
+          - inputItemID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+      RemovedUnSigned:
+        PropertyKind: Action
+        DisplayName: RemovedUnSigned
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - UnSigned:
+              Description: A parameter
+              DataType: Boolean
+              Default: =true
+          - ID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+      TotalRefresh:
+        PropertyKind: Action
+        DisplayName: TotalRefresh
+        Description: A custom property
+        ReturnType: None
+      approvalNotifyEmail:
+        PropertyKind: Action
+        DisplayName: approvalNotifyEmail
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - SignedApproval:
+              Description: A parameter
+              DataType: Boolean
+              Default: =true
+          - itemID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+          - orderApproval:
+              Description: A parameter
+              IsOptional: true
+              DataType: Number
+              Default: =100
+          - email:
+              Description: A parameter
+              IsOptional: true
+              DataType: Text
+              Default: ="Text"
+          - message:
+              Description: A parameter
+              IsOptional: true
+              DataType: Text
+              Default: ="Text"
+      chatNotify:
+        PropertyKind: Action
+        DisplayName: chatNotify
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - email:
+              Description: A parameter
+              DataType: Text
+              Default: ="Text"
+          - message:
+              Description: A parameter
+              DataType: Text
+              Default: ="Text"
+      completeNotify:
+        PropertyKind: Action
+        DisplayName: completeNotify
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - email:
+              Description: A parameter
+              DataType: Text
+              Default: ="Text"
+    Properties:
+      ClearCollections: =false
+      Fill: =RGBA(224, 86, 6, 1)
+      Height: =100
+      LoadApprovals: =false
+      LoadAttachments: =false
+      LoadTemplate: =false
+      MoveApprovalListItem: =false
+      MoveTemplateItemOrder: =false
+      RemovedUnSigned: =false
+      TotalRefresh: =false
+      Width: =100
+      approvalNotifyEmail: =false
+      chatNotify: =Notify(Coalesce(message, "Chat"), NotificationType.Information)
+      completeNotify: =false
+    Children:
+      - TextCanvas1:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            Color: =RGBA(255, 255, 255, 1)
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =Parent.Height
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Size: =14
+            Text: ="External Functions"
+            Width: =Parent.Width

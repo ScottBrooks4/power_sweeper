@@ -1,0 +1,73 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "a1000000000000000001",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "height": 420,
+    "width": 760,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "stack_name"
+                }
+              },
+              "queryRef": "Scenarios.stack_name",
+              "nativeQueryRef": "stack_name"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "annual_cad"
+                }
+              },
+              "queryRef": "Scenarios.annual_cad",
+              "nativeQueryRef": "annual_cad"
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "scale"
+                }
+              },
+              "queryRef": "Scenarios.scale",
+              "nativeQueryRef": "scale"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

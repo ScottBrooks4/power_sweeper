@@ -1,0 +1,15 @@
+<FilesMatch "^(daily|links)\.json$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "\.lock$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "\.csv$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "do-status-edits\.json$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^(daily-new\.json|positional-mailbox\.txt)$">
+  Require all denied
+</FilesMatch>

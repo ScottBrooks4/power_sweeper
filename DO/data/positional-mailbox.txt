@@ -1,0 +1,2 @@
+# One positional mailbox address on its own line. Lines starting with # are ignored.
+DSG_DVCDS_PP_SA@service.forces.gc.ca

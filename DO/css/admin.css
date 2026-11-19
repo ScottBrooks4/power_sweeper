@@ -1,0 +1,72 @@
+/* Admin features are orange. */
+:root {
+  --admin: #f08a24;
+  --admin-soft: rgba(240, 138, 36, 0.16);
+  --admin-line: rgba(240, 138, 36, 0.55);
+}
+
+body[data-page="admin"] .stage { max-width: 1200px; }
+.admin-panel, .admin-gate { border-color: var(--admin-line); border-top: 4px solid var(--admin); }
+.admin-panel h1, .admin-panel h2, .admin-panel h3, .admin-gate h1 { color: var(--admin); }
+.admin-panel h3 { margin: 22px 0 6px; }
+.admin-panel a { color: #ffc58a; }
+.admin-tag {
+  font-size: 0.7rem;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 99px;
+  color: #1a0d00;
+  background: var(--admin);
+}
+.admin-jump { display: flex; gap: 14px; flex-wrap: wrap; }
+.btn.admin-btn { border-color: var(--admin); background: rgba(92, 46, 6, 0.9); color: #fff4e8; }
+.btn.admin-btn:hover:not(:disabled) { background: #8a4810; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.admin-note { min-height: 1.4em; color: #ffd9b0; }
+
+.admin-table td small { color: var(--muted); }
+.admin-table td:last-child { white-space: nowrap; text-align: right; }
+.admin-row-actions .btn { padding: 4px 10px; margin-left: 4px; }
+.admin-editing td { background: var(--admin-soft); }
+.admin-conflict td { color: #ffb4a8; }
+
+/* Abbreviation and expansion fields line up in two rows, with the button beside them. */
+.admin-abbr-grid {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) auto;
+  gap: 8px 10px;
+  align-items: end;
+  margin: 12px 0 4px;
+}
+.admin-abbr-grid label { margin: 0; }
+.admin-abbr-grid input { width: 100%; }
+.admin-abbr-go {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: end;
+}
+.admin-abbr-grid label:nth-of-type(3), .admin-abbr-grid label:nth-of-type(4) { grid-row: 2; }
+.admin-abbr-grid label:nth-of-type(3) { grid-column: 1; }
+.admin-abbr-grid label:nth-of-type(4) { grid-column: 2; }
+
+.admin-floor {
+  display: block;
+  width: 100%;
+  height: min(80vh, 900px);
+  margin-top: 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: #fff;
+}
+.admin-floor[hidden] { display: none; }
+
+@media (max-width: 720px) {
+  .admin-abbr-grid { grid-template-columns: 1fr; }
+  .admin-abbr-grid label:nth-of-type(n), .admin-abbr-go { grid-column: auto; grid-row: auto; }
+  .admin-table td:last-child { white-space: normal; }
+}

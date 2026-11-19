@@ -1,0 +1,131 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  Refresh Screen:
+    Properties:
+      LoadingSpinnerColor: =RGBA(56, 96, 178, 1)
+    Children:
+      - Image6_4:
+          Control: Image@2.2.3
+          Properties:
+            BorderColor: =RGBA(0, 18, 107, 1)
+            Height: =Parent.Height
+            Image: =
+            ImagePosition: =ImagePosition.Fill
+            Width: =Parent.Width
+      - HtmlText2_5:
+          Control: HtmlViewer@2.1.0
+          Properties:
+            AutoHeight: =true
+            Font: =Font.'Open Sans'
+            Height: =Parent.Height
+            HtmlText: |-
+              ="<div style='
+              width: " & Parent.Width & "px,
+              height: " & Parent.Height & "px,
+              background: rgba(255, 255, 255, 0.24),
+              box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1),
+              backdrop-filter: blur(5px),
+              -webkit-backdrop-filter: blur(5px),
+              border: 1px solid rgba(255, 255, 255, 0.3),'></div>
+              "
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Width: =1366
+      - Container28:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            BorderStyle: =BorderStyle.None
+            DropShadow: =DropShadow.None
+            Fill: =RGBA(255, 255, 255, 0.5)
+            Height: =425
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutGap: =5
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            RadiusBottomLeft: =10
+            RadiusBottomRight: =10
+            RadiusTopLeft: =10
+            RadiusTopRight: =10
+            Width: =750
+            X: =Parent.Width/2 - Self.Width/2
+            Y: =Parent.Height/2 - Self.Height/2
+          Children:
+            - SVG:
+                Control: Image@2.2.3
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 1)
+                  Height: =150
+                  Image: ="data:image/svg+xml;utf8, "&EncodeUrl("<svg xmlns='http://www.w3.org/2000/svg' width='40px' height='40px' viewBox='0 0 20 20' fill='#000000' stroke='none' stroke-width='0' stroke-linecap='round' stroke-linejoin='round'><path d='M10 5.5a4.5 4.5 0 1 0 9 0 4.5 4.5 0 0 0-9 0Zm6.5-3c.28 0 .5.22.5.5v1.5a.5.5 0 0 1-.5.5H15a.5.5 0 0 1 0-1h.47a1.98 1.98 0 0 0-1.72-.1 2 2 0 0 0-.66.44.5.5 0 1 1-.71-.71A3 3 0 0 1 16 3.15V3c0-.28.22-.5.5-.5Zm-.88 5.53A3 3 0 0 1 13 7.85V8a.5.5 0 0 1-1 0V6.5c0-.28.22-.5.5-.5H14a.5.5 0 0 1 0 1h-.47a1.98 1.98 0 0 0 1.72.1 2 2 0 0 0 .66-.44.5.5 0 1 1 .71.71 3 3 0 0 1-1 .66ZM17 13v-2.6c.36-.18.7-.4 1-.66V13a2 2 0 0 1-2 2h-3v2h1.5a.5.5 0 0 1 0 1h-9a.5.5 0 0 1 0-1H7v-2H4a2 2 0 0 1-2-2V4c0-1.1.9-2 2-2h6.26c-.26.3-.48.64-.66 1H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1Zm-5 2H8v2h4v-2Z'/></svg>")
+                  Width: =150
+                  X: =114
+                  Y: =Parent.Height/2 - Self.Height/2
+            - RefreshScreen_Outdated:
+                Control: ModernText@1.0.0
+                Properties:
+                  Align: =Align.Center
+                  AutoHeight: =true
+                  Color: =RGBA(0, 0, 0, 1)
+                  Fill: =RGBA(255, 255, 255, 0)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Size: =25
+                  Text: |-
+                    ="The current version of this app is out of date. 
+                    Please update to the current version by either refreshing your tab or by clicking on the refresh button below."
+                  Width: =Parent.Width
+            - Text6:
+                Control: ModernText@1.0.0
+                Properties:
+                  Align: =Align.Center
+                  Fill: =RGBA(255, 255, 255, 0)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Text: |-
+                    ="Version #: " & AppVersion
+                  Width: =Parent.Width
+            - RefreshScreen_UptoDate:
+                Control: ModernText@1.0.0
+                Properties:
+                  Align: =Align.Center
+                  Fill: =RGBA(255, 255, 255, 0)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Text: "=// Set the version number that is in the SharePoint List\r\n\"The most up to date Version #: 0.0.0\" //& LookUp('VASC App Versions', ID = 1).AppVersion "
+                  Width: =Parent.Width
+            - RefreshScreen_RefreshBtn:
+                Control: ModernButton@1.0.0
+                Properties:
+                  BasePaletteColor: =RGBA(156, 220, 79, 1)
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnSelect: |-
+                    =Launch(
+                        LinkToApp & "&sourcetime=" &
+                        DateDiff(
+                            Date(1970, 1, 1),
+                            DateAdd(Now(), TimeZoneOffset(), TimeUnit.Minutes),
+                            TimeUnit.Seconds
+                        ),
+                        {},
+                        LaunchTarget.Replace
+                    )
+                  Text: ="Refresh"

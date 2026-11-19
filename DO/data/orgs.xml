@@ -1,0 +1,2201 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Each level sits inside its parent. id is stable. short is the label. fr is the French short form. -->
+<organization>
+  <L0 id="6024" short="DND/CAF" fr="MDN/FAC">
+    <L1 id="6025" short="ADM(DRDC)" fr="SMA(RDDC)">
+      <L2 id="6030" short="COS(DRDC)" fr="CEM(RDDC)">
+        <L3 id="6034" short="DRDSPRPM" fr="DPGSRRD" />
+        <L3 id="6037" short="DRDTMS" fr="DSMTRD" />
+        <L3 id="6040" short="DRDKDMS" fr="DSGNCRD" />
+      </L2>
+      <L2 id="6043" short="DGRDPA" fr="DGPCRD">
+        <L3 id="6047" short="CDCSS" fr="DCCSS" />
+        <L3 id="6050" short="DRDDSOA" fr="DODSARD" />
+        <L3 id="6053" short="DRDSPI" fr="DIPSRD" />
+      </L2>
+      <L2 id="6056" short="DGRDP" fr="DGPRD">
+        <L3 id="6060" short="DRDPDI" fr="DCIPRD" />
+        <L3 id="6063" short="DRDPC" fr="DPCRD" />
+        <L3 id="6066" short="DRDAE" fr="DAERD" />
+        <L3 id="6069" short="DRDSDC" fr="DCDSRD" />
+        <L3 id="6072" short="DRDAPWI" fr="DPEAIRD" />
+        <L3 id="6075" short="DRDPAS" fr="DASPRD" />
+      </L2>
+      <L2 id="6078" short="DGRDI" fr="DGIRD">
+        <L3 id="6082" short="DRDIO" fr="DOIRD" />
+        <L3 id="6085" short="DRDII" fr="DIIRD" />
+      </L2>
+      <L2 id="6088" short="DGRDSP" fr="DGPSRD">
+        <L3 id="6092" short="DRDEPE" fr="DPEERD" />
+        <L3 id="6095" short="CDRDC" fr="CRDDC" />
+        <L3 id="6098" short="DRDES" fr="DSERD" />
+      </L2>
+      <L2 id="6101" short="DGRDSE" fr="DGSIRD">
+        <L3 id="6105" short="DSTI" fr="DRST" />
+        <L3 id="6108" short="CDARC" fr="DCCRA" />
+        <L3 id="6111" short="CDORC" fr="DCCRO" />
+        <L3 id="6114" short="CDSRC" fr="DCCRS" />
+        <L3 id="6117" short="CDCORA" fr="DCCARO" />
+        <L3 id="6120" short="CDVRC" fr="DCCRV" />
+        <L3 id="6123" short="CDTRC" fr="DCCRT" />
+        <L3 id="6126" short="DRDOC" fr="DCORD" />
+        <L3 id="6129" short="DRDSEI" fr="DISIRD" />
+      </L2>
+    </L1>
+    <L1 id="6132" short="ADM(DS)/DCDO" fr="SMA(SN)/PND">
+      <L2 id="6137" short="C Cyber" fr="CEMC">
+        <L3 id="6141" short="D Cyber Ops FD" fr="DDFOC" />
+      </L2>
+      <L2 id="6144" short="DGICFD" fr="DGDFCI">
+        <L3 id="6148" short="DJC2ISFD" fr="DDSIC2FI" />
+        <L3 id="6151" short="DICR" fr="DCIE" />
+        <L3 id="6154" short="DICISC" fr="DCIISC" />
+        <L3 id="6157" short="DICBM" fr="DCIGA" />
+        <L3 id="6160" short="DICI" fr="DCII" />
+        <L3 id="6163" short="DSPO" fr="DSSP" />
+      </L2>
+      <L2 id="6166" short="COS DSG and CAF J6" fr="CEM - GSN et J6 FAC">
+        <L3 id="6170" short="DDBCC" fr="DGNCC" />
+        <L3 id="6173" short="DCPR" fr="DPRM" />
+      </L2>
+      <L2 id="6176" short="DGMCSS" fr="DGCMSS">
+        <L3 id="6180" short="DIMPPC" fr="DPCPGI" />
+        <L3 id="6183" short="DPDCIS" fr="DRPSIC" />
+        <L3 id="6186" short="DPDSS" fr="DRPCS" />
+        <L3 id="6189" short="DPD SATCOM" fr="DRP SATCOM" />
+      </L2>
+      <L2 id="6192" short="DGUIT" fr="DGTIU">
+        <L3 id="6196" short="DIMTS" fr="DSTGI" />
+        <L3 id="6199" short="DIMCD" fr="DDCGI" />
+        <L3 id="6202" short="DIM Secur" fr="D Sécur GI" />
+        <L3 id="6205" short="DBRM" fr="Dir GRA" />
+        <L3 id="6208" short="DIMEUS" fr="DSUFGI" />
+      </L2>
+      <L2 id="6211" short="DGEAS" fr="DGSAE">
+        <L3 id="6215" short="DEIMS" fr="DSGIE" />
+        <L3 id="6218" short="DEAPM" fr="DPGAE" />
+        <L3 id="6221" short="DAMII" fr="D GEST AII" />
+        <L3 id="6224" short="DHRIM" fr="DIRGH" />
+      </L2>
+      <L2 id="6227" short="DGDEMS" fr="DGMSED">
+        <L3 id="6231" short="Dir DEM" fr="Dir MED" />
+        <L3 id="6234" short="DPDMIS" fr="DRPSIG" />
+        <L3 id="6237" short="DDRMIS" fr="DSIGRD" />
+      </L2>
+      <L2 id="6240" short="DGDAIM" fr="DGDAGI">
+        <L3 id="6244" short="DDAE" fr="DHDA" />
+        <L3 id="6247" short="DDPDI" fr="DPDID" />
+        <L3 id="6250" short="DKIM" fr="DCGI" />
+      </L2>
+      <L2 id="6253" short="DGDTP" fr="DGPTN" />
+      <L2 id="6257" short="DGITI" fr="DGITI">
+        <L3 id="6261" short="DIMEI" fr="DIIGI" />
+        <L3 id="6264" short="DPDCC" fr="DRPSCC" />
+        <L3 id="6267" short="DJDCP" fr="Dir PIIND" />
+      </L2>
+    </L1>
+    <L1 id="6270" short="ADM(Fin)/CFO" fr="SMA(Fin)/DPF">
+      <L2 id="6275" short="C Fin Mgmt" fr="CG Fin">
+        <L3 id="6279" short="DGB" fr="DGB" />
+        <L3 id="6282" short="DB" fr="DB" />
+        <L3 id="6285" short="DCIA" fr="DDIA" />
+      </L2>
+      <L2 id="6288" short="DGFOS" fr="DGOSF">
+        <L3 id="6292" short="DFA" fr="DCF" />
+        <L3 id="6295" short="DFO" fr="DOF" />
+      </L2>
+      <L2 id="6298" short="DGCIPA" fr="DGECPIA">
+        <L3 id="6302" short="DC" fr="DCF" />
+        <L3 id="6305" short="D Corp S" fr="Dir Prés Min" />
+        <L3 id="6308" short="DIGA" fr="Dir G&amp;AI" />
+        <L3 id="6311" short="Dir SSE FS" fr="Dir SF PSE" />
+      </L2>
+      <L2 id="6314" short="DGSFG" fr="DGGFS">
+        <L3 id="6318" short="DFP" fr="DP Fin" />
+        <L3 id="6321" short="DFC" fr="DSF" />
+        <L3 id="6324" short="DFSI" fr="DISF" />
+        <L3 id="6327" short="DPC(Fin)" fr="DPC(Fin)" />
+      </L2>
+    </L1>
+    <L1 id="6330" short="ADM(IE)" fr="SMA(IE)">
+      <L2 id="6335" short="COS(IE)" fr="CEM (IE)">
+        <L3 id="6339" short="DIEC" fr="DCIE" />
+        <L3 id="6342" short="DIEMSS" fr="DSSGIE" />
+        <L3 id="6345" short="DIEBPP" fr="DPARIE" />
+        <L3 id="6348" short="SPO" fr="SPO" />
+      </L2>
+      <L2 id="6351" short="DGIA" fr="DGAA">
+        <L3 id="6355" short="DPPE" fr="DPPE" />
+        <L3 id="6358" short="DTNL" fr="DNTL" />
+      </L2>
+      <L2 id="6361" short="DGIEES" fr="DGSIIE">
+        <L3 id="6365" short="DNMIPD" fr="DRPIMN" />
+        <L3 id="6368" short="DAES" fr="DSAG" />
+        <L3 id="6371" short="DCPD" fr="DRPC" />
+        <L3 id="6374" short="D N Safe" fr="D Sûr N" />
+        <L3 id="6377" short="CFFM" fr="SIFC" />
+        <L3 id="6380" short="DMTPD" fr="DTDPM" />
+      </L2>
+      <L2 id="6383" short="DG P Reqts" fr="DG Ex P">
+        <L3 id="6387" short="DNMIPMO" fr="Dir BGPIMN" />
+        <L3 id="6390" short="Dir RPS" fr="Dir SI" />
+        <L3 id="6393" short="DRPPP" fr="DPPBI" />
+      </L2>
+      <L2 id="6396" short="DGESM" fr="DGEGD">
+        <L3 id="6400" short="DCS" fr="Dir SC" />
+        <L3 id="6403" short="DESM" fr="DEGD" />
+      </L2>
+      <L2 id="6406" short="DGSPI" fr="DGISP">
+        <L3 id="6410" short="DPI" fr="DIP" />
+      </L2>
+      <L2 id="6413" short="CFHA" fr="ALFC" />
+    </L1>
+    <L1 id="6417" short="ADM(Mat)" fr="SMA(Mat)">
+      <L2 id="6422" short="AADM(Mat)" fr="SMAD(Mat)" />
+      <L2 id="6426" short="COS(Mat)" fr="CEM(Mat)">
+        <L3 id="6430" short="DPMSO" fr="DOSGP" />
+        <L3 id="6433" short="DMS" fr="DSM" />
+        <L3 id="6436" short="DMGMC" fr="DCGGM" />
+        <L3 id="6439" short="DMGSP" fr="DPSGM" />
+        <L3 id="6442" short="DMG Compt" fr="D Contr GM" />
+        <L3 id="6445" short="DAER" fr="DREM" />
+        <L3 id="6448" short="DMGCAS" fr="DSCAGM" />
+        <L3 id="6451" short="DMGIS" fr="DSIGM" />
+      </L2>
+      <L2 id="6454" short="DGLEPM" fr="DG GPET">
+        <L3 id="6458" short="DLEPS" fr="DEMPET" />
+        <L3 id="6461" short="DCSEM" fr="D Gest EAC" />
+        <L3 id="6464" short="DSVPM" fr="DAPVS" />
+        <L3 id="6467" short="DAVPM" fr="D Gest PVB" />
+        <L3 id="6470" short="DSSPM" fr="DAPES" />
+        <L3 id="6473" short="DASPM" fr="D Gest PSA" />
+        <L3 id="6476" short="DLP" fr="DOT" />
+        <L3 id="6479" short="DLCSPM" fr="DAPSCT" />
+      </L2>
+      <L2 id="6482" short="DGAEPM" fr="DGGPEA">
+        <L3 id="6486" short="DAEP MFT" fr="DPEA GAEC" />
+        <L3 id="6489" short="DAEP MT" fr="DPEA GAT" />
+        <L3 id="6492" short="DAEP MM" fr="DPEA GM" />
+        <L3 id="6495" short="DAEPM RCS" fr="DPEAG SRC" />
+        <L3 id="6498" short="DAEBM" fr="DEAGO" />
+        <L3 id="6501" short="DTAES" fr="DNAST" />
+        <L3 id="6504" short="DAP" fr="DOA" />
+        <L3 id="6507" short="DAEPM TA&amp;S" fr="DPEAG AT &amp; S" />
+      </L2>
+      <L2 id="6510" short="DGIIP" fr="DGPII">
+        <L3 id="6514" short="DIMC" fr="DCIM" />
+        <L3 id="6517" short="DIRAP" fr="DRAPI" />
+        <L3 id="6520" short="DCMC" fr="DCCM" />
+      </L2>
+      <L2 id="6523" short="DGMEPM" fr="DGGPEM">
+        <L3 id="6527" short="DNPS" fr="DSPN" />
+        <L3 id="6530" short="DMMS" fr="DSGM" />
+        <L3 id="6533" short="DMEPM (MSC)" fr="D Gest PEM (GBGS)" />
+        <L3 id="6536" short="DMEPM (SM)" fr="D Gest PEM (SM)" />
+        <L3 id="6539" short="DMEPM (NC)" fr="D Gest PEM (NC)" />
+        <L3 id="6542" short="D Mar P" fr="DO Mar" />
+      </L2>
+      <L2 id="6545" short="DG Proc Svcs" fr="DG Svcs Acq">
+        <L3 id="6549" short="D Maj Proc" fr="D Achats Imp" />
+        <L3 id="6552" short="DES Proc" fr="DOSE" />
+        <L3 id="6555" short="D Svcs C" fr="DC Svc" />
+        <L3 id="6558" short="DSPCOS" fr="DCASSO" />
+        <L3 id="6561" short="DSTARS" fr="DTSCAS" />
+        <L3 id="6564" short="DFFLIT" fr="DFEIPC" />
+      </L2>
+      <L2 id="6567" short="DGMSSC" fr="DG SMCA">
+        <L3 id="6571" short="DSCO" fr="DOCA" />
+        <L3 id="6574" short="DMPP" fr="DPPM" />
+        <L3 id="6577" short="DMSPR" fr="DPBSM" />
+        <L3 id="6580" short="DBM" fr="D Gest A" />
+        <L3 id="6583" short="DQA" fr="DAQ" />
+      </L2>
+      <L2 id="6586" short="DGMPD A&amp;L" fr="DGRGP A &amp; AT">
+        <L3 id="6590" short="DMPS" fr="DSGP" />
+      </L2>
+      <L2 id="6593" short="GDMPD Sea" fr="DG RGP Marine" />
+      <L2 id="6597" short="DGJEPM" fr="DGGPEI">
+        <L3 id="6601" short="DAEME" fr="D Gest TME" />
+      </L2>
+    </L1>
+    <L1 id="6604" short="ADM(PA)" fr="SMA(AP)">
+      <L2 id="6609" short="COS(PA)" fr="CEM(AP)">
+        <L3 id="6613" short="DSPA" fr="DSAP" />
+        <L3 id="6616" short="DCPA" fr="DCAP" />
+        <L3 id="6619" short="DCSPA" fr="DSSAP" />
+      </L2>
+      <L2 id="6622" short="DGI" fr="DG Enjeux">
+        <L3 id="6626" short="DEC" fr="DCE" />
+        <L3 id="6629" short="DOC" fr="DCO" />
+      </L2>
+      <L2 id="6632" short="DGE" fr="DGE">
+        <L3 id="6636" short="DLC" fr="DCD" />
+        <L3 id="6639" short="DIAE" fr="DAIE" />
+        <L3 id="6642" short="DMR" fr="DRM" />
+      </L2>
+      <L2 id="6645" short="DGCDC" fr="DGCCN">
+        <L3 id="6649" short="DACC" fr="DPCC" />
+        <L3 id="6652" short="DDC" fr="DCN" />
+      </L2>
+      <L3 id="6655" short="EDAIP" fr="DEAIPRP" />
+      <L3 id="6658" short="ED4C" fr="DE4C" />
+    </L1>
+    <L1 id="6661" short="ADM(Pol)" fr="SMA(Pol)">
+      <L2 id="6666" short="COS(Pol)" fr="CEM(Pol)" />
+      <L2 id="6670" short="DG SD Pol" fr="DG Pol DS">
+        <L3 id="6674" short="D DNS Pol" fr="D Pol DSN" />
+        <L3 id="6677" short="D Strat A" fr="DE Strat" />
+      </L2>
+      <L2 id="6680" short="DG Pol Coord" fr="DG Coord Pol">
+        <L3 id="6684" short="D Cab Ln" fr="D Ln Cab" />
+        <L3 id="6687" short="Dir SCO" fr="DCRS" />
+        <L3 id="6690" short="D Parl A" fr="DA Parl" />
+      </L2>
+      <L2 id="6693" short="DG IS Pol" fr="DG Pol SI">
+        <L3 id="6697" short="D MEA Pol" fr="D Pol MOA" />
+        <L3 id="6700" short="DIS NATO Pol" fr="DSI Pol OTAN" />
+        <L3 id="6703" short="D IP Pol" fr="D Pol IP" />
+        <L3 id="6706" short="DMTC" fr="DICM" />
+        <L3 id="6709" short="D WH Pol" fr="D  Pol HO" />
+      </L2>
+      <L2 id="6712" short="DG Contl Def Pol" fr="DG Pol Déf Contl">
+        <L3 id="6716" short="D NORAD Pol" fr="D Pol NORAD" />
+        <L3 id="6719" short="D DT Pol" fr="D Pol DT" />
+      </L2>
+      <L2 id="6722" short="DG Def IGA" fr="DG - def AIG" />
+    </L1>
+    <L1 id="6726" short="ADM(RS)" fr="SMA(Svc Ex)">
+      <L2 id="6731" short="COS(RS)" fr="CEM(Svc Ex)" />
+      <L2 id="6735" short="D A NPP &amp; MFS" fr="DV BNP &amp; SMF" />
+      <L2 id="6739" short="DG EVAL" fr="DG Éval">
+        <L3 id="6743" short="DEOE" fr="DEEO" />
+        <L3 id="6746" short="DEFGS" fr="DEMPMPF" />
+        <L3 id="6749" short="DEMR" fr="DEEG" />
+      </L2>
+      <L2 id="6752" short="DGA" fr="DGV">
+        <L3 id="6756" short="DIAC" fr="DVIFC" />
+        <L3 id="6759" short="DIACAC" fr="DVIIPM" />
+      </L2>
+      <L2 id="6762" short="DGCI" fr="DGIM">
+        <L3 id="6766" short="DIID" fr="DEDI" />
+        <L3 id="6769" short="EDII" fr="DCIR" />
+      </L2>
+      <L2 id="6772" short="NSIROCS" fr="SCESSNR" />
+    </L1>
+    <L1 id="6776" short="CHRO" fr="DPRH">
+      <L2 id="6781" short="DGWD" fr="DGDMO">
+        <L3 id="6785" short="DWPD" fr="DPDM" />
+        <L3 id="6788" short="DWPS" fr="Dir PSE" />
+        <L3 id="6791" short="DOL" fr="DLO" />
+        <L3 id="6794" short="DI" fr="Dir Incl" />
+      </L2>
+      <L2 id="6797" short="DGWM" fr="DGGMT">
+        <L3 id="6801" short="DCLR" fr="DRTPC" />
+        <L3 id="6804" short="DTHM" fr="DGGS" />
+        <L3 id="6807" short="DLRO" fr="DORT" />
+      </L2>
+      <L2 id="6810" short="DGHRO" fr="DGORH">
+        <L3 id="6814" short="DNSO" fr="DOND" />
+        <L3 id="6817" short="DCCO" fr="DOCC" />
+        <L3 id="6820" short="DSPP" fr="DPPDP" />
+      </L2>
+      <L2 id="6823" short="DGHRSD" fr="DGOSRH">
+        <L3 id="6827" short="DDTBI" fr="DTNID" />
+        <L3 id="6830" short="DSIP" fr="DPIS" />
+        <L3 id="6833" short="DWAAIE" fr="DAMOHIA" />
+      </L2>
+      <L2 id="6836" short="DGCCB" fr="DGRASC">
+        <L3 id="6840" short="DCCBS" fr="DSRASC" />
+        <L3 id="6843" short="DCBDI" fr="DDMOR" />
+      </L2>
+      <L2 id="6846" short="COS(CHRO)" fr="CEM(DPRH)">
+        <L3 id="6850" short="DBD(CHRO)" fr="DDA(DPRH)" />
+      </L2>
+      <L2 id="6853" short="DGCSS" fr="DGSSMC">
+        <L3 id="6857" short="DPCDS" fr="DSDCP" />
+        <L3 id="6860" short="DSD(CHRO)" fr="DPS(DPRH)" />
+        <L3 id="6863" short="DSS(CHRO)" fr="DSS(DPRH)" />
+      </L2>
+      <L2 id="6866" short="DCES" fr="DSCSC" />
+    </L1>
+    <L1 id="6870" short="CPCC" fr="CCPC">
+      <L2 id="6875" short="AADM(CPCC)" fr="SMAD(CCPC)" />
+      <L2 id="6879" short="COS(CPCC)" fr="CEM(CCPC)">
+        <L3 id="6883" short="Dir Strat Plans" fr="Dir Plans Strat" />
+      </L2>
+      <L2 id="6886" short="DGHRA" fr="DGADH" />
+      <L3 id="6890" short="Dir GEIA" fr="DEGAI" />
+      <L3 id="6893" short="DARI" fr="D MOL CR" />
+      <L2 id="6896" short="DGPC" fr="DGCP">
+        <L3 id="6900" short="DPESP" fr="DPEPS" />
+        <L3 id="6903" short="DRQI" fr="DRAQ" />
+        <L3 id="6906" short="DEPD" fr="DEDP" />
+        <L3 id="6909" short="DCPM" fr="DCCCP" />
+        <L3 id="6912" short="DLST" fr="DESL" />
+      </L2>
+      <L2 id="6915" short="DGCFGA" fr="DGAGFC">
+        <L3 id="6919" short="DCFGA" fr="DAGFC" />
+        <L3 id="6922" short="DER" fr="DRE" />
+      </L2>
+    </L1>
+    <L1 id="6925" short="SJS" fr="EMIS">
+      <L2 id="6930" short="COS(SJS)" fr="CEM(EMIS)">
+        <L3 id="6934" short="DSJSCS" fr="DSIEMIS" />
+      </L2>
+      <L2 id="6937" short="DGO" fr="DGO">
+        <L3 id="6941" short="DCO" fr="DOC" />
+        <L3 id="6944" short="Dir ACV" fr="DVCA" />
+        <L3 id="6947" short="DSOC" fr="DCSO" />
+      </L2>
+      <L2 id="6950" short="DGP" fr="DGP">
+        <L3 id="6954" short="DSP" fr="DPS" />
+        <L3 id="6957" short="DPNA" fr="DPAN" />
+        <L3 id="6960" short="DNS" fr="DSN" />
+      </L2>
+      <L2 id="6963" short="DG Mob" fr="DG Mob">
+        <L3 id="6967" short="Dir Mob Coord" fr="Dir Coord mob" />
+        <L3 id="6970" short="Dir Mob Dev" fr="Dir Dév mob" />
+      </L2>
+      <L2 id="6973" short="DGSER" fr="DGESDO">
+        <L3 id="6977" short="DSD" fr="Dir Dév Strat" />
+        <L3 id="6980" short="DDIR" fr="DIDDO" />
+        <L3 id="6983" short="DSET" fr="DCES" />
+      </L2>
+    </L1>
+    <L1 id="6986" short="OJAG" fr="CJAG">
+      <L2 id="6991" short="JAG SA" fr="CS JAG" />
+      <L2 id="6995" short="Dir Mil P" fr="D P Mil" />
+      <L2 id="6999" short="Dir Def Counsel Svcs" fr="Dir Svcs Avoc Def" />
+      <L2 id="7003" short="DJAG Op and Intl" fr="JAG Adj Oper et Intern" />
+      <L2 id="7007" short="DJAG Mil and Admin Law" fr="JAG Adj Loi Admin" />
+      <L2 id="7011" short="DJAG Mil Justice" fr="JAG Adj Justice Mil" />
+      <L2 id="7015" short="DJAG Mil Justice and Mod" fr="JAG Adj Modern Justice Mil" />
+      <L2 id="7019" short="COS JAG" fr="CEM JAG" />
+      <L2 id="7023" short="DJAG Regional Svcs" fr="JAG Adj Svcs Region" />
+    </L1>
+    <L1 id="7027" short="DND/CFLA" fr="CJMDN/FC" />
+    <L1 id="7032" short="Corp Sec/CPO" fr="Sec gén/DPPVP">
+      <L2 id="7037" short="Dir DGMS" fr="DSGGD" />
+      <L2 id="7041" short="DDLMND" fr="DLM Min DN" />
+      <L2 id="7045" short="DLOSCS" fr="DLM Min DN" />
+      <L2 id="7049" short="DMOL" fr="DLM Min DN" />
+      <L2 id="7053" short="DDTG" fr="DLM Min DN" />
+    </L1>
+    <L1 id="7057" short="DCSRC" fr="CSRCD" />
+    <L1 id="7062" short="MND" fr="MDN" />
+    <L1 id="7067" short="DM" fr="SM" />
+    <L2 id="7072" short="Sr Assoc DM" fr="SM dél Prin">
+      <L2 id="7076" short="Assoc DM" fr="SM dél" />
+    </L2>
+    <L1 id="7080" short="Ombudsman" fr="Ombudsman">
+      <L2 id="7085" short="DG Legal Svcs" fr="DG Svc Juridique" />
+      <L2 id="7089" short="DG Operations" fr="DG Opérations" />
+    </L1>
+    <L1 id="7093" short="CJFC" fr="CFIC">
+      <L2 id="7098" short="CAF JL GP" fr="GP LI FAC">
+        <L3 id="7102" short="CMSG" fr="GSMC">
+          <L4 id="7105" short="CFAD ROCKY POINT" fr="DMFC ROCKY POINT" />
+          <L4 id="7107" short="CFAD BEDFORD" fr="DMFC BEDFORD" />
+          <L5 id="7109" short="25 CFSD" fr="25 DAFC" />
+          <L5 id="7110" short="CFAD DUNDURN" fr="DMFC DUNDURN" />
+          <L4 id="7111" short="7 CFSD" fr="7 DAFC" />
+          <L4 id="7113" short="CFAD ANGUS" fr="DMFC ANGUS" />
+          <L4 id="7115" short="CMSG HQ" fr="QG GSMC" />
+        </L3>
+        <L5 id="7117" short="CFLTC" fr="CILFC" />
+        <L3 id="7118" short="CJ LOG-DGS" fr="C LOG I-DGS">
+          <L4 id="7121" short="DSSR" fr="DMPDOS" />
+          <L4 id="7123" short="DIR RCLS" fr="DSRLC" />
+          <L4 id="7125" short="D LOG P" fr="D P LOG" />
+          <L4 id="7127" short="DACI" fr="DICM" />
+        </L3>
+        <L3 id="7129" short="CAF JL GP HQ" fr="QG GP LI CAF" />
+      </L2>
+      <L2 id="7132" short="CF H SVCS GP" fr="Gp Svc S FC">
+        <L3 id="7136" short="1 H SVCS GP" fr="1 Gp Svc S">
+          <L4 id="7139" short="1 FD AMB" fr="1 Amb C">
+            <L5 id="7141" short="1 FD AMB DET CALGARY" fr="Dét Calgary 1er Amb Camp" />
+            <L5 id="7142" short="1 FD AMB DET SUFFIELD" fr="Dét Suffield 1er Amb Camp" />
+            <L5 id="7143" short="1 FD AMB DET YELLOWKNIFE" fr="Dét Yellowknife 1er Amb Camp" />
+            <L5 id="7144" short="1 FD AMB DET SHILO" fr="Dét Shilo 1er Amb Camp" />
+          </L4>
+          <L4 id="7145" short="22 CF H SVCS C" fr="22 C Svc S FC" />
+          <L4 id="7147" short="21 CF H SVCS C" fr="21 C Svc S FC" />
+          <L4 id="7149" short="11 CF H SVCS C" fr="11 C Svc S FC" />
+          <L4 id="7151" short="12 CF H SVCS C" fr="12 C Svc S FC" />
+          <L4 id="7153" short="23 CF H SVCS C" fr="23 C Svc S FC">
+            <L5 id="7155" short="23 CF H SVCS C DET MOOSE JAW" fr="Dét Moose Jaw 23 C Svc S FC" />
+            <L5 id="7156" short="23 CF H SVCS C DET REGINA" fr="Dét Regina 23 C Svc S FC" />
+            <L5 id="7157" short="23 CF H SVCS C DET DUNDURN" fr="Dét Dundurn 23 C Svc S FC" />
+            <L5 id="7158" short="23 CF H SVCS C DET THUNDER BAY" fr="Dét Thunder Bay 23 C Svc S FC" />
+          </L4>
+          <L4 id="7159" short="CF H SVCS C (P)" fr="C Svc S FC (P)">
+            <L5 id="7161" short="CF H SVCS C(P) DET VANCOUVER" fr="Dét Vancouver C Svc S FC(P)" />
+          </L4>
+          <L4 id="7162" short="17 (WPG) FD AMB" fr="17 Amb C (Wpg)">
+            <L5 id="7164" short="19 FD AMB DET REGINA" fr="19 AMB C DÉT REGINA" />
+            <L5 id="7165" short="19 FD AMB DET SASKATOON" fr="19 AMB C DÉT SASKATOON" />
+            <L5 id="7166" short="19 FD AMB DET THUNDER BAY" fr="19 AMB C DÉT THUNDER BAY" />
+          </L4>
+          <L4 id="7167" short="15 (EDM) FD AMB" fr="15 Amb C (Edm)">
+            <L5 id="7169" short="15 (EDM) FD AMB DET CALGARY" fr="Dét Calgary 15 Amb C (Edm)" />
+          </L4>
+          <L4 id="7170" short="11 (VIC) FD AMB" fr="11 Amb C (Vic)" />
+          <L4 id="7172" short="12 (VAN) FD AMB" fr="12 Amb C (Van)">
+            <L5 id="7174" short="13 FD AMB DET VERNON" fr="13 AMB C DÉT VERNON" />
+            <L5 id="7175" short="13 FD AMB DET VICTORIA" fr="13 AMB C DÉT VICTORIA" />
+          </L4>
+          <L4 id="7176" short="16 (REG) FD AMB" fr="16 Amb C (Reg)" />
+          <L4 id="7178" short="18 (T BAY) FD AMB" fr="18 Amb C (T Bay)" />
+          <L4 id="7180" short="1 H SVCS GP HQ" fr="QG 1 Gp Svc S">
+            <L5 id="7182" short="1 H SVCS GP HQ DET ESQUIMALT" fr="Dét Esquimalt QG 1 Gp Svc S" />
+          </L4>
+        </L3>
+        <L3 id="7183" short="4 H SVCS GP" fr="4 Gp Svc S">
+          <L4 id="7186" short="2 FD AMB" fr="2 AMB C" />
+          <L4 id="7188" short="5 FD AMB" fr="5 AMB C">
+            <L5 id="7190" short="5 FD AMB DET RIMOUSKI" fr="DÉT RIMOUSKI 5 AMB C" />
+          </L4>
+          <L4 id="7191" short="25 CF H SVCS C" fr="25 C SVC S FC" />
+          <L4 id="7193" short="31 CF H SVCS C" fr="31 C Svc S FC">
+            <L5 id="7195" short="31 CF H SVCS DET MEAFORD" fr="Dét Meaford 31 C Svc S" />
+            <L5 id="7196" short="31 CF H SVCS C DET NORTH BAY" fr="Dét North Bay 31 C Svc S FC" />
+            <L5 id="7197" short="31 CF H SVCS C DET SUDBURY" fr="DÉT SUDBURY 31 C SVC S FC" />
+          </L4>
+          <L4 id="7198" short="42 CF H SVCS C" fr="42 C Svc S FC">
+            <L5 id="7200" short="42 CF H SVCS C DET MONCTON" fr="Dét Moncton 42 C Svc S FC" />
+          </L4>
+          <L4 id="7201" short="27 CF H SVCS C" fr="27 C Svc S FC">
+            <L5 id="7203" short="27 CF H SVCS C DET GANDER" fr="Dét Gander 27 C Svc S FC" />
+          </L4>
+          <L4 id="7204" short="26 CF H SVCS C" fr="26 C Svc S FC">
+            <L5 id="7206" short="26 CF H SVCS C DET ST JOHN'S" fr="Dét St John's 26 C Svc S FC" />
+          </L4>
+          <L4 id="7207" short="CF H SVCS C (A)" fr="C Svc S FC (A)" />
+          <L4 id="7209" short="33 CF H SVCS C" fr="33 C Svc S FC" />
+          <L4 id="7211" short="41 CF H SVCS C" fr="41 C Svc S FC">
+            <L5 id="7213" short="41 CF H SVCS DET LONGUE POINTE" fr="Dét Longue Pointe 41 C Svc S F" />
+            <L5 id="7214" short="41 CF H SVCS C DET SHERBROOKE" fr="Dét Sherbrooke 41 C Svc S FC" />
+          </L4>
+          <L4 id="7215" short="32 CF H SVCS C" fr="32 C Svc S FC">
+            <L5 id="7217" short="32 CF H SVCS C DET LONDON" fr="Dét London 32 C Svc S FC" />
+            <L5 id="7218" short="32 CF H SVCS C DET HAMILTON" fr="Dét Hamilton 32 C Svc S FC" />
+          </L4>
+          <L4 id="7219" short="24 CF H SVCS C" fr="24 C SVC S FC" />
+          <L4 id="7221" short="4 H SVCS GP HQ" fr="QG 4 GP SVC S">
+            <L5 id="7223" short="4 H SVCS GP HQ DET TORONTO" fr="DÉT TORONTO QG 4 GP SVC S FC" />
+            <L5 id="7224" short="4 H SVCS GP HQ DET HALIFAX" fr="DÉT HALIFAX 4 QG GP SVC S" />
+          </L4>
+          <L4 id="7225" short="35 (SYDNEY) FD AMB" fr="35 Amb C (Sydney)">
+            <L5 id="7227" short="35(SYDNEY)FD AMB DET ST JOHN'S" fr="Dét St John's 35 Amb C(Sydney)" />
+          </L4>
+          <L4 id="7228" short="55 (QUE) FD AMB" fr="55 Amb C (Qué)" />
+          <L4 id="7230" short="52 (SHER) FD AMB" fr="52 Amb C (Sher)">
+            <L5 id="7232" short="57 FD AMB DET QUEBEC CITY" fr="27 AMB C DÉT VILLE DE QUÉBEC" />
+          </L4>
+          <L4 id="7233" short="23 (HAM) FD AMB" fr="23 Amb C (Ham)">
+            <L5 id="7235" short="23 (HAM) FD AMB DET LONDON" fr="Dét London 23 Amb C (Ham)" />
+            <L5 id="7236" short="23 FD AMB DET WINDSOR" fr="13 AMB C DÉT WINDSOR" />
+          </L4>
+          <L4 id="7237" short="25 (TOR) FD AMB" fr="25 Amb C (Tor)" />
+          <L4 id="7239" short="51 (MTL) FD AMB" fr="51 Amb C (Mtl)" />
+          <L4 id="7241" short="28 (OTT) FD AMB" fr="28 Amb C (Ott)">
+            <L5 id="7243" short="28 FD AMB DET KINGSTON" fr="28 AMB C DÉT KINGTSTON" />
+          </L4>
+          <L4 id="7244" short="33 (HLX) FD AMB" fr="33 Amb C (Hfx)">
+            <L5 id="7246" short="33 FD AMB DET CHARLOTTETOWN" fr="33 AMB C DÉT CHARLOTTETOWN" />
+          </L4>
+        </L3>
+        <L3 id="7247" short="CMED" fr="DCMM">
+          <L4 id="7250" short="CMED DET TRENTON" fr="DCMM Dét TRENTON" />
+        </L3>
+        <L3 id="7252" short="1 DENT UNIT" fr="1 Unité dent">
+          <L5 id="7255" short="1 DU DET WAINWRIGHT" fr="1 UD Dét WAINWRIGHT" />
+          <L5 id="7256" short="1 DU DET LONGUE POINTE" fr="1 UD Dét LONGUE POINTE" />
+          <L5 id="7257" short="1 DU DET ST JOHN'S" fr="1 UD Dét ST JOHN'S" />
+          <L5 id="7258" short="1 DU DET ESQUIMALT" fr="1 UD Dét ESQUIMALT" />
+          <L5 id="7259" short="1 DU DET GAGETOWN" fr="1 UD Dét GAGETOWN" />
+          <L5 id="7260" short="1 DU DET PETAWAWA" fr="1 UD Dét PETAWAWA" />
+          <L5 id="7261" short="1 DU DET TORONTO" fr="1 UD Dét TORONTO" />
+          <L5 id="7262" short="1 DU DET SHILO" fr="1 UD Dét SHILO" />
+          <L5 id="7263" short="1 DU DET VALCARTIER" fr="1 UD Dét VALCARTIER" />
+          <L5 id="7264" short="1 DU DET COMOX" fr="1 UD Dét COMOX" />
+          <L5 id="7265" short="1 DU DET EDMONTON" fr="1 UD Dét EDMONTON" />
+          <L5 id="7266" short="1 DU DET COLD LAKE" fr="1 UD Dét COLD LAKE" />
+          <L5 id="7267" short="1 DU DET HALIFAX" fr="1 UD Dét HALIFAX" />
+          <L5 id="7268" short="1 DU DET GREENWOOD" fr="1 UD Dét GREENWOOD" />
+          <L5 id="7269" short="1 DU DET TRENTON" fr="1 UD Dét TRENTON" />
+          <L5 id="7270" short="1 DU DET KINGSTON" fr="1 UD Dét KINGSTON" />
+          <L5 id="7271" short="1 DU DET NORTH BAY" fr="1 UD Dét NORTH BAY" />
+          <L5 id="7272" short="1 DU DET MOOSE JAW" fr="1 UD Dét MOOSE JAW" />
+          <L5 id="7273" short="1 DU DET WINNIPEG" fr="1 UD Dét WINNIPEG" />
+          <L5 id="7274" short="1 DU DET ST-JEAN" fr="1 UD Dét ST-JEAN" />
+          <L5 id="7275" short="1 DU DET BAGOTVILLE" fr="1 UD Dét BAGOTVILLE" />
+          <L5 id="7276" short="1 DU DET GANDER" fr="1 UD Dét GANDER" />
+          <L5 id="7277" short="1 DU DET BORDEN" fr="1 UD Dét BORDEN" />
+          <L5 id="7278" short="1 DU DET GEILENKIRCHEN" fr="1 UD Dét GEILENKIRCHEN" />
+          <L5 id="7279" short="1 DU DET CASTEAU" fr="1 UD Dét CASTEAU" />
+          <L5 id="7280" short="1 DU DET OTTAWA" fr="1 UD Dét OTTAWA" />
+        </L3>
+        <L3 id="7281" short="1 CDN FD HOSP" fr="1 Hôp C CA">
+          <L5 id="7284" short="1 CDN FD HOSP DET OTTAWA" fr="1 Hôp C CA Dét OTTAWA" />
+        </L3>
+        <L3 id="7285" short="DGHS" fr="DGS SAN">
+          <L3 id="7288" short="D Med Pol" fr="D Pol San" />
+          <L3 id="7291" short="D Dent Svcs" fr="D Svc Dent" />
+          <L3 id="7294" short="DHSD" fr="DPSS" />
+          <L3 id="7297" short="DHSO" fr="DOSS" />
+          <L3 id="7300" short="DFHP" fr="DPSF" />
+          <L3 id="7303" short="DH Svcs Pers" fr="D Pers Svc S" />
+          <L3 id="7306" short="EDHS (Corp)" fr="DESSI" />
+        </L3>
+        <L3 id="7309" short="CFEME" fr="CMEFC" />
+        <L3 id="7312" short="CF H SVCS GP HQ" fr="QG Gp Svc S FC" />
+        <L3 id="7315" short="CF H SVCS C OTTAWA" fr="C Svc S FC OTTAWA">
+          <L5 id="7318" short="CF H SVCS C DET GEILENKIRCHEN" fr="C Svc S FC Dét GEILENKIRCHEN" />
+          <L5 id="7319" short="CF H SVCS C DET CASTEAU" fr="C Svc S FC Déet CASTEAU" />
+        </L3>
+        <L3 id="7320" short="CF H SVCS TC" fr="Centre F Svc S FC">
+          <L5 id="7323" short="CF H SVCS TC DET ST-JEAN" fr="CENTRE F SVC FC Dét ST-JEAN" />
+        </L3>
+        <L5 id="7324" short="CF H SVCS GP HQ DET KINGSTON" fr="QG Gp Svc S FC Dét KINGSTON" />
+        <L5 id="7325" short="CF H SVCS GP HQ DET WASHINGTON" fr="QG Gp Svc S FC Dét WASHINGTON" />
+        <L5 id="7326" short="CF H SVCS GP HQ DET FT DETRICK" fr="QG Gp Svc S FC Dét FT DETRICK" />
+        <L5 id="7327" short="CF H SVCS GP HQ DET WINNIPEG" fr="QG Gp Svc S FC Dét WINNIPEG" />
+        <L5 id="7328" short="VGIP" fr="NON ASSIGNE" />
+      </L2>
+      <L2 id="7329" short="CJWC" fr="CGIC" />
+      <L2 id="7333" short="CJCI" fr="CICI">
+        <L3 id="7337" short="DJR" fr="DBI" />
+        <L3 id="7340" short="DJMDR" fr="DBNI" />
+        <L3 id="7343" short="DJOSS" fr="DSOMPI" />
+        <L3 id="7346" short="DJI" fr="DII" />
+        <L3 id="7349" short="DJCI" fr="DICI" />
+        <L3 id="7352" short="DJP" fr="DPI" />
+      </L2>
+      <L2 id="7355" short="ASST CJFS" fr="CEMAFI">
+        <L3 id="7359" short="DIR JF STAFF" fr="DEMFI" />
+        <L3 id="7362" short="JF COMPT" fr="CONTR FI" />
+        <L3 id="7365" short="DJES" fr="DAGI" />
+      </L2>
+      <L2 id="7368" short="DGJFP" fr="DG PERS FI">
+        <L3 id="7372" short="DJFP" fr="DPFI" />
+        <L3 id="7375" short="DJFPR" fr="DPPFI" />
+      </L2>
+      <L2 id="7378" short="DGJFR" fr="DGPFI">
+        <L3 id="7382" short="DJFR" fr="DPFI" />
+        <L3 id="7385" short="DJFS" fr="DMPFI" />
+        <L3 id="7388" short="DIR JIIFC" fr="DCFIRI" />
+        <L3 id="7391" short="DJFCI" fr="DCIFI" />
+      </L2>
+      <L2 id="7394" short="CF MP GP" fr="GP PM FC">
+        <L3 id="7398" short="Army MP GP" fr="GP PM l'ARMÉE">
+          <L4 id="7401" short="1 MP Regt" fr="1 RÉGT PM">
+            <L5 id="7403" short="1 MP REGT - DET CALGARY" fr="1 MP REGT - DET CALGARY" />
+            <L5 id="7404" short="1 MP REGT - DET VANCOUVER" fr="1 MP REGT - DET VANCOUVER" />
+            <L5 id="7405" short="1 MP REGT - DET WINNIPEG" fr="1 MP REGT - DET WINNIPEG" />
+          </L4>
+          <L4 id="7406" short="2 MP Regt" fr="2e Régt PM">
+            <L5 id="7408" short="2 MP REGT - DET LONDON" fr="2 MP REGT - DET LONDON" />
+            <L5 id="7409" short="2 MP REGT - DET TORONTO" fr="2 MP REGT - DET TORONTO" />
+            <L5 id="7410" short="2 MP REGT - DET OTTAWA" fr="2 MP REGT - DET OTTAWA" />
+          </L4>
+          <L4 id="7411" short="3 MP Regt" fr="3 Régt PM">
+            <L5 id="7413" short="3 MP REGT DET EDMONTON" fr="NON ASSIGNE" />
+            <L5 id="7414" short="3 MP REGT - DET KINGSTON" fr="3 MP REGT - DET KINGSTON" />
+          </L4>
+          <L4 id="7415" short="5 MP Regt" fr="5e Régt PM">
+            <L5 id="7417" short="5 MP REGT - DET MONTREAL" fr="5 MP REGT - DET MONTREAL" />
+            <L5 id="7418" short="5 MP REGT - DET QUEBEC" fr="5 MP REGT - DET QUEBEC" />
+            <L5 id="7419" short="5 MP REGT - DET SAGUENAY" fr="5 MP REGT - DET SAGUENAY" />
+            <L5 id="7420" short="5 MP REGT - DET HALIFAX" fr="5 MP REGT - DET HALIFAX" />
+            <L5 id="7421" short="5 MP REGT - DET MONCTON" fr="5 MP REGT - DET MONCTON" />
+          </L4>
+          <L4 id="7422" short="Army MP Gp HQ" fr="QG Gp PM l'Armée">
+            <L5 id="7424" short="ARMY MP GP HQ - DET VALCARTIER" fr="ARMY MP GP HQ - DET VALCARTIER" />
+            <L5 id="7425" short="ARMY MP GP HQ - DET ST-JEAN" fr="ARMY MP GP HQ - DET ST-JEAN" />
+            <L5 id="7426" short="ARMY MP GP HQ - DET BAGOTVILLE" fr="ARMY MP GP HQ - DET BAGOTVILLE" />
+            <L5 id="7427" short="ARMY MP GP HQ - DET GOOSE BAY" fr="ARMY MP GP HQ - DET GOOSE BAY" />
+            <L5 id="7428" short="ARMY MP GP HQ - DET HALIFAX" fr="ARMY MP GP HQ - DET HALIFAX" />
+            <L5 id="7429" short="ARMY MP GP HQ - DET GAGETOWN" fr="ARMY MP GP HQ - DET GAGETOWN" />
+            <L5 id="7430" short="ARMY MP GP HQ - DET GREENWOOD" fr="ARMY MP GP HQ - DET GREENWOOD" />
+            <L5 id="7431" short="ARMY MP GP HQ - DET GANDER" fr="ARMY MP GP HQ - DET GANDER" />
+            <L5 id="7432" short="ARMY MP GP HQ - DET ST.JOHN'S" fr="ARMY MP GP HQ - DET ST.JOHN'S" />
+          </L4>
+        </L3>
+        <L3 id="7433" short="AF MP GP" fr="GP PM FA">
+          <L4 id="7436" short="AF MP GP HQ" fr="QG GP PM FA">
+            <L5 id="7438" short="AF MP GP HQ - DET ESQUIMALT" fr="AF MP GP HQ - DET ESQUIMALT" />
+            <L5 id="7439" short="AF MP GP HQ - DET CHILLIWACK" fr="AF MP GP HQ - DET CHILLIWACK" />
+            <L5 id="7440" short="AF MP GP HQ - DET COMOX" fr="AF MP GP HQ - DET COMOX" />
+            <L5 id="7441" short="AF MP GP HQ - DET SUFFIELD" fr="AF MP GP HQ - DET SUFFIELD" />
+            <L5 id="7442" short="AF MP GP HQ - DET YELLOWKNIFE" fr="AF MP GP HQ - DET YELLOWKNIFE" />
+            <L5 id="7443" short="AF MP GP HQ - DET WINNIPEG" fr="AF MP GP HQ - DET WINNIPEG" />
+            <L5 id="7444" short="AF MP GP HQ - DET SHILO" fr="AF MP GP HQ - DET SHILO" />
+            <L5 id="7445" short="AF MP GP HQ - DET DUNDURN" fr="AF MP GP HQ - DET DUNDURN" />
+            <L5 id="7446" short="AF MP GP HQ - DET WAINWRIGHT" fr="AF MP GP HQ - DET WAINWRIGHT" />
+            <L5 id="7447" short="AF MP GP HQ - DET MOOSE JAW" fr="AF MP GP HQ - DET MOOSE JAW" />
+            <L5 id="7448" short="AF MP GP HQ - DET COLD LAKE" fr="AF MP GP HQ - DET COLD LAKE" />
+          </L4>
+          <L4 id="7449" short="1 MP Sqn" fr="1 Esc PM" />
+          <L4 id="7451" short="2 MP Sqn" fr="2 Esc PM" />
+        </L3>
+        <L3 id="7453" short="NMP Gp" fr="Gp PMN">
+          <L4 id="7456" short="NMP Gp HQ" fr="QG Gp PMN">
+            <L5 id="7458" short="NMP GP HQ - DET PETAWAWA" fr="NMP GP HQ - DET PETAWAWA" />
+            <L5 id="7459" short="NMP GP HQ - DET TRENTON" fr="NMP GP HQ - DET TRENTON" />
+            <L5 id="7460" short="NMP GP HQ - DET BORDEN" fr="NMP GP HQ - DET BORDEN" />
+            <L5 id="7461" short="NMP GP HQ - DET KINGSTON" fr="NMP GP HQ - DET KINGSTON" />
+            <L5 id="7462" short="NMP GP HQ - DET MEAFORD" fr="NMP GP HQ - DET MEAFORD" />
+            <L5 id="7463" short="NMP GP HQ - DET TORONTO" fr="NMP GP HQ - DET TORONTO" />
+            <L5 id="7464" short="NMP Gp HQ- DET NORTH BAY" fr="NMP Gp HQ- DET NORTH BAY" />
+          </L4>
+          <L4 id="7465" short="MPU HALIFAX" fr="UPM HALIFAX" />
+          <L4 id="7467" short="MPU ESQUIMALT" fr="UPM ESQUIMALT" />
+          <L4 id="7469" short="MPU BORDEN" fr="UPM BORDEN" />
+          <L4 id="7471" short="MPU OTTAWA" fr="UPM OTTAWA" />
+        </L3>
+        <L3 id="7473" short="CFSPDB" fr="CDPMFC" />
+        <L3 id="7476" short="CFMPA" fr="EPMFC">
+          <L4 id="7479" short="CFMPA - DET BEDFORD" fr="CFMPA - DET BEDFORD" />
+        </L3>
+        <L3 id="7481" short="MPSS" fr="SSPM" />
+        <L3 id="7484" short="CFNIS" fr="SNEFC" />
+        <L3 id="7487" short="CFPSU" fr="USPFC">
+          <L4 id="7490" short="CFPSU - DET TRENTON" fr="CFPSU - DET TRENTON" />
+          <L4 id="7492" short="CFPSU - DET WINNIPEG" fr="CFPSU - DET WINNIPEG" />
+        </L3>
+        <L3 id="7494" short="SOF MPU" fr="UPM FOS">
+          <L4 id="7497" short="SOF MPU 2" fr="SOP MPU - DET PETAWAWA" />
+          <L4 id="7499" short="SOF MPU 3" fr="SOP MPU - DET TRENTON" />
+        </L3>
+        <L3 id="7501" short="CF MP Gp HQ" fr="QG Gp PM FC" />
+      </L2>
+    </L1>
+    <L1 id="7504" short="RCAF" fr="ARC">
+      <L2 id="7509" short="RCAF AWC" fr="CGA ARC">
+        <L3 id="7513" short="434 OT&amp;E SQN" fr="434 ESC EEO" />
+        <L3 id="7516" short="RCAF AWC HQ" fr="QG CGA ARC">
+          <L5 id="7519" short="CFAWC Det Ottawa" fr="Dét Ottawa CGAFC" />
+        </L3>
+        <L3 id="7520" short="414 EWS SQN" fr="414 Esc SGE" />
+        <L3 id="7523" short="APDC" fr="CDPA" />
+      </L2>
+      <L2 id="7526" short="3 CANADIAN SPACE DIVISION" fr="3E DIVISION SPATIALE DU CANADA">
+        <L3 id="7530" short="7 WING  SPACE" fr="7E ESCADRE ESPACE">
+          <L4 id="7533" short="7 WING (SPACE) HEADQUARTERS" fr="QG - 7E ESCADRE (ESPACE)" />
+          <L4 id="7535" short="7 SPACE OPERATIONS SQUADRON" fr="7E ESCADRON D'OPÉRS SPATIALES" />
+          <L4 id="7537" short="7 OPERATIONAL SUPPORT SQUADRON" fr="7E ESCAD DE SOUTIEN AUX OPÉRAT" />
+        </L3>
+        <L3 id="7539" short="3 CANADIAN SPACE DIVISION HQ" fr="QG DE LA 3E DIV SPATIALE CAN" />
+      </L2>
+      <L2 id="7542" short="2 Cdn Air Div" fr="2 DAC">
+        <L3 id="7546" short="15 Wg" fr="15 ERE">
+          <L4 id="7549" short="CFB Moose Jaw" fr="BFC Moose Jaw" />
+          <L4 id="7551" short="2 CFFTS" fr="2 EPFC" />
+          <L4 id="7553" short="3 CFFTS" fr="3 EPFC" />
+          <L4 id="7555" short="431 (AD) SQN" fr="431 E (DA)" />
+        </L3>
+        <L3 id="7557" short="16 Wg" fr="16 ERE">
+          <L4 id="7560" short="CFSATE" fr="ÉTGAFC" />
+          <L4 id="7562" short="CFSSAR" fr="ERSFC" />
+          <L4 id="7564" short="RCAF Academy" fr="École ARC">
+            <L5 id="7566" short="RCAF BMQ Det" fr="Det de l'ARC QMB" />
+          </L4>
+          <L4 id="7567" short="16 Wing HQ" fr="QG 16 ERE" />
+          <L4 id="7569" short="CFSACO" fr="EOCAFC" />
+        </L3>
+        <L3 id="7571" short="17 Wg" fr="17 ERE">
+          <L4 id="7574" short="CFB Winnipeg" fr="BFC Winnipeg">
+            <L5 id="7576" short="CFB Winnipeg Det Thunder Bay" fr="Dét Thunder Bay BFC Winnipeg" />
+            <L5 id="7577" short="CFB Winnipeg Det Dundurn" fr="Dét Dundurn BFC Winnipeg" />
+            <L5 id="7578" short="CFB Winnipeg Det Yellowknife" fr="Dét Yellowknife BFC Winnipeg" />
+          </L4>
+          <L4 id="7579" short="RCAF BARKER COLLEGE" fr="COLLEGE BARKER DE L'ARC" />
+          <L4 id="7581" short="CFSSAT" fr="ESMAFC" />
+          <L4 id="7583" short="RCAF Band" fr="Musique ARC" />
+          <L4 id="7585" short="402 SQN" fr="402E ESC" />
+        </L3>
+        <L3 id="7587" short="CFASC" fr="CSPNFC" />
+        <L3 id="7590" short="2 Cdn Air Div HQ" fr="QG 2 DAC">
+          <L5 id="7593" short="ENJJPT" fr="ENJJPT" />
+        </L3>
+      </L2>
+      <L2 id="7594" short="1 Cdn Air Div" fr="1 DAC">
+        <L3 id="7598" short="2 Wg" fr="2 ERE">
+          <L4 id="7601" short="8 ACCS" fr="8 ETCA">
+            <L5 id="7603" short="8 ACCS Det Bagotville" fr="Det de 8 ECCA" />
+          </L4>
+          <L4 id="7604" short="4 CE Sqn" fr="4 Esc GC" />
+          <L4 id="7606" short="14 CE SQN" fr="14 ESC GC">
+            <L5 id="7608" short="143 CE Flt Lunenburg County" fr="143 Ele GC Lunenburg County" />
+            <L5 id="7609" short="91 CE Flt Gander" fr="91 Ele GC Gander" />
+            <L5 id="7610" short="144 CE Flt Pictou" fr="144 Ele GC Pictou" />
+            <L5 id="7611" short="192 CE Flt Aldergrove" fr="192 Ele GC Aldergrove" />
+          </L4>
+          <L4 id="7612" short="2 ACCU" fr="2 UCCA" />
+          <L4 id="7614" short="2 AES" fr="2 Esc EA" />
+          <L4 id="7616" short="2 Wg HQ" fr="QG 2 ERE">
+            <L5 id="7618" short="2 Wg HQ Det Kingston" fr="Dét Kingston,  QG 2 ERE" />
+          </L4>
+          <L4 id="7619" short="2 ERC" fr="2 CDOE" />
+          <L4 id="7621" short="2 ASOS" fr="2 EOAA">
+            <L5 id="7623" short="2 ASOS A FLT" fr="2 EOAA ELE A" />
+            <L5 id="7624" short="2 ASOS C FLT" fr="2 EOAA ELE C" />
+            <L5 id="7625" short="2 ASOS B FLT" fr="2 EOAA ELE B" />
+            <L5 id="7626" short="2 ASOS D FLT" fr="2 EOAA ELE D" />
+          </L4>
+        </L3>
+        <L3 id="7627" short="1 Wg" fr="1 ERE">
+          <L4 id="7630" short="408 Tac Hel Sqn" fr="408 Esc Tac Hel" />
+          <L4 id="7632" short="427 SOA Sqn" fr="427 Esc OSA" />
+          <L4 id="7634" short="430 Tac Hel Sqn" fr="430 Esc Tac Hel" />
+          <L4 id="7636" short="400 Tac Hel Sqn" fr="400 Esc Tac Hel" />
+          <L4 id="7638" short="1 Wing HQ" fr="QG 1 ERE">
+            <L5 id="7640" short="1 WG HQ Det Gagetown" fr="Dét Gagetown QG 1 ERE" />
+            <L5 id="7641" short="1 WG HQ Det Petawawa" fr="Dét Petawawa QG 1 ERE" />
+            <L5 id="7642" short="1 WG HQ Det Edmonton" fr="Dét Edmonton QG 1 ERE" />
+            <L5 id="7643" short="1 WG HQ Det Valcartier" fr="Dét Valcartier QG 1 ERE" />
+            <L5 id="7644" short="1 Wing HQ Det Ottawa" fr="Dét Ottawa QG 1 ERE" />
+            <L5 id="7645" short="1 Wing HQ Det CMTC Wainwright" fr="Dét Wainwright CCEM QG 1 ERE" />
+          </L4>
+          <L4 id="7646" short="450 Tac Hel Sqn" fr="450e Esc Tac Hel" />
+          <L4 id="7648" short="438 Tac Hel Sqn" fr="438 Esc Tac Hel" />
+          <L4 id="7650" short="403 Hel OTS" fr="403 EEOH" />
+        </L3>
+        <L3 id="7652" short="3 Wg" fr="3 ERE">
+          <L4 id="7655" short="CFB Bagotville" fr="BFC Bagotville">
+            <L5 id="7657" short="CFB Bagotville Det Iqaluit" fr="Dét Iqaluit BFC Bagotville" />
+            <L5 id="7658" short="EGLIN AFB ACURL CDN DET" fr="EGLIN AFB DÉT CDN LRACR" />
+          </L4>
+          <L4 id="7659" short="425 Tac F Sqn" fr="425 Esc AT" />
+          <L4 id="7661" short="3 AMS" fr="3 EMA" />
+          <L4 id="7663" short="439 (CS) SQN" fr="439 ESC (SC)" />
+          <L4 id="7665" short="12 Rdr Sqn" fr="12 Esc Rdr" />
+          <L4 id="7667" short="433 Tac F Sqn" fr="433 Esc A Tac" />
+        </L3>
+        <L3 id="7669" short="4 Wg" fr="4 ERE">
+          <L4 id="7672" short="CFB Cold Lake" fr="BFC Cold Lake">
+            <L5 id="7674" short="CFB COLD LAKE DET INUVIK" fr="Dét Ottawa BFC Cold Lake" />
+            <L5 id="7675" short="CFB COLD LAKE DET RANKIN INLET" fr="Dét Rankin Inlet BFC Cold Lake" />
+            <L5 id="7676" short="LUKE AFB CF-35 CDN TRG DET" fr="LUKE AFB DÉT CDN D'ENTR CF-35" />
+          </L4>
+          <L4 id="7677" short="42 Rdr Sqn" fr="42 Esc Rdr" />
+          <L4 id="7679" short="10 FTTS" fr="10 EITA">
+            <L5 id="7681" short="10 FTTS Det Bagotville" fr="Dét Bagotville 10 FTTS" />
+          </L4>
+          <L4 id="7682" short="417 (CS) Sqn" fr="417 Esc (SC)" />
+          <L4 id="7684" short="419 Tac F (T) Sqn" fr="419 Esc" />
+          <L4 id="7686" short="410 Tac F (OT) Sqn" fr="410 Esc EOT" />
+          <L4 id="7688" short="1 AMS" fr="1 EMA" />
+          <L4 id="7690" short="4 ACSS Sqn" fr="4 Esc SSCA" />
+          <L4 id="7692" short="409 Tac F Sqn" fr="409 Esc AT" />
+          <L4 id="7694" short="401 Tac F Sqn" fr="401 Esc A Tac" />
+        </L3>
+        <L3 id="7696" short="5 Wg" fr="5 ERE">
+          <L4 id="7699" short="CFB Goose Bay" fr="BFC Goose Bay" />
+          <L4 id="7701" short="444 (CS) Sqn" fr="444e Esc (SC)" />
+        </L3>
+        <L3 id="7703" short="8 Wg" fr="8 ERE">
+          <L4 id="7706" short="CFB Trenton" fr="BFC Trenton" />
+          <L4 id="7708" short="CFS Alert" fr="SFC Alert" />
+          <L4 id="7710" short="437 (T) Sqn" fr="437 Esc (T)" />
+          <L4 id="7712" short="2 Air Mov Sqn" fr="2 Esc mouv aériens" />
+          <L4 id="7714" short="426 (T) Trg Sqn" fr="426 Esc Entr (T)" />
+          <L4 id="7716" short="424 (T&amp;R) Sqn" fr="424 Esc (T&amp;S)" />
+          <L4 id="7718" short="436 (T) Sqn" fr="436 Esc (T)" />
+          <L4 id="7720" short="412 (T) Sqn" fr="412 Esc (T)" />
+          <L4 id="7722" short="440 SQN (T)" fr="440 Esc (T)" />
+          <L4 id="7724" short="8 AMS" fr="8 EMA" />
+          <L4 id="7726" short="8 ACSS Sqn" fr="8 Esc SSCA" />
+          <L4 id="7728" short="8 CE Sqn" fr="8 Esc GC" />
+          <L4 id="7730" short="429 (T) Sqn" fr="429 Esc (T)" />
+        </L3>
+        <L3 id="7732" short="9 Wg" fr="9 ERE">
+          <L4 id="7735" short="CFB Gander" fr="BFC Gander">
+            <L5 id="7737" short="CFB GANDER DET TORBAY" fr="Dét Torbay BFC Gander" />
+          </L4>
+          <L4 id="7738" short="103 SAR Sqn" fr="103 Esc SAR" />
+        </L3>
+        <L3 id="7740" short="12 Wg" fr="12 ERE">
+          <L4 id="7743" short="423 (MH) Sqn" fr="423 Esc (HM)" />
+          <L4 id="7745" short="406 (M) OTS" fr="406 Esc (M) EO" />
+          <L4 id="7747" short="443 (MH) Sqn" fr="443 Esc (HM)" />
+          <L4 id="7749" short="12 AMS" fr="12 EMA" />
+          <L4 id="7751" short="12 Wing HQ" fr="QG 12 ERE" />
+        </L3>
+        <L3 id="7753" short="14 Wg" fr="14 ERE">
+          <L4 id="7756" short="CFB Greenwood" fr="BFC Greenwood" />
+          <L4 id="7758" short="404 (LRP&amp;T) Sqn" fr="404 Esc (PLP&amp;E)" />
+          <L4 id="7760" short="405 (LRP) Sqn" fr="405 Esc (PLP)" />
+          <L4 id="7762" short="413 (T&amp;R) Sqn" fr="413 Esc (T&amp;S)" />
+          <L4 id="7764" short="415 (LRPFD) Sqn" fr="415 Esc (PLPDF)" />
+          <L4 id="7766" short="14 AMS" fr="14 EMA" />
+          <L4 id="7768" short="14 ACSS Sqn" fr="14 Esc SSCA" />
+          <L4 id="7770" short="428 RPAS SQN" fr="428 ESC TATP">
+            <L5 id="7772" short="428 RPAS SQN AMD (E)" fr="DMA 428 ESC SATP (E)" />
+            <L5 id="7773" short="428 RPAS SQN AMD (W)" fr="DMA 428 ESC SATP (O)" />
+          </L4>
+        </L3>
+        <L3 id="7774" short="19 Wg" fr="19 ERE">
+          <L4 id="7777" short="CFB Comox" fr="BFC Comox" />
+          <L4 id="7779" short="442 (T&amp;R) Sqn" fr="442 Esc (T&amp;S)" />
+          <L4 id="7781" short="407 (LRP) Sqn" fr="407 Esc (PLP)" />
+          <L4 id="7783" short="19 AMS" fr="19e EMA" />
+          <L4 id="7785" short="435 (T and R) Sqn" fr="435 Esc (T et S)" />
+          <L4 id="7787" short="418 SAR(OT)SQN" fr="418 ESC" />
+        </L3>
+        <L3 id="7789" short="22 Wg" fr="22 ERE">
+          <L4 id="7792" short="CFB North Bay" fr="BFC North Bay" />
+          <L4 id="7794" short="21 AC&amp;W Sqn" fr="21 Esc CAA" />
+          <L4 id="7796" short="51 AC&amp;W (OT) Sqn" fr="51 ESC EOCAA" />
+        </L3>
+        <L3 id="7798" short="CC NAEWF" fr="CC FAD L'OTAN" />
+        <L3 id="7801" short="RCAF PRL" fr="LRP ARC" />
+        <L3 id="7804" short="ATESS" fr="ESTTMA" />
+        <L3 id="7807" short="AIRCOM HL" fr="C Air LA" />
+        <L3 id="7810" short="1 Cdn Air Div HQ" fr="QG 1 DAC">
+          <L5 id="7813" short="1 Cdn Air Div Det ACCE Pacific" fr="Dét ECCA Pacifique QG 1re DAC" />
+          <L5 id="7814" short="1 Cdn Air Div Det ACCE East" fr="Dét ECCA Est QG 1re DAC" />
+          <L5 id="7815" short="1 Cdn Air Div Det ACCE Central" fr="Dét ECCA Central QG 1re DAC" />
+          <L5 id="7816" short="1 Cdn Air Div Det ACCE West" fr="Dét ECCA Ouest QG 1re DAC" />
+          <L5 id="7817" short="1 Cdn Air Div HQ Det Ottawa" fr="Dét Ottawa QG 1er DAC" />
+          <L5 id="7818" short="1 Cdn Air Div HQ Det Cold Lake" fr="Det Cold Lake 1re DAC HQ FSET" />
+          <L5 id="7819" short="1 Cdn Air Div HQ Det Trenton" fr="Dét Trenton QG 1 DAC TRSET" />
+          <L5 id="7820" short="1 Cdn Air Div HQ Det Greenwood" fr="Det Greenwood QG 1 DAC LRPSET" />
+          <L5 id="7821" short="1 Cdn Air Div HQ Det Shearwate" fr="Dét Shearwater QG 1 DAC EESHM" />
+          <L5 id="7822" short="JRCC Trenton" fr="CCCOS Trenton" />
+          <L5 id="7823" short="1 Cdn Air Div HQ Det ACCE Atla" fr="Dét EcCA Atlantic QG 1er DAC" />
+          <L5 id="7824" short="JRCC Victoria" fr="CCCOS Victoria" />
+          <L5 id="7825" short="JRCC Halifax" fr="CCCOS Halifax" />
+          <L5 id="7826" short="1 Cdn Air Div Det ACCE North" fr="Dét ECCA Nord QG 1re DAC" />
+          <L5 id="7827" short="1 Cdn Air Div HQ Det Comox" fr="Det de Comox du 1 DAC" />
+        </L3>
+      </L2>
+      <L2 id="7828" short="Asst C Air Force" fr="ACEMFA" />
+      <L2 id="7832" short="DG Air &amp; Space Rdns" fr="DG DOAS">
+        <L3 id="7836" short="D Air &amp; Space Sp" fr="DSAS" />
+        <L3 id="7839" short="D Air Plans" fr="D Plans Air" />
+        <L3 id="7842" short="D Air PA" fr="DAP Air" />
+        <L3 id="7845" short="D Air Rdns" fr="DDO Air" />
+        <L3 id="7848" short="DSRP" fr="DPPE" />
+      </L2>
+      <L2 id="7851" short="DG Air &amp; Space FD" fr="DG DFAS">
+        <L3 id="7855" short="DADD" fr="DDDA" />
+        <L3 id="7858" short="DAR" fr="DBRA" />
+        <L3 id="7861" short="D Air &amp; Space Prgms" fr="DPAS" />
+        <L3 id="7864" short="D Air Sim &amp; Trg" fr="DSI Air" />
+        <L3 id="7867" short="D Space Reqrs" fr="D Besoins Espace" />
+      </L2>
+      <L2 id="7870" short="DG Space" fr="DG Espace">
+        <L3 id="7874" short="DSOR" fr="DDOOS" />
+      </L2>
+      <L2 id="7877" short="DGASRAR" fr="DGRASRA">
+        <L3 id="7881" short="D Air Gov" fr="D Gouv Air" />
+        <L3 id="7884" short="DAS Coord" fr="Dcoord EMFA" />
+        <L3 id="7887" short="D Air Compt" fr="DC (Air)" />
+        <L3 id="7890" short="D Air Pers Strat" fr="D Air Pers Strat" />
+        <L3 id="7893" short="D Air Res" fr="D Rés Air" />
+        <L3 id="7896" short="DFS" fr="DFS" />
+        <L3 id="7899" short="D Air SM" fr="Dir Gest Strat Air" />
+        <L3 id="7902" short="D Air Pers Mgt" fr="D Gest Pers Air" />
+      </L2>
+      <L2 id="7905" short="DG NCDMO" fr="DG BMDCN">
+        <L3 id="7909" short="DNCDT" fr="DTCDN" />
+        <L3 id="7912" short="DNCDR" fr="DECDN" />
+      </L2>
+    </L1>
+    <L1 id="7915" short="CA" fr="AC">
+      <L2 id="7920" short="Asst C Army" fr="ACEMA">
+        <L3 id="7924" short="Dir Army Staff" fr="DEMA" />
+        <L3 id="7927" short="Army Compt" fr="Contr Armée" />
+      </L2>
+      <L2 id="7930" short="DG Army Staff" fr="DGEMA">
+        <L3 id="7934" short="DAFR" fr="DDOA" />
+        <L3 id="7937" short="DA Pers M" fr="D Gest PA" />
+        <L3 id="7940" short="DAFS" fr="DMPFA" />
+      </L2>
+      <L2 id="7943" short="DGAR" fr="DGRA">
+        <L3 id="7947" short="DCR" fr="DRC" />
+        <L3 id="7950" short="DLR MPP" fr="DMP PRT" />
+        <L3 id="7953" short="DLRM" fr="DRTG" />
+      </L2>
+      <L2 id="7956" short="DGACD" fr="DGDCA">
+        <L3 id="7960" short="DLR" fr="DBRT" />
+        <L3 id="7963" short="DLCI" fr="DCIT" />
+        <L3 id="7966" short="DJC" fr="DCI" />
+      </L2>
+      <L2 id="7969" short="CADTC" fr="CDIAC">
+        <L3 id="7973" short="CTC" fr="CIC">
+          <L4 id="7976" short="RCEMES" fr="Ecole du GEMRC" />
+          <L4 id="7978" short="RCA School" fr="ÉCOLE ARC" />
+          <L4 id="7980" short="CFSME" fr="EGMFC" />
+          <L4 id="7982" short="CFSCE" fr="CFSCE" />
+          <L4 id="7984" short="CTC HQ" fr="QG CIC" />
+          <L4 id="7986" short="CAAWC" fr="CISGTAC" />
+          <L4 id="7988" short="CATEU" fr="UACEE" />
+          <L4 id="7990" short="TAC SCHOOL" fr="E TAC" />
+          <L4 id="7992" short="RCACS" fr="ECBRC" />
+          <L4 id="7994" short="INFANTRY SCHOOL" fr="École de l'infanterie" />
+        </L3>
+        <L3 id="7996" short="CACSC" fr="CCEMAC" />
+        <L3 id="7999" short="CADTC HQ" fr="QG CDIAC">
+          <L5 id="8002" short="CADTC HQ Det Ottawa" fr="Dét Ottawa QG CDIAC" />
+          <L5 id="8003" short="CADTC HQ DET VALCARTIER (CASC)" fr="QG CDIAC DÉT VALCARTIER (CSAC)" />
+          <L5 id="8004" short="CADTC HQ DET PETAWAWA (CASC)" fr="QG CDIAC DÉT PETAWAWA (CSAC)" />
+          <L5 id="8005" short="CADTC HQ DET EDMONTON (CASC)" fr="Dét Edmonton QG CDIAC" />
+          <L5 id="8006" short="CADTC HQ DET GAGETOWN (CASC)" fr="Dét Gagetown QG CDIAC" />
+          <L5 id="8007" short="CADTC PRL" fr="LRP CDIAC" />
+        </L3>
+        <L3 id="8008" short="PSTC" fr="CFSP" />
+        <L3 id="8011" short="CMTC" fr="CCEM">
+          <L5 id="8014" short="CMTC Det Kingston" fr="Dét Kingston CCEM" />
+        </L3>
+      </L2>
+      <L2 id="8015" short="5 CDN DIV" fr="5 DIV C">
+        <L3 id="8019" short="36 CBG" fr="36 GBC">
+          <L4 id="8022" short="36 CBG HQ" fr="QG 36 GBC" />
+          <L4 id="8024" short="PEI Regt" fr="PEI Regt" />
+          <L4 id="8026" short="1 Fd Regt" fr="1 RAC" />
+          <L4 id="8028" short="84 Ind Fd Bty" fr="84 Bie Aut Camp" />
+          <L4 id="8030" short="36 CER" fr="36 RGC" />
+          <L4 id="8032" short="PLF" fr="PLF" />
+          <L4 id="8034" short="West NS Regt" fr="West NS Regt" />
+          <L4 id="8036" short="CB Highrs" fr="CB Highrs" />
+          <L4 id="8038" short="NS Highrs" fr="NS Highrs" />
+          <L4 id="8040" short="Hal Rif" fr="Hal Rif" />
+          <L4 id="8042" short="36 Svc Bn" fr="36 Bon Svc">
+            <L5 id="8044" short="36 Svc Bn Det Halifax" fr="Dét Halifax, 36 Bon Svc" />
+            <L5 id="8045" short="36 Svc Bn Det Sydney" fr="Det Sydney, 36 Bon Svc" />
+          </L4>
+          <L4 id="8046" short="36 Sig Regt" fr="36 Régt trans">
+            <L5 id="8048" short="36 Sig Regt, Det Charlottetown" fr="Dét Charlottetown, 36 Régt Tra" />
+            <L5 id="8049" short="36 Sig Regt, Det Glace Bay" fr="Dét Glace Bay, 36 Régt Trans" />
+          </L4>
+        </L3>
+        <L3 id="8050" short="37 CBG" fr="37 GBC">
+          <L4 id="8053" short="37 CBG HQ" fr="QG 37 GBC" />
+          <L4 id="8055" short="8 CH" fr="8 CH" />
+          <L4 id="8057" short="3 Fd Regt" fr="3 RAC" />
+          <L4 id="8059" short="37 CER" fr="37 RGC">
+            <L5 id="8061" short="37 CER Det Fredericton" fr="Dét Fredericton 37 RGC" />
+          </L4>
+          <L4 id="8062" short="R NB Regt" fr="R NB Regt" />
+          <L4 id="8064" short="NS(NB)R" fr="NS(NB)R" />
+          <L4 id="8066" short="1 R Nfld Regt" fr="1 R Nfld Regt" />
+          <L4 id="8068" short="2 R Nfld Regt" fr="2 R Nfld Regt" />
+          <L4 id="8070" short="37 Svc Bn" fr="37 Bon Svc">
+            <L5 id="8072" short="37 Svc Bn, Det Saint John" fr="Det Saint John, 37 Bon Svc" />
+          </L4>
+          <L4 id="8073" short="37 Sig Regt" fr="37 Régt trans">
+            <L5 id="8075" short="37 Sig Regt, Det Saint John" fr="Dét Saint John, 37 Régt Trans" />
+          </L4>
+        </L3>
+        <L3 id="8076" short="5 CDSG" fr="GS 5 Div C">
+          <L4 id="8079" short="5 CDSB Gagetown" fr="BS 5 Div C Gagetown">
+            <L5 id="8081" short="5 CDSB GAGETOWN DET MONCTON" fr="Dét Moncton BS 5 DC Gagetown" />
+            <L5 id="8082" short="5 CDSB Det Aldershot" fr="Dét Aldershot BS 5 Div C" />
+            <L5 id="8083" short="5 CDSB GAGETOWN DET CH'TOWN" fr="Dét Ch'town BS5DivC Gagetown" />
+            <L5 id="8084" short="5 CDSG DET CAPE BRETON" fr="GS 5 DIV C DÉT CAPE BRETON" />
+          </L4>
+          <L4 id="8085" short="5 CDSG Garrison St John's" fr="GS 5 Div  C Grn St John's" />
+          <L4 id="8087" short="5 CDSG Sig Sqn" fr="ET GS 5 Div C" />
+        </L3>
+        <L3 id="8089" short="6 CCSB" fr="6 BACC">
+          <L4 id="8092" short="4 ESR" fr="4 RAG" />
+          <L4 id="8094" short="4 REGT (GS)" fr="4 Régt (AG)" />
+          <L4 id="8096" short="21 EW REGT" fr="21 Régt GE" />
+          <L4 id="8098" short="CA INT REGT" fr="Régt Rens AC">
+            <L5 id="8100" short="CA Int Regt Det Ottawa (7 Int)" fr="Régt Rens AC Dét Ottawa (7 Int" />
+            <L5 id="8101" short="CA Int Regt Det Kingston" fr="Régt Rens AC Dét Kingston" />
+            <L5 id="8102" short="CA Int Regt Det Edmonton" fr="Régt Rens AC Dét Edmonton" />
+            <L5 id="8103" short="CA Int Regt Det Petawawa" fr="Régt Rens AC Dét Petawawa" />
+            <L5 id="8104" short="CA Int Regt Det Valcartier" fr="Régt Rens AC Dét Valcartier" />
+            <L5 id="8105" short="CA Int Regt Det Ottawa (LFIC)" fr="Régt Rens AC Dét Ottawa (LFIC)" />
+          </L4>
+          <L4 id="8106" short="6 CCSB HQ" fr="6 QG BACC" />
+        </L3>
+        <L3 id="8108" short="5 Cdn Div HQ" fr="QG 5 Div C">
+          <L5 id="8111" short="5 Cdn Div PRL" fr="LRP 5 Div C" />
+        </L3>
+        <L3 id="8112" short="3 Int Coy" fr="3e Cie Rens" />
+        <L3 id="8115" short="5 Cdn Div TC" fr="CI 5 Div C" />
+        <L3 id="8118" short="5 CRPG" fr="5 GPRC">
+          <L5 id="8121" short="GOOSE BAY CRP" fr="PRC (GOOSE BAY)" />
+          <L5 id="8122" short="BLACK TICKLE CRP" fr="PRC (BLACK TICKLE)" />
+          <L5 id="8123" short="JACKSON S ARM CRP" fr="PRC (JACKSON'S ARM)" />
+          <L5 id="8124" short="CARTWRIGHT CRP" fr="PRC (CARTWRIGHT)" />
+          <L5 id="8125" short="PORT HOPE SIMPSON CRP" fr="PRC (PORT HOPE SIMPSON)" />
+          <L5 id="8126" short="RED BAY CRP" fr="PRC (RED BAY)" />
+          <L5 id="8127" short="BURGEO CRP" fr="PRC (BURGEO)" />
+          <L5 id="8128" short="HERMITAGE CRP" fr="PRC (HERMITAGE)" />
+          <L5 id="8129" short="MILLTOWN CRP" fr="PRC (MILLTOWN)" />
+          <L5 id="8130" short="MARYSTOWN CRP" fr="PRC (MARYSTOWN)" />
+          <L5 id="8131" short="CHANNEL CRP" fr="PRC (CHANNEL)" />
+          <L5 id="8132" short="ST GEORGES CRP" fr="PRC (ST GEORGE S)" />
+          <L5 id="8133" short="HOPEDALE CRP" fr="PRC (HOPEDALE)" />
+          <L5 id="8134" short="NAIN CRP" fr="PRC (NAIN)" />
+          <L5 id="8135" short="ST ANTHONY CRP" fr="PRC (ST-ANTHONY)" />
+          <L5 id="8136" short="RODDICKTON CRP" fr="PRC (RODDICKTON)" />
+          <L5 id="8137" short="SPRINGDALE CRP" fr="PRC (SPRINGDALE)" />
+          <L5 id="8138" short="LEWISPORTE CRP" fr="PRC LEWISPORTE" />
+          <L5 id="8139" short="CAPE FREELS CRP" fr="PRC (CAPE FREELS)" />
+          <L5 id="8140" short="BONAVISTA CRP" fr="PRC (BONAVISTA)" />
+          <L5 id="8141" short="TERRA NOVA CRP" fr="PRC (TERRA NOVA)" />
+          <L5 id="8142" short="CLARENVILLE CRP" fr="PRC (CLARENVILLE)" />
+          <L5 id="8143" short="PORT SAUNDERS CRP" fr="PRC (PORT SAUNDERS)" />
+          <L5 id="8144" short="ROCKY HARBOUR CRP" fr="PRC (ROCKY HARBOUR)" />
+          <L5 id="8145" short="CHURCHILL FALLS CRP" fr="PRC (CHURCHILL FALLS)" />
+          <L5 id="8146" short="LABRADOR CITY CRP" fr="PRC (LABRADOR CITY)" />
+          <L5 id="8147" short="BUCHANS CRP" fr="PRC (BUCHANS)" />
+          <L5 id="8148" short="POSTVILLE CRP" fr="PRC (POSTVILLE)" />
+          <L5 id="8149" short="MAKKOVIK CRP" fr="PRC (MAKKOVIK)" />
+          <L5 id="8150" short="RIGOLET CRP" fr="PRC (RIGOLET)" />
+          <L5 id="8151" short="HAMILTON SOUND CRP" fr="PRC (HAMILTON SOUND)" />
+          <L5 id="8152" short="BURIN NORTH CRP" fr="PRC (BURIN NORTH)" />
+          <L5 id="8153" short="5 CRPG DET GOOSE BAY" fr="DET, GOOSE BAY, 5 GRPC" />
+          <L5 id="8154" short="HUMBER CRP" fr="PRC (HUMBER)" />
+          <L5 id="8155" short="NORTHERN STRAIGHTS CRP" fr="PRC (NORTHERN STRAIGHT)" />
+          <L5 id="8156" short="SHESHATSHIU CRP" fr="PRC SHESHATSHIU" />
+          <L5 id="8157" short="NATUASHISH CRP" fr="PRC NATUASHISH" />
+        </L3>
+      </L2>
+      <L2 id="8158" short="2 Cdn Div" fr="2 Div C">
+        <L3 id="8162" short="34 CBG" fr="34 GBC">
+          <L4 id="8165" short="34 CBG HQ" fr="QG 34 GBC" />
+          <L4 id="8167" short="RCH" fr="RCH" />
+          <L4 id="8169" short="REGIMENT DE HULL" fr="R de Hull" />
+          <L4 id="8171" short="2 Fd Regt" fr="2 RAC" />
+          <L4 id="8173" short="34 CER" fr="34 RGC">
+            <L5 id="8175" short="34 CER Det Rouyn" fr="Dét Rouyn 34 RGC" />
+          </L4>
+          <L4 id="8176" short="34 Sig Regt" fr="34 Régt trans" />
+          <L4 id="8178" short="CGG" fr="CGG" />
+          <L4 id="8180" short="RHC" fr="RHC" />
+          <L4 id="8182" short="4 R22eR" fr="4 R22eR" />
+          <L4 id="8184" short="6 R22eR" fr="6 R22eR" />
+          <L4 id="8186" short="Fus MR" fr="Fus MR" />
+          <L4 id="8188" short="R de Mais" fr="R de Mais" />
+          <L4 id="8190" short="RMR" fr="RMR" />
+          <L4 id="8192" short="34 Svc Bn" fr="34 Bon Svc" />
+        </L3>
+        <L3 id="8194" short="35 CBG" fr="35 GBC">
+          <L4 id="8197" short="35 CBG HQ" fr="QG 35 GBC" />
+          <L4 id="8199" short="Sher H" fr="Sher H" />
+          <L4 id="8201" short="12 RBC (M)" fr="12 RBC (M)" />
+          <L4 id="8203" short="6 Fd Regt" fr="6 RAC" />
+          <L4 id="8205" short="62 Fd Regt" fr="62 RAC" />
+          <L4 id="8207" short="35 CER" fr="35 RGC" />
+          <L4 id="8209" short="VOLTIGEURS" fr="VOLTIGEURS" />
+          <L4 id="8211" short="Fus du St-L" fr="Fus du St-L" />
+          <L4 id="8213" short="R de Chaud" fr="R de Chaud" />
+          <L4 id="8215" short="R du Sag" fr="R du Sag" />
+          <L4 id="8217" short="Fus de Sher" fr="Fus de Sher" />
+          <L4 id="8219" short="35 Svc Bn" fr="35 Bon Svc" />
+          <L4 id="8221" short="35 Sig Regt" fr="35 Régt trans">
+            <L5 id="8223" short="35 Sig Regt, Det Sherbrooke" fr="Dét Sherbrooke, 35 Régt Trans" />
+          </L4>
+        </L3>
+        <L3 id="8224" short="2 CDSG" fr="GS 2 Div C">
+          <L4 id="8227" short="2 CDSB VALCARTIER" fr="BS 2 DIV C VALCARTIER">
+            <L5 id="8229" short="2 CDSB Valcartier Det Montréal" fr="Dét Montréal, BS 2 Div C Valca" />
+            <L5 id="8230" short="2 CDSB Valcartier, Det St-Jean" fr="Dét St-Jean, BS 2 Div C Valcar" />
+          </L4>
+          <L4 id="8231" short="R22eR Band" fr="MUSIQUE DU R22eR" />
+          <L4 id="8233" short="2 CDSG Sig Sqn" fr="ET GS 2 DIV C" />
+        </L3>
+        <L3 id="8235" short="5 CMBG" fr="5 GBMC">
+          <L4 id="8238" short="5 CMBG HQ AND SIG SQN" fr="QG ET ESC TRANS 5 GBMC" />
+          <L4 id="8240" short="5 RALC" fr="5 RALC" />
+          <L4 id="8242" short="5 CER" fr="5 RGC" />
+          <L4 id="8244" short="2 R22ER" fr="2 R22ER" />
+          <L4 id="8246" short="1 R22ER" fr="1 R22ER" />
+          <L4 id="8248" short="5 SVC BN" fr="5 BON SVC" />
+          <L4 id="8250" short="3 R22ER" fr="3 R22ER" />
+          <L4 id="8252" short="12 RBC" fr="12 RBC" />
+        </L3>
+        <L3 id="8254" short="2 Cdn Div TC" fr="CI 2 Div C" />
+        <L3 id="8257" short="2 Cdn Div HQ" fr="QG 2 Div C">
+          <L5 id="8260" short="2 Cdn Div PRL" fr="CPR 2 Div CA" />
+          <L5 id="8261" short="2 Cdn Div HQ Det Valcartier" fr="Dét Valcartier QG 2 Div C" />
+        </L3>
+        <L3 id="8262" short="4 INT COY" fr="4e CIE RENS" />
+        <L3 id="8265" short="2 CRPG" fr="2e GPRC">
+          <L5 id="8268" short="Aupaluk CRP" fr="PRC (Aupaluk)" />
+          <L5 id="8269" short="PUVIRNITUK JCRP" fr="PRJC PUVIRNITUK" />
+          <L5 id="8270" short="SALLUIT JCRP" fr="PRJC SALLUIT" />
+          <L5 id="8271" short="KUUJJUAQ JCRP" fr="PRJC KUUJJUAQ" />
+          <L5 id="8272" short="AKULIVIK JCRP" fr="PRJC AKULIVIK" />
+          <L5 id="8273" short="INUKJUAQ JCRP" fr="PRJC INUKJUAQ" />
+          <L5 id="8274" short="TASIUJAQ JCRP" fr="PRJC TASIUJAQ" />
+          <L5 id="8275" short="KANGIQSUJUAQ JCRP" fr="PRJC KANGIQSUJUAQ" />
+          <L5 id="8276" short="IVUJIVK JCRP" fr="PRJC IVUJIVK" />
+          <L5 id="8277" short="KUUJJUARAPIK JCRP" fr="PRJC KUUJJUARAPIK" />
+          <L5 id="8278" short="QUAQTAQ JCRP" fr="PRJC QUAQTAQ" />
+          <L5 id="8279" short="KANGIRSUK JCRP" fr="PRJC KANGIRSUK" />
+          <L5 id="8280" short="LA TABATIERE JCRP" fr="PRJC LA TABATIERE" />
+          <L5 id="8281" short="KANJIQSUALUJJUAQ JCRP" fr="PRJC KANJIQSUALUJJUAQ" />
+          <L5 id="8282" short="UMIUJAQ JCRP" fr="PRJC UMIUJAQ" />
+          <L5 id="8283" short="ST-PAUL'S RIVER JCRP" fr="PRJC ST-PAUL'S RIVER" />
+          <L5 id="8284" short="Waskaganish CRP" fr="PRC (Waskaganish)" />
+          <L5 id="8285" short="Akulivik CRP" fr="PRC (Akulivik)" />
+          <L5 id="8286" short="Havre St-Pierre CRP" fr="PRC (Havre St-Pierre)" />
+          <L5 id="8287" short="Harrington Harbour CRP" fr="PRC (Harrington Harbour)" />
+          <L5 id="8288" short="Blanc Sablon CRP" fr="PRC (Blanc Sablon)" />
+          <L5 id="8289" short="Puvirnituq CRP" fr="PRC (Puvirnituq)" />
+          <L5 id="8290" short="Ivujivik CRP" fr="PRC (IVUJIVIK)" />
+          <L5 id="8291" short="Salluit CRP" fr="PRC Salluit" />
+          <L5 id="8292" short="Kangiqsujuaq CRP" fr="PRC (Kangiqsujuaq)" />
+          <L5 id="8293" short="Quaqtaq CRP" fr="PRC (Quaqtaq)" />
+          <L5 id="8294" short="Kangirsuk CRP" fr="PRC (Kangirsuk)" />
+          <L5 id="8295" short="Tasiujaq CRP" fr="PRC (Tasiujaq)" />
+          <L5 id="8296" short="Kuujjuaq CRP" fr="PRC (Kuujjuaq)" />
+          <L5 id="8297" short="Kangiqsualujjuaq CRP" fr="PRC (Kangiqsualujjuaq)" />
+          <L5 id="8298" short="Inukjuaq CRP" fr="PRC (Inukjuaq)" />
+          <L5 id="8299" short="St-Augustin CRP" fr="PRC (St-Augustin)" />
+          <L5 id="8300" short="Natasquan CRP" fr="PRC (Natasquan)" />
+          <L5 id="8301" short="Wemindji CRP" fr="PRC (Wemindji)" />
+          <L5 id="8302" short="Schefferville CRP" fr="PRC (Schefferville)" />
+          <L5 id="8303" short="Eastman CRP" fr="PRC (Eastman)" />
+          <L5 id="8304" short="Kuujjuarapik CRP" fr="PRC (Kuujjuarapik)" />
+          <L5 id="8305" short="Umiujaq CRP" fr="PRC (Umiujaq)" />
+          <L5 id="8306" short="Chisasibi CRP" fr="PRC (Chisasibi)" />
+          <L5 id="8307" short="Îles-de-la-Madeleine CRP" fr="PRC Îles-de-la-Madeleine" />
+          <L5 id="8308" short="PRC (UNAMEN SHIPU)" fr="PRC (UNAMEN SHIPU)" />
+          <L5 id="8309" short="CRP Waswanipi" fr="CRP Waswanipi" />
+          <L5 id="8310" short="CRP Bonne Espérance" fr="PRC Bonne- Espérance" />
+          <L5 id="8311" short="CRP Oujé- Bougoumou" fr="PRC Oujé- Bougoumou" />
+          <L5 id="8312" short="CRP Nemaska" fr="CRP Nemaska" />
+          <L5 id="8313" short="CRP Mistissini" fr="PRC Mistissini" />
+        </L3>
+      </L2>
+      <L2 id="8314" short="4 Cdn Div" fr="4 Div C">
+        <L3 id="8318" short="31 CBG" fr="31 GBC">
+          <L4 id="8321" short="31 CBG HQ" fr="QG 31 GBC" />
+          <L4 id="8323" short="Grey And Simcoe For" fr="Grey and Simcoe For" />
+          <L4 id="8325" short="31 CER" fr="31 RGC" />
+          <L4 id="8327" short="1ST HUSSARS" fr="1 H" />
+          <L4 id="8329" short="Windsor Regt" fr="Windsor Regt" />
+          <L4 id="8331" short="11 FD Regt" fr="11 RAC" />
+          <L4 id="8333" short="31 Sig Regt" fr="31 Régt trans" />
+          <L4 id="8335" short="RHLI" fr="RHLI" />
+          <L4 id="8337" short="4 RCR" fr="4 RCR" />
+          <L4 id="8339" short="RHF of C" fr="RHF of C" />
+          <L4 id="8341" short="E&amp;K Scot" fr="E&amp;K Scot" />
+          <L4 id="8343" short="A &amp; SH OF C" fr="A &amp; SH OF C" />
+          <L4 id="8345" short="31 Svc Bn" fr="31 Bon Svc">
+            <L5 id="8347" short="31 Svc Bn Det Hamilton" fr="Det Hamilton 31 Bon Svc" />
+            <L5 id="8348" short="31 Svc Bn Det Windsor" fr="Det Windsor 31 Bon Svc" />
+          </L4>
+        </L3>
+        <L3 id="8349" short="32 CBG" fr="32 GBC">
+          <L4 id="8352" short="32 CBG HQ" fr="QG 32 GBC" />
+          <L4 id="8354" short="GGHG" fr="GGHG" />
+          <L4 id="8356" short="QY Rang" fr="QY Rang" />
+          <L4 id="8358" short="7 Tor Regt" fr="7 Tor Regt" />
+          <L4 id="8360" short="56 Fd Regt" fr="56 RAC" />
+          <L4 id="8362" short="32 CER" fr="32 RGC" />
+          <L4 id="8364" short="QOR of C" fr="QOR of C" />
+          <L4 id="8366" short="R Regt C" fr="R Regt C" />
+          <L4 id="8368" short="Linc &amp; Welld Regt" fr="Linc &amp; Welld Regt" />
+          <L4 id="8370" short="Lorne Scots" fr="Lorne Scots" />
+          <L4 id="8372" short="48 Highrs" fr="48 Highrs" />
+          <L4 id="8374" short="Tor Scot Regt" fr="Tor Scot Regt" />
+          <L4 id="8376" short="32 Svc Bn" fr="32 Bon Svc" />
+          <L4 id="8378" short="32 Sig Regt" fr="32 Régt trans">
+            <L5 id="8380" short="32 Sig Regt Det Borden" fr="Dét Borden, 32 Régt Trans" />
+          </L4>
+        </L3>
+        <L3 id="8381" short="33 CBG" fr="33 GBC">
+          <L4 id="8384" short="33 CBG HQ" fr="QG 33 GBC" />
+          <L4 id="8386" short="ALQ Regt" fr="ALQ Regt" />
+          <L4 id="8388" short="ONT Regt" fr="ONT Regt" />
+          <L4 id="8390" short="30 Fd Regt" fr="30 RAC" />
+          <L4 id="8392" short="49 (Slt St. Marie) Fd Art Regt" fr="49 (Sault Ste. Marie) RAC" />
+          <L4 id="8394" short="33 CER" fr="33 RGC" />
+          <L4 id="8396" short="33 Sig Regt" fr="33 Régt trans" />
+          <L4 id="8398" short="GGFG" fr="GGFG">
+            <L5 id="8400" short="Cere Guard" fr="Guarde Ceremon" />
+          </L4>
+          <L4 id="8401" short="PWOR" fr="PWOR" />
+          <L4 id="8403" short="Hast &amp; PE Regt" fr="Hast &amp; PE Regt" />
+          <L4 id="8405" short="Brock Rif" fr="Brock Rif" />
+          <L4 id="8407" short="42 Fd Regt" fr="42 RAC" />
+          <L4 id="8409" short="SD &amp; G Highrs" fr="SD &amp; G Highrs" />
+          <L4 id="8411" short="CH of O" fr="CH of O" />
+          <L4 id="8413" short="2 Ir RC" fr="2 Ir RC" />
+          <L4 id="8415" short="33 Svc Bn" fr="33 Bon Svc">
+            <L5 id="8417" short="33 Svc Bn Det North Bay" fr="Det North bay, 33 Bon Svc" />
+          </L4>
+        </L3>
+        <L3 id="8418" short="4 CDSG" fr="GS 4 Div C">
+          <L4 id="8421" short="4 CDSB Petawawa" fr="BS 4 Div C Petawawa">
+            <L5 id="8423" short="4 CDSB PETAWAWA DET TORONTO" fr="Dét Toronto, BS 4 Div C Petawa" />
+            <L5 id="8424" short="4 CDSG TECH SVCS LONDON" fr="GS 4 DIV C SVCS TECH LONDON" />
+          </L4>
+          <L4 id="8425" short="4 CDSG Sig Sqn" fr="ET GS 4 Div C" />
+        </L3>
+        <L3 id="8427" short="2 CMBG" fr="2 GBMC">
+          <L4 id="8430" short="2 CMBG HQ &amp; Sig Sqn" fr="QG Esc trans 2 GBMC" />
+          <L4 id="8432" short="RCD" fr="RCD">
+            <L5 id="8434" short="RCD Det Gagetown" fr="RCD Dét Gagetown" />
+          </L4>
+          <L4 id="8435" short="2 RCHA" fr="2 RCHA" />
+          <L4 id="8437" short="2 CER" fr="2 RGC" />
+          <L4 id="8439" short="1 RCR" fr="1 RCR" />
+          <L4 id="8441" short="2 RCR" fr="2 RCR" />
+          <L4 id="8443" short="2 Svc Bn" fr="2 Bon Svc" />
+          <L4 id="8445" short="3 RCR" fr="3 RCR" />
+        </L3>
+        <L3 id="8447" short="CFB Kingston" fr="BFC Kingston" />
+        <L3 id="8450" short="2 Int Coy" fr="2 Cie Rens" />
+        <L3 id="8453" short="4 Cdn Div HQ" fr="QG 4 Div C">
+          <L5 id="8456" short="4 Cdn Div PRL" fr="LRP 4 Div C" />
+          <L5 id="8457" short="4 Cdn Div HQ Det Petawawa" fr="Dét Petawawa QG 4 Div C" />
+        </L3>
+        <L3 id="8458" short="4 Cdn Div TC" fr="CI 4 Div C">
+          <L5 id="8461" short="4 Cdn Div TC Det Petawawa" fr="Dét Petawawa CI 4 Div C" />
+          <L5 id="8462" short="4 Cdn Div TC Det Ottawa" fr="Dét Ottawa CI 4 Div C" />
+          <L5 id="8463" short="4 Cdn Div TC Det Toronto" fr="Dét Toronto CI 4 Div C" />
+          <L5 id="8464" short="4 Cdn Div TC Det Hamilton" fr="Dét Hamilton CI 4 Div C" />
+          <L5 id="8465" short="4 Cdn Div TC Det London" fr="Dét London CI 4 Div C" />
+          <L5 id="8466" short="4 Cdn Div TC Det Sudbury" fr="Dét Sudbury CI 4 Div C" />
+        </L3>
+        <L3 id="8467" short="3 CRPG" fr="3 GPRC">
+          <L5 id="8470" short="Moose Factory CRP" fr="PRC (Moose Factory)" />
+          <L5 id="8471" short="Attawapiskat CRP" fr="PRC (Attawapiskat)" />
+          <L5 id="8472" short="Peawanuck CRP" fr="PRC (Peawanuck)" />
+          <L5 id="8473" short="Ft Albany CRP" fr="PRC (Ft Albany)" />
+          <L5 id="8474" short="Sandy Lake CRP" fr="PRC (Sandy Lake)" />
+          <L5 id="8475" short="English River CRP" fr="PRC (English River)" />
+          <L5 id="8476" short="Bearskin Lake CRP" fr="PRC (Bearskin Lake)" />
+          <L5 id="8477" short="Ft Severn CRP" fr="PRC (Ft Severn)" />
+          <L5 id="8478" short="Sachigo Lake CRP" fr="PRC (Sachigo Lake)" />
+          <L5 id="8479" short="BEARSKIN LAKE JRP" fr="PRJ BEARSKIN LAKE" />
+          <L5 id="8480" short="Kitchenoumaykoosib InninwugCRP" fr="PRCKitchenoumaykoosib Inninwug" />
+          <L5 id="8481" short="Kashechewan CRP" fr="PRC (Kashechewan)" />
+          <L5 id="8482" short="Webequie CRP" fr="PRC (Webequie)" />
+          <L5 id="8483" short="Muskrat Dam CRP" fr="PRC (Muskrat Dam)" />
+          <L5 id="8484" short="Neskantaga CRP" fr="PRC (Neskantaga)" />
+          <L5 id="8485" short="Mishkeegogamang CRP" fr="PRC (Mishkeegogamang)" />
+          <L5 id="8486" short="Eabametoong CRP" fr="PRC (Eabametoong)" />
+          <L5 id="8487" short="Kasabonika Lake CRP" fr="PRC (Kasabonika Lake)" />
+          <L5 id="8488" short="Kingfisher Lake CRP" fr="PRC (Kingfisher Lake)" />
+          <L5 id="8489" short="Lac Seul CRP" fr="PRC (Lac Seul)" />
+          <L5 id="8490" short="North Caribou Lake CRP" fr="PRC North Caribou Lake" />
+          <L5 id="8491" short="Cat Lake CRP" fr="PRC (Cat Lake)" />
+          <L5 id="8492" short="Nibinamilk CRP" fr="PRC (Nibinamilk)" />
+          <L5 id="8493" short="Wapekeka CRP" fr="PRC (Wapekeka)" />
+          <L5 id="8494" short="Pikangikum CRP" fr="PRC (Pikangikum)" />
+          <L5 id="8495" short="LONGLAC CRP" fr="PRC (LONGLAC)" />
+          <L5 id="8496" short="GERALDTON CRP" fr="PRC (GERALDTON)" />
+        </L3>
+      </L2>
+      <L2 id="8497" short="3 Cdn Div" fr="3 Div C">
+        <L3 id="8501" short="38 CBG" fr="38 GBC">
+          <L4 id="8504" short="38 CBG HQ" fr="QG 38 GBC" />
+          <L4 id="8506" short="Sask D" fr="Sask D" />
+          <L4 id="8508" short="FGH" fr="FGH" />
+          <L4 id="8510" short="10 Fd Regt" fr="10 RAC" />
+          <L4 id="8512" short="26 Fd Regt" fr="26 RAC" />
+          <L4 id="8514" short="R Wpg Rif" fr="R Wpg Rif" />
+          <L4 id="8516" short="Lake Sup Scot R" fr="Lake Sup Scot R" />
+          <L4 id="8518" short="N Sask R" fr="N Sask R" />
+          <L4 id="8520" short="R Regina Rifles" fr="R Regina Rifles" />
+          <L4 id="8522" short="Cameron Highr" fr="Cameron Highr" />
+          <L4 id="8524" short="116 Ind Fd Bty" fr="116 Bty Aut Camp" />
+          <L4 id="8526" short="38 CER" fr="38 RGC" />
+          <L4 id="8528" short="38 Svc Bn" fr="38 Bon Svc">
+            <L5 id="8530" short="38 Svc Bn Det Thunder Bay" fr="Det Thunder Bay 38 Bon Svc" />
+            <L5 id="8531" short="38 Svc Bn Det Regina" fr="Det Regina 38 Bon Svc" />
+            <L5 id="8532" short="38 Svc Bn Det Winnipeg" fr="Det Winnipeg 38 Bon Svc" />
+          </L4>
+          <L4 id="8533" short="38 Sig Regt" fr="38 Régt trans">
+            <L5 id="8535" short="38 Sig Regt, Det Thunder Bay" fr="Dét Thunder Bay, 38 Régt Trans" />
+            <L5 id="8536" short="38 Sig Regt Det Saskatoon" fr="Dét Saskatoon, 38 Régt Trans" />
+            <L5 id="8537" short="38 Sig Regt Det Regina" fr="Dét Regina 38 Régt Trans" />
+          </L4>
+        </L3>
+        <L3 id="8538" short="39 CBG" fr="39 GBC">
+          <L4 id="8541" short="39 CBG HQ" fr="QG 39 GBC" />
+          <L4 id="8543" short="BCR" fr="BCR" />
+          <L4 id="8545" short="BCD" fr="BCD" />
+          <L4 id="8547" short="15 Fd Regt" fr="15 RAC" />
+          <L4 id="8549" short="39 CER" fr="39 RGC" />
+          <L4 id="8551" short="RM Rang" fr="RM Rang" />
+          <L4 id="8553" short="R Westmnr R" fr="R Westmnr R" />
+          <L4 id="8555" short="Seaforth of C" fr="Seaforth of C" />
+          <L4 id="8557" short="C Scot R" fr="C Scot R">
+            <L5 id="8559" short="C Scot R Det Comox" fr="Dét Comox C Scot R" />
+          </L4>
+          <L4 id="8560" short="5 Fd Regt" fr="5 RAC" />
+          <L4 id="8562" short="39 Svc Bn" fr="39 Bon Svc">
+            <L5 id="8564" short="39 Svc Bn Det Victoria" fr="Det Victoria 39 Bon Svc" />
+          </L4>
+          <L4 id="8565" short="39 Sig Regt" fr="39 Régt trans">
+            <L5 id="8567" short="39 Sig Regt, Det Victoria" fr="Dét Victoria, 39 Régt Trans" />
+            <L5 id="8568" short="39 Sig Regt, Det Nanaimo" fr="Dét Nanaimo, 39 Régt Trans" />
+          </L4>
+        </L3>
+        <L3 id="8569" short="41 CBG" fr="41 GBC">
+          <L4 id="8572" short="41 CBG HQ" fr="QG 41 GBC" />
+          <L4 id="8574" short="SALH" fr="SALH">
+            <L5 id="8576" short="SALH B Sqn" fr="SALH Esc B" />
+          </L4>
+          <L4 id="8577" short="KO Calg R" fr="KO Calg R" />
+          <L4 id="8579" short="20 Fd Regt" fr="20 RAC">
+            <L5 id="8581" short="78 Fd Bty 20 Fd Regt" fr="78 Bte 20 RAC" />
+          </L4>
+          <L4 id="8582" short="41 CER" fr="41 RGC">
+            <L5 id="8584" short="41 CER Det Calgary" fr="Det Calgary 41 RGC" />
+          </L4>
+          <L4 id="8585" short="L Edmn Regt" fr="L Edmn Regt">
+            <L5 id="8587" short="L Edmn Regt Det Yellowknife" fr="Dét Yellowknife L Edmn Regt" />
+          </L4>
+          <L4 id="8588" short="CALG HIGHRS" fr="Calg Highrs" />
+          <L4 id="8590" short="20 Ind Fd Bty" fr="20 Bie Aut Camp" />
+          <L4 id="8592" short="41 Svc Bn" fr="41 Bon Svc">
+            <L5 id="8594" short="41 Svc Bn Det Calgary" fr="Det Calgary 41 Bon Svc" />
+            <L5 id="8595" short="41 Svc Bn Det Edmonton" fr="Det Edmonton 41 Bon Svc" />
+          </L4>
+          <L4 id="8596" short="41 Sig Regt" fr="41 Régt trans">
+            <L5 id="8598" short="41 Sig Regt, Det Calgary" fr="Dét Calgary, 41 Régt Trans" />
+            <L5 id="8599" short="41 Sig Regt, Det Red Deer" fr="Dét Red Deer, 41 Régt Trans" />
+          </L4>
+        </L3>
+        <L3 id="8600" short="3 CDSG" fr="GS 3 Div C">
+          <L4 id="8603" short="3 CDSG Sig Sqn" fr="ET GS 3 Div C">
+            <L5 id="8605" short="3 CDSG Sig Sqn Det Shilo" fr="Dét Shilo, ET GS 3 Div C" />
+            <L5 id="8606" short="3 CDSG Sig Sqn Det Wainwright" fr="Dét Wainwright ET GS 3 Div C" />
+          </L4>
+          <L4 id="8607" short="CFB Shilo" fr="BFC Shilo" />
+          <L4 id="8609" short="3 CDSB Edmonton" fr="BS 3 Div C Edmonton">
+            <L5 id="8611" short="3 CDSB Edmonton,Det Wainwright" fr="Dét Wainwright, BS 3 Div C Edm" />
+            <L5 id="8612" short="3 CDSB Edmonton Det ResoluteBy" fr="Dét Rsolute Bay, BS 3 Edmonton" />
+          </L4>
+          <L4 id="8613" short="CFB Suffield" fr="BFC Suffield">
+            <L5 id="8615" short="SECLIST Alta Energy Co" fr="SECLIST Alta Energy Co" />
+            <L5 id="8616" short="BATUS-Inc Civ Estab" fr="BATUS-Inc Civ Estab" />
+          </L4>
+          <L4 id="8617" short="RCA Band" fr="Musique ARC" />
+        </L3>
+        <L3 id="8619" short="1 CMBG" fr="1 GBMC">
+          <L4 id="8622" short="1 CMBG HQ &amp; Sig Sqn" fr="QG Esc Trans 1 GBMC" />
+          <L4 id="8624" short="1 RCHA" fr="1 RCHA" />
+          <L4 id="8626" short="1 PPCLI" fr="1 PPCLI" />
+          <L4 id="8628" short="2 PPCLI" fr="2 PPCLI" />
+          <L4 id="8630" short="1 Svc Bn" fr="1 Bon Svc" />
+          <L4 id="8632" short="LDSH" fr="LDSH" />
+          <L4 id="8634" short="3 PPCLI" fr="3 PPCLI" />
+          <L4 id="8636" short="1 CER" fr="1 RGC" />
+        </L3>
+        <L3 id="8638" short="3 CDN DIV TC" fr="CI 3 Div C">
+          <L5 id="8641" short="3 Cdn Div TC Det Edmonton" fr="Dét Edmonton - CI 3 Div C" />
+          <L5 id="8642" short="3 Cdn Div TC Det Shilo" fr="Dét Shilo CI 3 Div C" />
+        </L3>
+        <L3 id="8643" short="3 Cdn Div HQ" fr="QG 3 Div C">
+          <L5 id="8646" short="3 CDN DIV PRL" fr="L rés pri 3 Div C" />
+          <L5 id="8647" short="3 Cdn Div HQ Det Sask" fr="Dét Sask QG 3 Div C" />
+          <L5 id="8648" short="3 Cdn Div HQ Det Man" fr="Dét Man QG 3 Div C" />
+        </L3>
+        <L3 id="8649" short="6 Int Coy" fr="6 Cie Rens">
+          <L5 id="8652" short="6 Int Coy Det Vancouver" fr="Dét Vancouver 6e Cie Rens" />
+          <L5 id="8653" short="6 Int Coy Det Winnipeg" fr="Dét Winnipeg 6e Cie Rens" />
+        </L3>
+        <L3 id="8654" short="1 CRPG" fr="1 GPRC">
+          <L5 id="8657" short="BAKER LAKE CRP" fr="PRC (Baker Lake)" />
+          <L5 id="8658" short="GJOA HAVEN CRP" fr="PRC (Gjoa Haven)" />
+          <L5 id="8659" short="TALOYOAK CRP" fr="PRC (Taloyoak)" />
+          <L5 id="8660" short="RANKIN INLET CRP" fr="PRC (Rankin Inlet)" />
+          <L5 id="8661" short="OLD CROW CRP" fr="PRC (Old Crow)" />
+          <L5 id="8662" short="IGLOOLIK CRP" fr="PRC (Igloolik)" />
+          <L5 id="8663" short="GAMETI CRP" fr="PRC (GAMETI)" />
+          <L5 id="8664" short="Ft GOOD HOPE CRP" fr="PRC (Ft Good Hope)" />
+          <L5 id="8665" short="TULITA CRP" fr="PRC (Tulita)" />
+          <L5 id="8666" short="Ft Providence CRP" fr="PRC (Ft Providence)" />
+          <L5 id="8667" short="Sambaa K'e CRP" fr="PRC (Sambaa K'e)" />
+          <L5 id="8668" short="Wekweti CRP" fr="PRC Wekweti" />
+          <L5 id="8669" short="PAULATUK JCRP" fr="PRJC PAULATUK" />
+          <L5 id="8670" short="CLYDE RIVER JCRP" fr="PRJC CLYDE RIVER" />
+          <L5 id="8671" short="CORAL HARBOUR JCRP" fr="PRJC CORAL HARBOUR" />
+          <L5 id="8672" short="PANGNIRTUNG JCRP" fr="PRJC PANGNIRTUNG" />
+          <L5 id="8673" short="TSIIGEHTCH JCRP" fr="PRJC TSIIGEHTCHIC" />
+          <L5 id="8674" short="CAPE DORSE JCRP" fr="PRJC CAPE DORSET" />
+          <L5 id="8675" short="KUGLUKTUK JCRP" fr="PRJC JUGLUKTUK" />
+          <L5 id="8676" short="BROUGHTON JCRP" fr="PRJC BROUGHTON" />
+          <L5 id="8677" short="OLD CROW JCRP" fr="PRJC OLD CROW" />
+          <L5 id="8678" short="DAWSON JCRP" fr="PRJC DAWSON" />
+          <L5 id="8679" short="LUTSEL'KE JCRP" fr="PRJC LUTSEL'KE" />
+          <L5 id="8680" short="SANIKILUAQ JCRP" fr="PRJC SANIKILUAQ" />
+          <L5 id="8681" short="TALAYOAK JCRP" fr="PRJC TALAYOAK" />
+          <L5 id="8682" short="MAYO JCRP" fr="PRJC MAYO" />
+          <L5 id="8683" short="TUKTOYAKTU JCRP" fr="PRJC TUKTOYAKTU" />
+          <L5 id="8684" short="GRISE FIOR JCRP" fr="PRJC GRISE FIORD" />
+          <L5 id="8685" short="Behchoko CRP" fr="PRC Behchoko" />
+          <L5 id="8686" short="Wha Ti CRP" fr="PRC (Wha Ti)" />
+          <L5 id="8687" short="Coral Harbour CRP" fr="PRC (Coral Harbour)" />
+          <L5 id="8688" short="Naujaat CRP" fr="PRC Naujaat" />
+          <L5 id="8689" short="Arviatt CRP" fr="PRC (Arviatt)" />
+          <L5 id="8690" short="Ulukhaktok CRP" fr="PRC Ulukhaktok" />
+          <L5 id="8691" short="Sachs Harbour CRP" fr="PRC (Sachs Harbour)" />
+          <L5 id="8692" short="Ft McPherson CRP" fr="PRC (Ft McPherson)" />
+          <L5 id="8693" short="Aklavik CRP" fr="PRC (Aklavik)" />
+          <L5 id="8694" short="Qikiqtarjuaq CRP" fr="PRC Qikiqtarjuaq" />
+          <L5 id="8695" short="Pangnirtung CRP" fr="PRC (Pangnirtung)" />
+          <L5 id="8696" short="Kimmirut CRP" fr="PRC (Kimmirut)" />
+          <L5 id="8697" short="KINNGAIT CRP" fr="PRC (KINNGAIT)" />
+          <L5 id="8698" short="Clyde River CRP" fr="PRC (Clyde River)" />
+          <L5 id="8699" short="Pond Inlet CRP" fr="PRC (Pond Inlet)" />
+          <L5 id="8700" short="Arctic Bay CRP" fr="PRC (Arctic Bay)" />
+          <L5 id="8701" short="Cambridge Bay CRP" fr="PRC (Cambridge Bay)" />
+          <L5 id="8702" short="Kugluktuk CRP" fr="PRC Kugluktuk" />
+          <L5 id="8703" short="Grise Fiord CRP" fr="PRC (Grise Fiord)" />
+          <L5 id="8704" short="Resolute Bay CRP" fr="PRC (Resolute Bay)" />
+          <L5 id="8705" short="Paulatuk CRP" fr="PRC (Paulatuk)" />
+          <L5 id="8706" short="Tuktoyaktuk CRP" fr="PRC (Tuktoyaktuk)" />
+          <L5 id="8707" short="Whale Cove CRP" fr="PRC (Whale Cove)" />
+          <L5 id="8708" short="Chesterfield Inlet CRP" fr="PRC (Chesterfield Inlet)" />
+          <L5 id="8709" short="Sanikiluaq CRP" fr="PRC (Sanikiluaq)" />
+          <L5 id="8710" short="Kugaaruk CRP" fr="PRC Kugaaruk" />
+          <L5 id="8711" short="Inuvik CRP" fr="PRC (Inuvik)" />
+          <L5 id="8712" short="Iqaluit CRP" fr="PRC (Iqaluit)" />
+          <L5 id="8713" short="Mayo CRP" fr="PRC (Mayo)" />
+          <L5 id="8714" short="Haines Junction CRP" fr="PRC (Haines Junction)" />
+          <L5 id="8715" short="Carcross CRP" fr="PRC (Carcross)" />
+          <L5 id="8716" short="SANIRIJAK CRP" fr="PRC (SANIRIJAK)" />
+          <L5 id="8717" short="Ross River CRP" fr="PRC (Ross River)" />
+          <L5 id="8718" short="Dawson CRP" fr="PRC (Dawson)" />
+          <L5 id="8719" short="Whitehorse CRP" fr="PRC (Whitehorse)" />
+          <L5 id="8720" short="Tsiigehtchic CRP" fr="PRC (Tsiigehtchic)" />
+          <L5 id="8721" short="Ft Simpson CRP" fr="PRC (Ft Simpson)" />
+          <L5 id="8722" short="Ft Resolution CRP" fr="PRC (Ft Resolution)" />
+          <L5 id="8723" short="Ft Smith CRP" fr="PRC (Ft Smith)" />
+          <L5 id="8724" short="Pelly Crossing CRP" fr="PRC (Pelly Crossing)" />
+          <L5 id="8725" short="Watson Lake CRP" fr="PRC (Watson Lake)" />
+          <L5 id="8726" short="Carmacks CRP" fr="PRC (Carmacks)" />
+          <L5 id="8727" short="Lutsel K'e CRP" fr="PRC (Lutsel K'e)" />
+          <L5 id="8728" short="Atlin CRP" fr="PRC (Atlin)" />
+          <L5 id="8729" short="Beaver Creek CRP" fr="PRC (Beaver Creek)" />
+          <L5 id="8730" short="Faro CRP" fr="PRC (Faro)" />
+          <L5 id="8731" short="Hay River CRP" fr="PRC (Hay River)" />
+          <L5 id="8732" short="Deline CRP" fr="PRC (Deline)" />
+          <L5 id="8733" short="Dettah CRP" fr="PRC (Dettah)" />
+        </L3>
+        <L3 id="8734" short="4 CRPG" fr="4 GPRC">
+          <L5 id="8737" short="CHURCHILL CRP" fr="PRC (Churchill)" />
+          <L5 id="8738" short="Sandspit CRP" fr="PRC (Sandspit)" />
+          <L5 id="8739" short="Powell River CRP" fr="PRC (Powell River)" />
+          <L5 id="8740" short="Snow Lake CRP" fr="PRC (Snow Lake)" />
+          <L5 id="8741" short="Bella Coola CRP" fr="PRC (Bella Coola)" />
+          <L5 id="8742" short="Fond du Lac CRP" fr="PRC (Fond du Lac)" />
+          <L5 id="8743" short="Ft Chipewyan CRP" fr="PRC (Ft Chipewyan)" />
+          <L5 id="8744" short="MacKenzie CRP" fr="PRC (MacKenzie)" />
+          <L5 id="8745" short="Vanderhoof CRP" fr="PRC (Vanderhoof)" />
+          <L5 id="8746" short="Smithers CRP" fr="PRC (Smithers)" />
+          <L5 id="8747" short="Tumbler Ridge CRP" fr="PRC (Tumbler Ridge)" />
+          <L5 id="8748" short="Port Hardy CRP" fr="PRC (Port Hardy)" />
+          <L5 id="8749" short="Port Simpson CRP" fr="PRC (Port Simpson)" />
+          <L5 id="8750" short="Ucluelet CRP" fr="PRC (Ucluelet)" />
+          <L5 id="8751" short="Kitkatla CRP" fr="PRC (Kitkatla)" />
+          <L5 id="8752" short="Port Mc Neill CRP" fr="PRC (Port Mc Neill)" />
+          <L5 id="8753" short="Zeballos CRP" fr="PRC (Zeballos)" />
+          <L5 id="8754" short="Gold River CRP" fr="PRC (Gold River)" />
+          <L5 id="8755" short="Port Clements CRP" fr="PRC (Port Clements)" />
+          <L5 id="8756" short="Terrace CRP" fr="PRC (Terrace)" />
+          <L5 id="8757" short="Hudson's Hope CRP" fr="PRC (Hudson's Hope)" />
+          <L5 id="8758" short="100 Mile House CRP" fr="PRC (100 Mile House)" />
+          <L5 id="8759" short="Valemount CRP" fr="PRC Valemount" />
+          <L5 id="8760" short="Stewart CRP" fr="PRC (Stewart)" />
+          <L5 id="8761" short="Dease Lake CRP" fr="PRC (Dease Lake)" />
+          <L5 id="8762" short="Kitimat CRP" fr="PRC (Kitimat)" />
+          <L5 id="8763" short="Pouce Coupe CRP" fr="PRC (Pouce Coupe)" />
+          <L5 id="8764" short="4 CRPG Det Winnipeg" fr="Dét Winnipeg 4 GPRC" />
+          <L5 id="8765" short="4 CRPG Det Edmonton" fr="Dét Edmonton 4 GPRC" />
+          <L5 id="8766" short="Ft Vermilion CRP" fr="PRC (Ft Vermilion)" />
+          <L5 id="8767" short="Peace River CRP" fr="PRC (Peace River)" />
+          <L5 id="8768" short="St Theresa Point CRP" fr="PRC (St Theresa Point)" />
+          <L5 id="8769" short="Gillam CRP" fr="PRC (Gillam)" />
+          <L5 id="8770" short="Lac Brochet CRP" fr="PRC (Lac Brochet)" />
+          <L5 id="8771" short="Lynn Lake CRP" fr="PRC Lynn Lake" />
+          <L5 id="8772" short="Grande Cache CRP" fr="PRC Grande Cache" />
+          <L5 id="8773" short="Shamattawa CRP" fr="PRC (Shamattawa)" />
+          <L5 id="8774" short="High Level CRP" fr="PRC High Level" />
+          <L5 id="8775" short="Valleyview CRP" fr="PRC (Valleyview)" />
+          <L5 id="8776" short="4 CRPG Det Dundurn" fr="Dét Dundurn 4 GPRC" />
+          <L5 id="8777" short="Ft Nelson CRP" fr="PRC (Ft Nelson)" />
+          <L5 id="8778" short="Wollaston Lake CRP" fr="PRC (Wollaston Lake)" />
+          <L5 id="8779" short="Lac La Ronge CRP" fr="PRC (Lac La Ronge)" />
+          <L5 id="8780" short="Ile-a-la-Crosse CRP" fr="PRC (Ile-a-la-Crosse)" />
+          <L5 id="8781" short="Grand Rapids CRP" fr="PRC (Grand Rapids)" />
+          <L5 id="8782" short="Tadoule Lake CRP" fr="PRC (Lac Tadoule)" />
+          <L5 id="8783" short="Swan River CRP" fr="PRC (SWAN RIVER)" />
+          <L5 id="8784" short="Port Renfrew CRP" fr="PRC (PORT RENFREW)" />
+          <L5 id="8785" short="Stanley Mission CRP" fr="PRC (STANLEY MISSION)" />
+          <L5 id="8786" short="Quensel CRP" fr="NON ASSIGNE" />
+          <L5 id="8787" short="Stoney Rapids CRP" fr="Stoney Rapids PRC" />
+          <L5 id="8788" short="South Indian Lake CRP" fr="South Indian Lake CRP" />
+        </L3>
+      </L2>
+      <L2 id="8789" short="CA PRL" fr="LRP AC" />
+      <L2 id="8793" short="CA H List" fr="CA H List" />
+      <L2 id="8797" short="AEFC" fr="CMSEA" />
+    </L1>
+    <L1 id="8801" short="RCN" fr="MRC">
+      <L2 id="8806" short="Asst C Navy" fr="ACEMM">
+        <L3 id="8810" short="DNSM" fr="D Gest Strat M" />
+        <L3 id="8813" short="Nav Compt" fr="Contr Mar" />
+        <L3 id="8816" short="D DivS" fr="DS Plongée" />
+        <L3 id="8819" short="Dir SE" fr="Dir SE" />
+      </L2>
+      <L2 id="8822" short="ACNS P&amp;T" fr="ACEMM Pers et Instr">
+        <L3 id="8826" short="ACOS SP" fr="CEMA Sout" />
+      </L2>
+      <L2 id="8829" short="ACNS AT&amp;R" fr="ACEMM IDOM">
+        <L3 id="8833" short="DNFR" fr="DDOM" />
+      </L2>
+      <L2 id="8836" short="DGNFD" fr="DGDFM">
+        <L3 id="8840" short="DNR" fr="DBM" />
+        <L3 id="8843" short="D Nav Strat" fr="DSM" />
+        <L3 id="8846" short="DNTIR" fr="DBIIN" />
+      </L2>
+      <L2 id="8849" short="DGNSR" fr="DGEPSM">
+        <L3 id="8853" short="DNP" fr="Dir PM" />
+        <L3 id="8856" short="DNIW" fr="Dir GIM" />
+        <L3 id="8859" short="D Nav Log" fr="D Log M" />
+      </L2>
+      <L2 id="8862" short="DGFSC" fr="DGCNF">
+        <L3 id="8866" short="DNMCP" fr="Dir GPEM" />
+        <L3 id="8869" short="DIDN" fr="DIMN" />
+        <L3 id="8872" short="DNCI" fr="Dir INC" />
+      </L2>
+      <L2 id="8875" short="NAVRES" fr="RESNAV">
+        <L3 id="8879" short="NAVRES-A" fr="RESNAV-A">
+          <L4 id="8882" short="HMCS CABOT" fr="NCSM CABOT" />
+          <L4 id="8884" short="HMCS SCOTIAN" fr="NCSM SCOTIAN" />
+          <L4 id="8886" short="HMCS BRUNSWICKER" fr="NCSM BRUNSWICKER" />
+          <L4 id="8888" short="HMCS QUEEN CHARLOTTE" fr="NCSM QUEEN CHARLOTTE" />
+        </L3>
+        <L3 id="8890" short="NAVRES-E" fr="RESNAV-E">
+          <L4 id="8893" short="HMCS CHAMPLAIN" fr="NCSM CHAMPLAIN" />
+          <L4 id="8895" short="HMCS MONTCALM" fr="NCSM MONTCALM" />
+          <L4 id="8897" short="HMCS DONNACONA" fr="NCSM DONNACONA" />
+          <L4 id="8899" short="HMCS RADISSON" fr="NCSM RADISSON" />
+          <L4 id="8901" short="HMCS D'IBERVILLE" fr="NCSM D'IBERVILLE" />
+          <L4 id="8903" short="HMCS JOLLIET" fr="NCSM JOLLIET" />
+        </L3>
+        <L3 id="8905" short="NAVRES-C" fr="RESNAV-C">
+          <L4 id="8908" short="HMCS CARLETON" fr="NCSM CARLETON" />
+          <L4 id="8910" short="HMCS CATARAQUI" fr="NCSM CATARAQUI" />
+          <L4 id="8912" short="HMCS YORK" fr="NCSM YORK" />
+          <L4 id="8914" short="HMCS HUNTER" fr="NCSM HUNTER" />
+          <L4 id="8916" short="HMCS STAR" fr="NCSM STAR" />
+          <L4 id="8918" short="HMCS GRIFFON" fr="NCSM GRIFFON" />
+          <L4 id="8920" short="HMCS PREVOST" fr="NCSM PREVOST" />
+        </L3>
+        <L3 id="8922" short="NAVRES-W" fr="RESNAV-W">
+          <L4 id="8925" short="HMCS CHIPPAWA" fr="NCSM CHIPPAWA" />
+          <L4 id="8927" short="HMCS UNICORN" fr="NCSM UNICORN" />
+          <L4 id="8929" short="HMCS TECUMSEH" fr="NCSM TECUMSEH" />
+          <L4 id="8931" short="HMCS DISCOVERY" fr="NCSM DISCOVERY" />
+          <L4 id="8933" short="HMCS MALAHAT" fr="NCSM MALAHAT" />
+          <L4 id="8935" short="HMCS NONSUCH" fr="NCSM NONSUCH" />
+          <L4 id="8937" short="HMCS QUEEN" fr="NCSM QUEEN" />
+        </L3>
+        <L3 id="8939" short="NAVRES HQ" fr="QG RESNAV">
+          <L5 id="8942" short="RCN PRL" fr="LRP - MRC" />
+        </L3>
+      </L2>
+      <L2 id="8943" short="MARPAC" fr="FMAR(P)">
+        <L3 id="8947" short="CANFLTPAC" fr="FLTCANPAC">
+          <L4 id="8950" short="FDU(P)" fr="UPF (P)" />
+          <L4 id="8952" short="HMCS CALGARY" fr="NCSM CALGARY" />
+          <L4 id="8954" short="HMCS REGINA" fr="NCSM REGINA" />
+          <L4 id="8956" short="HMCS VANCOUVER" fr="NCSM VANCOUVER" />
+          <L4 id="8958" short="HMCS WINNIPEG" fr="NCSM WINNIPEG" />
+          <L4 id="8960" short="HMCS OTTAWA" fr="NCSM OTTAWA" />
+          <L4 id="8962" short="HMCS NANAIMO" fr="NCSM NANAIMO" />
+          <L4 id="8964" short="HMCS EDMONTON" fr="NCSM EDMONTON" />
+          <L4 id="8966" short="HMCS WHITEHORSE" fr="NCSM WHITEHORSE" />
+          <L4 id="8968" short="HMCS YELLOWKNIFE" fr="NCSM YELLOWKNIFE" />
+          <L4 id="8970" short="HMCS SASKATOON" fr="NCSM SASKATOON" />
+          <L4 id="8972" short="HMCS BRANDON" fr="NCSM BRANDON" />
+          <L4 id="8974" short="CANFLTPAC HQ" fr="QG FLTCANPAC" />
+          <L4 id="8976" short="HMCS MAX BERNAYS" fr="NCSM MAX BERNAYS" />
+          <L4 id="8978" short="HMCS ROBERT HAMPTON GRAY" fr="NCSM ROBERT HAMPTON GRAY" />
+          <L4 id="8980" short="NST" fr="ESN" />
+          <L4 id="8982" short="PCTU" fr="UPE" />
+          <L4 id="8984" short="NTOG" fr="GOTN">
+            <L5 id="8986" short="NTOG Det East" fr="GOTN DET EST" />
+          </L4>
+          <L4 id="8987" short="HMCS PROTECTEUR" fr="NCSM PROTECTEUR" />
+        </L3>
+        <L3 id="8989" short="CAN SUB FORCE" fr="FORCE SOUS-MARINE CANADIENNE">
+          <L4 id="8992" short="HMCS VICTORIA" fr="NCSM VICTORIA" />
+          <L4 id="8994" short="HMCS WINDSOR" fr="NCSM WINDSOR" />
+          <L4 id="8996" short="HMCS CORNER BROOK" fr="NCSM CORNER BROOK" />
+          <L4 id="8998" short="HMCS CHICOUTIMI" fr="NCSM CHICOUTIMI" />
+          <L4 id="9000" short="CANSUBFOR HQ" fr="QG FORCE SOUS-MARINE CAN">
+            <L5 id="9002" short="CANSUBFOR HQ DET HALIFAX" fr="QG FSC DET HALIFAX" />
+          </L4>
+        </L3>
+        <L3 id="9003" short="NTG" fr="GIM">
+          <L4 id="9006" short="HMCS VENTURE" fr="NCSM VENTURE" />
+          <L4 id="9008" short="NFS (P)" fr="EN (P)" />
+          <L4 id="9010" short="NFS (Q)" fr="EN (Q)" />
+          <L4 id="9012" short="NFS (A)" fr="EN (A)">
+            <L5 id="9014" short="NFS (A) DET ESQUIMALT" fr="EN (A) DET ESQUIMALT" />
+          </L4>
+          <L4 id="9015" short="NTG HQ" fr="QG GIM">
+            <L5 id="9017" short="NTG HQ DET HALIFAX" fr="QG GIM DET HALIFAX" />
+          </L4>
+        </L3>
+        <L3 id="9018" short="MARPAC HQ" fr="QG FMAR(P)" />
+        <L3 id="9021" short="CFB ESQUIMALT" fr="BFC Esquimalt">
+          <L5 id="9024" short="CFB Esquimalt (USN Funded)" fr="BFC Esquimalt (USN Funded)" />
+          <L4 id="9025" short="CFB Esquimalt Det Matsqui" fr="Dét Matsqui BFC Esquimalt" />
+        </L3>
+        <L3 id="9027" short="PCC (Q)" fr="CCP (Q)" />
+        <L3 id="9030" short="MARPAC Band" fr="Musique FMAR(P)" />
+        <L3 id="9033" short="FMF CAPE BRETON" fr="IMF CAPE BRETON" />
+        <L3 id="9036" short="PCC ATLANTIC" fr="CCP ATLANTIQUE">
+          <L5 id="9039" short="FA(A)" fr="FA(A)" />
+        </L3>
+        <L3 id="9040" short="PCC PACIFIC" fr="CCP PACIFIQUE">
+          <L5 id="9043" short="FA(P)" fr="FA(P)" />
+        </L3>
+      </L2>
+      <L2 id="9044" short="MARLANT" fr="FMAR(A)">
+        <L3 id="9048" short="CANFLTLANT" fr="FLTCANLANT">
+          <L4 id="9051" short="FDU(A)" fr="UPF (A)" />
+          <L4 id="9053" short="HMCS TORONTO" fr="NCSM TORONTO" />
+          <L4 id="9055" short="HMCS VILLE DE QUEBEC" fr="NCSM VILLE DE QUEBEC" />
+          <L4 id="9057" short="HMCS HALIFAX" fr="NCSM HALIFAX" />
+          <L4 id="9059" short="HMCS MONTREAL" fr="NCSM MONTREAL" />
+          <L4 id="9061" short="HMCS FREDERICTON" fr="NCSM FREDERICTON" />
+          <L4 id="9063" short="HMCS CHARLOTTETOWN" fr="NCSM CHARLOTTETOWN" />
+          <L4 id="9065" short="HMCS ST JOHN'S" fr="NCSM ST JOHN'S" />
+          <L4 id="9067" short="HMCS KINGSTON" fr="NCSM KINGSTON" />
+          <L4 id="9069" short="HMCS GLACE BAY" fr="NCSM GLACE BAY" />
+          <L4 id="9071" short="HMCS SHAWINIGAN" fr="NCSM SHAWINIGAN" />
+          <L4 id="9073" short="HMCS GOOSE BAY" fr="NCSM GOOSE BAY" />
+          <L4 id="9075" short="HMCS MONCTON" fr="NCSM MONCTON" />
+          <L4 id="9077" short="HMCS SUMMERSIDE" fr="NCSM SUMMERSIDE" />
+          <L4 id="9079" short="CANFLTLANT HQ" fr="QG FLTCANLANT">
+            <L5 id="9081" short="HMCS ORIOLE" fr="NCSM ORIOLE" />
+          </L4>
+          <L4 id="9082" short="HMCS HARRY DEWOLF" fr="NCSM HARRY DEWOLF" />
+          <L4 id="9084" short="NRU ASTERIX" fr="UNR ASTERIX">
+            <L5 id="9086" short="NRU ASTERIX DET ESQUIMALT" fr="NRU ASTERIX DET ESQUIMALT" />
+          </L4>
+          <L4 id="9087" short="HMCS MARGARET BROOKE" fr="NCSM MARGARET BROOKE" />
+          <L4 id="9089" short="HMCS WILLIAM HALL" fr="NCSM WILLIAM HALL" />
+          <L4 id="9091" short="HMCS FRÉDÉRICK ROLETTE" fr="NCSM FRÉDÉRICK ROLETTE" />
+          <L4 id="9093" short="HMCS PRESERVER" fr="NCSM PRESERVER" />
+        </L3>
+        <L3 id="9095" short="SEA TRAINING GROUP" fr="GROUPE ENTRAINEMENT MARITIME">
+          <L4 id="9098" short="ST(A)" fr="EM (A)" />
+          <L4 id="9100" short="ST (P)" fr="EM (P)" />
+          <L5 id="9102" short="SEA TRAINING HEADQUARTERS" fr="QUARTIER GEN GR ENTR MARITIME" />
+        </L3>
+        <L3 id="9103" short="CFB Halifax" fr="BFC Halifax" />
+        <L3 id="9106" short="MARLANT Band" fr="Musique FMAR(A)" />
+        <L3 id="9109" short="MARLANT HQ" fr="QG FMAR(A)">
+          <L5 id="9112" short="MARLANT HQ DET OTTAWA" fr="QG FMAR(A) DET OTTAWA" />
+        </L3>
+        <L3 id="9113" short="TRINITY -  MOSIC" fr="TRINITY, CRSOM">
+          <L5 id="9116" short="TRINITY DET WHIDBEY" fr="DET WHIDBEY TRINITY" />
+          <L5 id="9117" short="TRINITY DET NIAGARA ON LAKE" fr="DET TRINITY NIAGARA ON LAKE" />
+          <L5 id="9118" short="TRINITY DET ESQUIMALT" fr="DÉT ESQUIMALT TRINITY" />
+          <L5 id="9119" short="TRINITY DET OTTAWA" fr="DET TRINITY (OTTAWA)" />
+          <L5 id="9120" short="TRINITY DET DAM NECK" fr="DÉT DAM NECK TRINITY" />
+        </L3>
+        <L3 id="9121" short="FMF CAPE SCOTT" fr="IMF CAPE SCOTT" />
+      </L2>
+      <L2 id="9124" short="CFMWC" fr="CGNFC">
+        <L3 id="9128" short="CFMWC DET OTTAWA" fr="Dét Ottawa, CGNFC" />
+      </L2>
+    </L1>
+    <L1 id="9131" short="CMP" fr="CPM">
+      <L2 id="9136" short="Asst CMP" fr="ACPM">
+        <L3 id="9140" short="Compt CMP" fr="Contr CPM" />
+        <L3 id="9143" short="DHH" fr="DHP" />
+        <L3 id="9146" short="DH&amp;R" fr="DDHR" />
+        <L3 id="9149" short="DMPPPC" fr="DPEPPM" />
+        <L3 id="9152" short="DMWP" fr="DPBEM" />
+      </L2>
+      <L2 id="9155" short="DGMPRA" fr="DGRAPM">
+        <L3 id="9159" short="DRPG" fr="DPPR" />
+        <L3 id="9162" short="DROOD" fr="DDOOR" />
+        <L3 id="9165" short="DRPFS" fr="DSPFR" />
+        <L3 id="9168" short="DRPO" fr="DRPO" />
+        <L3 id="9171" short="DRPS" fr="DRPS" />
+        <L3 id="9174" short="DRWA" fr="DRAE" />
+        <L3 id="9177" short="DPSPI" fr="DISPP" />
+      </L2>
+      <L2 id="9180" short="DGMPSS" fr="DGSSPM">
+        <L3 id="9184" short="D Mil Pers Mgt" fr="D Gest Pers Mil" />
+        <L3 id="9187" short="DRSM" fr="D Gest SR" />
+        <L3 id="9190" short="D Mil Pers Svcs" fr="D Svc Pers Mil" />
+        <L3 id="9193" short="DHRBM" fr="D Gest ARH" />
+      </L2>
+      <L2 id="9196" short="DGMP Strat" fr="DGPM Strat">
+        <L3 id="9200" short="DDHRSI" fr="DISNRH" />
+        <L3 id="9203" short="D Mil WP" fr="Dir PEM" />
+        <L3 id="9206" short="DMPSI" fr="Dir ISPM" />
+        <L3 id="9209" short="DMPPI" fr="DPIPM" />
+      </L2>
+      <L2 id="9212" short="DGPD Strat" fr="DGPP Strat">
+        <L3 id="9216" short="DPD" fr="DPP" />
+        <L3 id="9219" short="DITE" fr="DIIE" />
+      </L2>
+      <L2 id="9222" short="DGMC" fr="DGCM">
+        <L3 id="9226" short="DSA" fr="DNS" />
+        <L3 id="9229" short="D Mil C" fr="DCM" />
+        <L3 id="9232" short="DMCA" fr="DACM" />
+        <L3 id="9235" short="DMCPG" fr="DPGCM" />
+        <L3 id="9238" short="DMCSS" fr="DSSCM" />
+        <L3 id="9241" short="DMES" fr="DSDM" />
+      </L2>
+      <L2 id="9244" short="Chap Gen" fr="Aum Gén">
+        <L3 id="9248" short="D Chap Strat Sp" fr="D Sout Strat Aum" />
+        <L3 id="9251" short="D Chap Ops" fr="D Ops Aum" />
+        <L3 id="9254" short="D Chap Svcs" fr="D Svc Aum" />
+      </L2>
+      <L2 id="9257" short="DGCB" fr="DGRAS">
+        <L3 id="9261" short="DCBA" fr="DRASA" />
+        <L3 id="9264" short="DPPD" fr="DPDS" />
+        <L3 id="9267" short="DPSP" fr="DPPS" />
+        <L3 id="9270" short="DMPAP" fr="DTSIM" />
+        <L3 id="9273" short="DCFPS" fr="DSPFC" />
+        <L3 id="9276" short="MPSRP" fr="PRSSM" />
+        <L3 id="9279" short="DLAP" fr="DPL" />
+      </L2>
+      <L2 id="9282" short="DGMPG" fr="DGGPM">
+        <L3 id="9286" short="DPGR" fr="DBPP" />
+        <L3 id="9289" short="DMPGI" fr="DGIPM" />
+      </L2>
+      <L2 id="9292" short="DGMT" fr="DGTM">
+        <L3 id="9296" short="DTSP" fr="DSPT" />
+        <L3 id="9299" short="DCSM" fr="D Gest SB" />
+      </L2>
+      <L2 id="9302" short="CAF TG" fr="GT FAC">
+        <L3 id="9306" short="CAF TG HQ" fr="QG GT FAC" />
+        <L3 id="9309" short="CAF TU BC" fr="UT FAC CB">
+          <L4 id="9312" short="TC ESQUIMALT" fr="CT ESQUIMALT" />
+          <L4 id="9314" short="TC VANCOUVER" fr="CT VANCOUVER" />
+          <L4 id="9316" short="TC COMOX" fr="CT COMOX" />
+        </L3>
+        <L3 id="9318" short="CAF TU NS/NL" fr="UT FAC NS/NL">
+          <L4 id="9321" short="TC HALIFAX" fr="CT Halifax" />
+          <L4 id="9323" short="TC ST-JOHN'S" fr="CT ST-JOHN'S" />
+          <L4 id="9325" short="TC GANDER" fr="CT GANDER" />
+          <L4 id="9327" short="TC GREENWOOD" fr="CT GREENWOOD" />
+        </L3>
+        <L3 id="9329" short="CAF TU NB/PEI" fr="UT FAC NB/IPE">
+          <L4 id="9332" short="TC GAGETOWN" fr="CT GAGETOWN" />
+          <L4 id="9334" short="TC MONCTON" fr="CT MONCTON" />
+          <L4 id="9336" short="TC CHARLOTTETOWN" fr="CT CHARLOTTETOWN" />
+        </L3>
+        <L3 id="9338" short="CAF TU QC" fr="UT FAC QC">
+          <L4 id="9341" short="TC VALCARTIER" fr="CT VALCARTIER" />
+          <L4 id="9343" short="TC ST-JEAN" fr="CT ST-JEAN" />
+          <L4 id="9345" short="TC BAGOTVILLE" fr="CT BAGOTVILLE" />
+          <L4 id="9347" short="TC MONTREAL" fr="CT MONTRÉAL" />
+        </L3>
+        <L3 id="9349" short="CAF TU NCR" fr="UT FAC RCN">
+          <L4 id="9352" short="TC OTTAWA" fr="CT OTTAWA" />
+        </L3>
+        <L3 id="9354" short="CAF TU E O" fr="UT FAC E ON">
+          <L4 id="9357" short="TC PETAWAWA" fr="CT PETAWAWA" />
+          <L4 id="9359" short="TC KINGSTON" fr="CT KINGSTON" />
+          <L4 id="9361" short="TC TRENTON" fr="CT TRENTON" />
+          <L4 id="9363" short="TC NORTH BAY" fr="CT NORTH BAY" />
+        </L3>
+        <L3 id="9365" short="CAF TU S ON" fr="UT FAC S ON">
+          <L4 id="9368" short="TC TORONTO" fr="CT TORONTO" />
+          <L4 id="9370" short="TC BORDEN" fr="CT BORDEN" />
+          <L4 id="9372" short="TC MEAFORD" fr="CT MEAFORD" />
+          <L4 id="9374" short="TC LONDON" fr="CT LONDON" />
+        </L3>
+        <L3 id="9376" short="CAF TU MB/SK" fr="UT FAC MB/SK">
+          <L4 id="9379" short="TC WINNIPEG" fr="CT WINNIPEG" />
+          <L4 id="9381" short="TC SHILO" fr="CT SHILO" />
+          <L4 id="9383" short="TC MOOSE JAW" fr="CT MOOSE JAW" />
+        </L3>
+        <L3 id="9385" short="CAF TU AB/NORTH" fr="UT FAC AB/NORD">
+          <L4 id="9388" short="TC EDMONTON" fr="CT EDMONTON" />
+          <L4 id="9390" short="TC COLD LAKE" fr="CT COLD LAKE" />
+          <L4 id="9392" short="TC CALGARY" fr="CT CALGARY" />
+          <L4 id="9394" short="TC WAINWRIGHT" fr="CT WAINWRIGHT" />
+        </L3>
+      </L2>
+      <L2 id="9396" short="MIL PERS GENERATION GP" fr="GP DE GÉNÉRATION DU PERS MIL">
+        <L3 id="9400" short="CFRG" fr="GRFC">
+          <L4 id="9403" short="CFRC VANCOUVER" fr="CRFC Vancouver">
+            <L5 id="9405" short="CFRC VANCOUVER DET VICTORIA" fr="Dét Victoria CRFC Vancouver" />
+          </L4>
+          <L4 id="9406" short="CFRC CALGARY" fr="CRFC Calgary">
+            <L5 id="9408" short="CFRC Calgary Det Regina" fr="Dét Regina CRFC Calgary" />
+            <L5 id="9409" short="CFRC Calgary Det Edmonton" fr="Dét Edmonton CRFC Calgary" />
+            <L5 id="9410" short="CFRC Calgary Det Winnipeg" fr="Dét Winnipeg, CRFC Calgary" />
+          </L4>
+          <L4 id="9411" short="CFRC OTTAWA" fr="CRFC Ottawa">
+            <L5 id="9413" short="CFRC Ottawa Det Kingston" fr="Dét Kingston CRFC Ottawa" />
+            <L5 id="9414" short="CFRC Ottawa Det Sudbury" fr="Dét Sudbury CRFC Ottawa" />
+          </L4>
+          <L4 id="9415" short="CFRC HALIFAX" fr="CRFC Halifax">
+            <L5 id="9417" short="CFRC Halifax Det Charlottetown" fr="Dét Charlottetown CRFC Halifax" />
+            <L5 id="9418" short="CFRC Halifax Det St John's" fr="Dét St John's CRFC Halifax" />
+            <L5 id="9419" short="CFRC Halifax Det Sydney" fr="Dét Sydney CRFC Halifax" />
+            <L5 id="9420" short="CFRC Halifax Det Corner Brook" fr="Dét Corner Brook CRFC Halifax" />
+            <L5 id="9421" short="CFRC Halifax Det Moncton" fr="Dét Moncton CRFC Halifax" />
+            <L5 id="9422" short="CFRC Halifax Det Fredericton" fr="Dét Fredericton CRFC Halifax" />
+          </L4>
+          <L4 id="9423" short="CFRC TORONTO" fr="CRFC Toronto">
+            <L5 id="9425" short="CFRC Toronto Det London" fr="Dét London CRFC Toronto" />
+            <L5 id="9426" short="CFRC Toronto Det Barrie" fr="Dét Barrie CRFC Toronto" />
+            <L5 id="9427" short="CFRC Toronto Det Oshawa" fr="Dét Oshawa CRFC Toronto" />
+            <L5 id="9428" short="CFRC Toronto Det Hamilton" fr="Dét Hamilton CFRC Toronto" />
+          </L4>
+          <L4 id="9429" short="CFRC QUÉBEC" fr="CRFC Québec">
+            <L5 id="9431" short="CFRC Quebec Det Chicoutimi" fr="Dét Chicoutimi CRFC Québec" />
+            <L5 id="9432" short="CFRC Quebec Det Rimouski" fr="Dét Rimouski CRFC Québec" />
+            <L5 id="9433" short="CFRC Quebec Det Sherbrooke" fr="Dét Sherbrooke CRFC Québec" />
+            <L5 id="9434" short="CFRC Quebec Det Montréal" fr="Dét Montréal CRFC Québec" />
+          </L4>
+          <L4 id="9435" short="CFRG HQ" fr="QG GRFC" />
+        </L3>
+        <L3 id="9437" short="MPGTG" fr="GIGPM">
+          <L4 id="9440" short="CFB BORDEN" fr="BFC BORDEN" />
+          <L4 id="9442" short="CFLS" fr="ELFC">
+            <L5 id="9444" short="CFLS Det St Jean" fr="Dét ELFC St Jean" />
+          </L4>
+          <L4 id="9445" short="CFTDC" fr="CDIFC" />
+          <L4 id="9447" short="CFLRS" fr="ELRFC" />
+          <L4 id="9449" short="CFFCA" fr="EPDCFC" />
+          <L4 id="9451" short="MPGTG HQ" fr="QG GIGPM" />
+          <L4 id="9453" short="CF CAC TC" fr="CE FC CAC" />
+        </L3>
+        <L3 id="9455" short="MIL PERS GENERATION GP HQ" fr="QG GP GÉNÉRATION PERS MIL" />
+      </L2>
+      <L2 id="9458" short="CDA" fr="ACD">
+        <L3 id="9462" short="RMC" fr="CMR" />
+        <L3 id="9465" short="CDA HQ" fr="QG ACD">
+          <L5 id="9468" short="CDA OUTCAN USA" fr="ACD OUTCAN EU" />
+          <L5 id="9469" short="CDA OUTCAN EUROPE" fr="ACD OUTCAN EUROPE" />
+          <L5 id="9470" short="CDA OUTCAN ROW" fr="ACD OUTCAN RM" />
+          <L4 id="9471" short="CDA Hq Det Borden" fr="Dét Borden QG ACD" />
+          <L4 id="9473" short="CDA Hq Det St-Jean" fr="Dét St-Jean QG ACD" />
+        </L3>
+        <L3 id="9475" short="RMC Saint-Jean" fr="CMR Saint-Jean" />
+        <L3 id="9478" short="CFC" fr="CFC" />
+      </L2>
+      <L2 id="9481" short="NDHQ PRL" fr="CPR QGDN" />
+      <L2 id="9485" short="CANEX" fr="ÉCON FC">
+        <L5 id="9489" short="CANEX Det GEILENKIRCHEN" fr="ÉCON FC Dét GEILENKIRCHEN" />
+        <L5 id="9490" short="CANEX Det HALIFAX" fr="ÉCON FC Dét HALIFAX" />
+        <L5 id="9491" short="CANEX Det ESQUIMALT" fr="ÉCON FC Dét ESQUIMALT" />
+      </L2>
+      <L2 id="9492" short="MILPERSCOM  PRL" fr="CPR COMPERSMIL" />
+      <L2 id="9496" short="BTL" fr="EFE" />
+      <L2 id="9500" short="SUPP RES" fr="RÉS SUPP" />
+      <L2 id="9504" short="CMP OUTCAN USA" fr="CPM OUTCAN EU" />
+      <L2 id="9508" short="CMP OUTCAN EUROPE" fr="CPM OUTCAN EUROPE" />
+      <L2 id="9512" short="CMP OUTCAN ROW" fr="CPM OUTCAN RM" />
+    </L1>
+    <L1 id="9516" short="VCDS" fr="VCEMD">
+      <L2 id="vasc-do" short="VASC DO" fr="" />
+      <L2 id="9521" short="DVCDS" fr="VCEAMD" />
+      <L2 id="9525" short="DFL" fr="DLE">
+        <L3 id="9529" short="SMR-IP" fr="RMP-IP" />
+      </L2>
+      <L2 id="9532" short="D Safe G" fr="DSG" />
+      <L2 id="9536" short="C Prog" fr="C Prog">
+        <L3 id="9540" short="DDFP" fr="DPFD" />
+        <L3 id="9543" short="DDSPI" fr="DIPSD" />
+        <L3 id="9546" short="DRPRM" fr="DPRGR" />
+        <L3 id="9549" short="D Strat Coord" fr="D Coord Strat" />
+        <L3 id="9552" short="DDPC" fr="D Coord PD" />
+        <L3 id="9555" short="DPGI" fr="Dir GIP" />
+        <L3 id="9558" short="DDDRR" fr="DRSMRCR" />
+      </L2>
+      <L2 id="9561" short="CFD" fr="CDF">
+        <L3 id="9565" short="DSI" fr="DIS" />
+        <L3 id="9568" short="DCI" fr="DIC" />
+        <L3 id="9571" short="D Cap A" fr="D Anlys C" />
+        <L3 id="9574" short="DFCD" fr="DPDC" />
+      </L2>
+      <L2 id="9577" short="C Res" fr="C Rés">
+        <L3 id="9581" short="DRFIM" fr="DIMFR" />
+        <L3 id="9584" short="D ES Prog" fr="D Prog AE" />
+        <L3 id="9587" short="DRFKM" fr="DGCFR" />
+        <L3 id="9590" short="DGRFSI" fr="DGISFR" />
+      </L2>
+      <L2 id="9593" short="DGDS" fr="DGSD">
+        <L3 id="9597" short="DDSPTA" fr="DPISSD" />
+        <L3 id="9600" short="DPSIM" fr="DSPGI" />
+        <L3 id="9603" short="DSLCA" fr="DLSAM" />
+        <L3 id="9606" short="DDSO" fr="DOSD" />
+        <L3 id="9609" short="Dir SAPCO" fr="Dir BCPAS" />
+      </L2>
+      <L2 id="9612" short="NATL CJCR Sp Gp" fr="Gp S NATL CRJC">
+        <L3 id="9616" short="RCSU ATLANTIC" fr="URSC ATLANTIQUE">
+          <L4 id="9619" short="RCSU (ATLANTIC) Det ST JOHN'S" fr="URSC ATLANTIQUE Dét ST JOHN'S" />
+          <L4 id="9621" short="RCSU (ATLANTIC) Det HALIFAX" fr="URSC (ATLANTIQUE) Dét HALIFAX" />
+        </L3>
+        <L3 id="9623" short="RCSU EASTERN" fr="URSC EST" />
+        <L3 id="9626" short="RCSU CENTRAL" fr="URSC CENTRE">
+          <L4 id="9629" short="RCSU (CENTRAL) Det LONDON" fr="URSC (CENTRE) Dét LONDON" />
+          <L4 id="9631" short="RCSU (CENTRAL) Det NORTH BAY" fr="URSC (CENTRE) Dét NORTH BAY" />
+          <L4 id="9633" short="RCSU (CENTRAL) Det TORONTO" fr="URSC (CENTRE) Dét TORONTO" />
+          <L4 id="9635" short="CTC BLACKDOWN" fr="CEC BLACKDOWN" />
+        </L3>
+        <L3 id="9637" short="RCSU NORTHWEST" fr="URSC NORD-OUEST">
+          <L4 id="9640" short="RCSU(NORTHWEST) Det WINNIPEG" fr="Dét WINNIPEG URSC(NORD-OUEST)" />
+        </L3>
+        <L3 id="9642" short="RCSU PACIFIC" fr="URSC PACIFIQUE" />
+        <L3 id="9645" short="NATL CJCR Sp Gp HQ" fr="QG Gp S NATL CRJC" />
+      </L2>
+      <L2 id="9648" short="CFSG (O-G)" fr="GSFC (O-G)">
+        <L3 id="9652" short="CFB OTTAWA-GATINEAU" fr="BFC OTTAWA-GATINEAU" />
+        <L3 id="9655" short="CENTRAL BAND" fr="MUSIQUE CENTRALE" />
+        <L3 id="9658" short="PSS (OTTAWA-GATINEAU)" fr="SSP O-G" />
+        <L3 id="9661" short="TSS (OTTAWA-GATINEAU)" fr="SST (O-G)" />
+        <L3 id="9664" short="CRPTC" fr="CEEPC" />
+      </L2>
+      <L2 id="9667" short="CDLS(L)" fr="ELFC(L)" />
+      <L2 id="9671" short="CDLS(W)" fr="ELFC(W)" />
+      <L2 id="9675" short="CFSU (EUROPE)" fr="USFC (EUROPE)">
+        <L3 id="9679" short="CFSU (E) DET UK" fr="DÉT UK USFC (E)" />
+      </L2>
+      <L2 id="9682" short="CANMILREP" fr="REPCACMIL">
+        <L3 id="9686" short="NATO IMS" fr="NATO IMS">
+          <L3 id="9689" short="REGION CASTEAU SW" fr="RÉGION CASTEAU SO" />
+          <L3 id="9692" short="REGION GERMANY" fr="RÉGION ALLEMAGNE" />
+          <L3 id="9695" short="REGION ITA / ROU" fr="RÉGION ITA / ROU" />
+          <L3 id="9698" short="REGION NETHERLANDS" fr="RÉGION PAYS-BAS" />
+          <L3 id="9701" short="REGION TURKEY" fr="RÉGION TURQUIE" />
+          <L3 id="9704" short="REGION NOR / SWE" fr="RÉGION NOR / SWE" />
+          <L3 id="9707" short="INTERNATIONAL MILITARY STAFF" fr="ÉTAT-MAJOR MIL INTERNATIONAL" />
+          <L3 id="9710" short="REGION NORFOLK" fr="RÉGION NORFOLK" />
+          <L3 id="9713" short="REGION UNITED KINGDOM" fr="REGION UNITED KINGDOM" />
+        </L3>
+      </L2>
+      <L2 id="9716" short="OUTCAN COORD and SUP (URS)" fr="COORD et SOUTIEN OUTCAN URS">
+        <L3 id="9720" short="VCDS OUTCAN - ROW" fr="VCEMD OUTCAN - RM" />
+        <L3 id="9723" short="VCDS OUTCAN - EUROPE" fr="VCEMD OUTCAN - EUROPE" />
+        <L3 id="9726" short="VCDS OUTCAN - USA" fr="VCEMD OUTCAN - ÉTATS-UNIS" />
+      </L2>
+      <L2 id="9729" short="NATO - DIANA" fr="OTAN - DIANA" />
+    </L1>
+    <L1 id="9733" short="CANSOFCOM" fr="COMFOSCAN">
+      <L2 id="9738" short="SOF SPEC OPS" fr="OPS SPÉC SOF">
+        <L3 id="9742" short="SOF DEPL OPS" fr="OPS DEPL SOF">
+          <L4 id="9745" short="OP FULCRUM" fr="OP FULCRUM" />
+        </L3>
+      </L2>
+      <L2 id="9747" short="JTF 2" fr="FOI 2" />
+      <L2 id="9751" short="CJIRU-CBRN" fr="UIIC-ICBRN" />
+      <L2 id="9755" short="CANSOFCOM HQ" fr="QG COMFOSCAN">
+        <L3 id="9759" short="CSOEU" fr="UPOSC" />
+        <L3 id="9762" short="CANSOFCOM OUTCAN - USA" fr="COMFOSCAN OUTCAN - EU" />
+        <L3 id="9765" short="CANSOFCOM OUTCAN EUROPE" fr="COMFOSCAN OUTCAN - EUROPE" />
+        <L3 id="9768" short="CANSOFCOM OUTCAN ROW" fr="COMFOSCAN OUTCAN RM" />
+      </L2>
+      <L2 id="9771" short="CDN SPEC OPS REGT" fr="RÉGT OPS SPEC CDN" />
+      <L2 id="9775" short="CANSOFCOM PRL" fr="LRP COMFOSCAN" />
+      <L2 id="9779" short="CSOTC" fr="CEOSC" />
+    </L1>
+    <L1 id="9783" short="CFINTCOM" fr="COMRENS FC">
+      <L2 id="9788" short="CF Int Gp" fr="Gp Rens FC">
+        <L3 id="9792" short="MCE" fr="S Carto">
+          <L3 id="9795" short="HSO Halifax" fr="BSH Halifax" />
+          <L3 id="9798" short="HSO Esquimalt" fr="BSH Esquimalt" />
+        </L3>
+        <L3 id="9801" short="CFJIC" fr="CIIFC" />
+        <L3 id="9804" short="CFS MET" fr="E Met FC" />
+        <L3 id="9807" short="CFNCIU" fr="UNCIFC" />
+        <L3 id="9810" short="CFSMI" fr="ERMFC" />
+        <L3 id="9813" short="JTF X" fr="FOI X" />
+        <L3 id="9816" short="JMC" fr="CMI" />
+      </L2>
+      <L2 id="9819" short="CFINTCOM HQ" fr="QG COMRENS FC">
+        <L3 id="9823" short="CFINTCOM OUTCAN - USA" fr="COMRENS FC OUTCAN - EU" />
+        <L3 id="9826" short="CFINTCOM OUTCAN - EUROPE" fr="COMRENS FC OUTCAN - EUROPE" />
+        <L3 id="9829" short="CFINTCOM OUTCAN - ROW" fr="COMRENS FC OUTCAN - RM" />
+        <L3 id="9832" short="JIOC" fr="CORI" />
+      </L2>
+      <L2 id="9835" short="DG INT POL AND PARTNERSHIPS" fr="DG RENS POL ET PARTENARIATS" />
+      <L2 id="9839" short="DG INT ENTERPRISE" fr="DG - ENTREPRISE DU RENS" />
+      <L2 id="9843" short="ACDI" fr="CARD">
+        <L3 id="9847" short="DTRI" fr="DRTR" />
+        <L3 id="9850" short="DIPM" fr="D Gest P Rens" />
+        <L3 id="9853" short="DIRC" fr="DECR" />
+      </L2>
+      <L2 id="9856" short="DGIPP" fr="DGRPP">
+        <L3 id="9860" short="Dir GHIPP" fr="Dir PPRGH" />
+        <L3 id="9863" short="DDIL (W)" fr="DLRD (W)" />
+        <L3 id="9866" short="D Met Oc" fr="D Mét Oc" />
+      </L2>
+      <L2 id="9869" short="DGIE" fr="DGER">
+        <L3 id="9873" short="DIES" fr="DSER" />
+        <L3 id="9876" short="DIFD" fr="DDFR" />
+      </L2>
+    </L1>
+    <L1 id="9879" short="CJOC" fr="COIC">
+      <L2 id="9884" short="CFJOSG" fr="GSOIFC">
+        <L3 id="9888" short="CFPU" fr="USPFC">
+          <L4 id="9891" short="CFPU Det ATLANTIC" fr="USPFC Dét ATLANTIQUE" />
+          <L4 id="9893" short="CFPS HALIFAX" fr="SSPFC HALIFAX" />
+          <L4 id="9895" short="CFPS GAGETOWN" fr="SSPFC GAGETOWN" />
+          <L4 id="9897" short="CFPU Det CENTRAL" fr="USPFC Dét CENTRE" />
+          <L4 id="9899" short="CFPS TRENTON" fr="SSPFC TRENTON" />
+          <L4 id="9901" short="CFPS KINGSTON" fr="SSPFC KINGSTON" />
+          <L4 id="9903" short="CFPS BORDEN" fr="SSPFC BORDEN" />
+          <L4 id="9905" short="CFPS WINNIPEG" fr="SSPFC WINNIPEG" />
+          <L4 id="9907" short="CFPS COLD LAKE" fr="SSPFC COLD LAKE" />
+          <L4 id="9909" short="CFPU Det WESTERN" fr="USPFC Dét L'OUEST" />
+          <L4 id="9911" short="CFPS VICTORIA" fr="SSPFC VICTORIA" />
+          <L4 id="9913" short="CFPS OTTAWA" fr="SSPFC OTTAWA" />
+          <L4 id="9915" short="CFPS ST-JEAN" fr="SSPFC ST-JEAN" />
+        </L3>
+        <L3 id="9917" short="4 CFMCU" fr="4 UCMFC" />
+        <L3 id="9920" short="CFJSR" fr="RTIFC" />
+        <L3 id="9923" short="3 CSU" fr="3 USC" />
+        <L3 id="9926" short="1 ESU" fr="1 UAG" />
+        <L3 id="9929" short="CFJOSG HQ" fr="QG GSOIFC" />
+      </L2>
+      <L2 id="9932" short="JTFP" fr="FOIP">
+        <L3 id="9936" short="JTFP HQ" fr="QG FOIP" />
+      </L2>
+      <L2 id="9939" short="JTFW" fr="FOIO">
+        <L3 id="9943" short="JTFW HQ" fr="QG FOIO" />
+      </L2>
+      <L2 id="9946" short="JTFC" fr="FOIC">
+        <L3 id="9950" short="JTFC HQ" fr="QG FOIC" />
+      </L2>
+      <L2 id="9953" short="JTFE" fr="FOIE">
+        <L3 id="9957" short="JTFE HQ" fr="QG FOIE" />
+      </L2>
+      <L2 id="9960" short="JTFA" fr="FOIA">
+        <L3 id="9964" short="JTFA HQ" fr="QG FOIA" />
+      </L2>
+      <L2 id="9967" short="JTFN" fr="FOIN">
+        <L3 id="9971" short="JTFN HQ" fr="QG FOIN">
+          <L4 id="9974" short="JTFN HQ Det YUKON" fr="Dét YUKON QG FOIN" />
+          <L4 id="9976" short="JTFN HQ DET NUNAVUT" fr="DÉT NUNAVUT QG FOIN" />
+        </L3>
+      </L2>
+      <L2 id="9978" short="EF" fr="FE">
+        <L3 id="9982" short="TF BALKANS" fr="FO BALKANS">
+          <L4 id="9985" short="TF PRISTINA-KFOR" fr="FO PRISTINA-KFOR" />
+        </L3>
+        <L3 id="9987" short="OP ARTEMIS" fr="OP ARTEMIS">
+          <L4 id="9990" short="TF ARTEMIS-FLS" fr="FO ARTEMIS-SLA" />
+          <L4 id="9992" short="TF ARTEMIS-FFH1" fr="FO ARTEMIS-FFH1" />
+          <L4 id="9994" short="TF ARABIAN SEA - CTF150" fr="FO MER ARABIQUE- CTF150" />
+        </L3>
+        <L3 id="9996" short="OP HORIZON" fr="OP HORIZON">
+          <L4 id="9999" short="OP HORIZON" fr="OP HORIZON" />
+        </L3>
+        <L3 id="10001" short="OP PROJECTION" fr="OP PROJECTION">
+          <L4 id="10004" short="OP PROJECTION - WEST AFRICA" fr="OP PROJECTION - AFRIQUE DE L'O" />
+          <L4 id="10006" short="OP PROJECTION - EUROPE" fr="OP PROJECTION - EUROPE" />
+          <L4 id="10008" short="OP PROJECTION - ASIA-PACIFIC" fr="OP PROJECTION - ASIA-PACIFIQUE" />
+          <L4 id="10010" short="OP PROJECTION - AMERICAS" fr="OP PROJECTION - AMÉRIQUE" />
+        </L3>
+        <L3 id="10012" short="JTF REASSURANCE" fr="FOI REASSURANCE">
+          <L4 id="10015" short="OP REASSURANCE - ATF" fr="OP REASSURANCE - ATF" />
+          <L3 id="10017" short="NATO eFP" fr="PAR OTAN" />
+          <L4 id="10020" short="OP REASSURANCE - MTF" fr="OP REASSURANCE - MTF" />
+          <L4 id="10022" short="OP REASSURANCE - LTF" fr="OP REASSURANCE - LTF" />
+        </L3>
+        <L3 id="10024" short="TF EL GORAH" fr="FO EL GORAH" />
+        <L3 id="10027" short="TF HERMON" fr="FO HERMON" />
+        <L3 id="10030" short="DART" fr="DART" />
+        <L3 id="10033" short="TF DRC" fr="FO DRC" />
+        <L3 id="10036" short="TF CYPRUS (OP SNOWGOOSE)" fr="FO CHYPRE (OP SNOWGOOSE)" />
+        <L3 id="10039" short="TF TAMPA" fr="FO TAMPA" />
+        <L3 id="10042" short="TF PORT AU PRINCE" fr="FO PORT AU PRINCE" />
+        <L3 id="10045" short="TF JERUSALEM" fr="FO JERUSALEM" />
+        <L3 id="10048" short="TF GOLAN HEIGHTS" fr="FO GOLAN HEIGHTS" />
+        <L3 id="10051" short="TF DARFUR" fr="FO DARFUR" />
+        <L3 id="10054" short="CEFCOM OPS  URS" fr="CEFCOM OPS  URS" />
+        <L3 id="10057" short="TF SUDAN (OP SOPRANO)" fr="FO SOUDAN (OP SOPRANO)" />
+        <L3 id="10060" short="OP RENDER SAFE" fr="OP RENDER SAFE" />
+        <L3 id="10063" short="OP ADDENDA" fr="OP ADDENDA" />
+        <L3 id="10066" short="TF LATVIA OP OPEN SPIRIT" fr="FO LATVIA OP OPEN SPIRIT" />
+        <L3 id="10069" short="OP IMPACT" fr="OP IMPACT" />
+        <L3 id="10072" short="OP ACKEE" fr="OP ACKEE" />
+        <L3 id="10075" short="OP SIRONA" fr="OP SIRONA" />
+        <L3 id="10078" short="OP SCYLLA" fr="OP SCYLLA" />
+        <L3 id="10081" short="TF NEPAL" fr="FO NEPAL" />
+        <L3 id="10084" short="OP UNIFIER" fr="OP UNIFIER" />
+        <L3 id="10087" short="OP PROVISION" fr="FO PROVISION" />
+        <L3 id="10090" short="TF ECUADOR" fr="FO ECUADOR" />
+        <L3 id="10093" short="OP FREQUENCE" fr="OP FRÉQUENCE" />
+        <L3 id="10096" short="TF NEW ZEALAND HADR" fr="FO NEW ZEALAND AHSS" />
+        <L3 id="10099" short="OP NABERIUS" fr="OP NABERIUS" />
+        <L3 id="10102" short="TF MIDDLE EAST" fr="FO MOYEN-ORIENT" />
+        <L3 id="10105" short="TF IRMA" fr="FO IRMA" />
+        <L3 id="10108" short="OP EDIFICE" fr="OP ÉDIFICE" />
+        <L3 id="10111" short="OP POSEIDON" fr="OP POSEIDON" />
+        <L3 id="10114" short="OP PRESENCE" fr="OP PRESENCE" />
+        <L3 id="10117" short="OP GLOBE" fr="OP GLOBE" />
+        <L3 id="10120" short="OP JTF IMPACT" fr="OP FOI IMPACT" />
+        <L3 id="10123" short="OP NEON" fr="OP NEON" />
+        <L3 id="10126" short="OP OSH (WA)" fr="OP OSH (WA)" />
+        <L3 id="10129" short="OP ILLUMINATION" fr="OP ILLUMINATION" />
+        <L3 id="10132" short="OP UNION" fr="OP UNION" />
+        <L3 id="10135" short="OP SAVANNE" fr="OP SAVANNE" />
+        <L3 id="10138" short="OP HELIOS" fr="OP HELIOS" />
+        <L3 id="10141" short="OP LIMPID" fr="NON ASSIGNE" />
+        <L3 id="10144" short="OP LATITUDE" fr="OP LATITUDE" />
+        <L3 id="10147" short="OP LONGITUDE" fr="OP LONGITUDE" />
+        <L3 id="10150" short="OP AMARNA" fr="OP AMARNA" />
+      </L2>
+      <L3 id="10153" short="OP FOUNDATION" fr="OPERATION FONDATION">
+        <L4 id="10156" short="OP FOUNDATION" fr="NON ASSIGNE" />
+      </L3>
+      <L2 id="10158" short="COF" fr="F OPS C">
+        <L3 id="10162" short="Domestic Operations" fr="Opérations domestiques">
+          <L5 id="10165" short="OP LIAISON" fr="OP LIAISON" />
+          <L4 id="10166" short="JT OP NANOOK" fr="OP I NANOOK" />
+          <L4 id="10168" short="OP PALACI" fr="OP PALACI" />
+          <L4 id="10170" short="OP NEVUS" fr="OP NEVUS" />
+          <L4 id="10172" short="OP CARIBBE" fr="OP CARIBBE" />
+          <L4 id="10174" short="OP LENTUS" fr="OP LENTUS" />
+          <L4 id="10176" short="OP WINISK" fr="OP WINISK" />
+          <L4 id="10178" short="OP SABOT" fr="OP SABOT" />
+          <L4 id="10180" short="OP BOXTOP" fr="OP BOXTOP" />
+          <L4 id="10182" short="OP DRIFTNET" fr="OP DRIFTNET" />
+          <L4 id="10184" short="OP ELEMENT" fr="OP ÉLÉMENT" />
+          <L4 id="10186" short="DO (OP CADENCE)" fr="OD (OP CADENCE)" />
+          <L4 id="10188" short="DO (OP LASER)" fr="OD (OP LASER)" />
+          <L4 id="10190" short="OP VECTOR" fr="OPÉRATION VECTOR" />
+        </L3>
+      </L2>
+      <L2 id="10192" short="OSF" fr="FSO">
+        <L3 id="10196" short="AFG - SP 1" fr="1 SOUT - AFG">
+          <L4 id="10199" short="CST (LRMC)" fr="ESB LANSDSTUHL" />
+          <L4 id="10201" short="SLC Det GERMANY" fr="Dét ALLEMAGNE LCS" />
+        </L3>
+        <L3 id="10203" short="OS HUBS" fr="PT SO">
+          <L3 id="10206" short="OS Hub SWA" fr="CSO ASO" />
+          <L3 id="10209" short="OS Hub Europe" fr="CSO Europe" />
+          <L3 id="10212" short="OS Hub LAC" fr="CSO ALC" />
+        </L3>
+        <L3 id="10215" short="NOH" fr="CSO NORD" />
+        <L3 id="10218" short="TF OSPREY" fr="FO OSPREY" />
+      </L2>
+      <L2 id="10221" short="1 CDN DIV HQ" fr="QG 1 DC" />
+      <L2 id="10225" short="CJOC HQ" fr="QG COIC">
+        <L3 id="10229" short="CJOC OUTCAN USA" fr="COIC OUTCAN - EU" />
+        <L3 id="10232" short="CJOC OUTCAN EUROPE" fr="COIC OUTCAN EUROPE" />
+        <L3 id="10235" short="CJOC OUTCAN - ROW" fr="COIC OUTCAN - RM" />
+        <L3 id="10238" short="CJOC - CL C SVC PAY OFFICE" fr="COIC - BUREAU SOLDE SVC CL C" />
+      </L2>
+    </L1>
+    <L1 id="10241" short="CDS" fr="EMD" />
+  </L0>
+</organization>

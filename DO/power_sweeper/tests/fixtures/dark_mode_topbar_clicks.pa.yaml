@@ -1,0 +1,63 @@
+ComponentDefinitions:
+  TopbarHeader:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    Properties:
+      Fill: =DefaultGrayBackgroud
+      Height: |
+        =If(varTopMenu, App.Height, 65)
+      Width: =App.Width
+    Children:
+      - Container71:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            Height: =Parent.Height - Self.Y
+            Width: =Parent.Width - Self.X
+            Y: =70
+            ZIndex: =1
+            Fill: =RGBA(0, 0, 0, 0)
+          Children:
+            - Container63_2:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Visible: =varTopMenu
+                  Width: =Parent.Width
+                  Height: =Parent.Height
+                  Fill: =RGBA(0, 0, 0, 0)
+                Children:
+                  - RadioGroupCanvas1_4:
+                      Control: Radio@0.0.25
+                      Properties:
+                        Items: =["English", "French"]
+                        DefaultSelectedItems: =If(varLang, ["English"], ["French"])
+                        OnChange: |-
+                          =If(
+                              Self.Selected.Value = "English",
+                              Set(varLang, true),
+                              Set(varLang, false))
+                  - RadioGroupCanvas1_5:
+                      Control: Radio@0.0.25
+                      Properties:
+                        Items: =["Light"]
+                        DefaultSelectedItems: =["Light"]
+      - Label1:
+          Control: Label@2.5.1
+          Properties:
+            Height: =Parent.Height
+            Width: =998
+            X: =70
+            Y: =0
+            ZIndex: =4
+            Text: ="SITREP"
+            Fill: =RGBA(0, 0, 0, 0)
+      - Container1:
+          Control: GroupContainer@1.5.0
+          Properties:
+            Height: =65
+            Width: =200
+            X: =1068
+            Y: =0
+            ZIndex: =5
+            Fill: =RGBA(0, 0, 0, 0)

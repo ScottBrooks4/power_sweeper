@@ -1,0 +1,26 @@
+{
+    "id": "bldg5_north_1f",
+    "name": "Building 5W North 1st floor",
+    "class": "office",
+    "split": "dev",
+    "licence": "internal",
+    "source": "synoptic_designer",
+    "annotation_fill": "#0B95EE",
+    "empty": "empty.svg",
+    "filled": "filled.svg",
+    "gt": "gt.json",
+    "raster_variants": [
+        {
+            "id": "work_1200",
+            "file": "empty_1200.png",
+            "note": "1200x574 render"
+        },
+        {
+            "id": "work_2000",
+            "file": "empty_2000.png",
+            "note": "2000x956 render"
+        }
+    ],
+    "heavy": true,
+    "notes": "Synoptic Designer 2.0.5 Empty+Filled pair. Cubicle banks with desk furniture."
+}

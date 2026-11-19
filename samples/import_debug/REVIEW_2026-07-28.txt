@@ -1,0 +1,47 @@
+CDLS VCR — Power Sweeper review pack (2026-07-28)
+=================================================
+
+Built from plain source with commit ef13a92 + RGBA locale fix (3b0e5ae).
+
+Files in testbox (ido 239)
+--------------------------
+  CDLS_L_VCR_step1_repair.msapp
+    repair_studio_errors only — locale formulas, booleans, a11y, focus, tooltips
+    Does NOT apply dark mode.
+
+  CDLS_L_VCR_step2_dark_mode.msapp
+    dark_mode only (from plain, not repaired)
+    Test: Settings → Theme → Dark
+
+  CDLS_L_VCR_step3_repair_then_dark.msapp   ← start here
+    repair_studio_errors → dark_mode (recommended single import)
+
+How to review in Studio
+-----------------------
+  1. Download step3 from ffs → Import app → From file (.msapp)
+  2. App Checker → note formula errors (save once to refresh SARIF)
+  3. Settings → Theme → switch Light / Dark
+  4. Optional: compare step1 (repair only) vs plain if you still have plain locally
+
+What step1 fixes
+----------------
+  - Locale separator corruption (German comma-decimals, ; lists)
+  - RGBA(0,0,0,0) no longer corrupted to RGBA(0.0,0.0)
+  - Empty layout formulas, checkbox booleans, AccessibleLabel, focus rings, tooltips
+
+What step3 adds
+---------------
+  - gblThemeLight / gblThemeDark named formulas (static palettes)
+  - If(Coalesce(gblDarkMode,false), gblThemeDark.Token, gblThemeLight.Token) on color props
+  - Settings Theme radio: Light / Dark
+
+Still expected (not auto-fixed)
+-------------------------------
+  - Dropdown .Items: SharePoint/schema (Level, ParentID, Filter, Sort)
+  - Patch on read-only / missing connections
+  - Hundreds of accessibility findings until Studio re-save
+
+Rebuild locally
+---------------
+  php samples/import_debug/build_two_step.php
+  (requires plain CDLS (L) VCR App (4).msapp in samples/import_debug/)

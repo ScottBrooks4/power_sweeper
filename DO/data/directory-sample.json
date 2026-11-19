@@ -1,0 +1,17 @@
+[
+  { "id": "00000000-0000-0000-0000-000000000001", "displayName": "Alex Sample", "mail": "alex.sample@example.org", "userPrincipalName": "alex.sample@example.org",
+    "jobTitle": "Analyst", "department": "Sample L2", "officeLocation": "Bldg 5", "businessPhones": ["613-555-0100"], "mobilePhone": "",
+    "presence": { "availability": "Busy", "activity": "InAMeeting", "outOfOffice": false } },
+  { "id": "00000000-0000-0000-0000-000000000002", "displayName": "Sam Example", "mail": "sam.example@example.org", "userPrincipalName": "sam.example@example.org",
+    "jobTitle": "Developer", "department": "Sample L2", "officeLocation": "Bldg 5", "businessPhones": ["613-555-0101"], "mobilePhone": "613-555-0201",
+    "presence": { "availability": "Available", "activity": "Available", "outOfOffice": false } },
+  { "id": "00000000-0000-0000-0000-000000000003", "displayName": "Jordan Placeholder", "mail": "jordan.placeholder@example.org", "userPrincipalName": "jordan.placeholder@example.org",
+    "jobTitle": "Team Lead", "department": "Sample L1", "officeLocation": "Remote", "businessPhones": ["613-555-0102"], "mobilePhone": "",
+    "presence": { "availability": "Away", "activity": "Away", "outOfOffice": false } },
+  { "id": "00000000-0000-0000-0000-000000000004", "displayName": "Casey Demo", "mail": "casey.demo@example.org", "userPrincipalName": "casey.demo@example.org",
+    "jobTitle": "Business Analyst", "department": "Sample L2", "officeLocation": "Bldg 7", "businessPhones": [], "mobilePhone": "",
+    "presence": { "availability": "Offline", "activity": "Offline", "outOfOffice": true } },
+  { "id": "00000000-0000-0000-0000-000000000005", "displayName": "Riley Test", "mail": "riley.test@example.org", "userPrincipalName": "riley.test@example.org",
+    "jobTitle": "Tester", "department": "Sample L3", "officeLocation": "Bldg 5", "businessPhones": ["613-555-0104"], "mobilePhone": "",
+    "presence": { "availability": "DoNotDisturb", "activity": "Presenting", "outOfOffice": false } }
+]

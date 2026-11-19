@@ -1,0 +1,22 @@
+Screen2:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(249, 250, 251, 1)
+  Children:
+    - BackLabel:
+        Control: Label@2.0.0
+        Properties:
+          Text: ="Second screen"
+          X: =20
+          Y: =20
+          Width: =240
+          Height: =40
+    - GoBack:
+        Control: Classic/Button@2.0.0
+        Properties:
+          Text: ="Back"
+          X: =20
+          Y: =80
+          Width: =120
+          Height: =40
+          OnSelect: =Navigate(Screen1)

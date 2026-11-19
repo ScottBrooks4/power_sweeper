@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "width": 0,
+  "height": 0,
+  "source": "contract",
+  "walls": [],
+  "doors": [
+    {"class": "single_door", "bbox": {"x": 0, "y": 0, "w": 10, "h": 20}, "confidence": 0.9, "source": "example"}
+  ],
+  "stairs": [
+    {"class": "stair", "bbox": {"x": 0, "y": 0, "w": 40, "h": 60}, "confidence": 0.8, "source": "example"}
+  ],
+  "furniture": [
+    {"class": "chair", "bbox": {"x": 100, "y": 100, "w": 20, "h": 20}, "confidence": 0.7, "source": "example"},
+    {"class": "table", "bbox": {"x": 90, "y": 90, "w": 40, "h": 25}, "confidence": 0.7, "source": "example"}
+  ],
+  "labels": []
+}

@@ -1,0 +1,86 @@
+{
+  "value": [
+    {
+      "id": "11",
+      "eTag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000011,3\"",
+      "lastModifiedDateTime": "2026-11-03T16:09:00Z",
+      "fields": {
+        "@odata.etag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000011,3\"",
+        "id": "11",
+        "Title": "Activity & Operational Synchronization Tool",
+        "UseCaseIDLookupId": "215",
+        "Level": "L2",
+        "StrategicValue": 3,
+        "ReachValue": 2,
+        "BusinessValue": 4.0,
+        "StrategicWhy": "Outil propre à la CFD — portée régionale, révisé à l’été",
+        "ReachWhy": null,
+        "Author": { "LookupId": 7, "LookupValue": "Carter, Patrick" },
+        "Modified": "2026-11-03T16:09:00Z"
+      }
+    },
+    {
+      "id": "12",
+      "eTag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000012,1\"",
+      "lastModifiedDateTime": "2026-10-01T12:14:00Z",
+      "fields": {
+        "@odata.etag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000012,1\"",
+        "id": "12",
+        "Title": "DASCO Inventory",
+        "UseCaseIDLookupId": "212",
+        "Level": "L2",
+        "StrategicValue": null,
+        "ReachValue": 5,
+        "BusinessValue": 3,
+        "StrategicWhy": "",
+        "ReachWhy": "L1/Org"
+      }
+    },
+    {
+      "id": "13",
+      "eTag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000013,7\"",
+      "lastModifiedDateTime": "2026-09-11T12:09:00Z",
+      "fields": {
+        "@odata.etag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000013,7\"",
+        "id": "13",
+        "Title": "VCDS OHS Risk Assessment Tool",
+        "UseCaseIDLookupId": "209",
+        "Level": "L1",
+        "StrategicValue": 4,
+        "ReachValue": 5,
+        "BusinessValue": 5,
+        "StrategicWhy": null,
+        "ReachWhy": null
+      }
+    },
+    {
+      "id": "14",
+      "eTag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000014,2\"",
+      "lastModifiedDateTime": "2026-05-13T13:00:00Z",
+      "fields": {
+        "@odata.etag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000014,2\"",
+        "id": "14",
+        "Title": "Exporting DRMIS Information to Use in Power BI ",
+        "UseCaseIDLookupId": "213",
+        "Level": "L3",
+        "StrategicValue": 2,
+        "ReachValue": null,
+        "BusinessValue": null,
+        "StrategicWhy": null,
+        "ReachWhy": null
+      }
+    },
+    {
+      "id": "15",
+      "eTag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000015,1\"",
+      "lastModifiedDateTime": "2026-03-23T13:00:00Z",
+      "fields": {
+        "@odata.etag": "\"6a1f0c2e-0b6e-4c55-9d3e-000000000015,1\"",
+        "id": "15",
+        "Title": "Row with no use case lookup",
+        "UseCaseIDLookupId": null,
+        "Level": "L4"
+      }
+    }
+  ]
+}

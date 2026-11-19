@@ -1,0 +1,158 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# ************************************************************************************************
+Screens:
+  Dashboard:
+    Properties:
+      Fill: =gblTheme.Page
+      LoadingSpinnerColor: =gblTheme.Accent
+    Children:
+      - imgMockupDashboard:
+          Control: Image@2.2.3
+          Properties:
+            DisplayMode: =DisplayMode.View
+            Height: =App.Height
+            Image: =MockupDashboard
+            ImagePosition: =ImagePosition.Fit
+            Width: =App.Width
+            X: =0
+            Y: =0
+            ZIndex: =1
+      - SidebarMenu_5:
+          Control: CanvasComponent
+          ComponentName: SidebarMenu
+          Properties:
+            Height: =App.Height
+            Visible: =true
+            Width: =gblNavWidth
+            X: =0
+            Y: =0
+            ZIndex: =90
+      - galDashFilters:
+          Control: Gallery@2.15.0
+          Variant: Horizontal
+          Properties:
+            BorderColor: =RGBA(0, 0, 0, 0)
+            Fill: =RGBA(0, 0, 0, 0)
+            Height: =36
+            Items: =colFilters
+            Layout: =Layout.Horizontal
+            TemplatePadding: =0
+            TemplateSize: =124
+            Width: =App.Width - gblNavWidth - 44
+            X: =gblNavWidth + 22
+            Y: =148
+            ZIndex: =50
+          Children:
+            - btnDashFilter:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =If(ThisItem.Selected, gblTheme.ChipOn, gblTheme.Border)
+                  BorderThickness: =1
+                  Color: =If(ThisItem.Selected, gblTheme.ChipOnInk, gblTheme.Text)
+                  Fill: =If(ThisItem.Selected, gblTheme.ChipOn, gblTheme.Chip)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =28
+                  HoverFill: =If(ThisItem.Selected, ColorFade(gblTheme.ChipOn, 10%), ColorFade(gblTheme.Chip, -6%))
+                  OnSelect: |-
+                    =UpdateIf(colFilters, true, {Selected: false});
+                    Patch(colFilters, ThisItem, {Selected: true});
+                    If(
+                        ThisItem.Kind = "L2",
+                        Set(varL2, ThisItem.Value),
+                        ThisItem.Kind = "Program",
+                        Set(varProgram, ThisItem.Value),
+                        Set(varHighOnly, ThisItem.Value = "High + Extreme")
+                    )
+                  RadiusBottomLeft: =gblRadiusPill
+                  RadiusBottomRight: =gblRadiusPill
+                  RadiusTopLeft: =gblRadiusPill
+                  RadiusTopRight: =gblRadiusPill
+                  Size: =10
+                  Text: =ThisItem.Value
+                  Width: =Parent.TemplateWidth - 8
+                  X: =0
+                  Y: =4
+      - cmpRiskGrid_Dashboard:
+          Control: CanvasComponent
+          ComponentName: cmpRiskGrid
+          Properties:
+            Fill: =gblTheme.Paper
+            Height: =248
+            HighlightP: =0
+            HighlightS: =0
+            Mode: ="Overview"
+            Width: =320
+            X: =gblNavWidth + 22
+            Y: =200
+            ZIndex: =40
+      - btnDashAlerts:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =gblTheme.Border
+            Color: =gblTheme.Text
+            Fill: =gblTheme.Quiet
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =36
+            HoverFill: =ColorFade(gblTheme.Quiet, -10%)
+            OnSelect: =Navigate(Homepage, ScreenTransition.Fade)
+            RadiusBottomLeft: =gblRadius
+            RadiusBottomRight: =gblRadius
+            RadiusTopLeft: =gblRadius
+            RadiusTopRight: =gblRadius
+            Size: =12
+            Text: ="Alerts"
+            Width: =90
+            X: =App.Width - 280
+            Y: =22
+            ZIndex: =60
+      - btnDashIdentify:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =gblTheme.Border
+            Color: =gblTheme.TextOnAccent
+            Fill: =gblTheme.Accent
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =36
+            HoverFill: =ColorFade(gblTheme.Accent, -10%)
+            OnSelect: =Navigate(Homepage, ScreenTransition.Fade)
+            RadiusBottomLeft: =gblRadius
+            RadiusBottomRight: =gblRadius
+            RadiusTopLeft: =gblRadius
+            RadiusTopRight: =gblRadius
+            Size: =12
+            Text: ="Identify risk"
+            Width: =150
+            X: =App.Width - 178
+            Y: =22
+            ZIndex: =60
+      - lblDashCrumb:
+          Control: Label@2.5.1
+          Properties:
+            Color: =gblTheme.TextMuted
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Normal
+            Height: =18
+            Size: =10
+            Text: ="Leadership view · PIP dashboard"
+            Width: =640
+            X: =gblNavWidth + 22
+            Y: =18
+            ZIndex: =50
+      - lblDashTitle:
+          Control: Label@2.5.1
+          Properties:
+            Color: =gblTheme.Text
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =36
+            Size: =21
+            Text: ="Risk picture"
+            Width: =400
+            X: =gblNavWidth + 22
+            Y: =36
+            ZIndex: =50

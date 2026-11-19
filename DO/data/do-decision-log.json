@@ -1,0 +1,1425 @@
+{
+    "started": "2026-11-15",
+    "seen": {
+        "1": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "2": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "3": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "5": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "6": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "10": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "11": {
+            "status": "New",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "New",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "14": {
+            "status": "Declined",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Declined",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "15": {
+            "status": "Declined",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Declined",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-13"
+            }
+        },
+        "16": {
+            "status": "Completed",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Completed",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "17": {
+            "status": "Decommissioned",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Decommissioned",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "18": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-13"
+            }
+        },
+        "19": {
+            "status": "UAT",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "UAT",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-13"
+            }
+        },
+        "20": {
+            "status": "In Dev",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "In Dev",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-03-23"
+            }
+        },
+        "21": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "22": {
+            "status": "UAT",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "UAT",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-13"
+            }
+        },
+        "23": {
+            "status": "Completed",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Completed",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-03-23"
+            }
+        },
+        "24": {
+            "status": "UAT",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "UAT",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-03-23"
+            }
+        },
+        "25": {
+            "status": "Decommissioned",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Decommissioned",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-13"
+            }
+        },
+        "26": {
+            "status": "Completed",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Completed",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "27": {
+            "status": "New",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "New",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-13"
+            }
+        },
+        "31": {
+            "status": "UAT",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "UAT",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "32": {
+            "status": "Declined",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Declined",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "33": {
+            "status": "New",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "New",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "34": {
+            "status": "Completed",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Completed",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "35": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "45": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-13"
+            }
+        },
+        "50": {
+            "status": "Declined",
+            "scored": "2026-05-14",
+            "base": {
+                "status": "Declined",
+                "date": "2026-05-14",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-14"
+            }
+        },
+        "51": {
+            "status": "Declined",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Declined",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Declined",
+                "scored": "2026-05-13"
+            }
+        },
+        "76": {
+            "status": "Decommissioned",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Decommissioned",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "77": {
+            "status": "Completed",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Completed",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "78": {
+            "status": "Declined",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Declined",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "79": {
+            "status": "Completed",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Completed",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-03-23"
+            }
+        },
+        "80": {
+            "status": "Deferred",
+            "scored": "2026-05-14",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-14",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-14"
+            }
+        },
+        "85": {
+            "status": "Declined",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Declined",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "89": {
+            "status": "Declined",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Declined",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "90": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "91": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "92": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "94": {
+            "status": "Deferred",
+            "scored": "2026-05-14",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-14",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-14"
+            }
+        },
+        "97": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "98": {
+            "status": "New",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "New",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-03-23"
+            }
+        },
+        "99": {
+            "status": "Completed",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Completed",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "103": {
+            "status": "New",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "New",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-03-23"
+            }
+        },
+        "104": {
+            "status": "Declined",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Declined",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "108": {
+            "status": "New",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "New",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-03-23"
+            }
+        },
+        "111": {
+            "status": "UAT",
+            "scored": "2026-05-14",
+            "base": {
+                "status": "UAT",
+                "date": "2026-05-14",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-14"
+            }
+        },
+        "112": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "113": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "114": {
+            "status": "UAT",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "UAT",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-03-23"
+            }
+        },
+        "115": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "116": {
+            "status": "UAT",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "UAT",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-03-23"
+            }
+        },
+        "119": {
+            "status": "",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "120": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "121": {
+            "status": "Completed",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Completed",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "122": {
+            "status": "Declined",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Declined",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "123": {
+            "status": "UAT",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "UAT",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "124": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "125": {
+            "status": "Deferred",
+            "scored": "2026-05-14",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-14",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-14"
+            }
+        },
+        "126": {
+            "status": "Deferred",
+            "scored": "2026-05-14",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-14",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-14"
+            }
+        },
+        "127": {
+            "status": "Deferred",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "128": {
+            "status": "Deferred",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "129": {
+            "status": "UAT",
+            "scored": "2026-03-23",
+            "base": {
+                "status": "UAT",
+                "date": "2026-03-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-03-23"
+            }
+        },
+        "132": {
+            "status": "Deferred",
+            "scored": "2026-05-14",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-14",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-14"
+            }
+        },
+        "141": {
+            "status": "Declined",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Declined",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "145": {
+            "status": "UAT",
+            "scored": "2026-05-12",
+            "base": {
+                "status": "UAT",
+                "date": "2026-05-12",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-12"
+            }
+        },
+        "146": {
+            "status": "Declined",
+            "scored": "2026-05-13",
+            "base": {
+                "status": "Declined",
+                "date": "2026-05-13",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-05-13"
+            }
+        },
+        "147": {
+            "status": "UAT",
+            "scored": "2026-07-09",
+            "base": {
+                "status": "UAT",
+                "date": "2026-07-09",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-07-09"
+            }
+        },
+        "148": {
+            "status": "UAT",
+            "scored": "2026-05-12",
+            "base": {
+                "status": "UAT",
+                "date": "2026-05-12",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-12"
+            }
+        },
+        "149": {
+            "status": "UAT",
+            "scored": "2026-05-20",
+            "base": {
+                "status": "UAT",
+                "date": "2026-05-20",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-20"
+            }
+        },
+        "150": {
+            "status": "Deferred",
+            "scored": "2026-05-20",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-05-20",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-05-20"
+            }
+        },
+        "153": {
+            "status": "Completed",
+            "scored": "2026-06-08",
+            "base": {
+                "status": "Completed",
+                "date": "2026-06-08",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-06-08"
+            }
+        },
+        "154": {
+            "status": "Deferred",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "155": {
+            "status": "Completed",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Completed",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-07-17"
+            }
+        },
+        "156": {
+            "status": "Prioritized",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "157": {
+            "status": "Prioritized",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "158": {
+            "status": "Prioritized",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "159": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "160": {
+            "status": "Prioritized",
+            "scored": "2026-06-24",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-06-24",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-06-24"
+            }
+        },
+        "161": {
+            "status": "UAT",
+            "scored": "2026-07-07",
+            "base": {
+                "status": "UAT",
+                "date": "2026-07-07",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-07-07"
+            }
+        },
+        "162": {
+            "status": "In Dev",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "In Dev",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "163": {
+            "status": "Declined",
+            "scored": "2026-07-20",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-20",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-20"
+            }
+        },
+        "164": {
+            "status": "Declined",
+            "scored": "2026-07-08",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-08",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-08"
+            }
+        },
+        "165": {
+            "status": "Prioritized",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "166": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "167": {
+            "status": "Declined",
+            "scored": "2026-07-22",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-22",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-22"
+            }
+        },
+        "168": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "169": {
+            "status": "UAT",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "UAT",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "176": {
+            "status": "Declined",
+            "scored": "2026-07-20",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-20",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-20"
+            }
+        },
+        "177": {
+            "status": "Prioritized",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-07-17"
+            }
+        },
+        "178": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "179": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "180": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Declined",
+                "scored": "2026-07-17"
+            }
+        },
+        "181": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Declined",
+                "scored": "2026-07-17"
+            }
+        },
+        "182": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "183": {
+            "status": "Prioritized",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "184": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "185": {
+            "status": "Prioritized",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Approved",
+                "scored": "2026-07-17"
+            }
+        },
+        "186": {
+            "status": "Prioritized",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "187": {
+            "status": "Declined",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Declined",
+                "scored": "2026-07-17"
+            }
+        },
+        "188": {
+            "status": "Deferred",
+            "scored": "2026-08-12",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-08-12",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-08-12"
+            }
+        },
+        "189": {
+            "status": "Deferred",
+            "scored": "2026-07-17",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-07-17",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-17"
+            }
+        },
+        "190": {
+            "status": "Declined",
+            "scored": "2026-07-21",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-21",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-21"
+            }
+        },
+        "191": {
+            "status": "Deferred",
+            "scored": "2026-07-23",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-07-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-23"
+            }
+        },
+        "192": {
+            "status": "Declined",
+            "scored": "2026-07-27",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-27",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-27"
+            }
+        },
+        "193": {
+            "status": "In Dev",
+            "scored": "2026-07-23",
+            "base": {
+                "status": "In Dev",
+                "date": "2026-07-23",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-23"
+            }
+        },
+        "194": {
+            "status": "Prioritized",
+            "scored": "2026-07-29",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-29",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-07-29"
+            }
+        },
+        "195": {
+            "status": "Prioritized",
+            "scored": "",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-29",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "196": {
+            "status": "Deferred",
+            "scored": "",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-07-29",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "197": {
+            "status": "Deferred",
+            "scored": "",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-07-29",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "198": {
+            "status": "Prioritized",
+            "scored": "",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-29",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "199": {
+            "status": "Declined",
+            "scored": "",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-24",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "200": {
+            "status": "Deferred",
+            "scored": "",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-07-24",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "201": {
+            "status": "Declined",
+            "scored": "",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-24",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "202": {
+            "status": "Deferred",
+            "scored": "",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-07-27",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "203": {
+            "status": "Declined",
+            "scored": "",
+            "base": {
+                "status": "Declined",
+                "date": "2026-08-18",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "204": {
+            "status": "Deferred",
+            "scored": "",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-07-27",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "205": {
+            "status": "Declined",
+            "scored": "",
+            "base": {
+                "status": "Declined",
+                "date": "2026-08-12",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "206": {
+            "status": "Prioritized",
+            "scored": "",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-07-28",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "207": {
+            "status": "Declined",
+            "scored": "",
+            "base": {
+                "status": "Declined",
+                "date": "2026-08-07",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "208": {
+            "status": "Declined",
+            "scored": "",
+            "base": {
+                "status": "Declined",
+                "date": "2026-07-30",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "209": {
+            "status": "Prioritized",
+            "scored": "2026-09-11",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-09-11",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-09-11"
+            }
+        },
+        "210": {
+            "status": "Prioritized",
+            "scored": "",
+            "base": {
+                "status": "Prioritized",
+                "date": "2026-08-19",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "211": {
+            "status": "Deferred",
+            "scored": "",
+            "base": {
+                "status": "Deferred",
+                "date": "2026-08-20",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "212": {
+            "status": "New",
+            "scored": "2026-10-01",
+            "base": {
+                "status": "New",
+                "date": "2026-10-01",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-10-01"
+            }
+        },
+        "213": {
+            "status": "New",
+            "scored": "2026-10-01",
+            "base": {
+                "status": "New",
+                "date": "2026-10-01",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-10-01"
+            }
+        },
+        "215": {
+            "status": "New",
+            "scored": "2026-10-01",
+            "base": {
+                "status": "New",
+                "date": "2026-10-01",
+                "source": "list",
+                "recommended": "Deferred",
+                "scored": "2026-10-01"
+            }
+        },
+        "216": {
+            "status": "New",
+            "scored": "",
+            "base": {
+                "status": "New",
+                "date": "2026-11-01",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        },
+        "217": {
+            "status": "New",
+            "scored": "",
+            "base": {
+                "status": "New",
+                "date": "2026-11-02",
+                "source": "usecase",
+                "recommended": "",
+                "scored": ""
+            }
+        }
+    },
+    "changes": []
+}

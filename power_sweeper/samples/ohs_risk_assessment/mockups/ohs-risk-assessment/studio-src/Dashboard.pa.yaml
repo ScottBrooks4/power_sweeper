@@ -1,0 +1,1861 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  Dashboard:
+    Properties:
+      Fill: =DefaultGrayBackgroud
+      LoadingSpinnerColor: =RGBA(56, 96, 178, 1)
+      OnVisible: |-
+        =UpdateContext({varVisibleEHCRRequests: "1"});  Select(Icon1_57); Set(varEditing, false)
+    Children:
+      - THCEE Dshb_PageContainer:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =Parent.Height - Self.Y
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            PaddingLeft: =5
+            PaddingRight: =15
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Width: =Parent.Width - Self.X
+            X: =75
+            Y: =SidebarMenu_5.Y
+          Children:
+            - THCEE Dshb_TopContainer:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =70
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =15
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =5
+                  PaddingLeft: =5
+                  PaddingRight: =5
+                  PaddingTop: =5
+                Children:
+                  - THCEEDashb_OpenContainer:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        Fill: =RGBA(255,255,255,1)
+                        Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Width: =
+                      Children:
+                        - THCEEDashb_OpenContainerNum:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =Parent.Height - Self.Y
+                              PaddingBottom: =0
+                              PaddingLeft: =15
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =12
+                              Text: =// place here the total number of packages related to the current user that are open
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Y: =Dashb_OpenEHCR.Y + Dashb_OpenEHCR.Height
+                        - Dashb_OpenEHCR:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              Height: =25
+                              PaddingBottom: =2
+                              PaddingLeft: =15
+                              PaddingRight: =0
+                              Size: =10
+                              Text: ="Open Template Package"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Y: =5
+                  - THCEE Dashb_ClosedContainer:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        Fill: =RGBA(255,255,255,1)
+                        Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Width: =
+                      Children:
+                        - THCEEDashb_ClosedContainerNum:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =Parent.Height - Self.Y
+                              PaddingBottom: =0
+                              PaddingLeft: =15
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =12
+                              Text: =// place here the total number of packages related to the current user that are closed
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Y: =Dashb_ClosedEHCR.Y + Dashb_ClosedEHCR.Height
+                        - Dashb_ClosedEHCR:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              Height: =25
+                              PaddingBottom: =2
+                              PaddingLeft: =15
+                              PaddingRight: =0
+                              Size: =10
+                              Text: ="Closed Template Package"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Y: =5
+                  - THCEE Dashb_InvolvedContainer:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        Fill: =RGBA(255,255,255,1)
+                        Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Width: =
+                      Children:
+                        - THCEEDashb_InvolvedContainerNum:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =Parent.Height - Self.Y
+                              PaddingBottom: =0
+                              PaddingLeft: =15
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =12
+                              Text: =// place here the total number of packages that the current user is involved in.
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Y: =Dashb_Involved.Y + Dashb_Involved.Height
+                        - Dashb_Involved:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              Height: =25
+                              PaddingBottom: =2
+                              PaddingLeft: =15
+                              PaddingRight: =0
+                              Size: =10
+                              Text: |-
+                                =//comTranslations.Labels.TDRDashboard.TDRDashb_InvolvedContainer
+                                "Template Packages I am involved in"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Y: =5
+                  - THCEE Dashb_PendingContainer:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        Fill: =RGBA(255,255,255,1)
+                        Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Width: =
+                      Children:
+                        - TDRDashb_PendingContainerNum:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: |-
+                                =If(
+                                    Value(Self.Text) > 0, 
+                                    RGBA(255, 0, 0, 1),
+                                    RGBA(0, 0, 0, 1)
+                                )
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Bold
+                              Height: =Parent.Height - Self.Y
+                              PaddingBottom: =0
+                              PaddingLeft: =15
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =12
+                              Text: =// place here the total number of packages related to the current user that are pending approval
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Y: =Dashb_Pending.Y + Dashb_Pending.Height
+                        - Dashb_Pending:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              Height: =25
+                              PaddingBottom: =2
+                              PaddingLeft: =15
+                              PaddingRight: =0
+                              Size: =10
+                              Text: |-
+                                =//comTranslations.Labels.TDRDashboard.TDRDashb_PendingContainer
+                                "Pending Template Package"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Y: =5
+            - THCEE Dashb_SelectTabContainer:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =50
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =15
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  PaddingBottom: =10
+                  PaddingLeft: =5
+                  PaddingRight: =5
+                  PaddingTop: =10
+                  Width: =Parent.Width
+                Children:
+                  - THCEE Dashb_SelectTabMyOpenContainer:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        Fill: =RGBA(255, 255, 255, 1)
+                        Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Width: =(Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - Parent.LayoutGap*3) * 0.25
+                      Children:
+                        - Dashb_MyOpenBtn:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =ColorFade(Self.Fill, -15%)
+                              Color: |-
+                                =If(
+                                    varVisibleEHCRRequests = "1",
+                                    Self.HoverColor,
+                                    RGBA(51,51,51,1)
+                                )
+                              DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                              Fill: |-
+                                =If(
+                                    varVisibleEHCRRequests = "1",
+                                    Self.HoverFill,
+                                        RGBA(0,0,0,0)
+                                )
+                              Font: =Font.'Segoe UI'
+                              Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                              HoverBorderColor: =RGBA(110, 110, 110, 1)
+                              HoverColor: =RGBA(255, 255, 255, 1)
+                              HoverFill: =RGBA(110, 110, 110, 1)
+                              OnSelect: |-
+                                =UpdateContext({varVisibleTemplateRequests: "1"});  Set(varShowLoadingContainer, true); Reset(DashBoardListGallery);  Set(varShowLoadingContainer, false)
+                              PressedBorderColor: =Self.Fill
+                              PressedColor: =Self.Fill
+                              PressedFill: =Self.Color
+                              RadiusBottomLeft: =1
+                              RadiusBottomRight: =1
+                              RadiusTopLeft: =1
+                              RadiusTopRight: =1
+                              Size: =8
+                              Text: ="My Open amplate Packages"
+                              Width: =Parent.Width
+                  - THCEE Dashb_SelectTabMyTDRContainer:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        Fill: =RGBA(255, 255, 255, 1)
+                        Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Width: =(Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - Parent.LayoutGap*3) * 0.25
+                      Children:
+                        - Dashb_MyECHRBtn:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =ColorFade(Self.Fill, -15%)
+                              Color: |-
+                                =If(
+                                    varVisibleEHCRRequests = "2",
+                                    Self.HoverColor,
+                                    RGBA(51,51,51,1)
+                                )
+                              DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                              Fill: |-
+                                =If(
+                                    varVisibleEHCRRequests = "2",
+                                    Self.HoverFill,
+                                        RGBA(0,0,0,0)
+                                )
+                              Font: =Font.'Segoe UI'
+                              Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                              HoverBorderColor: =RGBA(110, 110, 110, 1)
+                              HoverColor: =RGBA(255, 255, 255, 1)
+                              HoverFill: =RGBA(110, 110, 110, 1)
+                              OnSelect: |-
+                                =UpdateContext({varVisibleTemplateRequests: "2"}); Set(varShowLoadingContainer, true); Reset(DashBoardListGallery); Set(varShowLoadingContainer, false)
+                              PressedBorderColor: =Self.Fill
+                              PressedColor: =Self.Fill
+                              PressedFill: =Self.Color
+                              RadiusBottomLeft: =1
+                              RadiusBottomRight: =1
+                              RadiusTopLeft: =1
+                              RadiusTopRight: =1
+                              Size: =8
+                              Text: ="My ECHRs"
+                              Width: =Parent.Width
+                  - THCEE Dashb_SelectTabInvolvedContainer:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        Fill: =RGBA(255, 255, 255, 1)
+                        Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Width: =(Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - Parent.LayoutGap*3) * 0.25
+                      Children:
+                        - Dashb_InvolvedBtn:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =ColorFade(Self.Fill, -15%)
+                              Color: |-
+                                =If(
+                                    varVisibleEHCRRequests = "3",
+                                    Self.HoverColor,
+                                    RGBA(51,51,51,1)
+                                )
+                              DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                              Fill: |-
+                                =If(
+                                    varVisibleEHCRRequests = "3",
+                                    Self.HoverFill,
+                                        RGBA(0,0,0,0)
+                                )
+                              Font: =Font.'Segoe UI'
+                              Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                              HoverBorderColor: =RGBA(110, 110, 110, 1)
+                              HoverColor: =RGBA(255, 255, 255, 1)
+                              HoverFill: =RGBA(110, 110, 110, 1)
+                              OnSelect: |-
+                                =UpdateContext({varVisibleTemplateRequests: "3"}); Set(varShowLoadingContainer, true); Reset(DashBoardListGallery); Set(varShowLoadingContainer, false)
+                              PressedBorderColor: =Self.Fill
+                              PressedColor: =Self.Fill
+                              PressedFill: =Self.Color
+                              RadiusBottomLeft: =1
+                              RadiusBottomRight: =1
+                              RadiusTopLeft: =1
+                              RadiusTopRight: =1
+                              Size: =8
+                              Text: ="EHCRs I am involved with"
+                              Width: =Parent.Width
+                  - THCEE Dashb_SelectTabPendingContainer:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        Fill: =RGBA(255, 255, 255, 1)
+                        Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Width: =(Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - Parent.LayoutGap*3) * 0.25
+                      Children:
+                        - Dashb_PendingBtn:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =ColorFade(Self.Fill, -15%)
+                              Color: |-
+                                =If(
+                                    varVisibleEHCRRequests = "4",
+                                    Self.HoverColor,
+                                    RGBA(51,51,51,1)
+                                )
+                              DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                              Fill: |-
+                                =If(
+                                    varVisibleEHCRRequests = "4",
+                                    Self.HoverFill,
+                                    RGBA(0,0,0,0)
+                                )
+                              Font: =Font.'Segoe UI'
+                              Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                              HoverBorderColor: =RGBA(110, 110, 110, 1)
+                              HoverColor: =RGBA(255, 255, 255, 1)
+                              HoverFill: =RGBA(110, 110, 110, 1)
+                              OnSelect: |-
+                                =UpdateContext({varVisibleTemplateRequests: "4"}); Set(varShowLoadingContainer, true); Reset(DashBoardListGallery); Set(varShowLoadingContainer, false)
+                              PressedBorderColor: =Self.Fill
+                              PressedColor: =Self.Fill
+                              PressedFill: =Self.Color
+                              RadiusBottomLeft: =1
+                              RadiusBottomRight: =1
+                              RadiusTopLeft: =1
+                              RadiusTopRight: =1
+                              Size: =8
+                              Text: ="Pending amplate Packages"
+                              Width: =Parent.Width
+                  - Container18_5:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        Fill: =RGBA(255, 255, 255, 1)
+                        Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Visible: |-
+                          =// Set user roles
+                          //If(varUserRole < 4, true, false)
+                        Width: =(Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - Parent.LayoutGap*3) * 0.25
+                      Children:
+                        - Dashb_AllECHRBtn:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =ColorFade(Self.Fill, -15%)
+                              Color: |-
+                                =If(
+                                    varVisibleEHCRRequests = "5",
+                                    Self.HoverColor,
+                                    RGBA(51,51,51,1)
+                                )
+                              DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                              DisplayMode: |-
+                                =// Set User roles
+                                //If(
+                                //    varUserRole < 4,
+                                //    DisplayMode.Edit,
+                                //    DisplayMode.Disabled
+                                //)
+                              Fill: |-
+                                =If(
+                                    varVisibleEHCRRequests = "5",
+                                    Self.HoverFill,
+                                        RGBA(0,0,0,0)
+                                )
+                              Font: =Font.'Segoe UI'
+                              Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                              HoverBorderColor: =RGBA(110, 110, 110, 1)
+                              HoverColor: =RGBA(255, 255, 255, 1)
+                              HoverFill: =RGBA(110, 110, 110, 1)
+                              OnSelect: |-
+                                =UpdateContext({varVisibleTemplateRequests: "5"});  Set(varShowLoadingContainer, true); Reset(DashBoardListGallery); Set(varShowLoadingContainer, false)
+                              PaddingLeft: =15
+                              PressedBorderColor: =Self.Fill
+                              PressedColor: =Self.Fill
+                              PressedFill: =Self.Color
+                              RadiusBottomLeft: =1
+                              RadiusBottomRight: =1
+                              RadiusTopLeft: =1
+                              RadiusTopRight: =1
+                              Size: =8
+                              Text: |-
+                                =//If(varUserRole > 0, "Overview: ", "Admin: ") & "All available ECHRs"
+                              Width: =Parent.Width
+            - THCEE Dashb_DisplayContainerA:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                Children:
+                  - THCEE Dashb_DisplayContainerB:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom - 10
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =15
+                        PaddingBottom: =5
+                        PaddingLeft: =5
+                        PaddingRight: =5
+                        PaddingTop: =5
+                        Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                      Children:
+                        - THCEEDashb_DisplayContainerc:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingBottom: =1
+                              PaddingLeft: =1
+                              PaddingRight: =1
+                              PaddingTop: =1
+                            Children:
+                              - THCEE Dashb_DisplaySearchContainerA:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Start
+                                    Fill: =RGBA(255, 255, 255, 1)
+                                    FillPortions: =0
+                                    Height: =50
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingRight: =5
+                                    Width: =Parent.Width - Parent.PaddingBottom - Parent.PaddingRight
+                                    X: =40
+                                    Y: =40
+                                  Children:
+                                    - THCEE Dashb_DisplaySearchContainerB:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          DropShadow: =DropShadow.None
+                                          Fill: =RGBA(255, 255, 255, 1)
+                                          LayoutAlignItems: =LayoutAlignItems.Center
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =10
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingBottom: =10
+                                          PaddingLeft: =15
+                                          PaddingRight: =10
+                                          PaddingTop: =10
+                                        Children:
+                                          - Dashb_DisplaySearchMagGlass:
+                                              Control: Classic/Icon@2.5.0
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Center
+                                                BorderColor: =RGBA(51,51,51,1)
+                                                Color: =RGBA(51,51,51,1)
+                                                DisplayMode: =DisplayMode.View
+                                                Fill: =RGBA(255, 255, 255, 1)
+                                                Height: =25
+                                                Icon: =Icon.Search
+                                                LayoutMaxHeight: =
+                                                LayoutMaxWidth: =
+                                                PaddingBottom: =5
+                                                PaddingLeft: =5
+                                                PaddingRight: =5
+                                                PaddingTop: =5
+                                                Width: =Self.Height
+                                                X: =368
+                                                Y: =33
+                                          - Dashb_DisplaySearchBar:
+                                              Control: Classic/TextInput@2.3.2
+                                              Properties:
+                                                BorderColor: =RGBA(217, 217, 217, 1)
+                                                BorderThickness: =1
+                                                Color: =RGBA(51, 51, 51, 1)
+                                                Default: =""
+                                                FillPortions: =1
+                                                FocusedBorderThickness: =1
+                                                Font: =Font.'Segoe UI'
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop -5
+                                                HintText: ="Search by ID or Title"
+                                                HoverBorderColor: =Self.BorderColor
+                                                HoverColor: =Self.Color
+                                                HoverFill: =RGBA(255, 255, 255, 1)
+                                                LayoutMaxHeight: =
+                                                LayoutMaxWidth: =
+                                                PaddingLeft: =10
+                                                RadiusBottomLeft: =4
+                                                RadiusBottomRight: =4
+                                                RadiusTopLeft: =4
+                                                RadiusTopRight: =4
+                                                Size: =8
+                                                Width: =Parent.Width - Self.X - 10
+                                                X: ='THCEEetails_GeneralDetails ContainerD'.X + 'THCEEetails_GeneralDetails ContainerD'.PaddingLeft
+                                                Y: ='THCEEetails_GeneralDetails ContainerD'.Y + 'THCEEetails_GeneralDetails ContainerD'.Height + 5
+                                          - Dashb_DisplaySearchQuestion:
+                                              Control: Classic/Icon@2.5.0
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Center
+                                                BorderColor: =RGBA(51,51,51,1)
+                                                Color: =RGBA(51,51,51,1)
+                                                Fill: =RGBA(255, 255, 255, 1)
+                                                Height: =25
+                                                Icon: =Icon.Help
+                                                LayoutMaxHeight: =
+                                                LayoutMaxWidth: =
+                                                OnSelect: |-
+                                                  =Notify("This feature is upcoming. Stay tuned...", NotificationType.Warning, 4000);
+                                                  // Show Legend Here and explain all 5 subsections
+                                                PaddingBottom: =5
+                                                PaddingLeft: =5
+                                                PaddingRight: =5
+                                                PaddingTop: =5
+                                                Width: =25
+                                                X: =368
+                                                Y: =33
+                                          - Dashb_DisplaySearchReset:
+                                              Control: Classic/Icon@2.5.0
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Center
+                                                BorderColor: =RGBA(51,51,51,1)
+                                                Color: =RGBA(51,51,51,1)
+                                                Fill: =RGBA(255, 255, 255, 1)
+                                                Height: =25
+                                                Icon: =Icon.Reload
+                                                LayoutMaxHeight: =
+                                                LayoutMaxWidth: =
+                                                OnSelect: =Reset(ComboboxCanvas1); Reset(ComboboxCanvas1_1); Reset(ComboboxCanvas1_2); Reset(ComboboxCanvas1_3); Reset(ComboboxCanvas1_4)
+                                                PaddingBottom: =5
+                                                PaddingLeft: =5
+                                                PaddingRight: =5
+                                                PaddingTop: =5
+                                                Width: =25
+                                                X: =368
+                                                Y: =33
+                                          - Dashb_DisplaySearchNotify:
+                                              Control: Classic/Icon@2.5.0
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Center
+                                                BorderColor: =RGBA(51,51,51,1)
+                                                Color: =RGBA(51,51,51,1)
+                                                Fill: =RGBA(255, 255, 255, 1)
+                                                Height: =25
+                                                Icon: =Icon.GlobeRefresh
+                                                LayoutMaxHeight: =
+                                                LayoutMaxWidth: =
+                                                OnSelect: =// List to refresh
+                                                PaddingBottom: =5
+                                                PaddingLeft: =5
+                                                PaddingRight: =5
+                                                PaddingTop: =5
+                                                Width: =25
+                                                X: =368
+                                                Y: =33
+                                          - Dashb_DisplaySearchFilter:
+                                              Control: Classic/Icon@2.5.0
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Center
+                                                BorderColor: =RGBA(51,51,51,1)
+                                                Color: =RGBA(51,51,51,1)
+                                                Fill: =RGBA(255, 255, 255, 1)
+                                                Height: =25
+                                                Icon: =Icon.Filter
+                                                LayoutMaxHeight: =
+                                                LayoutMaxWidth: =
+                                                OnSelect: |-
+                                                  =UpdateContext({varShowFilters: !varShowFilters})
+                                                PaddingBottom: =5
+                                                PaddingLeft: =5
+                                                PaddingRight: =5
+                                                PaddingTop: =5
+                                                Width: =25
+                                                X: =40
+                                                Y: =40
+                                          - Dashb_BulkBtn:
+                                              Control: Button@0.0.45
+                                              Properties:
+                                                Align: =Align.Center
+                                                Appearance: ='ButtonCanvas.Appearance'.Primary
+                                                BasePaletteColor: =RGBA(8, 222, 8, 1)
+                                                Font: =Font.'Segoe UI'
+                                                FontSize: =8
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                Icon: ="Checkmark"
+                                                Layout: ='ButtonCanvas.Layout'.IconAfter
+                                                LayoutMaxHeight: =
+                                                LayoutMaxWidth: =
+                                                OnSelect: =Notify("Bulk approvals coming soon...", NotificationType.Warning, 4000)
+                                                Text: ="Bulk Approve"
+                                                Width: =100
+                                                X: =Parent.Width - Self.Width
+                                                Y: =7
+                              - Container5:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =35
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingBottom: =2
+                                    PaddingTop: =8
+                                  Children:
+                                    - Gallery5:
+                                        Control: Gallery@2.15.0
+                                        Variant: Horizontal
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.End
+                                          BorderColor: =RGBA(0, 18, 107, 1)
+                                          Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                                          Items: =LookUp(StatusTable, LangFilter = If(varLang, "EN", "FR")).Values
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          ShowScrollbar: =false
+                                          TemplateSize: =Container10.Width
+                                        Children:
+                                          - Container10:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                DropShadow: =DropShadow.None
+                                                Height: =Parent.TemplateHeight
+                                                LayoutAlignItems: =LayoutAlignItems.End
+                                                LayoutDirection: =LayoutDirection.Horizontal
+                                                LayoutGap: =7
+                                                PaddingLeft: =5
+                                                Width: =75
+                                              Children:
+                                                - Circle1_5:
+                                                    Control: Circle@2.3.0
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Center
+                                                      BorderColor: =RGBA(0, 18, 107, 1)
+                                                      Fill: =ThisItem.ColorCode
+                                                      Height: =Parent.Height * 0.5
+                                                      Tooltip: =ThisItem.Text
+                                                      Width: =Self.Height
+                                                      X: =5
+                                                      Y: =5
+                                                - Label7_239:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderColor: =RGBA(0, 18, 107, 1)
+                                                      Color: =RGBA(106, 122, 127, 1)
+                                                      FillPortions: =1
+                                                      Font: =Font.'Segoe UI'
+                                                      Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                      LayoutMinWidth: =15
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: =ThisItem.Text
+                                                      VerticalAlign: =VerticalAlign.Top
+                                                      Width: =30
+                                                      Wrap: =false
+                              - THCEEDashb_DisplayContainerTDRs:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    BorderColor: =RGBA(227, 229, 230, 1)
+                                    BorderThickness: =1
+                                    DropShadow: =DropShadow.None
+                                    Fill: =RGBA(255, 255, 255, 1)
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    LayoutOverflowX: =LayoutOverflow.Scroll
+                                    PaddingBottom: =10
+                                    PaddingTop: =5
+                                    RadiusBottomLeft: =10
+                                    RadiusBottomRight: =10
+                                    RadiusTopLeft: =10
+                                    RadiusTopRight: =10
+                                  Children:
+                                    - Container55_6:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.SetByContainer
+                                          DropShadow: =DropShadow.None
+                                          FillPortions: =0
+                                          Height: =25
+                                          LayoutAlignItems: =LayoutAlignItems.Center
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =10
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingLeft: =20
+                                          Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                        Children:
+                                          - Label7_216:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                BorderColor: =RGBA(0, 18, 107, 1)
+                                                Color: =RGBA(106, 122, 127, 1)
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8
+                                                Text: =
+                                                Visible: =If(varVisibleEHCRRequests = "4", true, false)
+                                                Width: =30
+                                                Wrap: =false
+                                          - Label7_184:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                BorderColor: =RGBA(0, 18, 107, 1)
+                                                Color: =RGBA(106, 122, 127, 1)
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8
+                                                Text: =
+                                                Width: =10
+                                                Wrap: =false
+                                          - Label7_197:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Center
+                                                BorderColor: =RGBA(0, 18, 107, 1)
+                                                Color: =RGBA(106, 122, 127, 1)
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8
+                                                Text: ="ID"
+                                                Width: =87
+                                                Wrap: =false
+                                          - Label7_198:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Center
+                                                BorderColor: =RGBA(0, 18, 107, 1)
+                                                Color: =RGBA(106, 122, 127, 1)
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8
+                                                Text: ="TYPE · Timeline"
+                                                Width: =75
+                                                Wrap: =false
+                                          - Label7_211:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                BorderColor: =RGBA(0, 18, 107, 1)
+                                                Color: =RGBA(106, 122, 127, 1)
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                PaddingBottom: =0
+                                                PaddingLeft: =15
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8
+                                                Text: ="Tamplate Packages Title · ORIGINATOR "
+                                                Width: =550
+                                                Wrap: =false
+                                          - Label7_212:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                BorderColor: =RGBA(0, 18, 107, 1)
+                                                Color: =RGBA(106, 122, 127, 1)
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                PaddingBottom: =0
+                                                PaddingLeft: =15
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8
+                                                Text: ="DATES"
+                                                Width: =125
+                                                Wrap: =false
+                                          - Label7_213:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Center
+                                                BorderColor: =RGBA(0, 18, 107, 1)
+                                                Color: =RGBA(106, 122, 127, 1)
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8
+                                                Text: ="TRAV."
+                                                Width: =30
+                                                Wrap: =false
+                                          - Label7_214:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                BorderColor: =RGBA(0, 18, 107, 1)
+                                                Color: =RGBA(106, 122, 127, 1)
+                                                FillPortions: =1
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                PaddingBottom: =0
+                                                PaddingLeft: =15
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8
+                                                Text: ="L1 / L2 / L3"
+                                                Width: =30
+                                                Wrap: =false
+                                    - Container6_5:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: ManualLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          DropShadow: =DropShadow.None
+                                          FillPortions: =0
+                                          Height: =5
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                          Width: =Parent.Width
+                                          Y: =Container55_5.Y + Container55_5.Height
+                                        Children:
+                                          - Container7_4:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                DropShadow: =DropShadow.None
+                                                Fill: =RGBA(230, 230, 230, 1)
+                                                Height: =0.5
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                                Width: =Parent.Width
+                                                Y: =(Parent.Height / 2) - (Self.Height / 2)
+                                    - DashBoardListGallery:
+                                        Control: Gallery@2.15.0
+                                        Variant: VariableHeight
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          BorderColor: =RGBA(0, 18, 107, 1)
+                                          Items: =// Tamplate Package SharePoint will be placed here. Use With() for the filters
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          ShowScrollbar: =false
+                                          TemplatePadding: =0
+                                          TemplateSize: =125
+                                          Visible: =If(DashBoardListGallery.AllItemsCount = 0, false, true)
+                                          Width: =Parent.Width - Self.X
+                                        Children:
+                                          - Container6_4:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                DropShadow: =DropShadow.None
+                                                Height: =5
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                                Width: =Parent.Width
+                                                Y: =Container55_5.Y + Container55_5.Height
+                                              Children:
+                                                - Container7_3:
+                                                    Control: GroupContainer@1.5.0
+                                                    Variant: ManualLayout
+                                                    Properties:
+                                                      DropShadow: =DropShadow.None
+                                                      Fill: =RGBA(230, 230, 230, 1)
+                                                      Height: =1
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                      Width: =Parent.Width
+                                                      Y: =(Parent.Height / 2) - (Self.Height / 2)
+                                          - Container55_5:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                DropShadow: =DropShadow.None
+                                                Fill: = DefaultGrayBackgroud
+                                                Height: =50
+                                                LayoutAlignItems: =LayoutAlignItems.Center
+                                                LayoutDirection: =LayoutDirection.Horizontal
+                                                LayoutGap: =10
+                                                LayoutWrap: =true
+                                                PaddingLeft: =20
+                                                PaddingRight: =15
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                                Width: =Parent.TemplateWidth
+                                              Children:
+                                                - CheckboxCanvas2_6:
+                                                    Control: CheckBox@0.0.30
+                                                    Properties:
+                                                      BasePaletteColor: =RGBA(189, 178, 176, 1)
+                                                      CheckboxSize: =12
+                                                      Checked: =
+                                                      Font: =Font.'Segoe UI'
+                                                      FontSize: =8
+                                                      Height: =20
+                                                      Label: =
+                                                      LayoutMinHeight: =16
+                                                      LayoutMinWidth: =16
+                                                      OnCheck: =
+                                                      OnUncheck: =
+                                                      Visible: =If(varVisibleEHCRRequests = "4", true, false)
+                                                      Width: =30
+                                                - Circle1_3:
+                                                    Control: Circle@2.3.0
+                                                    Properties:
+                                                      BorderColor: =RGBA(0, 18, 107, 1)
+                                                      Fill: |-
+                                                        =// Status Colour
+                                                        //LookUp(
+                                                        //    First(
+                                                        //        Filter(StatusTable, LangFilter = If(varLang, "EN", "FR"))
+                                                        //    ).Values, 
+                                                        //    Value = ThisItem.Status
+                                                        //).ColorCode
+                                                      Height: =Parent.Height * 0.2
+                                                      LayoutMinHeight: =16
+                                                      LayoutMinWidth: =16
+                                                      Tooltip: |-
+                                                        =// Status Colour
+                                                        //LookUp(
+                                                        //    First(
+                                                        //        Filter(StatusTable, LangFilter = If(varLang, "EN", "FR"))
+                                                        //    ).Values, 
+                                                        //    Value = ThisItem.Status
+                                                        //).Text
+                                                      Width: =Self.Height
+                                                - Container58_21:
+                                                    Control: GroupContainer@1.5.0
+                                                    Variant: ManualLayout
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.SetByContainer
+                                                      DropShadow: =DropShadow.None
+                                                      FillPortions: =0
+                                                      Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                                                      LayoutMinHeight: =16
+                                                      LayoutMinWidth: =16
+                                                      Width: =87
+                                                    Children:
+                                                      - Label7_178:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            BorderColor: =RGBA(0, 18, 107, 1)
+                                                            Color: =RGBA(51, 51, 51, 1)
+                                                            Font: =Font.'Segoe UI'
+                                                            FontWeight: =FontWeight.Lighter
+                                                            Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =3
+                                                            PaddingRight: =3
+                                                            PaddingTop: =0
+                                                            Size: =8
+                                                            Text: =
+                                                            Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                                - Container58_22:
+                                                    Control: GroupContainer@1.5.0
+                                                    Variant: ManualLayout
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.SetByContainer
+                                                      BorderColor: =RGBA(106, 122, 127, 1)
+                                                      BorderThickness: =1
+                                                      DropShadow: =DropShadow.None
+                                                      FillPortions: =0
+                                                      Height: =20
+                                                      LayoutMinHeight: =16
+                                                      LayoutMinWidth: =16
+                                                      Width: =75
+                                                    Children:
+                                                      - Label7_179:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            Align: =Align.Center
+                                                            BorderColor: =RGBA(79, 90, 94, 1)
+                                                            Color: =RGBA(51, 51, 51, 1)
+                                                            Fill: =RGBA(240, 242, 242, 1)
+                                                            Font: =Font.'Segoe UI'
+                                                            Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =0
+                                                            Size: =6
+                                                            Text: ="Template Package Type"
+                                                            Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                                - Container2:
+                                                    Control: GroupContainer@1.5.0
+                                                    Variant: AutoLayout
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.SetByContainer
+                                                      DropShadow: =DropShadow.None
+                                                      FillPortions: =0
+                                                      Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                                                      LayoutAlignItems: =LayoutAlignItems.Center
+                                                      LayoutDirection: =LayoutDirection.Vertical
+                                                      LayoutMinHeight: =16
+                                                      LayoutMinWidth: =16
+                                                      PaddingLeft: =15
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                      Width: =550
+                                                    Children:
+                                                      - Label7_185:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            BorderColor: =RGBA(0, 18, 107, 1)
+                                                            Color: =RGBA(51, 51, 51, 1)
+                                                            FillPortions: =1
+                                                            Font: =Font.'Segoe UI'
+                                                            FontWeight: =FontWeight.Semibold
+                                                            Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                            LayoutMinHeight: =25
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =0
+                                                            Size: =8
+                                                            Text: =
+                                                            VerticalAlign: =VerticalAlign.Bottom
+                                                            Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                                            Wrap: =false
+                                                      - Label7_186:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            BorderColor: =RGBA(0, 18, 107, 1)
+                                                            Color: =RGBA(106, 122, 127, 1)
+                                                            FillPortions: =1
+                                                            Font: =Font.'Segoe UI'
+                                                            FontWeight: =FontWeight.Lighter
+                                                            Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                            LayoutMinHeight: =25
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =2
+                                                            Size: =7
+                                                            Text: =
+                                                            VerticalAlign: =VerticalAlign.Top
+                                                            Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                                            Wrap: =false
+                                                - Container2_6:
+                                                    Control: GroupContainer@1.5.0
+                                                    Variant: AutoLayout
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.SetByContainer
+                                                      DropShadow: =DropShadow.None
+                                                      FillPortions: =0
+                                                      Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                                                      LayoutAlignItems: =LayoutAlignItems.Center
+                                                      LayoutDirection: =LayoutDirection.Vertical
+                                                      LayoutMinHeight: =16
+                                                      LayoutMinWidth: =16
+                                                      PaddingLeft: =15
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                      Width: =125
+                                                    Children:
+                                                      - Label7_187:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            BorderColor: =RGBA(0, 18, 107, 1)
+                                                            Color: =RGBA(51, 51, 51, 1)
+                                                            FillPortions: =1
+                                                            Font: =Font.'Segoe UI'
+                                                            FontWeight: =FontWeight.Semibold
+                                                            Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                            LayoutMinHeight: =25
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =0
+                                                            Size: =8
+                                                            Text: =
+                                                            VerticalAlign: =VerticalAlign.Bottom
+                                                            Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                                            Wrap: =false
+                                                      - Label7_195:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            BorderColor: =RGBA(0, 18, 107, 1)
+                                                            Color: =RGBA(106, 122, 127, 1)
+                                                            FillPortions: =1
+                                                            Font: =Font.'Segoe UI'
+                                                            Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                            LayoutMinHeight: =25
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =2
+                                                            Size: =8
+                                                            Text: =
+                                                            VerticalAlign: =VerticalAlign.Top
+                                                            Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                                            Wrap: =false
+                                                - Container58_26:
+                                                    Control: GroupContainer@1.5.0
+                                                    Variant: ManualLayout
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.SetByContainer
+                                                      DropShadow: =DropShadow.None
+                                                      FillPortions: =0
+                                                      Height: =Parent.Height
+                                                      LayoutMinHeight: =16
+                                                      LayoutMinWidth: =16
+                                                      Width: =30
+                                                    Children:
+                                                      - Label7_183:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            Align: =Align.Center
+                                                            BorderColor: =RGBA(0, 18, 107, 1)
+                                                            Color: =RGBA(51, 51, 51, 1)
+                                                            Font: =Font.'Segoe UI'
+                                                            FontWeight: =FontWeight.Semibold
+                                                            Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =0
+                                                            Size: =8
+                                                            Text: =
+                                                            Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                                            Wrap: =false
+                                                - Container2_7:
+                                                    Control: GroupContainer@1.5.0
+                                                    Variant: AutoLayout
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.SetByContainer
+                                                      DropShadow: =DropShadow.None
+                                                      Height: =Parent.Height - Parent.PaddingTop - Parent.PaddingBottom
+                                                      LayoutAlignItems: =LayoutAlignItems.Center
+                                                      LayoutDirection: =LayoutDirection.Vertical
+                                                      LayoutMinHeight: =16
+                                                      LayoutMinWidth: =16
+                                                      PaddingLeft: =15
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                      Width: =125
+                                                    Children:
+                                                      - Label7_196:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            BorderColor: =RGBA(0, 18, 107, 1)
+                                                            Color: =RGBA(51, 51, 51, 1)
+                                                            FillPortions: =1
+                                                            Font: =Font.'Segoe UI'
+                                                            FontWeight: =FontWeight.Semibold
+                                                            Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                            LayoutMinHeight: =25
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =0
+                                                            Size: =8
+                                                            Text: =
+                                                            VerticalAlign: =VerticalAlign.Bottom
+                                                            Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                                            Wrap: =false
+                                                      - Label7_215:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            BorderColor: =RGBA(0, 18, 107, 1)
+                                                            Color: =RGBA(106, 122, 127, 1)
+                                                            FillPortions: =1
+                                                            Font: =Font.'Segoe UI'
+                                                            FontWeight: =FontWeight.Lighter
+                                                            Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                                                            LayoutMinHeight: =25
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =2
+                                                            Size: =7
+                                                            Text: =
+                                                            VerticalAlign: =VerticalAlign.Top
+                                                            Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                                            Wrap: =false
+                                                - Icon1_64:
+                                                    Control: Classic/Icon@2.5.0
+                                                    Properties:
+                                                      BorderColor: =RGBA(51,51,51,1)
+                                                      Color: =RGBA(51,51,51,1)
+                                                      Height: =25
+                                                      Icon: =Icon.View
+                                                      LayoutMaxHeight: =
+                                                      LayoutMaxWidth: =
+                                                      OnSelect: =Set(varShowLoadingContainer, true);   Navigate(Details, ScreenTransition.Fade); Set(varShowLoadingContainer, false)
+                                                      PaddingBottom: =5
+                                                      PaddingLeft: =5
+                                                      PaddingRight: =5
+                                                      PaddingTop: =5
+                                                      Width: =Self.Height
+                                                      X: =368
+                                                      Y: =33
+                                    - Dash_NoECHRHTML:
+                                        Control: HtmlViewer@2.1.0
+                                        Properties:
+                                          Color: =RGBA(79, 90, 94, 1)
+                                          FillPortions: =1
+                                          Font: =Font.'Segoe UI'
+                                          Height: =Parent.Height
+                                          HtmlText: ="<br><br><center>You do not have any ECHR items matching the selected filters. You can either create a new EHCR request or change your filter criteria</center>"
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          Size: =7
+                                          Visible: =If(DashBoardListGallery.AllItemsCount = 0, true, false)
+                                          Width: =Parent.Width - Self.X
+                        - Container54_1:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              Fill: =RGBA(255, 255, 255, 1)
+                              FillPortions: =0
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingTop: =10
+                              Visible: =varShowFilters
+                              Width: =250
+                            Children:
+                              - Container46:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =27.5
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingLeft: =15
+                                    PaddingRight: =10
+                                  Children:
+                                    - Dash_Filters:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderColor: =RGBA(0, 18, 107, 1)
+                                          Color: =RGBA(51, 51, 51, 1)
+                                          FillPortions: =1
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Semibold
+                                          Height: =Parent.Height
+                                          LayoutMaxHeight: =
+                                          LayoutMaxWidth: =
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =10
+                                          Text: ="Filters"
+                                          Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                          Y: =5
+                                    - Icon1_57:
+                                        Control: Classic/Icon@2.5.0
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          BorderColor: =RGBA(51,51,51,1)
+                                          Color: =RGBA(51,51,51,1)
+                                          Fill: =RGBA(255, 255, 255, 1)
+                                          Height: =25
+                                          Icon: =Icon.Reload
+                                          LayoutMaxHeight: =
+                                          LayoutMaxWidth: =
+                                          OnSelect: =Reset(ComboboxCanvas1); Reset(ComboboxCanvas1_1); Reset(ComboboxCanvas1_2); Reset(ComboboxCanvas1_3); Reset(ComboboxCanvas1_4)
+                                          PaddingBottom: =5
+                                          PaddingLeft: =5
+                                          PaddingRight: =5
+                                          PaddingTop: =5
+                                          Width: =Self.Height
+                                          X: =368
+                                          Y: =33
+                                    - Icon1_58:
+                                        Control: Classic/Icon@2.5.0
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          BorderColor: =RGBA(51,51,51,1)
+                                          Color: =RGBA(51,51,51,1)
+                                          Fill: =RGBA(255, 255, 255, 1)
+                                          Height: =25
+                                          Icon: =Icon.Cancel
+                                          LayoutMaxHeight: =
+                                          LayoutMaxWidth: =
+                                          OnSelect: |-
+                                            =UpdateContext({varShowFilters: !varShowFilters})
+                                          PaddingBottom: =5
+                                          PaddingLeft: =5
+                                          PaddingRight: =5
+                                          PaddingTop: =5
+                                          Width: =Self.Height
+                                          X: =368
+                                          Y: =33
+                              - Container6_6:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: ManualLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Start
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =5
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                    Width: =Parent.Width
+                                    Y: =Container55_5.Y + Container55_5.Height
+                                  Children:
+                                    - Container7_5:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: ManualLayout
+                                        Properties:
+                                          DropShadow: =DropShadow.None
+                                          Fill: =RGBA(230, 230, 230, 1)
+                                          Height: =0.5
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                          Width: =Parent.Width
+                                          Y: =(Parent.Height / 2) - (Self.Height / 2)
+                              - Container52:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =70
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =5
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingLeft: =15
+                                    PaddingRight: =10
+                                  Children:
+                                    - Dash_Status:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderColor: =RGBA(0, 18, 107, 1)
+                                          Color: =RGBA(106, 122, 127, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Semibold
+                                          Height: =30
+                                          LayoutMaxHeight: =
+                                          LayoutMaxWidth: =
+                                          PaddingBottom: =2
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =8
+                                          Text: ="Status"
+                                          VerticalAlign: =VerticalAlign.Bottom
+                                          Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                          Y: =5
+                                    - ComboboxCanvas1:
+                                        Control: ComboBox@0.0.51
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          BasePaletteColor: =RGBA(189, 178, 176, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontSize: =8
+                                          Height: =25
+                                          IsSearchable: =false
+                                          Items: =LookUp(StatusTable, LangFilter = If(varLang, "EN", "FR")).Values.Text
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          SelectMultiple: =true
+                                          Width: =Parent.Width - Self.X - 10
+                                        Children:
+                                          - TextInput13:
+                                              Control: ComboBoxDataField@1.5.0
+                                              Variant: textualColumn
+                                              IsLocked: true
+                                              Properties:
+                                                FieldDisplayName: ="Text"
+                                                FieldName: ="Text"
+                                                FieldType: ="s"
+                                                Order: =1
+                              - Container52_4:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =70
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =5
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingLeft: =15
+                                    PaddingRight: =10
+                                  Children:
+                                    - Dash_Type:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderColor: =RGBA(0, 18, 107, 1)
+                                          Color: =RGBA(106, 122, 127, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Semibold
+                                          Height: =30
+                                          LayoutMaxHeight: =
+                                          LayoutMaxWidth: =
+                                          PaddingBottom: =2
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =8
+                                          Text: ="Type"
+                                          VerticalAlign: =VerticalAlign.Bottom
+                                          Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                          Y: =5
+                                    - ComboboxCanvas1_1:
+                                        Control: ComboBox@0.0.51
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          BasePaletteColor: =RGBA(189, 178, 176, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontSize: =10
+                                          Height: =25
+                                          IsSearchable: =false
+                                          Items: =
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          SelectMultiple: =true
+                                          Width: =Parent.Width - Self.X - 10
+                                        Children:
+                                          - TextInput13_1:
+                                              Control: ComboBoxDataField@1.5.0
+                                              Variant: textualColumn
+                                              IsLocked: true
+                                              Properties:
+                                                FieldDisplayName: ="Text"
+                                                FieldName: ="Text"
+                                                FieldType: ="s"
+                                                Order: =1
+                              - Container52_5:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =70
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =5
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingLeft: =15
+                                    PaddingRight: =10
+                                  Children:
+                                    - Dash_Status_1:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderColor: =RGBA(0, 18, 107, 1)
+                                          Color: =RGBA(106, 122, 127, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Semibold
+                                          Height: =30
+                                          LayoutMaxHeight: =
+                                          LayoutMaxWidth: =
+                                          PaddingBottom: =2
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =8
+                                          Text: ="Timeline"
+                                          VerticalAlign: =VerticalAlign.Bottom
+                                          Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                          Y: =5
+                                    - ComboboxCanvas1_5:
+                                        Control: ComboBox@0.0.51
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          BasePaletteColor: =RGBA(189, 178, 176, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontSize: =8
+                                          Height: =25
+                                          IsSearchable: =false
+                                          Items: =
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          SelectMultiple: =true
+                                          Width: =Parent.Width - Self.X - 10
+                                        Children:
+                                          - TextInput13_2:
+                                              Control: ComboBoxDataField@1.5.0
+                                              Variant: textualColumn
+                                              IsLocked: true
+                                              Properties:
+                                                FieldDisplayName: ="Text"
+                                                FieldName: ="Text"
+                                                FieldType: ="s"
+                                                Order: =1
+                              - Container52_1:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =70
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =5
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingLeft: =15
+                                    PaddingRight: =10
+                                  Children:
+                                    - Dash_L1:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderColor: =RGBA(0, 18, 107, 1)
+                                          Color: =RGBA(106, 122, 127, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Semibold
+                                          Height: =30
+                                          LayoutMaxHeight: =
+                                          LayoutMaxWidth: =
+                                          PaddingBottom: =2
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =8
+                                          Text: ="L1"
+                                          VerticalAlign: =VerticalAlign.Bottom
+                                          Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                          Y: =5
+                                    - ComboboxCanvas1_2:
+                                        Control: ComboBox@0.0.51
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          BasePaletteColor: =RGBA(189, 178, 176, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontSize: =8
+                                          Height: =25
+                                          InputTextPlaceholder: ="Filter by L1"
+                                          IsSearchable: =false
+                                          Items: =ShowColumns(Sort(Filter(colOrganizationHierarchy, Level = "L1"), EnglishNameShort, SortOrder.Ascending), EnglishNameShort)
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          Width: =Parent.Width - Self.X - 10
+                                        Children:
+                                          - EnglishNameShort2:
+                                              Control: ComboBoxDataField@1.5.0
+                                              Variant: textualColumn
+                                              IsLocked: true
+                                              Properties:
+                                                FieldDisplayName: ="EnglishNameShort"
+                                                FieldName: ="EnglishNameShort"
+                                                FieldType: ="s"
+                                                Order: =1
+                              - Container52_2:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =70
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =5
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingLeft: =15
+                                    PaddingRight: =10
+                                  Children:
+                                    - Dash_L2:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderColor: =RGBA(0, 18, 107, 1)
+                                          Color: =RGBA(106, 122, 127, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Semibold
+                                          Height: =30
+                                          LayoutMaxHeight: =
+                                          LayoutMaxWidth: =
+                                          PaddingBottom: =2
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =8
+                                          Text: ="L2"
+                                          VerticalAlign: =VerticalAlign.Bottom
+                                          Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                          Y: =5
+                                    - ComboboxCanvas1_3:
+                                        Control: ComboBox@0.0.51
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          BasePaletteColor: =RGBA(189, 178, 176, 1)
+                                          DisplayMode: =If(IsEmpty(ComboboxCanvas1_2.SelectedItems), DisplayMode.Disabled, DisplayMode.Edit)
+                                          Font: =Font.'Segoe UI'
+                                          FontSize: =8
+                                          Height: =25
+                                          InputTextPlaceholder: ="Filter by L2"
+                                          IsSearchable: =false
+                                          Items: =ShowColumns(Sort(Filter(colOrganizationHierarchy, Level = "L2" && ParentID = LookUp(colOrganizationHierarchy, EnglishNameShort = ComboboxCanvas1_2.Selected.EnglishNameShort).ID), EnglishNameShort, SortOrder.Ascending), EnglishNameShort)
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          Width: =Parent.Width - Self.X - 10
+                                        Children:
+                                          - EnglishNameShort3:
+                                              Control: ComboBoxDataField@1.5.0
+                                              Variant: textualColumn
+                                              IsLocked: true
+                                              Properties:
+                                                FieldDisplayName: ="EnglishNameShort"
+                                                FieldName: ="EnglishNameShort"
+                                                FieldType: ="s"
+                                                Order: =1
+                              - Container52_3:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    DropShadow: =DropShadow.None
+                                    FillPortions: =0
+                                    Height: =70
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =5
+                                    LayoutMinHeight: =16
+                                    LayoutMinWidth: =16
+                                    PaddingLeft: =15
+                                    PaddingRight: =10
+                                  Children:
+                                    - Dash_L3:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderColor: =RGBA(0, 18, 107, 1)
+                                          Color: =RGBA(106, 122, 127, 1)
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Semibold
+                                          Height: =30
+                                          LayoutMaxHeight: =
+                                          LayoutMaxWidth: =
+                                          PaddingBottom: =2
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =8
+                                          Text: ="L3"
+                                          VerticalAlign: =VerticalAlign.Bottom
+                                          Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                          Y: =5
+                                    - ComboboxCanvas1_4:
+                                        Control: ComboBox@0.0.51
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Start
+                                          BasePaletteColor: =RGBA(189, 178, 176, 1)
+                                          DisplayMode: =If(IsEmpty(ComboboxCanvas1_3.SelectedItems), DisplayMode.Disabled, DisplayMode.Edit)
+                                          Font: =Font.'Segoe UI'
+                                          FontSize: =8
+                                          Height: =25
+                                          InputTextPlaceholder: ="Filter by L3"
+                                          IsSearchable: =false
+                                          Items: =ShowColumns(Sort(Filter(colOrganizationHierarchy, Level = "L3" && ParentID = LookUp(colOrganizationHierarchy, EnglishNameShort = ComboboxCanvas1_3.Selected.EnglishNameShort).ID), EnglishNameShort, SortOrder.Ascending), EnglishNameShort)
+                                          LayoutMinHeight: =16
+                                          LayoutMinWidth: =16
+                                          Width: =Parent.Width - Self.X - 10
+                                        Children:
+                                          - EnglishNameShort4:
+                                              Control: ComboBoxDataField@1.5.0
+                                              Variant: textualColumn
+                                              IsLocked: true
+                                              Properties:
+                                                FieldDisplayName: ="EnglishNameShort"
+                                                FieldName: ="EnglishNameShort"
+                                                FieldType: ="s"
+                                                Order: =1
+            - Container45:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =5
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+      - SidebarMenu_5:
+          Control: CanvasComponent
+          ComponentName: SidebarMenu
+          Properties:
+            Height: =App.Height - 65
+            Width: =If(varSideMenu, 186, 75)
+            Y: =65
+      - TopbarHeader_5:
+          Control: CanvasComponent
+          ComponentName: TopbarHeader
+          Properties:
+            Fill: =DefaultGrayBackgroud
+            Height: |+
+              =If(varTopMenu, App.Height, 65)
+            Width: =App.Width
+      - THCEE Dshb_LoadingContainer:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =RGBA(240, 240, 240, 0.2)
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varShowLoadingContainer
+            Width: =Parent.Width
+          Children:
+            - THCEEDshb_LoadingGIF:
+                Control: Image@2.2.3
+                Properties:
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  Height: =125
+                  Image: =loadingGif
+                  Width: =125
+                  X: =(Parent.Width / 2) - (Self.Width / 2)
+                  Y: =(Parent.Height / 2) - (Self.Height / 2)

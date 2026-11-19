@@ -1,0 +1,140 @@
+{
+    "viewBox": [
+        0,
+        0,
+        1024,
+        1024
+    ],
+    "count": 7,
+    "spaces": [
+        {
+            "x": 108.71,
+            "y": 164.9,
+            "w": 290.91,
+            "h": 234.85,
+            "label": "Kitchen",
+            "type": "room",
+            "shape": "rect",
+            "id": "Kitchen"
+        },
+        {
+            "x": 629.93,
+            "y": 167.93,
+            "w": 290.91,
+            "h": 307.58,
+            "label": "Master Bedroom",
+            "type": "room",
+            "shape": "rect",
+            "id": "Master_x20_Bedroom"
+        },
+        {
+            "x": 413.26,
+            "y": 170.96,
+            "w": 203.03,
+            "h": 416.67,
+            "label": "Dining Room",
+            "type": "room",
+            "shape": "rect",
+            "id": "Dining_x20_Room"
+        },
+        {
+            "x": 110.23,
+            "y": 414.9,
+            "w": 303.03,
+            "h": 383.33,
+            "label": "Living Room",
+            "type": "room",
+            "shape": "rect",
+            "id": "Living_x20_Room"
+        },
+        {
+            "x": 739.02,
+            "y": 487.62,
+            "w": 181.82,
+            "h": 274.24,
+            "label": "Bathroom",
+            "type": "room",
+            "shape": "rect",
+            "id": "Bathroom"
+        },
+        {
+            "x": 420.84,
+            "y": 595.2,
+            "w": 303.03,
+            "h": 295.45,
+            "label": "Bedroom",
+            "type": "room",
+            "shape": "rect",
+            "id": "Bedroom"
+        },
+        {
+            "x": 739.02,
+            "y": 775.5,
+            "w": 181.82,
+            "h": 115.15,
+            "label": "Storage",
+            "type": "room",
+            "shape": "rect",
+            "id": "Storage"
+        }
+    ],
+    "rects": [
+        {
+            "x": 108.71,
+            "y": 164.9,
+            "w": 290.91,
+            "h": 234.85,
+            "label": "Kitchen",
+            "type": "room"
+        },
+        {
+            "x": 629.93,
+            "y": 167.93,
+            "w": 290.91,
+            "h": 307.58,
+            "label": "Master Bedroom",
+            "type": "room"
+        },
+        {
+            "x": 413.26,
+            "y": 170.96,
+            "w": 203.03,
+            "h": 416.67,
+            "label": "Dining Room",
+            "type": "room"
+        },
+        {
+            "x": 110.23,
+            "y": 414.9,
+            "w": 303.03,
+            "h": 383.33,
+            "label": "Living Room",
+            "type": "room"
+        },
+        {
+            "x": 739.02,
+            "y": 487.62,
+            "w": 181.82,
+            "h": 274.24,
+            "label": "Bathroom",
+            "type": "room"
+        },
+        {
+            "x": 420.84,
+            "y": 595.2,
+            "w": 303.03,
+            "h": 295.45,
+            "label": "Bedroom",
+            "type": "room"
+        },
+        {
+            "x": 739.02,
+            "y": 775.5,
+            "w": 181.82,
+            "h": 115.15,
+            "label": "Storage",
+            "type": "room"
+        }
+    ],
+    "source": "synoptic_filled_svg"
+}

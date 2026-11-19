@@ -1,0 +1,602 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  Homepage:
+    Properties:
+      LoadingSpinnerColor: =RGBA(56, 96, 178, 1)
+      OnVisible: =Set(varEditing, false)
+    Children:
+      - Container117:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            BorderColor: =RGBA(227, 229, 230, 1)
+            DropShadow: =DropShadow.None
+            Fill: =RGBA(247, 246, 243, 1)
+            Height: =Parent.Height - Self.Y
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            PaddingBottom: =45
+            PaddingLeft: =45
+            PaddingRight: =45
+            PaddingTop: =25
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Width: =Parent.Width
+            Y: =TopbarHeader_8.Y + TopbarHeader_8.Height
+          Children:
+            - Label7_252:
+                Control: Label@2.5.1
+                Properties:
+                  AutoHeight: =true
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =50
+                  PaddingBottom: =0
+                  PaddingLeft: =10
+                  PaddingRight: =0
+                  Size: =32
+                  Text: |-
+                    =If(
+                        Hour(Now()) < 12, "Good Morning",
+                        Hour(Now()) < 17, "Good Afternoon",
+                        "Good Evening"
+                    ) & ", " & Proper(First(Split(User().FullName, " ")).Value)
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                  Wrap: =false
+            - Label7_253:
+                Control: Label@2.5.1
+                Properties:
+                  AutoHeight: =true
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  Color: =RGBA(106, 122, 127, 1)
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =25
+                  PaddingBottom: =60
+                  PaddingLeft: =10
+                  PaddingRight: =0
+                  PaddingTop: =10
+                  Size: =12
+                  Text: ="What would you like to do? Pick the request that fits your event, or pick up where you left off"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                  Wrap: =false
+            - Container118:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =30
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingRight: =10
+                Children:
+                  - Label7_254:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(194, 196, 196, 1)
+                        FillPortions: =1
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =25
+                        PaddingBottom: =0
+                        PaddingLeft: =10
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =10
+                        Text: ="START A NEW REQUEST"
+                        Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                        Wrap: =false
+                  - Label7_265:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(194, 196, 196, 1)
+                        FillPortions: =1
+                        Font: =Font.'Open Sans'
+                        Height: =25
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =10
+                        Text: ="Not sure which one?"
+                        Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                        Wrap: =false
+            - Gallery12:
+                Control: Gallery@2.15.0
+                Variant: Horizontal
+                Properties:
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  FillPortions: =0
+                  Height: =250
+                  Items: |-
+                    =[
+                        {
+                            Title: "Quarterly / Individual",
+                            EHCRType: 0,
+                            Description: "A single hospitality event or roll-up for one host",
+                            Image: "data:image/svg+xml," & EncodeUrl(
+                                "<svg xmlns='http://www.w3.org/2000/svg' width='40px' height='40px' viewBox='0 0 20 20' fill='#333333' stroke='none' stroke-width='0' stroke-linecap='round' stroke-linejoin='round'><path d='M4 4v12c0 1.1.9 2 2 2h9.5a.5.5 0 0 0 0-1H6a1 1 0 0 1-1-1h10a1 1 0 0 0 1-1V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2Zm10-1a1 1 0 0 1 1 1v11H5V4a1 1 0 0 1 1-1h8Zm-4 10c2.14 0 3-.94 3-1.88 0-.62-.58-1.12-1.29-1.12H8.3C7.58 10 7 10.5 7 11.13c0 .93.86 1.87 3 1.87Zm1.5-5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z'/></svg>"
+                            )
+                        },
+                        {
+                            Title: "Blanket",
+                            EHCRType: 1,
+                            Description: "Recurring small-value hospitality across a fiscal period",
+                            Image: "data:image/svg+xml," & EncodeUrl(
+                              "<svg xmlns='http://www.w3.org/2000/svg' width='40px' height='40px' viewBox='0 0 20 20' fill='#333333' stroke='none' stroke-width='0' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v-.5c0-.83.67-1.5 1.5-1.5h2c.83 0 1.5.67 1.5 1.5V3h.5c.83 0 1.5.67 1.5 1.5V6h-2v-.5a.5.5 0 0 0-1 0V6h-3v-.5a.5.5 0 0 0-1 0V6h-2V4.5c0-.83.67-1.5 1.5-1.5h.5Zm3.5-1h-2a.5.5 0 0 0-.5.5V3h3v-.5a.5.5 0 0 0-.5-.5ZM17 7h2v1.5c0 .83-.67 1.5-1.5 1.5h-6A1.5 1.5 0 0 1 10 8.5V7h2v.5a.5.5 0 0 0 1 0V7h3v.5a.5.5 0 0 0 1 0V7ZM6 2h5.05v.04A2.5 2.5 0 0 0 9.5 3H6a1 1 0 0 0-1 1v11h10v-4h1v4.5a.5.5 0 0 1-.5.5H5a1 1 0 0 0 1 1h9.5a.5.5 0 0 1 0 1H6a2 2 0 0 1-2-2V4c0-1.1.9-2 2-2Z'/></svg>"
+                            )
+                        },
+                        {
+                            Title: "Planned",
+                            EHCRType: 2,
+                            Description: "Large or formal events in advance",
+                            Image: "data:image/svg+xml," & EncodeUrl("<svg xmlns='http://www.w3.org/2000/svg' width='40px' height='40px' viewBox='0 0 20 20' fill='#333333' stroke='none' stroke-width='0' stroke-linecap='round' stroke-linejoin='round'><path d='M4 16V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v11a1 1 0 0 1-1 1H5a1 1 0 0 0 1 1h9.5a.5.5 0 0 1 0 1H6a2 2 0 0 1-2-2ZM15 4a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v11h10V4Zm-5 .5c.28 0 .5.22.5.5v1.06a2 2 0 0 1 .74 3.5l1.22 2.74a.5.5 0 0 1-.92.4l-1.21-2.73a2.01 2.01 0 0 1-.66 0L8.46 12.7a.5.5 0 1 1-.92-.4l1.22-2.73a2 2 0 0 1 .74-3.5V5c0-.28.22-.5.5-.5Zm-.5 2.63a1 1 0 1 0 1 1.74 1 1 0 0 0-1-1.74Z'/></svg>")
+                        }
+                    ]
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  TemplatePadding: =10
+                  TemplateSize: =(Self.Width - Self.TemplatePadding * 4) / 3
+                Children:
+                  - CardVertCont:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderColor: =RGBA(227, 229, 230, 1)
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =RGBA(255, 255, 255, 1)
+                        Height: =Parent.TemplateHeight
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        PaddingBottom: =5
+                        PaddingLeft: =20
+                        PaddingRight: =20
+                        PaddingTop: =20
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Width: =Parent.TemplateWidth
+                      Children:
+                        - Container120:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Start
+                              DropShadow: =DropShadow.None
+                              Fill: =RGBA(245, 245, 245, 1)
+                              FillPortions: =0
+                              Height: =50
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              RadiusBottomLeft: =10
+                              RadiusBottomRight: =10
+                              RadiusTopLeft: =10
+                              RadiusTopRight: =10
+                              Width: =50
+                            Children:
+                              - TDRNewPackage_ITAImage_1:
+                                  Control: Image@2.2.3
+                                  Properties:
+                                    BorderColor: =RGBA(0, 18, 107, 1)
+                                    Height: =Parent.Height * 0.6
+                                    Image: =// Option image
+                                    Width: =Parent.Width * 0.6
+                                    X: =Parent.Width * 0.2
+                                    Y: =Parent.Height * 0.2
+                        - Label7_268:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =50
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =10
+                              Size: =16
+                              Text: ="Option Title"
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Wrap: =false
+                        - Label7_269:
+                            Control: Label@2.5.1
+                            Properties:
+                              AutoHeight: =true
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(106, 122, 127, 1)
+                              Font: =Font.'Open Sans'
+                              Height: =25
+                              PaddingBottom: =25
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =10
+                              Size: =10
+                              Text: |-
+                                ="Template: Option description"
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              Wrap: =false
+                        - Container121:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              Fill: =RGBA(227, 229, 230, 1)
+                              FillPortions: =0
+                              Height: =1
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                        - TDRNewPackage_CreateButton_1:
+                            Control: Button@0.0.45
+                            Properties:
+                              Align: =Align.Right
+                              AlignInContainer: =AlignInContainer.End
+                              Appearance: ='ButtonCanvas.Appearance'.Transparent
+                              BasePaletteColor: =RGBA(189, 178, 176, 1)
+                              BorderRadius: =10
+                              FillPortions: =1
+                              Font: =Font.'Segoe UI'
+                              FontSize: =14
+                              FontWeight: =FontWeight.Bold
+                              Height: =25
+                              Icon: ="ArrowRight"
+                              Layout: ='ButtonCanvas.Layout'.IconAfter
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              OnSelect: |-
+                                =//Set(varShowLoadingContainer, true);
+
+                                Navigate(Details, ScreenTransition.Fade)
+                              PaddingRight: =0
+                              Text: ="Start"
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              X: =Parent.Width - Self.Width
+                              Y: =7
+                  - TransparentButtonCont:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        Height: =CardVertCont.Height
+                        Width: =CardVertCont.Width
+                      Children:
+                        - TransparentButton:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =RGBA(0,0,0,0)
+                              BorderStyle: =BorderStyle.None
+                              BorderThickness: =0
+                              Color: =RGBA(0,0,0,0)
+                              DisabledBorderColor: =RGBA(0,0,0,0)
+                              DisabledColor: =RGBA(0,0,0,0)
+                              DisabledFill: =RGBA(0,0,0,0)
+                              Fill: =RGBA(0,0,0,0)
+                              FocusedBorderColor: =RGBA(0,0,0,0)
+                              Font: =Font.'Open Sans'
+                              Height: =Parent.Height
+                              HoverBorderColor: =RGBA(0,0,0,0)
+                              HoverColor: =RGBA(0,0,0,0)
+                              HoverFill: =RGBA(0,0,0,0)
+                              OnSelect: |-
+                                =//Set(varShowLoadingContainer, true);
+
+                                Navigate(Details, ScreenTransition.Fade)
+                              PressedBorderColor: =Self.Fill
+                              PressedColor: =Self.Fill
+                              PressedFill: =Self.Color
+                              Text: =""
+                              Width: =Parent.Width
+            - Container124:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Start
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =35
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingLeft: =10
+                  PaddingRight: =10
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                Children:
+                  - Container121_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        DropShadow: =DropShadow.None
+                        Fill: =RGBA(227, 229, 230, 1)
+                        Height: =1
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                  - Label7_270:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(106, 122, 127, 1)
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        PaddingBottom: =0
+                        PaddingLeft: =10
+                        PaddingRight: =10
+                        PaddingTop: =0
+                        Size: =10
+                        Text: =" Or "
+                        Width: =50
+                        Wrap: =false
+                  - Container121_2:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        DropShadow: =DropShadow.None
+                        Fill: =RGBA(227, 229, 230, 1)
+                        Height: =1
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+            - Container125:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =100
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =10
+                  PaddingLeft: =10
+                  PaddingRight: =10
+                  PaddingTop: =10
+                Children:
+                  - Container125_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Start
+                        BorderColor: =RGBA(227, 229, 230, 1)
+                        BorderThickness: =1
+                        DropShadow: =DropShadow.None
+                        Fill: =RGBA(255, 255, 255, 1)
+                        FillPortions: =0
+                        Height: =Parent.Height - Parent.PaddingBottom - Parent.PaddingTop
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =20
+                        PaddingLeft: =20
+                        PaddingRight: =20
+                        PaddingTop: =20
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                      Children:
+                        - Container120_1:
+                            Control: GroupContainer@1.5.0
+                            Variant: ManualLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Center
+                              DropShadow: =DropShadow.None
+                              Fill: =RGBA(245, 245, 245, 1)
+                              FillPortions: =0
+                              Height: =50
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              RadiusBottomLeft: =10
+                              RadiusBottomRight: =10
+                              RadiusTopLeft: =10
+                              RadiusTopRight: =10
+                              Width: =50
+                            Children:
+                              - TDRNewPackage_ITAImage_2:
+                                  Control: Image@2.2.3
+                                  Properties:
+                                    BorderColor: =RGBA(0, 18, 107, 1)
+                                    Height: =Parent.Height * 0.6
+                                    Image: |-
+                                      ="data:image/svg+xml," & EncodeUrl(
+                                                  "<svg xmlns='http://www.w3.org/2000/svg' width='40px' height='40px' viewBox='0 0 20 20' fill='#333333' stroke='none' stroke-width='0' stroke-linecap='round' stroke-linejoin='round'><path d='M4 4v12c0 1.1.9 2 2 2h9.5a.5.5 0 0 0 0-1H6a1 1 0 0 1-1-1h10a1 1 0 0 0 1-1V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2Zm10-1a1 1 0 0 1 1 1v11H5V4a1 1 0 0 1 1-1h8Zm-4 10c2.14 0 3-.94 3-1.88 0-.62-.58-1.12-1.29-1.12H8.3C7.58 10 7 10.5 7 11.13c0 .93.86 1.87 3 1.87Zm1.5-5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z'/></svg>")
+                                    Width: =Parent.Width * 0.6
+                                    X: =Parent.Width * 0.2
+                                    Y: =Parent.Height * 0.2
+                        - Container126:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              DropShadow: =DropShadow.None
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              PaddingLeft: =10
+                              RadiusBottomLeft: =0
+                              RadiusBottomRight: =0
+                              RadiusTopLeft: =0
+                              RadiusTopRight: =0
+                            Children:
+                              - Label7_271:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    BorderColor: =RGBA(0, 18, 107, 1)
+                                    FillPortions: =1
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Semibold
+                                    Height: =50
+                                    LayoutMinHeight: =10
+                                    PaddingBottom: =0
+                                    PaddingLeft: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    Size: =12
+                                    Text: ="View existing Template requests"
+                                    Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                    Wrap: =false
+                              - Label7_272:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Start
+                                    BorderColor: =RGBA(0, 18, 107, 1)
+                                    Color: =RGBA(106, 122, 127, 1)
+                                    FillPortions: =1
+                                    Font: =Font.'Open Sans'
+                                    Height: =25
+                                    LayoutMinHeight: =10
+                                    PaddingBottom: =40
+                                    PaddingLeft: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =10
+                                    Size: =10
+                                    Text: ="Browse, edit or continue any of your in-progress or submitted requests"
+                                    Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                                    Wrap: =false
+                        - TDRNewPackage_CreateButton_2:
+                            Control: Button@0.0.45
+                            Properties:
+                              Align: =Align.Right
+                              AlignInContainer: =AlignInContainer.Center
+                              Appearance: ='ButtonCanvas.Appearance'.Transparent
+                              BasePaletteColor: =RGBA(189, 178, 176, 1)
+                              BorderRadius: =10
+                              FillPortions: =1
+                              Font: =Font.'Segoe UI'
+                              FontSize: =14
+                              FontWeight: =FontWeight.Bold
+                              Height: =25
+                              Icon: ="ArrowRight"
+                              Layout: ='ButtonCanvas.Layout'.IconAfter
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              OnSelect: =Navigate(Dashboard, ScreenTransition.Fade)
+                              PaddingRight: =0
+                              Text: ="Open"
+                              Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                              X: =Parent.Width - Self.Width
+                              Y: =7
+            - Container124_1:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Start
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =35
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingLeft: =10
+                  PaddingRight: =10
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                Children:
+                  - Container121_3:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Center
+                        DropShadow: =DropShadow.None
+                        Fill: =RGBA(227, 229, 230, 1)
+                        Height: =1
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+            - Container118_1:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =30
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingRight: =10
+                Children:
+                  - Label7_273:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(194, 196, 196, 1)
+                        FillPortions: =1
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =25
+                        PaddingBottom: =0
+                        PaddingLeft: =10
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =10
+                        Text: ="Need help? Read the Template help guide found above"
+                        Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                        Wrap: =false
+                  - Label7_274:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(194, 196, 196, 1)
+                        FillPortions: =1
+                        Font: =Font.'Open Sans'
+                        Height: =25
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =10
+                        Text: ="Signed in as " & User().Email
+                        Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+                        Wrap: =false
+      - TopbarHeader_8:
+          Control: CanvasComponent
+          ComponentName: TopbarHeader
+          Properties:
+            Fill: =DefaultGrayBackgroud
+            Height: |
+              =If(varTopMenu, App.Height, 65)
+            Width: =App.Width
+      - LoadingContainer_10:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =RGBA(240, 240, 240, 0.2)
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varShowLoadingContainer
+            Width: =Parent.Width
+          Children:
+            - Image3_10:
+                Control: Image@2.2.3
+                Properties:
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  Height: =125
+                  Image: =loadingGif
+                  Width: =125
+                  X: =(Parent.Width / 2) - (Self.Width / 2)
+                  Y: =(Parent.Height / 2) - (Self.Height / 2)

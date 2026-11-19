@@ -1,0 +1,40 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    Formulas: |
+      =StatusTable = [
+          {
+              LangFilter: "EN",
+              Values: [
+                  { Value: 0, Text: "Draft" },
+                  { Value: 1, Text: "Signed" }
+              ]
+          },
+          {
+              LangFilter: "FR",
+              Values: [
+                  { Value: 0, Text: "Brouillon" },
+                  { Value: 1, Text: "Signé" }
+              ]
+          }
+      ];
+    OnStart: =Set(varLang, true)
+Home:
+  Control: Screen@2.0.0
+  Children:
+    - StatusCombo:
+        Control: Classic/ComboBox@2.4.0
+        Properties:
+          Items: =LookUp(StatusTable, LangFilter = If(varLang, "EN", "FR")).Values
+          X: =10
+          Y: =10
+          Width: =200
+          Height: =40
+    - LangToggle:
+        Control: Classic/Toggle@2.1.0
+        Properties:
+          Text: ="Language"
+          OnCheck: =Set(varLang, true)
+          OnUncheck: =Set(varLang, false)
+          X: =10
+          Y: =60

@@ -1,0 +1,59 @@
+DirectoryIndex index.html index.php
+
+# LiteSpeed / shared-host proxies return 503 when a long Floor Scanner
+# request is aborted. Ask LSWS not to kill the PHP worker mid-scan.
+<IfModule LiteSpeed>
+  RewriteEngine On
+  RewriteRule .* - [E=noabort:1]
+  RewriteRule .* - [E=noconntimeout:1]
+</IfModule>
+
+# Canvas .msapp packages are often larger than PHP's default 2M upload limit.
+# Works with mod_php; for php-fpm/cgi also see .user.ini next to this file.
+<IfModule mod_php.c>
+  php_value upload_max_filesize 512M
+  php_value post_max_size 512M
+  php_value max_execution_time 1800
+  php_value max_input_time 1800
+  php_value memory_limit 2048M
+</IfModule>
+<IfModule mod_php7.c>
+  php_value upload_max_filesize 512M
+  php_value post_max_size 512M
+  php_value max_execution_time 1800
+  php_value max_input_time 1800
+  php_value memory_limit 2048M
+</IfModule>
+<IfModule mod_php8.c>
+  php_value upload_max_filesize 512M
+  php_value post_max_size 512M
+  php_value max_execution_time 1800
+  php_value max_input_time 1800
+  php_value memory_limit 2048M
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /DO/power_sweeper/
+
+  # The sweeper now lives under Digital Office. Keep the old address working.
+  RewriteCond %{REQUEST_URI} ^/power_sweeper/vasc/?(.*)$
+  RewriteRule ^ /DO/%1 [R=302,L]
+  RewriteCond %{REQUEST_URI} ^/power_sweeper/?(.*)$
+  RewriteRule ^ /DO/power_sweeper/%1 [R=302,L]
+
+  # Assets symlink covers most cases; keep rewrite as fallback
+  RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+
+  # Published web packages under /web/{slug}/ (VCR, roundtrip demos, …)
+  # /web/ itself is a real directory with index.html (DirectoryIndex).
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^web/([^/]+)/?$ web/$1/index.php [L,QSA]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^web/([^/]+)/(.*)$ web/$1/index.php [L,QSA]
+
+  # Front controller
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.php [L]
+</IfModule>

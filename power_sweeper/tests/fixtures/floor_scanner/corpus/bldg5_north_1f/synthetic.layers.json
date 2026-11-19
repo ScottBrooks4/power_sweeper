@@ -1,0 +1,892 @@
+{
+    "schema_version": 1,
+    "width": 2000,
+    "height": 956,
+    "source": "synthetic_gt_centroids",
+    "walls": [],
+    "doors": [],
+    "stairs": [],
+    "furniture": [
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1490,
+                "y": 102,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1502,
+                "y": 118,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1354,
+                "y": 104,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1366,
+                "y": 120,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 939,
+                "y": 104,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 951,
+                "y": 120,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 995,
+                "y": 104,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1007,
+                "y": 120,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1078,
+                "y": 104,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1090,
+                "y": 120,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1133,
+                "y": 104,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1145,
+                "y": 120,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1271,
+                "y": 104,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1283,
+                "y": 120,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1216,
+                "y": 104,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1228,
+                "y": 120,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1409,
+                "y": 104,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1421,
+                "y": 120,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 857,
+                "y": 107,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 869,
+                "y": 123,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 760,
+                "y": 110,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 772,
+                "y": 126,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 718,
+                "y": 117,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 730,
+                "y": 133,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 801,
+                "y": 110,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 813,
+                "y": 126,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1489,
+                "y": 144,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1501,
+                "y": 160,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 995,
+                "y": 145,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1007,
+                "y": 161,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1409,
+                "y": 146,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1421,
+                "y": 162,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1078,
+                "y": 145,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1090,
+                "y": 161,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1133,
+                "y": 146,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1145,
+                "y": 162,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1216,
+                "y": 146,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1228,
+                "y": 162,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1354,
+                "y": 146,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1366,
+                "y": 162,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 940,
+                "y": 146,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 952,
+                "y": 162,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1271,
+                "y": 146,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1283,
+                "y": 162,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 857,
+                "y": 149,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 869,
+                "y": 165,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 801,
+                "y": 171,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 813,
+                "y": 187,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1489,
+                "y": 186,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1501,
+                "y": 202,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1133,
+                "y": 187,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1145,
+                "y": 203,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1216,
+                "y": 187,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1228,
+                "y": 203,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1409,
+                "y": 187,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1421,
+                "y": 203,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 995,
+                "y": 187,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1007,
+                "y": 203,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 940,
+                "y": 187,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 952,
+                "y": 203,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1271,
+                "y": 187,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1283,
+                "y": 203,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1354,
+                "y": 187,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1366,
+                "y": 203,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1078,
+                "y": 187,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1090,
+                "y": 203,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 857,
+                "y": 191,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 869,
+                "y": 207,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 691,
+                "y": 206,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 703,
+                "y": 222,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 801,
+                "y": 227,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 813,
+                "y": 243,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 857,
+                "y": 232,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 869,
+                "y": 248,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 691,
+                "y": 248,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 703,
+                "y": 264,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 1394,
+                "y": 262,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1406,
+                "y": 278,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        },
+        {
+            "class": "table",
+            "bbox": {
+                "x": 996,
+                "y": 295,
+                "w": 40,
+                "h": 24
+            },
+            "confidence": 0.85,
+            "source": "synthetic"
+        },
+        {
+            "class": "chair",
+            "bbox": {
+                "x": 1008,
+                "y": 311,
+                "w": 16,
+                "h": 16
+            },
+            "confidence": 0.8,
+            "source": "synthetic"
+        }
+    ],
+    "labels": []
+}

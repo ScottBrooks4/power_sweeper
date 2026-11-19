@@ -1,0 +1,112 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# ************************************************************************************************
+Screens:
+  Approvals:
+    Properties:
+      Fill: =gblTheme.Page
+      LoadingSpinnerColor: =gblTheme.Accent
+    Children:
+      - imgMockupTreat:
+          Control: Image@2.2.3
+          Properties:
+            DisplayMode: =DisplayMode.View
+            Height: =App.Height
+            Image: =MockupTreat
+            ImagePosition: =ImagePosition.Fit
+            Width: =App.Width
+            X: =0
+            Y: =0
+            ZIndex: =1
+      - SidebarMenu_6:
+          Control: CanvasComponent
+          ComponentName: SidebarMenu
+          Properties:
+            Height: =App.Height
+            Visible: =true
+            Width: =gblNavWidth
+            X: =0
+            Y: =0
+            ZIndex: =90
+      - cmpRiskGrid_Treat:
+          Control: CanvasComponent
+          ComponentName: cmpRiskGrid
+          Properties:
+            Fill: =gblTheme.Paper
+            Height: =248
+            HighlightP: =varHighlightP
+            HighlightS: =varHighlightS
+            Mode: ="Select"
+            Width: =320
+            X: =gblNavWidth + 28
+            Y: =420
+            ZIndex: =40
+      - btnReassess:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =gblTheme.Border
+            Color: =gblTheme.Text
+            Fill: =gblTheme.Quiet
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =36
+            HoverFill: =ColorFade(gblTheme.Quiet, -10%)
+            OnSelect: =Navigate(Details, ScreenTransition.Fade)
+            RadiusBottomLeft: =gblRadius
+            RadiusBottomRight: =gblRadius
+            RadiusTopLeft: =gblRadius
+            RadiusTopRight: =gblRadius
+            Size: =12
+            Text: ="Reassess score"
+            Width: =140
+            X: =App.Width - 320
+            Y: =22
+            ZIndex: =60
+      - btnArchive:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =gblTheme.Border
+            Color: =gblTheme.TextOnAccent
+            Fill: =gblTheme.Danger
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =36
+            HoverFill: =ColorFade(gblTheme.Danger, -10%)
+            OnSelect: =Notify("Record queued for archive / active monitoring.", NotificationType.Success); Navigate(Dashboard, ScreenTransition.Fade)
+            RadiusBottomLeft: =gblRadius
+            RadiusBottomRight: =gblRadius
+            RadiusTopLeft: =gblRadius
+            RadiusTopRight: =gblRadius
+            Size: =12
+            Text: ="Close & archive"
+            Width: =140
+            X: =App.Width - 168
+            Y: =22
+            ZIndex: =60
+      - lblTreatCrumb:
+          Control: Label@2.5.1
+          Properties:
+            Color: =gblTheme.TextMuted
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Normal
+            Height: =18
+            Size: =10
+            Text: ="Treat · mitigate · archive"
+            Width: =640
+            X: =gblNavWidth + 22
+            Y: =18
+            ZIndex: =50
+      - lblTreatTitle:
+          Control: Label@2.5.1
+          Properties:
+            Color: =gblTheme.Text
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =36
+            Size: =21
+            Text: ="Hazardous substances program"
+            Width: =560
+            X: =gblNavWidth + 22
+            Y: =36
+            ZIndex: =50

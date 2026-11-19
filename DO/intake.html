@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Intake — VASC Pivot</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="css/app.css?v=20261111b">
+  <script>if(window.parent!==window)document.documentElement.classList.add("framed");else document.documentElement.classList.add("shell")</script>
+</head>
+<body data-page="intake">
+  <header id="site-header"></header>
+  <div class="frame"><div class="stage">
+    <section class="lede">
+      <h1>Intake</h1>
+      <p>Use-case intake for the Digital Office.</p>
+    </section>
+    <form id="intake-form" class="panel">
+      <label><span>Title</span><input name="title" required></label>
+      <label><span>Level</span>
+        <select name="level"><option>L0</option><option>L0.5</option><option>L1</option><option>L2</option><option>L3</option><option>L4</option></select>
+      </label>
+      <label><span>L2 organization</span><input name="l2" list="l2-list"></label>
+      <label><span>L3 organization</span><input name="l3" list="l3-list"></label>
+      <label><span>Contact</span><input name="contact" type="email" required></label>
+      <label><span>Category</span>
+        <select name="category"><option>Data Management</option><option>Technology</option><option>Personnel</option></select>
+      </label>
+      <label><span>Classification</span>
+        <select name="data"><option>Unclassified</option><option>Protected A</option><option>Protected B</option><option>Secret</option></select>
+      </label>
+      <label><span>Priority</span>
+        <select name="priority"><option>1-High</option><option>2</option><option>3-Medium</option><option>4</option><option>5-Low</option></select>
+      </label>
+      <label><span>Overview</span><textarea name="overview" required></textarea></label>
+      <label><span>Business problem</span><textarea name="problem" required></textarea></label>
+      <label><span>Desired outcome</span><textarea name="outcome" required></textarea></label>
+      <p class="group-label">Intake questions</p>
+      <p class="note">SOP-001 asks for these on the intake form so the first meeting can start from a complete picture.</p>
+      <label><span>Audience — a user or two, one L2, a whole L1?</span><input name="audience" list="reach-list"></label>
+      <label><span>Timeline — when are they looking to use it?</span><input name="timeline"></label>
+      <label><span>Primary OPI</span><input name="opi"></label>
+      <label><span>Continuity — what happens if the OPI changes roles?</span><textarea name="continuity"></textarea></label>
+      <label><span>Who handles the data once it is live?</span><textarea name="dataOwner"></textarea></label>
+      <label><span>UAT testers, and how often they are available</span><input name="uatTesters"></label>
+      <label><span>Current roadblocks</span><textarea name="roadblocks"></textarea></label>
+      <p class="note" id="intake-error" hidden></p>
+      <button class="btn" type="submit">Submit</button>
+    </form>
+    <section id="intake-done" class="panel" hidden>
+      <h2>Intake sent</h2>
+      <p>The submission is on its way to the intake desk.</p>
+    </section>
+    <datalist id="l2-list"></datalist>
+    <datalist id="l3-list"></datalist>
+    <datalist id="reach-list">
+      <option value="A single user or team">
+      <option value="One L3 or smaller">
+      <option value="One or more L2s">
+      <option value="An L1 or the whole organization">
+    </datalist>
+  </div></div>
+  <script src="api/orgs.php?v=20261030e"></script>
+  <script src="js/cases.js?v=20261031g"></script>
+  <script src="js/shell.js?v=20261111b"></script>
+  <script src="js/intake.js?v=20261103a"></script>
+</body>
+</html>

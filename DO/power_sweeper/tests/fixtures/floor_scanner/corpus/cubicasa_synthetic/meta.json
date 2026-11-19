@@ -1,0 +1,16 @@
+{
+  "id": "cubicasa_synthetic",
+  "name": "CubiCasa synthetic converter fixture",
+  "class": "residential",
+  "split": "dev",
+  "licence": "internal",
+  "source": "cubicasa5k",
+  "empty": "empty.png",
+  "filled": "filled.svg",
+  "gt": "gt.json",
+  "raster_variants": [],
+  "heavy": false,
+  "skip_detect": true,
+  "furniture_count": 1,
+  "notes": "Converter fixture only (blank empty image). Not scored for detection quality."
+}

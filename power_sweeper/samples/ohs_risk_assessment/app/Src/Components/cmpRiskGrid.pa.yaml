@@ -1,0 +1,301 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  cmpRiskGrid:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    CustomProperties:
+      Mode:
+        PropertyKind: Input
+        DisplayName: Mode
+        Description: Overview shows counts per P×S cell; Select lets the user pick a score
+        DataType: Text
+        Default: ="Select"
+      HighlightP:
+        PropertyKind: Input
+        DisplayName: HighlightP
+        Description: Probability (1–5) to outline in Select mode
+        DataType: Number
+        Default: =0
+      HighlightS:
+        PropertyKind: Input
+        DisplayName: HighlightS
+        Description: Severity (1–5) to outline in Select mode
+        DataType: Number
+        Default: =0
+      SelectedP:
+        PropertyKind: Output
+        DisplayName: SelectedP
+        Description: Probability of the selected cell
+        DataType: Number
+      SelectedS:
+        PropertyKind: Output
+        DisplayName: SelectedS
+        Description: Severity of the selected cell
+        DataType: Number
+    Properties:
+      Height: =248
+      HighlightP: =0
+      HighlightS: =0
+      Mode: ="Select"
+      OnReset: |-
+        =ClearCollect(
+            colRiskCells,
+            ForAll(
+                Sequence(25) As i,
+                With(
+                    {
+                        p: 6 - RoundUp(i.Value / 5, 0),
+                        s: If(Mod(i.Value, 5) = 0, 5, Mod(i.Value, 5))
+                    },
+                    {
+                        Probability: p,
+                        Severity: s,
+                        Score: p * s,
+                        RiskCount: Coalesce(
+                            LookUp(colRiskCounts, Probability = p && Severity = s).RiskCount,
+                            0
+                        )
+                    }
+                )
+            )
+        )
+      SelectedP: =galRiskCells.Selected.Probability
+      SelectedS: =galRiskCells.Selected.Severity
+      Width: =268
+    Children:
+      - RiskLegend:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =22
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =8
+            PaddingLeft: =0
+            PaddingRight: =0
+            Width: =galRiskCells.Width
+            X: =galRiskCells.X
+            Y: =SeverityLegend.Y + SeverityLegend.Height + 2
+          Children:
+            - galRiskLegend:
+                Control: Gallery@2.15.0
+                Variant: Horizontal
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 0)
+                  Fill: =RGBA(0, 0, 0, 0)
+                  Height: =Parent.Height
+                  Items: =colRiskCategories
+                  TemplatePadding: =0
+                  TemplateSize: =64
+                  Width: =Parent.Width
+                Children:
+                  - legendSwatch:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =If(
+                            cmpRiskGrid.Mode = "Overview" && CountRows(Filter(colRiskCells, Score >= ThisItem.MinScore && Score <= ThisItem.MaxScore && RiskCount > 0)) = 0,
+                            ColorFade(gblTheme.TextMuted, 40%),
+                            gblTheme.TextMuted
+                        )
+                        Fill: =RGBA(0, 0, 0, 0)
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.TemplateHeight
+                        PaddingBottom: =0
+                        PaddingLeft: =12
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =8
+                        Text: =ThisItem.Title
+                        Width: =Parent.TemplateWidth
+                  - legendDot:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =RGBA(0, 0, 0, 0)
+                        Fill: |-
+                          =With(
+                              {
+                                  base: Switch(
+                                      ThisItem.Band,
+                                      "Low", gblTheme.RiskLow,
+                                      "Moderate", gblTheme.RiskModerate,
+                                      "High", gblTheme.RiskHigh,
+                                      gblTheme.RiskExtreme
+                                  ),
+                                  empty: cmpRiskGrid.Mode = "Overview" && CountRows(Filter(colRiskCells, Score >= ThisItem.MinScore && Score <= ThisItem.MaxScore && RiskCount > 0)) = 0
+                              },
+                              If(empty, ColorFade(base, 70%), base)
+                          )
+                        Height: =9
+                        RadiusBottomLeft: =3
+                        RadiusBottomRight: =3
+                        RadiusTopLeft: =3
+                        RadiusTopRight: =3
+                        Text: =""
+                        Width: =9
+                        X: =0
+                        Y: =6
+      - SeverityLegend:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =30
+            LayoutDirection: =LayoutDirection.Horizontal
+            Width: =galRiskCells.Width
+            X: =galRiskCells.X
+            Y: =galRiskCells.Y + galRiskCells.Height
+          Children:
+            - galSeverityLegend:
+                Control: Gallery@2.15.0
+                Variant: Horizontal
+                Properties:
+                  AlignInContainer: =AlignInContainer.SetByContainer
+                  BorderColor: =RGBA(0, 0, 0, 0)
+                  FillPortions: =0
+                  Height: =30
+                  Items: =colSeverityLegend
+                  LayoutMinHeight: =0
+                  TemplatePadding: =0
+                  TemplateSize: =btnCell.Width + 5
+                  Width: =Parent.Width
+                Children:
+                  - severityLabel:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =gblTheme.TextMuted
+                        Font: =Font.'Segoe UI'
+                        Height: =10
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =5
+                        Text: =ThisItem.Title
+                        Width: =btnCell.Width
+      - galRiskCells:
+          Control: Gallery@2.15.0
+          Variant: Vertical
+          Properties:
+            BorderColor: =RGBA(0, 0, 0, 0)
+            Height: =((btnCell.Height + 6) * 5)
+            Items: =colRiskCells
+            TemplatePadding: =0
+            TemplateSize: =btnCell.Height + 6
+            Width: =((btnCell.Width + 5) * 5)
+            WrapCount: =5
+            X: =ProbabilityLabels.X + ProbabilityLabels.Width
+            Y: =RiskGridHeaderCont.Y + RiskGridHeaderCont.Height
+          Children:
+            - btnCell:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =gblColorInk
+                  BorderThickness: |-
+                    =If(
+                        App.ActiveScreen <> Dashboard && ThisItem.Probability = varHighlightP && ThisItem.Severity = varHighlightS,
+                        2,
+                        0
+                    )
+                  Color: =gblColorInk
+                  DisabledBorderColor: =RGBA(0, 0, 0, 0)
+                  DisplayMode: =If(App.ActiveScreen = Dashboard, DisplayMode.View, DisplayMode.Edit)
+                  Fill: |-
+                    =ColorFade(
+                        If(
+                            ThisItem.Score <= 3, gblColorRiskLow,
+                            ThisItem.Score <= 6, gblColorRiskModerate,
+                            ThisItem.Score <= 12, gblColorRiskHigh,
+                            gblColorRiskExtreme
+                        ),
+                        If(App.ActiveScreen = Dashboard && Coalesce(ThisItem.RiskCount, 0) = 0, 70%, 0%)
+                    )
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =28
+                  HoverBorderColor: =gblColorInk
+                  HoverColor: =gblColorInk
+                  HoverFill: =ColorFade(Self.Fill, -10%)
+                  OnSelect: |-
+                    =Set(varHighlightP, ThisItem.Probability);
+                    Set(varHighlightS, ThisItem.Severity)
+                  PressedBorderColor: =gblColorInk
+                  PressedColor: =gblColorInk
+                  PressedFill: =ColorFade(Self.Fill, -20%)
+                  RadiusBottomLeft: =gblRadius
+                  RadiusBottomRight: =gblRadius
+                  RadiusTopLeft: =gblRadius
+                  RadiusTopRight: =gblRadius
+                  Size: =11
+                  Text: =If(App.ActiveScreen = Dashboard, Text(Coalesce(ThisItem.RiskCount, 0)), Text(ThisItem.Score))
+                  Tooltip: |-
+                    =If(
+                        ThisItem.Score <= 3, "Low",
+                        ThisItem.Score <= 6, "Moderate",
+                        ThisItem.Score <= 12, "High",
+                        "Extreme"
+                    ) & " · P" & ThisItem.Probability & " × S" & ThisItem.Severity
+                  Width: =35
+      - ProbabilityLabels:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =galRiskCells.Height
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            Width: =50
+            Y: =galRiskCells.Y
+          Children:
+            - galProbabilityLegend:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 0)
+                  Height: =Parent.Height
+                  Items: =colProbabilityLegend
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  TemplateSize: =btnCell.Height + 6
+                  Width: =Parent.Width
+                Children:
+                  - ProbabilityLabel:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Right
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =gblTheme.TextMuted
+                        Font: =Font.'Segoe UI'
+                        Height: =btnCell.Height
+                        Size: =6
+                        Text: =ThisItem.Title
+                        Width: =Parent.Width
+      - RiskGridHeaderCont:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =30
+            Width: =Parent.Width
+          Children:
+            - RiskGridHeader:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  Color: =gblTheme.Text
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =30
+                  Text: ="Probability x severity"
+                  Width: =Parent.Width

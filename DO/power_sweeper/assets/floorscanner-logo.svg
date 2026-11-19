@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Floor Scanner">
+  <rect width="64" height="64" rx="14" fill="#04201b"/>
+  <rect x="8" y="10" width="48" height="44" rx="4" fill="none" stroke="#134e4a" stroke-width="2"/>
+  <path fill="#0f766e" d="M10 12h18v16H10z"/>
+  <path fill="#115e59" d="M30 12h22v16H30z"/>
+  <path fill="#0f766e" d="M10 30h26v22H10z"/>
+  <path fill="#134e4a" d="M38 30h14v10H38z"/>
+  <path fill="#0d9488" d="M38 42h14v10H38z"/>
+  <g fill="none" stroke="#04201b" stroke-width="1.6">
+    <path d="M28 12v16M10 28h40M36 30v22M38 40h14"/>
+  </g>
+  <path d="M7 48h50" fill="none" stroke="#5eead4" stroke-width="2.4" stroke-linecap="round" opacity=".95"/>
+  <path d="M11 43h42" fill="none" stroke="#5eead4" stroke-width="1.6" stroke-linecap="round" opacity=".45"/>
+  <circle cx="50" cy="48" r="4.2" fill="#5eead4"/>
+  <circle cx="50" cy="48" r="1.7" fill="#04201b"/>
+</svg>

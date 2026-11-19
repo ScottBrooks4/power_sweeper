@@ -1,0 +1,94 @@
+VCR Form:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(250, 250, 252, 1)
+  Children:
+    - Title:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Visit Clearance Request"
+          Size: =22
+          Color: =RGBA(15, 23, 42, 1)
+          X: =32
+          Y: =24
+          Width: =480
+          Height: =36
+    - Destination:
+        Control: Classic/DropDown@2.3.1
+        Properties:
+          Items: =["United Kingdom", "British Overseas Territories (BOTs)"]
+          Color: =RGBA(15, 23, 42, 1)
+          Fill: =RGBA(255, 255, 255, 1)
+          Size: =14
+          X: =32
+          Y: =80
+          Width: =360
+          Height: =40
+    - ArrivalDate:
+        Control: Classic/DatePicker@2.6.0
+        Properties:
+          DefaultDate: =Date(2026, 9, 18)
+          Format: =DateTimeFormat.ShortDate
+          Size: =14
+          Fill: =RGBA(255, 255, 255, 1)
+          Color: =RGBA(15, 23, 42, 1)
+          X: =32
+          Y: =140
+          Width: =200
+          Height: =40
+    - DepartureDate:
+        Control: Classic/DatePicker@2.6.0
+        Properties:
+          DefaultDate: =Date(2026, 9, 25)
+          Format: =DateTimeFormat.ShortDate
+          Size: =14
+          Fill: =RGBA(255, 255, 255, 1)
+          Color: =RGBA(15, 23, 42, 1)
+          X: =248
+          Y: =140
+          Width: =200
+          Height: =40
+    - Sites:
+        Control: Classic/TextInput@2.3.2
+        Properties:
+          Default: ="2"
+          Format: =TextFormat.Number
+          HintText: ="Sites"
+          Size: =14
+          Fill: =RGBA(255, 255, 255, 1)
+          Color: =RGBA(15, 23, 42, 1)
+          DisplayMode: =DisplayMode.Disabled
+          X: =32
+          Y: =200
+          Width: =120
+          Height: =40
+    - Submit:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Submit"
+          Fill: =RGBA(37, 99, 235, 1)
+          Color: =RGBA(255, 255, 255, 1)
+          Size: =12
+          RadiusTopLeft: =4
+          RadiusTopRight: =4
+          RadiusBottomLeft: =4
+          RadiusBottomRight: =4
+          OnSelect: =Navigate(Confirm)
+          X: =32
+          Y: =260
+          Width: =140
+          Height: =40
+Confirm:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(250, 250, 252, 1)
+  Children:
+    - Thanks:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Request submitted"
+          Size: =18
+          X: =32
+          Y: =32
+          Width: =320
+          Height: =32

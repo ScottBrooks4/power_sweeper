@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "width": 676,
+  "height": 676,
+  "source": "ultralytics_missing",
+  "walls": [],
+  "doors": [],
+  "stairs": [],
+  "furniture": [],
+  "labels": []
+}

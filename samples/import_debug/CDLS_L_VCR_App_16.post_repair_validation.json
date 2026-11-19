@@ -1,0 +1,263 @@
+{
+    "total": 36,
+    "by_category": {
+        "performance": 36
+    },
+    "by_kind": {
+        "delegation_warning": 36
+    },
+    "issues": [
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/237.json/VCR / VCN Form/Button2",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/237.json/VCR / VCN Form/Button2",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/237.json/VCR / VCN Form/Button2",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/237.json/VCR / VCN Form/Visit_Details_HoldingContainer/ScrollableForm/1_Destination/Destination_Container/BOT",
+            "property": "OnChange",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/237.json/VCR / VCN Form/Visit_Details_HoldingContainer/Visit_Details_GeneralDetailsProgressBar/NavCenter/NavCenterButton",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/237.json/VCR / VCN Form/Visit_Details_HoldingContainer/Visit_Details_GeneralDetailsProgressBar/NavCenter/NavCenterButton",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/237.json/VCR / VCN Form/Visit_Details_HoldingContainer/Visit_Details_GeneralDetailsProgressBar/NavCenter/NavCenterButton",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/237.json/VCR / VCN Form",
+            "property": "OnVisible",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/688.json/Emergency Contact/Visit_Details_HoldingContainer_1/TopNavigation_1/SubmitButton_1",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/688.json/Emergency Contact/Visit_Details_HoldingContainer_1/TopNavigation_1/SubmitButton_1",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/688.json/Emergency Contact/Visit_Details_HoldingContainer_1/TopNavigation_1/SubmitButton_1",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/688.json/Emergency Contact/Visit_Details_HoldingContainer_1/Visit_Details_GeneralDetailsProgressBar_1/NavCenter_1/NavCenterButton_1",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/688.json/Emergency Contact/Visit_Details_HoldingContainer_1/Visit_Details_GeneralDetailsProgressBar_1/NavCenter_1/NavCenterButton_1",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/688.json/Emergency Contact/Visit_Details_HoldingContainer_1/Visit_Details_GeneralDetailsProgressBar_1/NavCenter_1/NavCenterButton_1",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Controls/688.json/Emergency Contact",
+            "property": "OnVisible",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Components/192.json/topNav/TopNavigation_2/SubmitButton_2",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Components/192.json/topNav/TopNavigation_2/SubmitButton_2",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Components/192.json/topNav/TopNavigation_2/SubmitButton_2",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Emergency Contact.pa.yaml/Screens/Emergency Contact/Visit_Details_HoldingContainer_1/TopNavigation_1/SubmitButton_1",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Emergency Contact.pa.yaml/Screens/Emergency Contact/Visit_Details_HoldingContainer_1/TopNavigation_1/SubmitButton_1",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Emergency Contact.pa.yaml/Screens/Emergency Contact/Visit_Details_HoldingContainer_1/TopNavigation_1/SubmitButton_1",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Emergency Contact.pa.yaml/Screens/Emergency Contact/Visit_Details_HoldingContainer_1/Visit_Details_GeneralDetailsProgressBar_1/NavCenter_1/NavCenterButton_1",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Emergency Contact.pa.yaml/Screens/Emergency Contact/Visit_Details_HoldingContainer_1/Visit_Details_GeneralDetailsProgressBar_1/NavCenter_1/NavCenterButton_1",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Emergency Contact.pa.yaml/Screens/Emergency Contact/Visit_Details_HoldingContainer_1/Visit_Details_GeneralDetailsProgressBar_1/NavCenter_1/NavCenterButton_1",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Emergency Contact.pa.yaml/Screens/Emergency Contact",
+            "property": "OnVisible",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Components/topNav.pa.yaml/ComponentDefinitions/topNav/TopNavigation_2/SubmitButton_2",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Components/topNav.pa.yaml/ComponentDefinitions/topNav/TopNavigation_2/SubmitButton_2",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/Components/topNav.pa.yaml/ComponentDefinitions/topNav/TopNavigation_2/SubmitButton_2",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/VCR _ VCN Form.pa.yaml/Screens/VCR / VCN Form/Visit_Details_HoldingContainer/ScrollableForm/1_Destination/Destination_Container/BOT",
+            "property": "OnChange",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/VCR _ VCN Form.pa.yaml/Screens/VCR / VCN Form/Visit_Details_HoldingContainer/Visit_Details_GeneralDetailsProgressBar/NavCenter/NavCenterButton",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/VCR _ VCN Form.pa.yaml/Screens/VCR / VCN Form/Visit_Details_HoldingContainer/Visit_Details_GeneralDetailsProgressBar/NavCenter/NavCenterButton",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/VCR _ VCN Form.pa.yaml/Screens/VCR / VCN Form/Visit_Details_HoldingContainer/Visit_Details_GeneralDetailsProgressBar/NavCenter/NavCenterButton",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/VCR _ VCN Form.pa.yaml/Screens/VCR / VCN Form/Button2",
+            "property": "OnSelect",
+            "detail": "Lower"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/VCR _ VCN Form.pa.yaml/Screens/VCR / VCN Form/Button2",
+            "property": "OnSelect",
+            "detail": "CountIf"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/VCR _ VCN Form.pa.yaml/Screens/VCR / VCN Form/Button2",
+            "property": "OnSelect",
+            "detail": "Trim"
+        },
+        {
+            "category": "performance",
+            "kind": "delegation_warning",
+            "control": "Src/VCR _ VCN Form.pa.yaml/Screens/VCR / VCN Form",
+            "property": "OnVisible",
+            "detail": "Lower"
+        }
+    ]
+}

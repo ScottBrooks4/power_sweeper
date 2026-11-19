@@ -1,0 +1,33 @@
+{
+  "DataSources": [
+    {
+      "Name": "Reqeusts",
+      "Type": "ConnectedDataSourceInfo",
+      "DatasetName": "https://contoso.sharepoint.com/sites/DND",
+      "TableName": "Reqeusts",
+      "ApiId": "/providers/microsoft.powerapps/apis/shared_sharepointonline",
+      "ConnectedDataSourceInfoNameMapping": {
+        "Title": "Title",
+        "Statu": "Statu",
+        "RequestNumber": "RequestNumber",
+        "SubmittedBy": "SubmittedBy"
+      }
+    },
+    {
+      "Name": "Employees",
+      "Type": "SharePointList",
+      "DatasetName": "https://contoso.sharepoint.com/sites/DND",
+      "TableName": "Employees",
+      "ConnectedDataSourceInfoNameMapping": {
+        "Name": "Title",
+        "Email": "Email"
+      }
+    },
+    {
+      "Name": "OrphanList",
+      "Type": "SharePointList",
+      "DatasetName": "",
+      "TableName": ""
+    }
+  ]
+}

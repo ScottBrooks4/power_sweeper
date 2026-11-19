@@ -1,0 +1,36 @@
+name: Publish Azure deploy zip
+
+# Always-on fallback: builds power_sweeper-azure.zip and replaces the rolling
+# GitHub Release tag azure-latest. Does not need the Azure publish profile.
+
+on:
+  push:
+    branches:
+      - cursor/deploy-latest-150e
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip
+          coverage: none
+
+      - name: Install production Composer deps
+        run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
+
+      - name: Publish rolling azure-latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/publish_azure_release.sh

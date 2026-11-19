@@ -1,0 +1,1 @@
+window.VASC_MACHINES = [{"name":"vasc-build-01","tasks":10,"workItems":[6569],"hoursNeeded":118,"hoursLeft":54,"sample":true},{"name":"vasc-build-02","tasks":9,"workItems":[5537],"hoursNeeded":100,"hoursLeft":52,"sample":true},{"name":"vasc-agent-03","tasks":8,"workItems":[5351],"hoursNeeded":70,"hoursLeft":50,"sample":true}];

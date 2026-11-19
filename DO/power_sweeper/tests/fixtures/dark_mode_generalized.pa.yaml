@@ -1,0 +1,55 @@
+# Generalized dark-mode detection: RTE host by child type, theme component by globals.
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(gblReady, true)
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - NotesHost:
+        Control: GroupContainer@1.5.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          X: =20
+          Y: =20
+          Width: =480
+          Height: =220
+        Children:
+          - NotesEditor:
+              Control: RichTextEditor@2.3.1
+              Properties:
+                Default: =""
+                Fill: =RGBA(255, 255, 255, 1)
+                X: =8
+                Y: =8
+                Width: =460
+                Height: =180
+    - ModernAction:
+        Control: ButtonCanvas@2.2.0
+        Properties:
+          Text: ="Save"
+          X: =20
+          Y: =260
+          Width: =120
+          Height: =40
+ComponentDefinitions:
+  ThemeChrome:
+    DefinitionType: CanvasComponent
+    AccessAppScope: false
+    CustomProperties: {}
+    Properties:
+      Height: =80
+      Width: =320
+    Children:
+      - ThemeRadio:
+          Control: Classic/Radio@2.3.0
+          Properties:
+            Items: =["Light"]
+            OnChange: "=Set(gblDarkMode, Self.Selected.Value = \"Dark\"); Set(gblTheme, If(gblDarkMode, gblThemeDark, gblThemeLight))"
+            DefaultSelectedItems: =["Light"]
+            X: =10
+            Y: =10
+            Width: =200
+            Height: =60

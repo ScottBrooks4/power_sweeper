@@ -1,0 +1,568 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+#
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+#
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  SidebarMenu:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    Properties:
+      Fill: =gblColorNav
+      Height: =App.Height
+      Width: =gblNavWidth
+    Children:
+      - SidebarCont:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Fill: =gblColorNav
+            Height: =Parent.Height
+            LayoutAlignItems: =LayoutAlignItems.Stretch
+            LayoutDirection: =LayoutDirection.Vertical
+            PaddingBottom: =8
+            PaddingLeft: =10
+            PaddingRight: =10
+            PaddingTop: =14
+            Width: =Parent.Width
+          Children:
+            - HamburgerMenuCont:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =58
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                Children:
+                  - HamburgerIcon:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =gblColorOnAccent
+                        Fill: =gblColorPrimary
+                        Height: =34
+                        Icon: =Icon.View
+                        OnSelect: =Navigate(Dashboard, ScreenTransition.Fade)
+                        PaddingBottom: =4
+                        PaddingLeft: =4
+                        PaddingRight: =4
+                        PaddingTop: =4
+                        RadiusBottomLeft: =8
+                        RadiusBottomRight: =8
+                        RadiusTopLeft: =8
+                        RadiusTopRight: =8
+                        TabIndex: =0
+                        Width: =34
+                        X: =6
+                        Y: =(Parent.Height / 2) - (Self.Height / 2)
+                  - ButtonCanvas1:
+                      Control: Button@0.0.45
+                      Properties:
+                        Appearance: ='ButtonCanvas.Appearance'.Transparent
+                        Height: =1
+                        OnSelect: =Navigate(Dashboard, ScreenTransition.Fade)
+                        Text: =""
+                        Visible: =false
+                        Width: =1
+                        X: =0
+                        Y: =0
+                  - CloseMenuLabel:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =gblColorNavTitle
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =40
+                        OnSelect: =Navigate(Dashboard, ScreenTransition.Fade)
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =2
+                        Size: =10
+                        TabIndex: =0
+                        Text: ="VCDS GROUP" & Char(10) & "OHS Risk"
+                        Visible: =true
+                        Width: =140
+                        Wrap: =true
+                        X: =48
+                        Y: =8
+            - HamburgerSpacer:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =6
+                  LayoutMinWidth: =Parent.Width
+                  Visible: =true
+                  Width: =Parent.Width
+                Children:
+                  - HamburgerSpacerInner:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblColorNavLine
+                        Height: =1
+                        Visible: =false
+                        Width: =Parent.Width * 0.6
+                        X: =Parent.Width * 0.2
+                        Y: =(Parent.Height / 2) - (Self.Height / 2)
+            - SidebarGallery1:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 0)
+                  BorderThickness: =0
+                  DelayItemLoading: =false
+                  Fill: =RGBA(0, 0, 0, 0)
+                  FillPortions: =0
+                  Height: =220
+                  Items: =SideMenuFirstTable
+                  LayoutMinHeight: =220
+                  LayoutMinWidth: =Parent.Width
+                  OnSelect: |-
+                    =Switch(
+                        ThisItem.ScreenName,
+                        "Dashboard", Navigate(Dashboard, ScreenTransition.Fade),
+                        "Homepage", Navigate(Homepage, ScreenTransition.Fade),
+                        "Details", Navigate(Details, ScreenTransition.Fade),
+                        "Approvals", Navigate(Approvals, ScreenTransition.Fade),
+                        "Chat", Navigate(Chat, ScreenTransition.Fade)
+                    )
+                  Selectable: =true
+                  TemplatePadding: =0
+                  TemplateSize: =44
+                  Width: =Parent.Width
+                Children:
+                  - Container70_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblColorNavActive
+                        Height: =Parent.TemplateHeight - 4
+                        RadiusBottomLeft: =10
+                        RadiusBottomRight: =10
+                        RadiusTopLeft: =10
+                        RadiusTopRight: =10
+                        Visible: =ThisItem.ScreenName = App.ActiveScreen.Name
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =2
+                  - SidebarIcon:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =If(ThisItem.ScreenName = App.ActiveScreen.Name, RGBA(255, 255, 255, 1), gblColorNavText)
+                        DisplayMode: =DisplayMode.Edit
+                        Height: =18
+                        Icon: =ThisItem.Icon
+                        OnSelect: |-
+                          =Switch(
+                              ThisItem.ScreenName,
+                              "Dashboard", Navigate(Dashboard, ScreenTransition.Fade),
+                              "Homepage", Navigate(Homepage, ScreenTransition.Fade),
+                              "Details", Navigate(Details, ScreenTransition.Fade),
+                              "Approvals", Navigate(Approvals, ScreenTransition.Fade),
+                              "Chat", Navigate(Chat, ScreenTransition.Fade)
+                          )
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        TabIndex: =0
+                        Width: =18
+                        X: =12
+                        Y: =(Parent.TemplateHeight / 2) - (Self.Height / 2)
+                  - SidebarTextLabel:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =If(ThisItem.ScreenName = App.ActiveScreen.Name, RGBA(255, 255, 255, 1), gblColorNavText)
+                        DisplayMode: =DisplayMode.Edit
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.TemplateHeight
+                        OnSelect: |-
+                          =Switch(
+                              ThisItem.ScreenName,
+                              "Dashboard", Navigate(Dashboard, ScreenTransition.Fade),
+                              "Homepage", Navigate(Homepage, ScreenTransition.Fade),
+                              "Details", Navigate(Details, ScreenTransition.Fade),
+                              "Approvals", Navigate(Approvals, ScreenTransition.Fade),
+                              "Chat", Navigate(Chat, ScreenTransition.Fade)
+                          )
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =11
+                        TabIndex: =0
+                        Text: =ThisItem.Name
+                        Visible: =true
+                        Width: =110
+                        Wrap: =false
+                        X: =38
+                  - SidebarBadge:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =gblTheme.TextOnAccent
+                        Fill: =gblTheme.Badge
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        RadiusBottomLeft: =20
+                        RadiusBottomRight: =20
+                        RadiusTopLeft: =20
+                        RadiusTopRight: =20
+                        Size: =9
+                        Text: =Text(varInboxCount)
+                        Visible: =ThisItem.Name = "Inbox" && varInboxCount > 0
+                        Width: =18
+                        X: =Parent.TemplateWidth - 28
+                        Y: =(Parent.TemplateHeight / 2) - (Self.Height / 2)
+                  - SidebarButton:
+                      Control: Button@0.0.45
+                      Properties:
+                        Appearance: ='ButtonCanvas.Appearance'.Transparent
+                        Height: =Parent.TemplateHeight
+                        Layout: ='ButtonCanvas.Layout'.TextOnly
+                        OnSelect: |-
+                          =Switch(
+                              ThisItem.ScreenName,
+                              "Dashboard", Navigate(Dashboard, ScreenTransition.Fade),
+                              "Homepage", Navigate(Homepage, ScreenTransition.Fade),
+                              "Details", Navigate(Details, ScreenTransition.Fade),
+                              "Approvals", Navigate(Approvals, ScreenTransition.Fade),
+                              "Chat", Navigate(Chat, ScreenTransition.Fade)
+                          )
+                        Text: =" "
+                        Visible: =false
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - SidebarBottomLine:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =32
+                  LayoutMinWidth: =Parent.Width
+                  Visible: =true
+                  Width: =Parent.Width
+                Children:
+                  - Container7_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblColorNavLine
+                        Height: =1
+                        Width: =Parent.Width
+                        X: =0
+                        Y: =6
+                  - lblRiskCycle:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblColorNavMuted
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =16
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =8
+                        Text: ="RISK CYCLE"
+                        Width: =Parent.Width
+                        X: =6
+                        Y: =12
+            - SidebarGallery2:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 0)
+                  BorderThickness: =0
+                  DelayItemLoading: =false
+                  Fill: =RGBA(0, 0, 0, 0)
+                  FillPortions: =0
+                  Height: =136
+                  Items: =SideMenuSecondTable
+                  LayoutMinHeight: =136
+                  LayoutMinWidth: =Parent.Width
+                  OnSelect: |-
+                    =Switch(
+                        ThisItem.ScreenName,
+                        "Dashboard", Navigate(Dashboard, ScreenTransition.Fade),
+                        "Homepage", Navigate(Homepage, ScreenTransition.Fade),
+                        "Details", Navigate(Details, ScreenTransition.Fade),
+                        "Approvals", Navigate(Approvals, ScreenTransition.Fade),
+                        "Chat", Navigate(Chat, ScreenTransition.Fade)
+                    )
+                  Selectable: =true
+                  TemplatePadding: =0
+                  TemplateSize: =34
+                  Visible: =true
+                  Width: =Parent.Width
+                Children:
+                  - Container70:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =RGBA(0, 0, 0, 0)
+                        Height: =Parent.TemplateHeight
+                        Visible: =false
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+                  - Icon2_3:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =If(ThisItem.Step = fxRiskCycleStep, gblColorPrimary, gblColorNavMuted)
+                        Height: =18
+                        Icon: =Icon.Add
+                        Visible: =false
+                        OnSelect: |-
+                          =Switch(
+                              ThisItem.ScreenName,
+                              "Dashboard", Navigate(Dashboard, ScreenTransition.Fade),
+                              "Homepage", Navigate(Homepage, ScreenTransition.Fade),
+                              "Details", Navigate(Details, ScreenTransition.Fade),
+                              "Approvals", Navigate(Approvals, ScreenTransition.Fade),
+                              "Chat", Navigate(Chat, ScreenTransition.Fade)
+                          )
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        TabIndex: =0
+                        Width: =18
+                        X: =10
+                        Y: =(Parent.TemplateHeight / 2) - (Self.Height / 2)
+                  - Label7_190:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =If(ThisItem.Step = fxRiskCycleStep, gblColorNavTitle, gblColorNavMuted)
+                        DisplayMode: =DisplayMode.Edit
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Normal
+                        Height: =Parent.TemplateHeight
+                        OnSelect: |-
+                          =Switch(
+                              ThisItem.ScreenName,
+                              "Dashboard", Navigate(Dashboard, ScreenTransition.Fade),
+                              "Homepage", Navigate(Homepage, ScreenTransition.Fade),
+                              "Details", Navigate(Details, ScreenTransition.Fade),
+                              "Approvals", Navigate(Approvals, ScreenTransition.Fade),
+                              "Chat", Navigate(Chat, ScreenTransition.Fade)
+                          )
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =10
+                        TabIndex: =0
+                        Text: =Text(ThisItem.Step) & "  " & ThisItem.Name
+                        Visible: =true
+                        Width: =160
+                        Wrap: =false
+                        X: =34
+                  - ButtonCanvas4_1:
+                      Control: Button@0.0.45
+                      Properties:
+                        Appearance: ='ButtonCanvas.Appearance'.Transparent
+                        Height: =Parent.TemplateHeight
+                        Layout: ='ButtonCanvas.Layout'.TextOnly
+                        OnSelect: |-
+                          =Switch(
+                              ThisItem.ScreenName,
+                              "Dashboard", Navigate(Dashboard, ScreenTransition.Fade),
+                              "Homepage", Navigate(Homepage, ScreenTransition.Fade),
+                              "Details", Navigate(Details, ScreenTransition.Fade),
+                              "Approvals", Navigate(Approvals, ScreenTransition.Fade),
+                              "Chat", Navigate(Chat, ScreenTransition.Fade)
+                          )
+                        Text: =" "
+                        Visible: =false
+                        Width: =Parent.TemplateWidth
+                        X: =0
+                        Y: =0
+            - Container6_3:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =1
+                  Visible: =false
+                  Width: =Parent.Width
+                Children:
+                  - Container7_2:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblColorNavLine
+                        Height: =1
+                        Width: =Parent.Width * 0.6
+                        X: =Parent.Width * 0.2
+                        Y: =0
+            - SidebarGallery3:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 0)
+                  FillPortions: =0
+                  Height: =1
+                  Items: =SideMenuThirdTable
+                  TemplatePadding: =0
+                  TemplateSize: =50
+                  Visible: =false
+                  Width: =Parent.Width
+                Children:
+                  - Container70_2:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblColorNavActive
+                        Height: =Parent.TemplateHeight - 10
+                        Visible: =false
+                        Width: =Parent.TemplateWidth - 20
+                        X: =10
+                        Y: =5
+                  - Icon2_4:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =gblColorNavText
+                        Height: =25
+                        Icon: =ThisItem.Icon
+                        Width: =25
+                        X: =25
+                        Y: =(Parent.TemplateHeight / 2) - (Self.Height / 2)
+                  - Label7_191:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 0)
+                        Color: =gblColorNavText
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.TemplateHeight
+                        Size: =8
+                        Text: =ThisItem.Name
+                        Width: =110
+                        Wrap: =false
+                        X: =Icon2_4.X + Icon2_4.Width
+                  - ButtonCanvas4_2:
+                      Control: Button@0.0.45
+                      Properties:
+                        Appearance: ='ButtonCanvas.Appearance'.Transparent
+                        Height: =1
+                        OnSelect: =false
+                        Text: =""
+                        Visible: =false
+                        Width: =1
+                        X: =0
+                        Y: =0
+            - SidebarGrow:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =1
+                  Height: =1
+                  LayoutMinHeight: =8
+                  LayoutMinWidth: =16
+                  Width: =Parent.Width
+            - SidebarWho:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =58
+                  Width: =Parent.Width
+                Children:
+                  - SidebarWhoLine:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =gblTheme.RailLine
+                        Height: =1
+                        Width: =Parent.Width
+                        X: =0
+                        Y: =0
+                  - SidebarWhoAvatar:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        Color: =gblTheme.AvatarInk
+                        Fill: =gblTheme.Avatar
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =34
+                        RadiusBottomLeft: =20
+                        RadiusBottomRight: =20
+                        RadiusTopLeft: =20
+                        RadiusTopRight: =20
+                        Size: =10
+                        Text: ="L1"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =34
+                        X: =6
+                        Y: =14
+                  - SidebarWhoName:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblTheme.RailTitle
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =18
+                        Size: =10
+                        Text: =varUserDisplay
+                        Width: =150
+                        Wrap: =false
+                        X: =46
+                        Y: =14
+                  - SidebarWhoRole:
+                      Control: Label@2.5.1
+                      Properties:
+                        Color: =gblTheme.RailMuted
+                        Font: =Font.'Segoe UI'
+                        Height: =16
+                        Size: =9
+                        Text: =varUserRole
+                        Width: =150
+                        Wrap: =false
+                        X: =46
+                        Y: =32
+      - Expand:
+          Control: ModernButton@1.0.0
+          Properties:
+            Appearance: =ButtonAppearance.Transparent
+            Height: =1
+            OnSelect: =false
+            Text: =""
+            Visible: =false
+            Width: =1
+            X: =0
+            Y: =0

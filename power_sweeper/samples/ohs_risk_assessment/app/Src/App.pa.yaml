@@ -1,0 +1,367 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+App:
+  Properties:
+    Formulas: |-
+      =varEnv = "dev";   // "dev" or "prod"
+      fnIsDev = varEnv = "dev";
+      fnIsProd = varEnv = "prod";
+
+      LinkToApp =
+          If(
+              fnIsDev,
+              "https://apps.powerapps.com/play/e/9ed70000-7006-e3b7-a4b4-c31cb53e5df0/a/dd692a7a-782a-4903-a837-64f19b2913db?tenantId=325b4494-1587-40d5-bb31-8b660b7f1038&hint=ff71f6ed-120c-43b2-a51f-16f21de021d4",
+              "<PROD play URL>"
+          );
+
+      // Mockup palette — edit here, then screens/components read gblTheme.*
+      gblThemeLight = {
+          Page: ColorValue("#EFEBE3"),
+          Surface: ColorValue("#FBFAF7"),
+          Paper: ColorValue("#FBFAF7"),
+          Text: ColorValue("#172026"),
+          TextMuted: ColorValue("#5A6A72"),
+          TextOnAccent: Color.White,
+          TextOnLight: ColorValue("#172026"),
+          Border: ColorValue("#D9D2C6"),
+          BorderStrong: ColorValue("#C4BBAE"),
+          Accent: ColorValue("#0E746C"),
+          Accent2: ColorValue("#14958C"),
+          Chip: ColorValue("#F3F0E8"),
+          ChipOn: ColorValue("#172026"),
+          ChipOnInk: ColorValue("#F4F3EE"),
+          Quiet: ColorValue("#E8E2D6"),
+          Badge: ColorValue("#C45C26"),
+          Rail: ColorValue("#0B1C28"),
+          Rail2: ColorValue("#132736"),
+          RailLine: ColorValue("#243847"),
+          RailActive: ColorValue("#1A3340"),
+          RailText: ColorValue("#C9D6DC"),
+          RailMuted: ColorValue("#8AA0AB"),
+          RailTitle: ColorValue("#F6F4EF"),
+          Avatar: ColorValue("#1E4A4A"),
+          AvatarInk: ColorValue("#D7EFE8"),
+          Danger: ColorValue("#C8102E"),
+          Success: ColorValue("#1D6B43"),
+          Warning: ColorValue("#B45309"),
+          Focus: ColorValue("#0E746C"),
+          Selected: ColorValue("#172026"),
+          Disabled: ColorValue("#E8E2D6"),
+          RiskLow: ColorValue("#BFE4CF"),
+          RiskModerate: ColorValue("#F3D48A"),
+          RiskHigh: ColorValue("#F0A57A"),
+          RiskExtreme: ColorValue("#E07A7A"),
+          ScoreLow: ColorValue("#D9EFE3"),
+          ScoreModerate: ColorValue("#F8E7C2"),
+          ScoreHigh: ColorValue("#F8D3C2"),
+          ScoreExtreme: ColorValue("#F4C9C9"),
+          RiskLowInk: ColorValue("#1D6B43"),
+          RiskModerateInk: ColorValue("#B45309"),
+          RiskHighInk: ColorValue("#C2410C"),
+          RiskExtremeInk: ColorValue("#9B1C1C")
+      };
+
+      gblThemeDark = {
+          Page: ColorValue("#0B1C28"),
+          Surface: ColorValue("#132736"),
+          Paper: ColorValue("#132736"),
+          Text: ColorValue("#F6F4EF"),
+          TextMuted: ColorValue("#8AA0AB"),
+          TextOnAccent: Color.White,
+          TextOnLight: ColorValue("#172026"),
+          Border: ColorValue("#243847"),
+          BorderStrong: ColorValue("#3D5360"),
+          Accent: ColorValue("#14958C"),
+          Accent2: ColorValue("#0E746C"),
+          Chip: ColorValue("#1A3340"),
+          ChipOn: ColorValue("#F6F4EF"),
+          ChipOnInk: ColorValue("#0B1C28"),
+          Quiet: ColorValue("#1A3340"),
+          Badge: ColorValue("#C45C26"),
+          Rail: ColorValue("#06131C"),
+          Rail2: ColorValue("#0B1C28"),
+          RailLine: ColorValue("#243847"),
+          RailActive: ColorValue("#1A3340"),
+          RailText: ColorValue("#C9D6DC"),
+          RailMuted: ColorValue("#8AA0AB"),
+          RailTitle: ColorValue("#F6F4EF"),
+          Avatar: ColorValue("#1E4A4A"),
+          AvatarInk: ColorValue("#D7EFE8"),
+          Danger: ColorValue("#C8102E"),
+          Success: ColorValue("#BFE4CF"),
+          Warning: ColorValue("#F3D48A"),
+          Focus: ColorValue("#14958C"),
+          Selected: ColorValue("#F6F4EF"),
+          Disabled: ColorValue("#243847"),
+          RiskLow: ColorValue("#BFE4CF"),
+          RiskModerate: ColorValue("#F3D48A"),
+          RiskHigh: ColorValue("#F0A57A"),
+          RiskExtreme: ColorValue("#E07A7A"),
+          ScoreLow: ColorValue("#D9EFE3"),
+          ScoreModerate: ColorValue("#F8E7C2"),
+          ScoreHigh: ColorValue("#F8D3C2"),
+          ScoreExtreme: ColorValue("#F4C9C9"),
+          RiskLowInk: ColorValue("#1D6B43"),
+          RiskModerateInk: ColorValue("#B45309"),
+          RiskHighInk: ColorValue("#C2410C"),
+          RiskExtremeInk: ColorValue("#9B1C1C")
+      };
+
+      gblTheme = gblThemeLight;
+
+      gblNavWidth = 216;
+      gblRadius = 8;
+      gblRadiusPill = 20;
+      DefaultGrayBackgroud = gblTheme.Page;
+      gblColorPage = gblTheme.Page;
+      gblColorPaper = gblTheme.Paper;
+      gblColorInk = gblTheme.Text;
+      gblColorMuted = gblTheme.TextMuted;
+      gblColorLine = gblTheme.Border;
+      gblColorOnAccent = gblTheme.TextOnAccent;
+      gblColorNav = gblTheme.Rail;
+      gblColorNav2 = gblTheme.Rail2;
+      gblColorNavLine = gblTheme.RailLine;
+      gblColorNavActive = gblTheme.RailActive;
+      gblColorNavText = gblTheme.RailText;
+      gblColorNavMuted = gblTheme.RailMuted;
+      gblColorNavTitle = gblTheme.RailTitle;
+      gblColorAvatar = gblTheme.Avatar;
+      gblColorAvatarInk = gblTheme.AvatarInk;
+      gblColorPrimary = gblTheme.Accent;
+      gblColorPrimary2 = gblTheme.Accent2;
+      gblColorDanger = gblTheme.Danger;
+      gblColorQuiet = gblTheme.Quiet;
+      gblColorBadge = gblTheme.Badge;
+      gblColorChip = gblTheme.Chip;
+      gblColorBarTrack = ColorValue("#EBE6DC");
+      gblColorProgMark = ColorValue("#E8F1EE");
+      gblColorBanner = ColorValue("#E7F1EE");
+      gblColorBannerInk = ColorValue("#1D4D3D");
+      gblColorBannerWarn = ColorValue("#F8EFE2");
+      gblColorBannerWarnInk = ColorValue("#6B3F12");
+      gblColorBannerWarnLine = ColorValue("#EAD3B0");
+      gblColorClosed = ColorValue("#E7F3EC");
+      gblColorClosedLine = ColorValue("#C5DDCF");
+      gblColorRiskLow = gblTheme.RiskLow;
+      gblColorRiskModerate = gblTheme.RiskModerate;
+      gblColorRiskHigh = gblTheme.RiskHigh;
+      gblColorRiskExtreme = gblTheme.RiskExtreme;
+      gblColorScoreLow = gblTheme.ScoreLow;
+      gblColorScoreModerate = gblTheme.ScoreModerate;
+      gblColorScoreHigh = gblTheme.ScoreHigh;
+      gblColorScoreExtreme = gblTheme.ScoreExtreme;
+      gblColorRiskLowInk = gblTheme.RiskLowInk;
+      gblColorRiskModerateInk = gblTheme.RiskModerateInk;
+      gblColorRiskHighInk = gblTheme.RiskHighInk;
+      gblColorRiskExtremeInk = gblTheme.RiskExtremeInk;
+
+      fxRiskCycleStep = Switch(
+          App.ActiveScreen,
+          Dashboard, 1,
+          Homepage, 1,
+          Details, 2,
+          Approvals, 3,
+          1
+      );
+
+      SideMenuFirstTable = [
+          {
+              ScreenName: "Dashboard",
+              Name: "Dashboard",
+              Icon: Icon.Items,
+              Step: 0
+          },
+          {
+              ScreenName: "Homepage",
+              Name: "Inbox",
+              Icon: Icon.Message,
+              Step: 1
+          },
+          {
+              ScreenName: "Details",
+              Name: "Review",
+              Icon: Icon.Clock,
+              Step: 2
+          },
+          {
+              ScreenName: "Approvals",
+              Name: "Treat",
+              Icon: Icon.CheckMark,
+              Step: 3
+          },
+          {
+              ScreenName: "Chat",
+              Name: "Chat",
+              Icon: Icon.Compose,
+              Step: 0
+          }
+      ];
+      SideMenuSecondTable = [
+          {
+              ScreenName: "Homepage",
+              Name: "Identify",
+              Step: 1
+          },
+          {
+              ScreenName: "Details",
+              Name: "Review / score",
+              Step: 2
+          },
+          {
+              ScreenName: "Approvals",
+              Name: "Treat",
+              Step: 3
+          },
+          {
+              ScreenName: "Dashboard",
+              Name: "Close / archive",
+              Step: 4
+          }
+      ];
+      SideMenuThirdTable = [];
+    OnStart: |-
+      =Set(AppVersion,"0.0.0");
+      Set(varSideMenu, true);
+      Set(varTopMenu, false);
+      Set(varShowLoadingContainer, false);
+      Set(varLang, true);
+      Set(varL2, "All L2s");
+      Set(varProgram, "All");
+      Set(varHighOnly, false);
+      Set(varHighlightP, 4);
+      Set(varHighlightS, 3);
+      Set(varInboxCount, 4);
+      Set(varUserDisplay, "L1 Safety Advisor");
+      Set(varUserRole, "VCDS Group HQ");
+      Set(varControlLevel, 5);
+
+      ClearCollect(
+          colRiskCounts,
+          [
+              {Probability: 5, Severity: 1, RiskCount: 0},
+              {Probability: 5, Severity: 2, RiskCount: 0},
+              {Probability: 5, Severity: 3, RiskCount: 0},
+              {Probability: 5, Severity: 4, RiskCount: 0},
+              {Probability: 5, Severity: 5, RiskCount: 0},
+              {Probability: 4, Severity: 1, RiskCount: 1},
+              {Probability: 4, Severity: 2, RiskCount: 5},
+              {Probability: 4, Severity: 3, RiskCount: 4},
+              {Probability: 4, Severity: 4, RiskCount: 0},
+              {Probability: 4, Severity: 5, RiskCount: 0},
+              {Probability: 3, Severity: 1, RiskCount: 0},
+              {Probability: 3, Severity: 2, RiskCount: 11},
+              {Probability: 3, Severity: 3, RiskCount: 3},
+              {Probability: 3, Severity: 4, RiskCount: 1},
+              {Probability: 3, Severity: 5, RiskCount: 0},
+              {Probability: 2, Severity: 1, RiskCount: 0},
+              {Probability: 2, Severity: 2, RiskCount: 17},
+              {Probability: 2, Severity: 3, RiskCount: 3},
+              {Probability: 2, Severity: 4, RiskCount: 1},
+              {Probability: 2, Severity: 5, RiskCount: 1},
+              {Probability: 1, Severity: 1, RiskCount: 8},
+              {Probability: 1, Severity: 2, RiskCount: 1},
+              {Probability: 1, Severity: 3, RiskCount: 0},
+              {Probability: 1, Severity: 4, RiskCount: 2},
+              {Probability: 1, Severity: 5, RiskCount: 1}
+          ]
+      );
+
+      ClearCollect(
+          colRiskCells,
+          ForAll(
+              Sequence(25) As i,
+              With(
+                  {
+                      p: 6 - RoundUp(i.Value / 5, 0),
+                      s: If(Mod(i.Value, 5) = 0, 5, Mod(i.Value, 5))
+                  },
+                  {
+                      Probability: p,
+                      Severity: s,
+                      Score: p * s,
+                      RiskCount: Coalesce(
+                          LookUp(colRiskCounts, Probability = p && Severity = s).RiskCount,
+                          0
+                      )
+                  }
+              )
+          )
+      );
+
+      ClearCollect(
+          colFilters,
+          [
+              {Kind: "L2", Value: "All L2s", Selected: true},
+              {Kind: "L2", Value: "VCDS Group HQ", Selected: false},
+              {Kind: "L2", Value: "CFSG (O-G)", Selected: false},
+              {Kind: "L2", Value: "CJCR Gp", Selected: false},
+              {Kind: "L2", Value: "CANELEMNORAD", Selected: false},
+              {Kind: "Program", Value: "General Safety", Selected: false},
+              {Kind: "Program", Value: "WHVP", Selected: false},
+              {Kind: "Program", Value: "Hazardous substances", Selected: false},
+              {Kind: "Level", Value: "High + Extreme", Selected: false}
+          ]
+      );
+
+      ClearCollect(
+          colInboxFilters,
+          [
+              {Kind: "Status", Value: "Needs L1 review", Selected: true},
+              {Kind: "Level", Value: "High (L2)", Selected: false},
+              {Kind: "Program", Value: "WHMIS / HazMat", Selected: false},
+              {Kind: "Program", Value: "WHVP", Selected: false},
+              {Kind: "Status", Value: "Archive candidates", Selected: false}
+          ]
+      );
+
+      ClearCollect(
+          colHierarchy,
+          [
+              {Level: 1, Title: "Elimination"},
+              {Level: 2, Title: "Substitution"},
+              {Level: 3, Title: "Engineering"},
+              {Level: 4, Title: "Administrative"},
+              {Level: 5, Title: "PPE"}
+          ]
+      );
+
+      ClearCollect(
+          colProbabilityLegend,
+          [
+              {Level: 5, Title: "Almost Certain"},
+              {Level: 4, Title: "Likely"},
+              {Level: 3, Title: "Possible"},
+              {Level: 2, Title: "Unlikely"},
+              {Level: 1, Title: "Rare"}
+          ]
+      );
+
+      ClearCollect(
+          colSeverityLegend,
+          [
+              {Level: 1, Title: "Negligible"},
+              {Level: 2, Title: "Minor"},
+              {Level: 3, Title: "Moderate"},
+              {Level: 4, Title: "Major"},
+              {Level: 5, Title: "Catastrophic"}
+          ]
+      );
+
+      ClearCollect(
+          colRiskCategories,
+          [
+              {Band: "Low", Title: "Low 1–3", MinScore: 1, MaxScore: 3},
+              {Band: "Moderate", Title: "Moderate 4–6", MinScore: 4, MaxScore: 6},
+              {Band: "High", Title: "High 8–12", MinScore: 8, MaxScore: 12},
+              {Band: "Extreme", Title: "Extreme 15–25", MinScore: 15, MaxScore: 25}
+          ]
+      );
+    StartScreen: =Dashboard
+    Theme: =PowerAppsTheme

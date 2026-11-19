@@ -1,0 +1,453 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  ExternalFunctions:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    CustomProperties:
+      ClearCollections:
+        PropertyKind: Action
+        DisplayName: ClearCollections
+        Description: A custom property
+        ReturnType: None
+      LoadApprovals:
+        PropertyKind: Action
+        DisplayName: LoadApprovals
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - inputEHCRID:
+              Description: A parameter
+              DataType: Number
+              Default: =-1
+      LoadAttachments:
+        PropertyKind: Action
+        DisplayName: LoadAttachments
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - inputItemID:
+              Description: A parameter
+              IsOptional: true
+              DataType: Number
+              Default: =-1
+      LoadTemplate:
+        PropertyKind: Action
+        DisplayName: LoadTemplate
+        Description: Loads in a template of approvals
+        ReturnType: None
+        Parameters:
+          - OrgID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+          - TemplateName:
+              Description: A parameter
+              DataType: Text
+              Default: ="Text"
+          - EHCRID:
+              Description: A parameter
+              IsOptional: true
+              DataType: Number
+              Default: =100
+      MoveApprovalListItem:
+        PropertyKind: Action
+        DisplayName: MoveApprovalListItem
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - inputCurrentOrder:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+          - inputNewOrder:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+          - inputItemID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+      MoveTemplateItemOrder:
+        PropertyKind: Action
+        DisplayName: MoveTemplateItemOrder
+        Description: Changes the order of items in the edit template screen
+        ReturnType: None
+        Parameters:
+          - inputCurrentOrder:
+              Description: inputCurrentOrder
+              DataType: Number
+              Default: =100
+          - inputNewOrder:
+              Description: inputNewOrder
+              DataType: Number
+              Default: =100
+          - inputItemID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+      RemovedUnSigned:
+        PropertyKind: Action
+        DisplayName: RemovedUnSigned
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - UnSigned:
+              Description: A parameter
+              DataType: Boolean
+              Default: =true
+          - ID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+      TotalRefresh:
+        PropertyKind: Action
+        DisplayName: TotalRefresh
+        Description: A custom property
+        ReturnType: None
+      approvalNotifyEmail:
+        PropertyKind: Action
+        DisplayName: approvalNotifyEmail
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - SignedApproval:
+              Description: A parameter
+              DataType: Boolean
+              Default: =true
+          - itemID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+          - orderApproval:
+              Description: A parameter
+              IsOptional: true
+              DataType: Number
+              Default: =100
+          - email:
+              Description: A parameter
+              IsOptional: true
+              DataType: Text
+              Default: ="Text"
+          - message:
+              Description: A parameter
+              IsOptional: true
+              DataType: Text
+              Default: ="Text"
+      chatNotify:
+        PropertyKind: Action
+        DisplayName: chatNotify
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - email:
+              Description: A parameter
+              DataType: Text
+              Default: ="Text"
+          - message:
+              Description: A parameter
+              DataType: Text
+              Default: ="Text"
+      completeNotify:
+        PropertyKind: Action
+        DisplayName: completeNotify
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - email:
+              Description: A parameter
+              DataType: Text
+              Default: ="Text"
+    Properties:
+      ClearCollections: |+
+        =
+
+      Fill: =RGBA(224, 86, 6, 1)
+      Height: =100
+      LoadApprovals: |
+        =//If(
+        //    inputEHCRID >= 0,
+        //    ForAll(
+        //        Filter() As Approval,
+        //        Collect(
+        //            colApprovalItems,
+        //            {
+        //            }
+        //        )
+        //    )
+        //);
+      LoadAttachments: |-
+        =//If(
+        //    inputItemID > -1,
+        //    ForAll(
+        //        Filter() As Document,
+        //        Collect(
+        //            colAttachments,
+        //            {
+        //                
+        //            }
+        //        )
+        //    )
+        //)
+      LoadTemplate: |-
+        =//With(
+        //    {
+        //        Templates: Table()
+        //    },
+        //    ForAll(
+        //        Templates As t,
+        //        With(
+        //            {
+        //              
+        //            },
+        //            Collect(
+        //                Template Name,
+        //                {
+        //                    
+        //                }
+        //            );  
+        //        );
+        //    )
+        //)
+      MoveApprovalListItem: |-
+        =//If(
+        //    inputNewOrder <> inputCurrentOrder,
+        //    With(
+        //        {
+        //            ApprovalItems: colApprovalItems
+        //        },
+        //        With(
+        //            {
+        //                RowstoUpdateLower: Filter(
+        //                    ApprovalItems,
+        //                    Order > inputCurrentOrder And Order <= inputNewOrder
+        //                ),
+        //                RowstoUpdateHigher: Filter(
+        //                    ApprovalItems,
+        //                    Order >= inputNewOrder And Order < inputCurrentOrder
+        //                )
+        //            },
+        //            If(
+        //                inputNewOrder > inputCurrentOrder,
+        //                ForAll(
+        //                    RowstoUpdateLower,
+        //                    Patch(
+        //                        THCEE_colApprovalItems,
+        //                        {ID: ThisRecord.ID},
+        //                        {
+        //                            Order: ThisRecord.Order - 1
+        //                        }
+        //                    )
+        //                );
+        //                If(
+        //                    !IsBlank(inputItemID),
+        //                    Patch(
+        //                        colApprovalItems,
+        //                        {ID: inputItemID},
+        //                        {
+        //                            Order: inputNewOrder
+        //                        }
+        //                    )
+        //                )
+        //            );
+        //            If(
+        //                inputNewOrder < inputCurrentOrder,
+        //                ForAll(
+        //                    RowstoUpdateHigher,
+        //                    Patch(
+        //                        colApprovalItems,
+        //                        {ID: ThisRecord.ID},
+        //                        {
+        //                            Order: ThisRecord.Order + 1
+        //                        }
+        //                    )
+        //                );
+        //                If(
+        //                    !IsBlank(inputItemID),
+        //                    Patch(
+        //                        colApprovalItems,
+        //                        {ID: inputItemID},
+        //                        {
+        //                            Order: inputNewOrder
+        //                        }
+        //                    )
+        //                )
+        //            );
+        //        );
+        //    )
+        //)
+      MoveTemplateItemOrder: |-
+        =If(
+            inputNewOrder <> inputCurrentOrder,
+            With(
+                {
+                    ApprovalItems: THCEE_colEditTemplate
+                },
+                With(
+                    {
+                        RowstoUpdateLower: Filter(
+                            ApprovalItems,
+                            Order > inputCurrentOrder And Order <= inputNewOrder
+                        ),
+                        RowstoUpdateHigher: Filter(
+                            ApprovalItems,
+                            Order >= inputNewOrder And Order < inputCurrentOrder
+                        )
+                    },
+                    If(
+                        inputNewOrder > inputCurrentOrder,
+                        ForAll(
+                            RowstoUpdateLower,
+                            Patch(
+                                THCEE_colEditTemplate,
+                                {ID: ThisRecord.ID},
+                                {
+                                    Order: ThisRecord.Order - 1
+                                }
+                            )
+                        );
+                        If(
+                            !IsBlank(inputItemID),
+                            Patch(
+                                THCEE_colEditTemplate,
+                                {ID: inputItemID},
+                                {
+                                    Order: inputNewOrder
+                                }
+                            )
+                        )
+                    );
+                    If(
+                        inputNewOrder < inputCurrentOrder,
+                        ForAll(
+                            RowstoUpdateHigher,
+                            Patch(
+                                THCEE_colEditTemplate,
+                                {ID: ThisRecord.ID},
+                                {
+                                    Order: ThisRecord.Order + 1
+                                }
+                            )
+                        );
+                        If(
+                            !IsBlank(inputItemID),
+                            Patch(
+                                THCEE_colEditTemplate,
+                                {ID: inputItemID},
+                                {
+                                    Order: inputNewOrder
+                                }
+                            )
+                        )
+                    );
+                );
+            )
+        )
+      RemovedUnSigned: |-
+        =// FIX NEEDED: Need to remove delegation warnings
+        // User as an example
+        //If(
+        //    UnSigned,
+        //    RemoveIf(
+        //        THCEE_colApprovalItems,
+        //        IsBlank(SignedBy) && IsBlank(SignedOn)
+        //    );
+        //    RemoveIf(
+        //        'VCDS THCEE — Approvals',
+        //        varEHCRItem.ID = ID && IsBlank(SignedBy) && IsBlank(SignedOn)
+        //    );
+        //    ,
+        //    RemoveIf(
+        //        THCEE_colApprovalItems,
+        //        IsBlank(Approver) && IsBlank(SignedBy) && IsBlank(SignedOn)
+        //    );
+        //    RemoveIf(
+        //        'VCDS THCEE — Approvals',
+        //        varEHCRItem.ID = ID && IsBlank(SignedBy) && IsBlank(SignedOn) && IsBlank(Approver)
+        //    );
+        //    
+        //)
+      TotalRefresh: =
+      Width: =100
+      approvalNotifyEmail: "=With(\n    {\n        //user: LookUp(\n        //    colApprovalItems,\n        //    itemID =  && Order = (orderApproval + 1)\n        //).Approver\n        //,\n        //CurrentUser:LookUp(\n        //    THCEE_colApprovalItems,\n        //    itemID = EHCRID && Order = (orderApproval)\n        //).Approver\n    },\n    If(\n        !IsBlank(\"\"),\n        If(\n            SignedApproval,\n            Office365Outlook.SendEmailV2(\n                \"user\",\n                \"Signature Required for Template Tilte\",\n                \"\n            <pre>\n    Hello,\n\n    You are the approval next up in the approval process for Template Title.\n    Please click on the link below to open the EHCR in the app.\n\n    \n\n    <a href=''></a>\n            </pre>\n            <hr>\n            <pre>\n    Hello,\n\n    You are the approval next up in the approval process for Template Name.\n    Please click on the link below to open the EHCR in the app.\n\n    \n\n    <a href=''></a>\n            </pre>\n            \"\n            ),\n            Office365Outlook.SendEmailV2(\n                email,\n                \"Signature Required for Template Title\",\n                \"\n            <pre>\nHello,\n\nPlease click on the link below to open the EHCR in the app.\n\n\n\n<a href=''></a>\n            </pre>\n            <hr>\n            <pre>\nHello,\n\nPlease click on the link below to open the EHCR in the app.\n\n\n\n<a href=''></a>\n            </pre>\n            \"\n            )\n        )\n       \n    )\n)"
+      chatNotify: |-
+        =Office365Outlook.SendEmailV2(
+            email,
+            "Signature Required for Template Name",
+            "
+            <pre>
+        Hello,
+
+        You received a chat message for the Template Name request.
+        Please click on the link below to open the request in the app.
+
+
+        <a href=''>Template Name</a>
+                    </pre>
+                    <hr>
+                    <pre>
+        Hello,
+
+        You received a chat message for the Template Name request.
+        Please click on the link below to open the in the app.
+
+
+
+        <a href=''>Template Name</a>
+                    </pre>
+                    "
+        )
+      completeNotify: |-
+        =Office365Outlook.SendEmailV2(
+            email,
+            "Your EHCR Request Template Name has been Fully Approved",
+            "
+            <pre>
+        Hello,
+
+        Template Name has been fully approved.
+
+        Please click on the link below to view the EHCR in the app.
+
+
+
+        <a href=''></a>
+                </pre>
+                <hr>    
+                <pre>
+        Hello,
+
+        Template Name has been fully approved.
+
+        Please click on the link below to open the EHCR in the app.
+
+        <a href=''></a>
+                </pre>
+                "
+        )
+    Children:
+      - TextCanvas1:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            Color: =RGBA(255, 255, 255, 1)
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =Parent.Height
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Size: =14
+            Text: ="External Functions"
+            Width: =Parent.Width

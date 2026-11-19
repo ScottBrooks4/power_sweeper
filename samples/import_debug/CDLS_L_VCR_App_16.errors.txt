@@ -1,0 +1,119 @@
+Studio App Checker — error inventory
+Source: CDLS (L) VCR App (16).msapp
+============================================================
+
+TOTAL ISSUES: 1719
+  Auto-fixable (current hops): 581
+  Not auto-fixable: 1138
+
+BY CATEGORY (Studio buckets):
+  Formulas:          1112
+  Accessibility:      476
+  Maintainability:     75
+  Performance:         56
+
+BY SEVERITY:
+  High:              1109
+  Medium:             610
+
+BY RULE:
+   527  app-ErrInvalidName [6 fixable]
+        Name isn't valid — unrecognized identifier
+   343  app-ErrInvalidDot
+        '.' operator used on incompatible value
+   255  acc-AccessibleLabelNeeded [255 fixable]
+        Missing accessible label
+   143  app-ErrInvalidArgs-Func [44 fixable]
+        Function has invalid arguments
+   121  acc-TabIndexShouldBeDefinedForInteractiveControl [121 fixable]
+        Missing tab stop
+   100  acc-FocusBorderShouldBeVisible [100 fixable]
+        Focus isn't showing
+    63  app-UnusedVariables
+        Unused variable
+    36  app-ErrOperatorExpected [36 fixable]
+        Expected operator (+, *, &, etc.)
+    30  app-SuggestRemoteExecutionHint
+        Delegation warning
+    16  app-ErrIncompatibleTypesForEquality-Left-Right
+        Incompatible types for comparison
+    14  app-ErrBadType-ExpectedType-ProvidedType
+        Invalid argument type
+    13  app-SuggestRemoteExecutionHint-OpNotSupportedByService
+        Delegation — operation not supported by connector
+    12  app-ErrBadArityMinimum [12 fixable]
+        Invalid number of arguments (too few)
+     8  app-InefficientDelayLoading
+        Inefficient delay loading
+     5  app-ErrBadArity [5 fixable]
+        Invalid number of arguments
+     5  app-CrossScreenEventDependencies
+        Event references control on another screen
+     4  app-ErrColDNE-Name
+        Column does not exist
+     4  app-UnusedMediaResources
+        Unused media files
+     3  app-SuggestRemoteExecutionHint-StringMatchSecondParam
+        Delegation — field name in second argument
+     3  app-WarnNoUsableFields
+        Rule produces only nested tables/records
+     3  app-CollectingReadOnlyTable
+        Collection initialized but never updated
+     2  app-ErrBadType-Type
+        Invalid argument type for context
+     2  app-ErrUnknownFunction
+        Unknown or unsupported function
+     2  app-ErrBadToken [2 fixable]
+        Unexpected characters in formula
+     2  app-ErrTypeError-Arg-Expected-Found
+        Argument type mismatch
+     1  app-SuggestRemoteExecutionHint-InOpRhs
+        Delegation — In operator RHS
+     1  app-ErrIncompatibleCtxtVariableTypes
+        Incompatible context variable types
+     1  app-DataSourceDefaultMaxRowsLimit
+        Non-delegable row limit > 500
+
+BY ROOT CAUSE:
+   316  cross_screen_or_missing_control
+   311  cascade_from_invalid_control
+   255  accessibility_AccessibleLabelNeeded
+   205  unrecognized_identifier
+   179  formula_other
+   121  accessibility_TabIndexShouldBeDefinedForInteractiveControl
+   100  accessibility_FocusBorderShouldBeVisible
+    63  unused_variable
+    47  delegation_warning
+    44  locale_if_separator
+    36  locale_list_separator
+     8  inefficient_delay_loading
+     6  locale_countif_value_cascade
+     6  locale_countif_separator
+     5  locale_rgba_alpha
+     5  cross_screen_event
+     4  missing_sharepoint_column
+     4  unused_media
+     3  readonly_collection
+     1  row_limit_over_500
+
+TOP SCREENS:
+   874  'Emergency Contact'
+   304  'VCR / VCN Form'
+   109  'VCR Admin Screen'
+    94  'VCR Details Screen'
+    70  App
+    57  'VASC Template Control Screen'
+    51  TopbarHeader
+    38  Particular
+    36  'VCR Home Page'
+    35  Agency
+    19  'VASC Template Refresh Screen'
+    16  SidebarMenu
+     6  ExternalFunctions
+     6  topNav
+     3  InfoBtn_PopUp
+
+HEURISTIC SCAN (formula patterns not in SARIF):
+  Total: 412
+    focus_not_showing:              390
+    locale_separators:               22

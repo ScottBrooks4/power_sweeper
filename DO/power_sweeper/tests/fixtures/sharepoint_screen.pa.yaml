@@ -1,0 +1,12 @@
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    OnVisible: |-
+      =ClearCollect(colLocal, Filter(Reqeusts, Statu = "Open"))
+  Children:
+    - TitleLabel:
+        Control: Label@2.0.0
+        Properties:
+          Text: =LookUp(Reqeusts, RequestNumber = "R-1").Title
+          X: =20
+          Y: =20

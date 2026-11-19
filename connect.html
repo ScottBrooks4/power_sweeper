@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevOps connection — VASC Pivot</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="css/app.css?v=20261103f">
+  <script>if(window.parent!==window)document.documentElement.classList.add("framed");else document.documentElement.classList.add("shell")</script>
+</head>
+<body data-page="connect">
+  <header id="site-header"></header>
+  <div class="frame"><div class="stage">
+    <section class="panel connect-wrap">
+      <h1>Connections</h1>
+      <p id="connect-summary">Checking the connection…</p>
+      <ol id="connect-steps" class="connect-steps"></ol>
+      <div id="connect-sample"></div>
+      <form id="connect-token" class="connect-token">
+        <p>The code sign-in is not your Azure DevOps session. Microsoft shows it as Visual Studio Online on another device in the United States, and DND blocks that.</p>
+        <p id="connect-scope"><a href="https://dev.azure.com/VCDS-VCEMD/_usersSettings/tokens" target="_blank" rel="noopener">Create a token in Azure DevOps</a> for VCDS-VCEMD. Choose Work Items, Read &amp; write. Adding and moving circles needs that.</p>
+        <p>Team presence, in-office, and calendar events are not on this token. Microsoft Graph can provide a coarse status (available, busy, in a meeting, out of office) with Presence.Read and a basic calendar read. That is the same status teammates already see. It is not a location or activity log. <a href="pulse.html">Team pulse</a> shows assignments and client-support hours from the work items until that Graph permission exists.</p>
+        <label>Azure DevOps token <input id="connect-pat" type="password" autocomplete="off" spellcheck="false"></label>
+        <p>This browser keeps the token until you sign out.</p>
+        <p id="connect-token-note"></p>
+        <div class="actions">
+          <button class="btn login-go" type="submit">Use this token</button>
+          <button class="btn" type="button" id="connect-again">Check again</button>
+        </div>
+      </form>
+    </section>
+  </div></div>
+  <script src="js/shell.js?v=20261103g"></script>
+  <script src="js/connect.js?v=20261030b"></script>
+</body>
+</html>

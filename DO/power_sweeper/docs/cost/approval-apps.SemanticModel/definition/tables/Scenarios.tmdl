@@ -1,0 +1,103 @@
+table Scenarios
+	lineageTag: scenarios
+
+	column stack
+		dataType: string
+		lineageTag: stack
+		summarizeBy: none
+		sourceColumn: stack
+
+	column stack_name
+		dataType: string
+		lineageTag: stack_name
+		summarizeBy: none
+		sourceColumn: stack_name
+
+	column scale
+		dataType: string
+		lineageTag: scale
+		summarizeBy: none
+		sourceColumn: scale
+
+	column licensing
+		dataType: string
+		lineageTag: licensing
+		summarizeBy: none
+		sourceColumn: licensing
+
+	column feasibility_note
+		dataType: string
+		lineageTag: feasibility_note
+		summarizeBy: none
+		sourceColumn: feasibility_note
+
+	column openers
+		dataType: int64
+		lineageTag: openers
+		summarizeBy: sum
+		sourceColumn: openers
+
+	column annual_cad
+		dataType: double
+		lineageTag: annual_cad
+		summarizeBy: sum
+		sourceColumn: annual_cad
+
+	column platform_cad
+		dataType: double
+		lineageTag: platform_cad
+		summarizeBy: sum
+		sourceColumn: platform_cad
+
+	column labour_cad
+		dataType: double
+		lineageTag: labour_cad
+		summarizeBy: sum
+		sourceColumn: labour_cad
+
+	column five_year_cad
+		dataType: double
+		lineageTag: five_year_cad
+		summarizeBy: sum
+		sourceColumn: five_year_cad
+
+	column feasible
+		dataType: boolean
+		lineageTag: feasible
+		summarizeBy: none
+		sourceColumn: feasible
+
+	column sweet_spot
+		dataType: boolean
+		lineageTag: sweet_spot
+		summarizeBy: none
+		sourceColumn: sweet_spot
+
+	column sweet_spot_five_year
+		dataType: boolean
+		lineageTag: sweet_spot_five_year
+		summarizeBy: none
+		sourceColumn: sweet_spot_five_year
+
+	column you_are_here
+		dataType: boolean
+		lineageTag: you_are_here
+		summarizeBy: none
+		sourceColumn: you_are_here
+
+	column you_are_here_ai
+		dataType: boolean
+		lineageTag: you_are_here_ai
+		summarizeBy: none
+		sourceColumn: you_are_here_ai
+
+	partition Scenarios = m
+		mode: import
+		source = ```
+				let
+				    Source = Csv.Document(File.Contents("/srv/http/power_sweeper/docs/cost/data/public_scenarios.csv"),[Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Promoted,{{"openers", Int64.Type}, {"annual_cad", type number}, {"platform_cad", type number}, {"labour_cad", type number}, {"five_year_cad", type number}, {"feasible", type logical}, {"sweet_spot", type logical}, {"sweet_spot_five_year", type logical}, {"you_are_here", type logical}, {"you_are_here_ai", type logical}})
+				in
+				    Typed
+				```

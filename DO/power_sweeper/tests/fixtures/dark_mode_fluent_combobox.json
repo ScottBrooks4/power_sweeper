@@ -1,0 +1,56 @@
+{
+  "TopParent": {
+    "Type": "ControlInfo",
+    "Name": "Screen1",
+    "Template": {
+      "Id": "http://microsoft.com/appmagic/screen",
+      "Name": "screen"
+    },
+    "Rules": [
+      {
+        "Property": "Fill",
+        "Category": "Design",
+        "InvariantScript": "RGBA(255, 255, 255, 1)",
+        "RuleProviderType": "Unknown"
+      }
+    ],
+    "Children": [
+      {
+        "Type": "ControlInfo",
+        "Name": "DataCardValue2_2",
+        "Template": {
+          "Id": "http://microsoft.com/appmagic/modernCombobox",
+          "Version": "1.1.1",
+          "Name": "modernCombobox"
+        },
+        "Rules": [
+          {
+            "Property": "Items",
+            "Category": "Data",
+            "InvariantScript": "[\"Cdr\", \"Capt\"]",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Appearance",
+            "Category": "Design",
+            "InvariantScript": "Appearance.FilledDarker",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Fill",
+            "Category": "Data",
+            "InvariantScript": "If(gblDarkMode, gblTheme.InputFill, RGBA(255, 255, 255, 1))",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Color",
+            "Category": "Data",
+            "InvariantScript": "gblTheme.Text",
+            "RuleProviderType": "Unknown"
+          }
+        ],
+        "Children": []
+      }
+    ]
+  }
+}

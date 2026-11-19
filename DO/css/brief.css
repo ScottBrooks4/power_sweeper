@@ -1,0 +1,105 @@
+.brief-page { max-width: 1400px; margin: 0 auto; }
+.brief-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin: 0 0 14px;
+}
+.brief-head .lede p { margin: 0; color: var(--muted); }
+.brief-filters { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.brief-filters label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--muted); }
+.brief-filters select {
+  min-width: 11rem;
+  padding: 7px 10px;
+  color: var(--ink);
+  background: rgba(7, 24, 46, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+.brief-stats { margin: 0 0 14px; }
+.brief-stats.brief-stats-3 { grid-template-columns: repeat(3, 1fr); }
+.brief-stats .stat b { font-size: 2rem; font-variant-numeric: tabular-nums; }
+
+.brief-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.brief-grid .panel { margin: 0; min-width: 0; }
+.brief-grid h2 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 600; }
+.brief-grid h3 { margin: 12px 0 6px; font-size: 0.95rem; font-weight: 600; }
+.brief-table { font-size: 0.88rem; }
+.brief-table td { padding: 5px 6px; }
+.brief-table .brief-day { white-space: nowrap; }
+.brief-table th { color: var(--muted); font-weight: 600; font-size: 0.8rem; position: sticky; top: 0; background: rgba(4, 16, 32, 0.96); }
+.brief-table a { color: inherit; }
+.brief-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.brief-muted { color: #b9cde0; font-size: 0.86em; }
+.brief-grid .note { font-size: 0.82rem; margin: 10px 0 0; }
+.brief-repeats { margin: 0; padding-left: 1.2rem; font-size: 0.88rem; }
+.brief-repeats a { color: inherit; }
+.brief-board { margin: 10px 0 0; font-size: 0.86rem; }
+.brief-board summary { cursor: pointer; color: var(--gold); }
+.brief-board a { color: inherit; }
+
+/* WET-BOEW wb-charts output: a figure with the Flot canvas, its legend, and the data table in <details>. */
+.brief-grid .wb-graph { margin: 0; }
+.brief-grid figure { margin: 0; }
+.brief-grid figcaption { font-size: 0.86rem; color: var(--muted); margin: 0 0 6px; }
+.brief-grid .legend table { width: auto; margin: 6px 0 0; }
+.brief-grid .legend td { border: 0; padding: 2px 6px 2px 0; font-size: 0.82rem; color: var(--ink); }
+.brief-grid .flot-text { color: #d6e6f5 !important; font-size: 0.74rem !important; }
+.brief-grid .flot-x-axis .flot-tick-label { line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+.brief-grid details { margin: 8px 0 0; font-size: 0.86rem; }
+.brief-grid details summary { cursor: pointer; color: var(--muted); }
+.brief-grid details table { margin-top: 6px; }
+.brief-grid table.wb-charts caption { text-align: left; color: var(--muted); font-size: 0.86rem; }
+
+.brief-footer {
+  margin: 14px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.brief-footer b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .brief-grid { grid-template-columns: minmax(0, 1fr); }
+  .brief-stats, .brief-stats.brief-stats-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media print {
+  @page { size: letter landscape; margin: 8mm; }
+  body[data-page="brief"] { background: #fff; color: #000; display: block; min-height: 0; overflow: visible; font-size: 10px; }
+  html { font-size: 10px; }
+  body[data-page="brief"]::before, #site-header, .rail, .brief-filters, .brief-board, .brief-grid details > summary { display: none !important; }
+  body[data-page="brief"] .frame { display: block; height: auto; }
+  body[data-page="brief"] .stage { display: block; padding: 0; color: #000; }
+  .brief-page { max-width: none; }
+  /* The chart canvas shrinks to the paper but Flot's HTML x labels keep their
+     screen positions, so print shows the chart's own data table instead. */
+  .brief-grid .flot-x-axis { display: none !important; }
+  .brief-grid .flot-overlay { width: 100% !important; visibility: hidden; }
+  .brief-grid details table { width: auto; }
+  .brief-grid details th, .brief-grid details td { padding: 1px 6px; }
+  .brief-page *, .brief-page .lede p, .brief-page .note { color: #000 !important; text-shadow: none !important; }
+  .brief-page .panel, .brief-page .stat { background: #fff; border-color: #999; padding: 8px 10px; }
+  .brief-page .stat b { color: #000; font-size: 1.5rem; }
+  .brief-head { margin: 0 0 6px; }
+  .brief-stats, .brief-stats.brief-stats-3 { grid-template-columns: repeat(3, 1fr); margin: 0 0 8px; }
+  .brief-stats:not(.brief-stats-3) { grid-template-columns: repeat(4, 1fr); }
+  .brief-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .brief-grid > .panel:nth-child(n+3) { break-inside: avoid; }
+  .brief-grid .table-wrap { max-height: none; overflow: visible; }
+  .brief-table th { background: #fff; position: static; }
+  .brief-table td { padding: 2px 4px; }
+  .brief-page .status-pill { background: none; border: 1px solid #777; padding: 0 6px; }
+  /* Flot paints the bars on a canvas; keep their colours on paper. */
+  .brief-grid canvas { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .brief-grid .flot-text { color: #000 !important; }
+}

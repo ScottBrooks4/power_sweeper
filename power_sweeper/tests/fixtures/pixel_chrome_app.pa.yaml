@@ -1,0 +1,11 @@
+App:
+  Properties:
+    OnStart: |-
+      =ClearCollect(
+          colFormSectionsWithoutEmergency,
+          { ID: 1, Label: "Destination", Value: "Destination" },
+          { ID: 2, Label: "Organization", Value: "Organization" },
+          { ID: 3, Label: "Visit type", Value: "Visit type" }
+      );
+    StartScreen: =ChromeScreen
+    Theme: =PowerAppsTheme

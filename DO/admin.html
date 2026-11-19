@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — VASC Pivot</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="css/app.css?v=20261111b">
+  <link rel="stylesheet" href="css/admin.css?v=20261111a">
+  <meta name="robots" content="noindex">
+  <script>if(window.parent!==window)document.documentElement.classList.add("framed");else document.documentElement.classList.add("shell")</script>
+</head>
+<body data-page="admin">
+  <header id="site-header"></header>
+  <div class="frame"><div class="stage">
+    <section class="panel admin-gate" id="admin-gate">
+      <h1>Admin</h1>
+      <p id="admin-gate-note">Checking who is signed in…</p>
+    </section>
+
+    <div id="admin-body" hidden>
+      <section class="panel admin-panel">
+        <h1>Admin</h1>
+        <p id="admin-who"></p>
+        <nav class="admin-jump" aria-label="Admin sections">
+          <a href="#admin-sync">Sync</a>
+          <a href="#admin-abbr">Abbreviations</a>
+          <a href="#admin-floor">Floor scanner</a>
+        </nav>
+      </section>
+
+      <section class="panel admin-panel" id="admin-sync">
+        <h2>Sync data sources</h2>
+        <p>Pages read saved copies so they open quickly. Sync here reads the source again now.</p>
+        <table class="admin-table">
+          <thead><tr><th>Source</th><th>Saved copy</th><th>Contents</th><th></th></tr></thead>
+          <tbody id="admin-sync-rows"></tbody>
+        </table>
+        <p id="admin-sync-note" class="admin-note" aria-live="polite"></p>
+
+        <h3>Scorecard and SharePoint</h3>
+        <p>Force sync shows the changes first. Nothing is written to SharePoint until you apply them.</p>
+        <p id="admin-sp-status" class="admin-note">Checking the SharePoint sync…</p>
+        <div class="actions">
+          <button class="btn admin-btn" type="button" id="admin-sp-plan" disabled>Force sync: preview changes</button>
+          <button class="btn admin-btn" type="button" id="admin-sp-apply" hidden>Apply changes</button>
+          <button class="btn" type="button" id="admin-sp-cancel" hidden>Discard preview</button>
+        </div>
+        <div id="admin-sp-plan-view"></div>
+      </section>
+
+      <section class="panel admin-panel" id="admin-abbr">
+        <h2>Abbreviations</h2>
+        <p>These are the entries added on this site. The DND/CAF manual list is never changed; to correct a manual entry, find it below and save a corrected copy here. A saved copy is used in place of the manual one.</p>
+        <form id="admin-abbr-form" class="admin-abbr-grid" autocomplete="off">
+          <label><span>Abbreviation (EN)</span><input name="abbr" placeholder="ABC" maxlength="60"></label>
+          <label class="wide"><span>Expansion (EN)</span><input name="en" placeholder="Full English name" maxlength="200"></label>
+          <label><span>Abbreviation (FR)</span><input name="frAbbr" placeholder="ABC" maxlength="60" lang="fr"></label>
+          <label class="wide"><span>Expansion (FR)</span><input name="fr" placeholder="Nom complet en français" maxlength="200" lang="fr"></label>
+          <div class="admin-abbr-go">
+            <button class="btn admin-btn" type="submit" id="admin-abbr-save">Add</button>
+            <button class="btn" type="button" id="admin-abbr-clear" hidden>Cancel edit</button>
+          </div>
+        </form>
+        <p id="admin-abbr-note" class="admin-note" aria-live="polite"></p>
+        <div class="filters">
+          <input id="admin-abbr-filter" type="search" placeholder="Filter added entries" aria-label="Filter added entries">
+        </div>
+        <table class="admin-table admin-abbr-table">
+          <thead><tr><th>EN</th><th>English expansion</th><th>FR</th><th>French expansion</th><th>Source</th><th></th></tr></thead>
+          <tbody id="admin-abbr-rows"></tbody>
+        </table>
+
+        <h3>Correct a manual entry</h3>
+        <div class="filters">
+          <input id="admin-manual-q" type="search" placeholder="Search the manual list" aria-label="Search the manual list">
+        </div>
+        <table class="admin-table admin-abbr-table">
+          <tbody id="admin-manual-rows"></tbody>
+        </table>
+      </section>
+
+      <section class="panel admin-panel" id="admin-floor">
+        <h2>Floor scanner <small class="admin-tag">testing</small></h2>
+        <p>Floor scanner comes from Power Sweeper. It is not reliable on office plans yet, so it stays here and is not linked from public pages.</p>
+        <div class="actions">
+          <button class="btn admin-btn" type="button" id="admin-floor-open">Open here</button>
+          <a class="btn" href="power_sweeper/public/floorscanner.php" target="_blank" rel="noopener">Open in a new tab</a>
+        </div>
+        <iframe id="admin-floor-frame" class="admin-floor" title="Floor scanner" hidden></iframe>
+      </section>
+    </div>
+  </div></div>
+  <script src="js/shell.js?v=20261111a"></script>
+  <script src="js/admin.js?v=20261113a"></script>
+</body>
+</html>

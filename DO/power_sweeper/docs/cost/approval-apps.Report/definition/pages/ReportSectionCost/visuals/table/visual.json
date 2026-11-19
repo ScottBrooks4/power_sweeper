@@ -1,0 +1,135 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "a1000000000000000002",
+  "position": {
+    "x": 800,
+    "y": 20,
+    "z": 0,
+    "height": 660,
+    "width": 450,
+    "tabOrder": 1
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "stack_name"
+                }
+              },
+              "queryRef": "Scenarios.stack_name",
+              "nativeQueryRef": "stack_name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "scale"
+                }
+              },
+              "queryRef": "Scenarios.scale",
+              "nativeQueryRef": "scale"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "openers"
+                }
+              },
+              "queryRef": "Scenarios.openers",
+              "nativeQueryRef": "openers"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "annual_cad"
+                }
+              },
+              "queryRef": "Scenarios.annual_cad",
+              "nativeQueryRef": "annual_cad"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "platform_cad"
+                }
+              },
+              "queryRef": "Scenarios.platform_cad",
+              "nativeQueryRef": "platform_cad"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "feasible"
+                }
+              },
+              "queryRef": "Scenarios.feasible",
+              "nativeQueryRef": "feasible"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "sweet_spot"
+                }
+              },
+              "queryRef": "Scenarios.sweet_spot",
+              "nativeQueryRef": "sweet_spot"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Scenarios"
+                    }
+                  },
+                  "Property": "you_are_here"
+                }
+              },
+              "queryRef": "Scenarios.you_are_here",
+              "nativeQueryRef": "you_are_here"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

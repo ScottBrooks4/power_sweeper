@@ -1,0 +1,538 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  TranslationComponent:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    CustomProperties:
+      GetInfoData:
+        PropertyKind: Action
+        DisplayName: GetInfoData
+        Description: A custom property
+        ReturnType: None
+        Parameters:
+          - ScreenID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+          - ItemID:
+              Description: A parameter
+              DataType: Number
+              Default: =100
+      Labels:
+        PropertyKind: Output
+        DisplayName: Labels
+        Description: Translated Labels for TDR Homepage
+        DataType: Record
+      Language:
+        PropertyKind: Input
+        DisplayName: Language
+        Description: Language Control
+        RaiseOnReset: true
+        DataType: Text
+        Default: =If(varLang, "en-ca", "fr-ca")
+    Properties:
+      Fill: =RGBA(52, 152, 47, 1)
+      GetInfoData: |-
+        =With(
+            {
+                infoTable: If(
+                    varLang,
+                    // English
+                    [
+                        {
+                            ScrID: 0,
+                            Type: "Details",
+                            Info: [
+                                {
+                                    itID: 0,
+                                    Type: "L1",
+                                    Title: "L1",
+                                    Value: "Use the dropdown to select the L1 that request is for."
+                                },
+                                {
+                                    itID: 1,
+                                    Type: "L2",
+                                    Title: "L2",
+                                    Value: "Use the dropdown to select the L2 that is under the L1 you have selected and that the request for."
+                                },
+                                {
+                                    itID: 2,
+                                    Type: "L3",
+                                    Title: "L3",
+                                    Value: "Use the dropdown to select the L3 that is under the L2 you have selected and that the request for."
+                                },
+                                {
+                                    itID: 3,
+                                    Type: "SubmissionType",
+                                    Title: "Submission Type",
+                                    Value: "This option has already been selected by you from a previous page."
+                                },
+                                {
+                                    itID: 4,
+                                    Type: "Recurrence",
+                                    Title: "Recurrence",
+                                    Value: "Use the dropdown to select which recurrence type this request falls under."
+                                },
+                                {
+                                    itID: 5,
+                                    Type: "Objective",
+                                    Title: "Objective",
+                                    Value: "Write the objective for the EHCR Request."
+                                },
+                                {
+                                    itID: 6,
+                                    Type: "Rationale",
+                                    Title: "Rationale",
+                                    Value: "Write the rationale for the EHCR Request."
+                                },
+                                {
+                                    itID: 7,
+                                    Type: "DescriptionOfActivity",
+                                    Title: "Description Of Activity",
+                                    Value: "Please provide a description of the activity of the EHCR Request."
+                                },
+                                {
+                                    itID: 8,
+                                    Type: "Risk",
+                                    Title: "Risk",
+                                    Value: "Please state the risk involved with the EHCR request."
+                                },
+                                {
+                                    itID: 9,
+                                    Type: "Impact",
+                                    Title: "Impact",
+                                    Value: "Please provide a description of the impact the EHCR request will have."
+                                },
+                                {
+                                    itID: 10,
+                                    Type: "Disclosure",
+                                    Title: "Disclosure",
+                                    Value: "Click on the checkbox if any about the EHCR Request needs to be disclosed. Then write in the textbox the disclosure"
+                                },
+                                {
+                                    itID: 11,
+                                    Type: "Timeline",
+                                    Title: "Timeline",
+                                    Value: "Use the dropdown to select the correct timeline for your trip."
+                                }
+                            ]
+                        },
+                        {
+                            ScrID: 1,
+                            Type: "Attendees",
+                            Info: [
+                                {
+                                    itID: 0,
+                                    Type: "DND",
+                                    Title: "DND Attendees",
+                                    Value: "Enter the number of CAF memebers that will be a part of this request."
+                                },
+                                {
+                                    itID: 1,
+                                    Type: "non-DND",
+                                    Title: "non-DND Attendees",
+                                    Value: "Enter the number of Civilian members that will be a part of this request."
+                                },
+                                {
+                                    itID: 2,
+                                    Type: "Spouses/AccompenyingPersons",
+                                    Title: "Spouses / Accompenying Persons Attendees",
+                                    Value: "Enter the number of Spouses and or other Accompenying Persons that will be a part of this request."
+                                }
+                            ]
+                        },
+                        {
+                            ScrID: 2,
+                            Type: "Trips",
+                            Info: [
+                                {
+                                    itID: 0,
+                                    Type: "TripTitle",
+                                    Title: "Trip Title",
+                                    Value: "Enter a Title that will be given for this specfic trip."
+                                },
+                                {
+                                    itID: 1,
+                                    Type: "TripDuration&Location",
+                                    Title: "Trip Duration & Location",
+                                    Value: "Enter the to and from location of the trip along with the along with their respective dates."
+                                },
+                                {
+                                    itID: 2,
+                                    Type: "Events",
+                                    Title: "Events",
+                                    Value: "Click on the '+ New Event' button to create a new event for the trip. Then select the pen icon to edit the event. Enter in for each event the Title, the number of attendees, and the dates. Finally, use the checkmark to confirm."
+                                },
+                                {
+                                    itID: 3,
+                                    Type: "ExceptionalTravelcircumstances",
+                                    Title: "Exceptional travel circumstances",
+                                    Value: "Choose a circumstance from the options in the dropdown that should be taken into account for this trip."
+                                },
+                                {
+                                    itID: 4,
+                                    Type: "Thistripis",
+                                    Title: "Domestic or International",
+                                    Value: "State if the trip is either Domestic or International"
+                                },
+                                {
+                                    itID: 5,
+                                    Type: "CategoryofTravel",
+                                    Title: "Category of Travel",
+                                    Value: "Select from the dropdown what category your trip best falls under."
+                                },
+                                {
+                                    itID: 6,
+                                    Type: "ProactiveDisclosureGroup",
+                                    Title: "Proactive Disclosure Group",
+                                    Value: "Use the dropdown to select which of options it best for this trip. Choose N/A if the other two options aren't a part of the trip."
+                                },
+                                {
+                                    itID: 7,
+                                    Type: "GovernmentAircraftUsed?",
+                                    Title: "Government Aircraft Used?",
+                                    Value: "Simply state if a Government Aircraft was used."
+                                },
+                                {
+                                    itID: 8,
+                                    Type: "GovernmentAircraftCostifChargesLevied",
+                                    Title: "Government Aircraft Cost if Charges Levied",
+                                    Value: "State the cost levied due to the use of a Government Aircraft."
+                                },
+                                {
+                                    itID: 9,
+                                    Type: "BusinessClass?",
+                                    Title: "Business Class?",
+                                    Value: "State if you are in Business Class for this trip"
+                                },
+                                {
+                                    itID: 10,
+                                    Type: "WithinTravelCeiling?",
+                                    Title: "Within Travel Ceiling?",
+                                    Value: "State if the trip is under the Travel Ceiling"
+                                },
+                                {
+                                    itID: 11,
+                                    Type: "ExceptionalHospitality",
+                                    Title: "Exceptional Hospitality",
+                                    Value: "Check the box if true"
+                                },
+                                {
+                                    itID: 12,
+                                    Type: "CostExceedsStandardcostperperson",
+                                    Title: "Cost Exceeds Standard cost per person",
+                                    Value: "Check the box if true"
+                                },
+                                {
+                                    itID: 13,
+                                    Type: "Costsexceedsmaximimperperson",
+                                    Title: "Costs exceeds maximim per person",
+                                    Value: "Check the box if true"
+                                },
+                                {
+                                    itID: 14,
+                                    Type: "Spousesincluded",
+                                    Title: "Spouses included",
+                                    Value: "Check the box if true"
+                                },
+                                {
+                                    itID: 15,
+                                    Type: "ExceedsDoA$",
+                                    Title: "Exceeds DoA $",
+                                    Value: "Check the box if true"
+                                },
+                                {
+                                    itID: 16,
+                                    Type: "PersonalAttendanceofApprovingauthority",
+                                    Title: "Personal Attendance of Approving authority",
+                                    Value: "Check the box if true"
+                                },
+                                {
+                                    itID: 17,
+                                    Type: "OtherExceptionalHospitality",
+                                    Title: "Other Exceptional Hospitality",
+                                    Value: "Check the box if true"
+                                },
+                                {
+                                    itID: 18,
+                                    Type: "Entertainmentprovided",
+                                    Title: "Entertainment provided",
+                                    Value: "Check the box if true"
+                                }
+                            ]
+                        },
+                        {
+                            ScrID: 3,
+                            Type: "Approvals",
+                            Info: [
+                                {
+                                    itID: 0,
+                                    Type: "",
+                                    Title: "",
+                                    Value: ""
+                                }
+                            ]
+                        }
+                    ],
+                    // French
+                    [
+                        {
+                            ScrID: 0,
+                            Type: "Details",
+                            Info: [
+                                {
+                                    itID: 0,
+                                    Type: "L1",
+                                    Title: "L1",
+                                    Value: "Use the dropdown to select the L1 that request is for."
+                                },
+                                {
+                                    itID: 1,
+                                    Type: "L2",
+                                    Title: "L2",
+                                    Value: "Use the dropdown to select the L2 that is under the L1 you have selected and that the request for."
+                                },
+                                {
+                                    itID: 2,
+                                    Type: "L3",
+                                    Title: "L3",
+                                    Value: "Use the dropdown to select the L3 that is under the L2 you have selected and that the request for."
+                                },
+                                {
+                                    itID: 3,
+                                    Type: "SubmissionType",
+                                    Title: "Submission Type",
+                                    Value: "This option has already been selected by you from a previous page."
+                                },
+                                {
+                                    itID: 4,
+                                    Type: "Recurrence",
+                                    Title: "Recurrence",
+                                    Value: "Recurrence Description"
+                                },
+                                {
+                                    itID: 5,
+                                    Type: "Objective",
+                                    Title: "Objective",
+                                    Value: "Objective Description"
+                                },
+                                {
+                                    itID: 6,
+                                    Type: "Rationale",
+                                    Title: "Rationale",
+                                    Value: "Rationale Description"
+                                },
+                                {
+                                    itID: 7,
+                                    Type: "DescriptionOfActivity",
+                                    Title: "Description Of Activity",
+                                    Value: "Description Of Activity"
+                                },
+                                {
+                                    itID: 8,
+                                    Type: "Risk",
+                                    Title: "Risk",
+                                    Value: "Risk Description"
+                                },
+                                {
+                                    itID: 9,
+                                    Type: "Impact",
+                                    Title: "Impact",
+                                    Value: "Impact Description"
+                                },
+                                {
+                                    itID: 10,
+                                    Type: "Disclosure",
+                                    Title: "Disclosure",
+                                    Value: "Disclosure Description"
+                                }
+                            ]
+                        },
+                        {
+                            ScrID: 1,
+                            Type: "Attendees",
+                            Info: [
+                                {
+                                    itID: 0,
+                                    Type: "DND",
+                                    Title: "DND Attendees",
+                                    Value: "Enter the number of CAF memebers that will be a part of this request."
+                                },
+                                {
+                                    itID: 1,
+                                    Type: "non-DND",
+                                    Title: "non-DND Attendees",
+                                    Value: "Enter the number of Civilian members that will be a part of this request."
+                                },
+                                {
+                                    itID: 2,
+                                    Type: "Spouses/AccompenyingPersons",
+                                    Title: "Spouses / Accompenying Persons Attendees",
+                                    Value: "Enter the number of Spouses and or other Accompenying Persons that will be a part of this request."
+                                }
+                            ]
+                        },
+                        {
+                            ScrID: 2,
+                            Type: "Trips",
+                            Info: [
+                                {
+                                    itID: 0,
+                                    Type: "TripTitle",
+                                    Title: "Trip Title",
+                                    Value: "Trip Title description"
+                                },
+                                {
+                                    itID: 1,
+                                    Type: "TripDuration&Location",
+                                    Title: "Trip Duration & Location",
+                                    Value: "Trip Duration & Location description"
+                                },
+                                {
+                                    itID: 2,
+                                    Type: "Events",
+                                    Title: "Events",
+                                    Value: "Events description"
+                                },
+                                {
+                                    itID: 3,
+                                    Type: "ExceptionalTravelcircumstances",
+                                    Title: "Exceptional travel circumstances",
+                                    Value: "Exceptional travel circumstances description"
+                                },
+                                {
+                                    itID: 4,
+                                    Type: "Thistripis",
+                                    Title: "Domestic or International",
+                                    Value: "Domestic or International description"
+                                },
+                                {
+                                    itID: 5,
+                                    Type: "CategoryofTravel",
+                                    Title: "Category of Travel",
+                                    Value: "Category of Travel description"
+                                },
+                                {
+                                    itID: 6,
+                                    Type: "ProactiveDisclosureGroup",
+                                    Title: "Proactive Disclosure Group",
+                                    Value: "Proactive Disclosure Group description"
+                                },
+                                {
+                                    itID: 7,
+                                    Type: "GovernmentAircraftUsed?",
+                                    Title: "Government Aircraft Used?",
+                                    Value: "Government Aircraft Used? description"
+                                },
+                                {
+                                    itID: 8,
+                                    Type: "GovernmentAircraftCostifChargesLevied",
+                                    Title: "Government Aircraft Cost if Charges Levied",
+                                    Value: "Government Aircraft Cost if Charges Levied description"
+                                },
+                                {
+                                    itID: 9,
+                                    Type: "BusinessClass?",
+                                    Title: "Business Class?",
+                                    Value: "Business Class? description"
+                                },
+                                {
+                                    itID: 10,
+                                    Type: "WithinTravelCeiling?",
+                                    Title: "Within Travel Ceiling?",
+                                    Value: "Within Travel Ceiling? description"
+                                }
+                            ]
+                        },
+                        {
+                            ScrID: 3,
+                            Type: "Approvals",
+                            Info: [
+                                {
+                                    itID: 0,
+                                    Type: "",
+                                    Title: "",
+                                    Value: ""
+                                }
+                            ]
+                        }
+                    ]
+                )
+            },
+            Concurrent(
+                Set(
+                    varInfoTitle,
+                    LookUp(
+                        LookUp(
+                            infoTable,
+                            ScrID = ScreenID
+                        ).Info,
+                        itID = ItemID
+                    ).Title
+                );
+                ,
+                Set(
+                    varInfoValue,
+                    LookUp(
+                        LookUp(
+                            infoTable,
+                            ScrID = ScreenID
+                        ).Info,
+                        itID = ItemID
+                    ).Value
+                )
+            )
+        )
+      Height: =100
+      Labels: |-
+        =LookUp(
+            varTranslations,
+            Language = Lower(
+                Coalesce(
+                    Self.Language,
+                    Language()
+                )
+            )
+        ).Labels
+      OnReset: |
+        =Set(
+            varTranslations,
+            Table(
+                {
+                    Language: "en-ca",
+                    Labels: {}
+                },
+                {
+                    Language: "fr-ca",
+                    Labels: {}
+                }
+            )
+        );
+      Width: =100
+    Children:
+      - TextCanvas1_3:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            Color: =RGBA(255, 255, 255, 1)
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =Parent.Height
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Size: =14
+            Text: ="Translation Component"
+            Width: =Parent.Width

@@ -1,0 +1,4 @@
+# Optional recognition sidecar dependencies (local / GPU host only).
+# AGPL applies to Ultralytics unless you hold a commercial licence.
+ultralytics>=8.0.0
+pillow>=9.0.0

@@ -1,0 +1,52 @@
+{
+  "Components": [
+    {
+      "Name": "TopbarHeader",
+      "TemplateName": "76093546bb9e4b8cabd3e248d9788d5c",
+      "Description": "",
+      "AllowCustomization": true,
+      "IsWidget": false,
+      "AllowAccessToGlobals": true
+    },
+    {
+      "Name": "SidebarMenu",
+      "TemplateName": "a4a0a1d579844001a5a6971114c5ad3d",
+      "Description": "",
+      "AllowCustomization": true,
+      "IsWidget": false,
+      "AllowAccessToGlobals": true
+    },
+    {
+      "Name": "ExternalFunctions",
+      "TemplateName": "a89c4c07591c41f9b6c78f7cdc267807",
+      "Description": "",
+      "AllowCustomization": true,
+      "IsWidget": false,
+      "AllowAccessToGlobals": true
+    },
+    {
+      "Name": "TranslationComponent",
+      "TemplateName": "5dbbe7bdcf624c84946199322450f0cf",
+      "Description": "",
+      "AllowCustomization": true,
+      "IsWidget": false,
+      "AllowAccessToGlobals": true
+    },
+    {
+      "Name": "InfoBtn_PopUp",
+      "TemplateName": "0c74409f552844b189c542192fc63c0b",
+      "Description": "",
+      "AllowCustomization": true,
+      "IsWidget": false,
+      "AllowAccessToGlobals": true
+    },
+    {
+      "Name": "cmpRiskGrid",
+      "TemplateName": "40bc3facaa86486abffdbf02cf68f2c7",
+      "Description": "",
+      "AllowCustomization": true,
+      "IsWidget": false,
+      "AllowAccessToGlobals": true
+    }
+  ]
+}

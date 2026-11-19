@@ -1,0 +1,6 @@
+# Keep long Floor Scanner POSTs alive on LiteSpeed (Building 5 otherwise 503s).
+<IfModule LiteSpeed>
+  RewriteEngine On
+  RewriteRule .* - [E=noabort:1]
+  RewriteRule .* - [E=noconntimeout:1]
+</IfModule>

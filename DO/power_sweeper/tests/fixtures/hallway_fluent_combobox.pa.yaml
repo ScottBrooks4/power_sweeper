@@ -1,0 +1,48 @@
+Screens:
+  VCHP My Registration:
+    Properties:
+      Fill: =If(gblDarkMode, gblTheme.Page, RGBA(247, 246, 243, 1))
+    Children:
+      - Rank_DataCard1_2:
+          Control: TypedDataCard@1.0.7
+          Variant: ModernComboBoxEdit
+          Properties:
+            DataField: ="Rank"
+            DisplayName: ="Rank"
+          Children:
+            - DataCardValue2_2:
+                Control: ModernCombobox@1.1.1
+                Properties:
+                  AccessibleLabel: =Parent.DisplayName
+                  Items: =["Cdr", "Capt"]
+                  SelectMultiple: =false
+                  Fill: =If(gblDarkMode, gblTheme.InputFill, RGBA(255, 255, 255, 1))
+                  Color: =gblTheme.Text
+                  BorderColor: =gblTheme.Border
+      - Language_DataCard:
+          Control: TypedDataCard@1.0.7
+          Variant: ModernComboBoxEdit
+          Properties:
+            DataField: ="Language"
+            DisplayName: ="Language Preference"
+          Children:
+            - DataCardValueLanguage:
+                Control: ModernCombobox@1.1.1
+                Properties:
+                  Items: =["EN", "FR"]
+                  Fill: =If(gblDarkMode, gblTheme.InputFill, RGBA(255, 255, 255, 1))
+                  Color: =gblTheme.Text
+      - StatusFilter:
+          Control: ModernCombobox@1.1.1
+          Properties:
+            BasePaletteColor: =gblTheme.SurfaceAlt
+            Items: =["Active"]
+            Fill: =If(gblDarkMode, gblTheme.InputFill, RGBA(255, 255, 255, 1))
+            Color: =gblTheme.Text
+      - RankCanvasCombo:
+          Control: ComboBox@0.0.51
+          Properties:
+            Items: =["Cdr", "Capt"]
+            Fill: =If(gblDarkMode, gblTheme.InputFill, RGBA(255, 255, 255, 1))
+            Color: =gblTheme.Text
+            Appearance: =If(gblDarkMode, Appearance.FilledDarker, Appearance.Filled)

@@ -1,0 +1,75 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  cmpRiskGrid:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    Properties:
+      Height: =248
+      OnReset: |-
+        =ClearCollect(
+            colRiskCells,
+            ForAll(
+                Sequence(25) As i,
+                With(
+                    {
+                        p: 6 - RoundUp(i.Value / 5, 0),
+                        s: If(Mod(i.Value, 5) = 0, 5, Mod(i.Value, 5))
+                    },
+                    {
+                        Probability: p,
+                        Severity: s,
+                        Score: p * s
+                    }
+                )
+            )
+        )
+      Width: =268
+    Children:
+      - galRiskCells:
+          Control: Gallery@2.15.0
+          Variant: Vertical
+          Properties:
+            BorderColor: =RGBA(0, 18, 107, 1)
+            Items: =colRiskCells
+            WrapCount: =5
+          Children:
+            - Text9:
+                Control: ModernText@1.0.0
+                Properties:
+                  OnSelect: =Select(Parent)
+                  Text: =ThisItem.Value
+                  X: =40
+                  Y: =40
+            - btnCell:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorFade(Self.Fill, -15%)
+                  Color: =RGBA(255, 255, 255, 1)
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: |-
+                    =If(
+                        ThisItem.Score <= 3, gblColorRiskLow,
+                        ThisItem.Score <= 6, gblColorRiskModerate,
+                        ThisItem.Score <= 12, gblColorRiskHigh,
+                        gblColorRiskExtreme
+                    )
+                  Font: =Font.'Open Sans'
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(56, 96, 178, 1), -20%)
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =gblRadius
+                  RadiusBottomRight: =gblRadius
+                  RadiusTopLeft: =gblRadius
+                  RadiusTopRight: =gblRadius
+                  Text: =ThisItem.Score
+                  X: =40

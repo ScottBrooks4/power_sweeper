@@ -1,0 +1,247 @@
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+    OnVisible: "=Set(varAdmin, RoleCheck.Checked); Set(varAdmin2, 'Screen1'.RoleCheck.Checked); Set(varSites, Sites.Value); Set(varRank, RankRadio.Selected); Set(varHint, NameInput.Placeholder); Set(varInk, SaveModern.FontColor); Set(varCaption, RoleCheck.Label)"
+  Children:
+    - TitleModern:
+        Control: ModernText@1.0.0
+        Properties:
+          Text: ="Title"
+          Color: =RGBA(20, 20, 20, 1)
+          X: =20
+          Y: =20
+          Width: =200
+          Height: =40
+    - SaveModern:
+        Control: ModernButton@1.0.0
+        Properties:
+          Text: ="Save"
+          Appearance: =Appearance.Primary
+          BasePaletteColor: =RGBA(37, 99, 235, 1)
+          FontColor: =RGBA(255, 255, 255, 1)
+          Font: =Font.'Segoe UI'
+          FontSize: =12
+          FontWeight: =FontWeight.Semibold
+          X: =20
+          Y: =80
+          Width: =120
+          Height: =40
+    - CompactBtn:
+        Control: ModernButton@1.0.0
+        Properties:
+          Text: ="Exit"
+          Appearance: =Appearance.Primary
+          BasePaletteColor: =RGBA(189, 178, 176, 1)
+          FontColor: =RGBA(255, 255, 255, 1)
+          FontSize: =10.5
+          Size: =14
+          X: =160
+          Y: =80
+          Width: =80
+          Height: =40
+    - NameInput:
+        Control: ModernTextInput@1.1.1
+        Properties:
+          Default: ="Ada"
+          Appearance: =Appearance.Outline
+          Fill: =RGBA(255, 255, 255, 1)
+          X: =20
+          Y: =140
+          Width: =240
+          Height: =40
+    - CanvasBtn:
+        Control: Button@0.0.45
+        Properties:
+          Text: ="Canvas"
+          Appearance: =Appearance.Primary
+          BasePaletteColor: =RGBA(16, 185, 129, 1)
+          FontColor: =RGBA(255, 255, 255, 1)
+          X: =160
+          Y: =80
+          Width: =120
+          Height: =40
+    - GhostHit:
+        Control: Button@0.0.45
+        Properties:
+          Text: ="Open"
+          Appearance: =Appearance.Transparent
+          X: =20
+          Y: =200
+          Width: =120
+          Height: =40
+    - WarningGlyph:
+        Control: ModernIcon@0.0.8
+        Properties:
+          Icon: =Icon.Warning
+          X: =300
+          Y: =80
+          Width: =32
+          Height: =32
+    - AlreadyClassic:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Stay"
+          Fill: =RGBA(100, 116, 139, 1)
+          Color: =RGBA(255, 255, 255, 1)
+          X: =20
+          Y: =200
+          Width: =120
+          Height: =40
+    - RoleCheck:
+        Control: CheckBox@0.0.30
+        Properties:
+          Checked: =Value(varRole) = 1
+          DisplayMode: =If(Self.Checked, DisplayMode.View, DisplayMode.Edit)
+          Label: ="Admin"
+    - RoleGate:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Admin only"
+          Visible: =RoleCheck.Checked
+          X: =280
+          Y: =80
+          Width: =80
+          Height: =24
+    - NotifyOn:
+        Control: Toggle@0.0.20
+        Properties:
+          Checked: =true
+          Label: ="Alerts"
+          X: =280
+          Y: =110
+          Width: =120
+          Height: =40
+    - RankRadio:
+        Control: Radio@0.0.25
+        Properties:
+          Items: =["Cdr", "Capt"]
+          DefaultSelectedItems: =["Cdr"]
+          X: =420
+          Y: =20
+          Width: =160
+          Height: =80
+    - RankCaption:
+        Control: Label@2.5.1
+        Properties:
+          Text: =RankRadio.Selected
+          X: =420
+          Y: =110
+          Width: =160
+          Height: =24
+    - StatusCombo:
+        Control: ModernCombobox@1.1.1
+        Properties:
+          Items: =["Draft", "Open"]
+          InputTextPlaceholder: ="Status"
+    - CanvasNameInput:
+        Control: TextInput@0.0.45
+        Properties:
+          Default: ="Ada"
+          Appearance: =Appearance.Outline
+          Placeholder: ="Full name"
+          X: =20
+          Y: =320
+          Width: =240
+          Height: =40
+    - NotesBox:
+        Control: ModernTextInput@1.1.1
+        Properties:
+          Default: =""
+          Type: =TextInputType.Multiline
+          Appearance: =Appearance.Outline
+          X: =20
+          Y: =370
+          Width: =240
+          Height: =80
+    - TagsMulti:
+        Control: ComboBox@0.0.51
+        Properties:
+          Items: =["EN", "FR"]
+          SelectMultiple: =true
+          DefaultSelectedItems: =["EN"]
+          Appearance: =Appearance.Outline
+          X: =20
+          Y: =460
+          Width: =240
+          Height: =40
+    - OrgCombo:
+        Control: ModernCombobox@1.1.1
+        Properties:
+          Items: =ShowColumns(Sort(Filter(colOrganizationHierarchy, Level = "L1"), EnglishNameShort, SortOrder.Ascending), EnglishNameShort)
+          InputTextPlaceholder: ="L1"
+    - OrgGate:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="HQ"
+          Visible: '=("HQ" in OrgCombo.SelectedItems)'
+    - StatusFind:
+        Control: ModernCombobox@1.1.1
+        Properties:
+          Items: =LookUp(StatusTable, LangFilter = "EN").Values.Text
+          ItemDisplayText: =ThisItem.Text
+          InputTextPlaceholder: ="Status"
+    - StatusFindGate:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Open"
+          Visible: '=("Open" in StatusFind.SelectedItems)'
+    - StatusFilter:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Open"
+          Visible: '=("Open" in StatusCombo.SelectedItems)'
+          X: =280
+          Y: =140
+          Width: =80
+          Height: =24
+    - StartDate:
+        Control: DatePicker@0.0.12
+        Properties:
+          Value: =Date(2026, 9, 14)
+          Format: =DateTimeFormat.ShortDate
+          Appearance: =Appearance.Outline
+          X: =20
+          Y: =520
+          Width: =200
+          Height: =40
+    - ArrivalDate:
+        Control: DatePicker@0.0.12
+        Properties:
+          Value: =Date(2026, 10, 1)
+          DateTimeFormat: =DatePickerFormat.ShortDate
+          Size: =0
+          FontSize: =12
+          Appearance: =Appearance.Outline
+          X: =240
+          Y: =520
+          Width: =200
+          Height: =40
+    - TinyTitle:
+        Control: ModernText@1.0.0
+        Properties:
+          Text: ="Sites"
+          Fill: =RGBA(255, 255, 255, 1)
+          Size: =0
+          FontSize: =16
+          X: =20
+          Y: =580
+          Width: =120
+          Height: =24
+    - Sites:
+        Control: ModernNumberInput@1.1.1
+        Properties:
+          Value: =3
+          Appearance: =Appearance.FilledDarker
+          X: =20
+          Y: =260
+          Width: =120
+          Height: =40
+    - SiteCount:
+        Control: Label@2.5.1
+        Properties:
+          Text: =Sites.Value
+          X: =160
+          Y: =260
+          Width: =80
+          Height: =24

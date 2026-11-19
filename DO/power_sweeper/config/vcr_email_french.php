@@ -1,0 +1,33 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * French bodies for the CDLS (L) App Settings Messages JSON.
+ * Tokens such as {vcr_id} stay exactly as in the English templates.
+ *
+ * @return array<string, string>
+ */
+return [
+    'eta_msg' => <<<'HTML'
+<p><span style="font-size:12pt"><span><em><span><strong>Les Canadiens doivent maintenant voyager avec une autorisation de voyage électronique (AVE) pour entrer au Royaume-Uni ou en Irlande du Nord pour une durée maximale de six mois. Vous trouverez ci-joint les renseignements sur l’exemption des Forces armées, fournis par le ministère de la Défense du Royaume-Uni et le Home Office. Dans ce document, un «&nbsp;ordre de mouvement&nbsp;» correspond à un ordre de mission de l’OTAN et peut dispenser les membres de l’obligation d’obtenir une AVE. Si les membres ne voyagent pas avec un ordre de mission de l’OTAN valide, une AVE est exigée. Nous vous demandons de voyager avec tous les documents pertinents, y compris cette lettre d’exemption. De plus, les membres à double citoyenneté ne peuvent pas demander une AVE et doivent voyager avec un passeport britannique ou irlandais valide. Veuillez consulter le lien ci-dessous pour plus de détails.</strong></span></em></span></span></p><p><span style="font-size:12pt"><span><a href="https://www.gov.uk/guidance/apply-for-an-electronic-travel-authorisation-eta"><strong><em><span lang="FR-CA">Demander une autorisation de voyage électronique (AVE) – GOV.UK</span></em></strong></a></span></span></p>
+HTML,
+    'sub_conf' => <<<'HTML'
+<p><span style="font-size:12pt"><span>Merci d’avoir soumis votre demande ou avis d’autorisation de visite. Ce message automatique confirme que nous avons bien reçu les renseignements relatifs à votre visite. Une fois que notre équipe aura examiné votre demande, nous communiquerons de nouveau avec vous pour confirmer la réception et transmettre tout renseignement supplémentaire.</span></span></p><p><span style="font-size:12pt"><span>Si vous devez modifier votre demande, vous pouvez le faire dans le <a href="{link_to_app}">portail VAC / NAV</a> où vous avez créé votre soumission.</span></span></p><p><span style="font-size:12pt"><span>Vous pouvez consulter le <a href="{pdf_link}">PDF des détails de votre demande</a>.<br />Le numéro de votre demande VAC / NAV est&nbsp;: {vcr_id}.</span></span></p><p><span style="font-size:12pt"><span>Veuillez <strong>ne pas</strong> répondre à ce courriel. Pour toute question ou pour obtenir de l’aide, communiquez avec nous à <a href="mailto:{default_acknowledger}">{default_acknowledger}</a></span></span></p><p>&nbsp;</p>
+HTML,
+    'ecf_conf' => <<<'HTML'
+<p>Merci. Les <a href="{ecf_form_link}">coordonnées d’urgence</a> pour la demande {vcr_id} ont été reçues.</p><p>Vous pouvez retourner au portail ou consulter le <a href="{pdf_link}">résumé PDF</a> si vous devez apporter une modification.</p><p>Veuillez ne pas répondre à ce courriel. Pour obtenir de l’aide, communiquez avec&nbsp;<a target="_blank" href="mailto:{default_acknowledger}">{default_acknowledger}</a></p><p>&nbsp;</p>
+HTML,
+    'ack_done' => <<<'HTML'
+<p><span style="font-size:16px">Nous vous informons que votre demande d’autorisation de visite a été examinée et qu’un accusé de réception a été émis par notre équipe, et qu’un <a href="{pdf_link}">résumé PDF</a> a été produit. Veuillez prendre le temps de remplir le <a href="{ecf_form_link}">formulaire de coordonnées d’urgence</a> afin de confirmer les détails de votre visite. Vous trouverez ci-dessous des renseignements importants concernant votre visite. Veuillez les lire attentivement.</span></p><p><span style="font-size:16px"><em><strong>Les Canadiens doivent maintenant voyager avec une autorisation de voyage électronique (AVE) pour entrer au Royaume-Uni ou en Irlande du Nord pour une durée maximale de six mois. Vous trouverez ci-joint les renseignements sur l’exemption des Forces armées, fournis par le ministère de la Défense du Royaume-Uni et le Home Office. Dans ce document, un «&nbsp;ordre de mouvement&nbsp;» correspond à un ordre de mission de l’OTAN et peut dispenser les membres de l’obligation d’obtenir une AVE. Si les membres ne voyagent pas avec un ordre de mission de l’OTAN valide, une AVE est exigée. Nous vous demandons de voyager avec tous les documents pertinents, y compris cette lettre d’exemption. De plus, les membres à double citoyenneté ne peuvent pas demander une AVE et doivent voyager avec un passeport britannique ou irlandais valide. Veuillez consulter le lien ci-dessous pour plus de détails.</strong></em></span></p><p><span style="font-size:16px"><a href="https://www.gov.uk/guidance/apply-for-an-electronic-travel-authorisation-eta"><strong><em><span lang="FR-CA">Demander une autorisation de voyage électronique (AVE) – GOV.UK</span></em></strong></a></span></p><p><span style="font-size:16px">Veuillez lire la pièce jointe «&nbsp;lettre d’exemption des Forces armées pour les transporteurs&nbsp;» (Armed Forces Exemption Letter for Carriers).</span></p><p><span style="font-size:12px">Si les liens ci-dessus ne fonctionnent pas, veuillez les copier et les coller dans votre navigateur&nbsp;:</span><br /><span style="font-size:10px"><strong>Aperçu PDF&nbsp;:</strong> {pdf_link}<br /><strong>Formulaire de coordonnées d’urgence&nbsp;:</strong> {ecf_form_link}</span></p>
+HTML,
+    'ack_notif' => <<<'HTML'
+<p>Une demande VAC / NAV attend votre accusé de réception.</p><p>Numéro de la demande&nbsp;: <a href="{open_request_link}">{vcr_id}</a></p><p>Veuillez <a href="{open_request_link}">ouvrir la demande</a>, l’examiner et compléter votre accusé de réception.</p><p>Si le responsable précédent a laissé des commentaires, ils se trouvent ci-dessous.</p><p>{comments}</p><p>Résumé de la demande&nbsp;:</p><p>{summary}</p><p>Veuillez ne pas répondre à ce courriel. Pour obtenir de l’aide, communiquez avec&nbsp;<a target="_blank" href="mailto:{default_acknowledger}">{default_acknowledger}</a></p>
+HTML,
+    'ivco' => <<<'HTML'
+<p>Un numéro IVCO a été attribué à la demande VAC / NAV {vcr_id}.</p><p>Numéro IVCO&nbsp;: {ivco_number}</p><p>Vous pouvez <a href="{open_request_link}">ouvrir la demande</a> ou accéder au <a href="{link_to_app}">portail</a>.</p><p>Veuillez ne pas répondre à ce courriel. Pour obtenir de l’aide, communiquez avec&nbsp;<a target="_blank" href="mailto:{default_acknowledger}">{default_acknowledger}</a></p>
+HTML,
+    'ack_deny' => <<<'HTML'
+<p>Votre demande d’autorisation de visite <strong>{vcr_id}</strong> a été refusée.</p><p>Commentaires du responsable de l’accusé de réception&nbsp;:</p><p>{comments}</p><p><a href="{open_request_link}">Ouvrir cette demande</a></p>
+HTML,
+];

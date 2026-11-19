@@ -1,0 +1,21 @@
+{
+  "lists": [
+    {
+      "name": "Requests",
+      "siteUrl": "https://contoso.sharepoint.com/sites/DND",
+      "columns": [
+        "Title",
+        "Status",
+        "RequestNumber",
+        "SubmittedBy"
+      ]
+    },
+    {
+      "name": "Employees",
+      "columns": [
+        { "name": "Title", "displayName": "Name" },
+        { "name": "Email" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: |-
+      =Set(varLang, true);
+      Set(varSummaryHtml, "<table><tr><td colspan='2'><strong>Request Summary</strong></td></tr></table>");
+      Set(varLoc, "<b>Location: " & EmerAcomAddress & "</b>");
+    Formulas: |-
+      =fnRequestTitle = If(!IsBlank(varRequestID), varRequestID, Blank());
+Home:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - RequestTitle:
+        Control: Label@2.5.1
+        Properties:
+          Text: =fnRequestTitle
+          X: =16
+          Y: =16
+    - DebugModeLabel:
+        Control: Label@2.5.1
+        Properties:
+          Text: |-
+            ="Debug mode: "
+          X: =16
+          Y: =48

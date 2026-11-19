@@ -1,0 +1,7 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    StartScreen: =HomeScreen
+    OnStart: |-
+      =Set(gblReady, true);
+      Set(gblAppTitle, "Dark Mode Kitchen Sink")

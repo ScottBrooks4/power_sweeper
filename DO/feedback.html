@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comments — VASC Pivot</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="css/app.css?v=20261111b">
+  <script>if(window.parent!==window)document.documentElement.classList.add("framed");else document.documentElement.classList.add("shell")</script>
+</head>
+<body data-page="feedback">
+  <header id="site-header"></header>
+  <div class="frame"><div class="stage">
+    <section class="lede"><h1>Comments</h1>
+      <p>Bug reports and comments are emailed to the positional mailbox <a href="mailto:DSG_DVCDS_PP_SA@service.forces.gc.ca">DSG_DVCDS_PP_SA@service.forces.gc.ca</a>. They are not saved on the chart.</p>
+    </section>
+    <form id="feedback" class="feedback-form panel">
+      <label><span>Name</span><input name="name" maxlength="80" autocomplete="name"></label>
+      <label><span>Reply address</span><input name="email" type="email" maxlength="120" autocomplete="email" placeholder="first.last@forces.gc.ca"></label>
+      <label><span>What happened</span><textarea name="message" maxlength="4000" required></textarea></label>
+      <input name="company" tabindex="-1" autocomplete="off" hidden>
+      <button class="btn" type="submit">Send</button>
+      <p id="feedback-note" class="note"></p>
+    </form>
+  </div></div>
+  <script src="js/shell.js?v=20261111b"></script>
+  <script src="js/feedback.js?v=20261106a"></script>
+</body>
+</html>

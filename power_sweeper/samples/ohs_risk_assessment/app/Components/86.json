@@ -1,0 +1,1402 @@
+{
+  "TopParent": {
+    "Type": "ControlInfo",
+    "Name": "ExternalFunctions",
+    "Template": {
+      "Id": "http://microsoft.com/appmagic/Component",
+      "Version": "1.0",
+      "LastModifiedTimestamp": "639253369063240031",
+      "Name": "a89c4c07591c41f9b6c78f7cdc267807",
+      "FirstParty": true,
+      "IsPremiumPcfControl": false,
+      "IsCustomGroupControlTemplate": false,
+      "CustomGroupControlTemplateName": "",
+      "IsComponentDefinition": true,
+      "CustomProperties": [
+        {
+          "Name": "ClearCollections",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": []
+          },
+          "DisplayName": "ClearCollections",
+          "Tooltip": "A custom property"
+        },
+        {
+          "Name": "LoadApprovals",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": [
+              {
+                "Name": "LoadApprovals_inputEHCRID",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "inputEHCRID",
+                  "ParentPropertyName": "LoadApprovals",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "-1",
+                  "Description": "A parameter",
+                  "ParameterIndex": 1,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "LoadApprovals_inputEHCRID",
+                "Tooltip": "A parameter"
+              }
+            ]
+          },
+          "DisplayName": "LoadApprovals",
+          "Tooltip": "A custom property"
+        },
+        {
+          "Name": "MoveApprovalListItem",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": [
+              {
+                "Name": "MoveApprovalListItem_inputCurrentOrder",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "inputCurrentOrder",
+                  "ParentPropertyName": "MoveApprovalListItem",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 1,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "MoveApprovalListItem_inputCurrentOrder",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "MoveApprovalListItem_inputNewOrder",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "inputNewOrder",
+                  "ParentPropertyName": "MoveApprovalListItem",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 2,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "MoveApprovalListItem_inputNewOrder",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "MoveApprovalListItem_inputItemID",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "inputItemID",
+                  "ParentPropertyName": "MoveApprovalListItem",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 3,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "MoveApprovalListItem_inputItemID",
+                "Tooltip": "A parameter"
+              }
+            ]
+          },
+          "DisplayName": "MoveApprovalListItem",
+          "Tooltip": "A custom property"
+        },
+        {
+          "Name": "LoadAttachments",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": [
+              {
+                "Name": "LoadAttachments_inputItemID",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "inputItemID",
+                  "ParentPropertyName": "LoadAttachments",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 1,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": false,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "LoadAttachments_inputItemID",
+                "Tooltip": "A parameter"
+              }
+            ]
+          },
+          "DisplayName": "LoadAttachments",
+          "Tooltip": "A custom property"
+        },
+        {
+          "Name": "LoadTemplate",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": [
+              {
+                "Name": "LoadTemplate_OrgID",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "OrgID",
+                  "ParentPropertyName": "LoadTemplate",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 1,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "LoadTemplate_OrgID",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "LoadTemplate_TemplateName",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"String\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "String",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "TemplateName",
+                  "ParentPropertyName": "LoadTemplate",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "\"Text\"",
+                  "Description": "A parameter",
+                  "ParameterIndex": 2,
+                  "ScopePropertyDataType": 6,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "LoadTemplate_TemplateName",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "LoadTemplate_EHCRID",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "EHCRID",
+                  "ParentPropertyName": "LoadTemplate",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 3,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": false,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "LoadTemplate_EHCRID",
+                "Tooltip": "A parameter"
+              }
+            ]
+          },
+          "DisplayName": "LoadTemplate",
+          "Tooltip": "Loads in a template of approvals"
+        },
+        {
+          "Name": "RemovedUnSigned",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": [
+              {
+                "Name": "RemovedUnSigned_UnSigned",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Boolean\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Boolean",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "UnSigned",
+                  "ParentPropertyName": "RemovedUnSigned",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "true",
+                  "Description": "A parameter",
+                  "ParameterIndex": 1,
+                  "ScopePropertyDataType": 4,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "RemovedUnSigned_UnSigned",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "RemovedUnSigned_ID",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "ID",
+                  "ParentPropertyName": "RemovedUnSigned",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 2,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "RemovedUnSigned_ID",
+                "Tooltip": "A parameter"
+              }
+            ]
+          },
+          "DisplayName": "RemovedUnSigned",
+          "Tooltip": "A custom property"
+        },
+        {
+          "Name": "approvalNotifyEmail",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": [
+              {
+                "Name": "approvalNotifyEmail_SignedApproval",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Boolean\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Boolean",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "SignedApproval",
+                  "ParentPropertyName": "approvalNotifyEmail",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "true",
+                  "Description": "A parameter",
+                  "ParameterIndex": 1,
+                  "ScopePropertyDataType": 4,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "approvalNotifyEmail_SignedApproval",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "approvalNotifyEmail_itemID",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "itemID",
+                  "ParentPropertyName": "approvalNotifyEmail",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 2,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "approvalNotifyEmail_itemID",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "approvalNotifyEmail_orderApproval",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "orderApproval",
+                  "ParentPropertyName": "approvalNotifyEmail",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 3,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": false,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "approvalNotifyEmail_orderApproval",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "approvalNotifyEmail_email",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"String\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "String",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "email",
+                  "ParentPropertyName": "approvalNotifyEmail",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "\"Text\"",
+                  "Description": "A parameter",
+                  "ParameterIndex": 4,
+                  "ScopePropertyDataType": 6,
+                  "IsRequired": false,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "approvalNotifyEmail_email",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "approvalNotifyEmail_message",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"String\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "String",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "message",
+                  "ParentPropertyName": "approvalNotifyEmail",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "\"Text\"",
+                  "Description": "A parameter",
+                  "ParameterIndex": 5,
+                  "ScopePropertyDataType": 6,
+                  "IsRequired": false,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "approvalNotifyEmail_message",
+                "Tooltip": "A parameter"
+              }
+            ]
+          },
+          "DisplayName": "approvalNotifyEmail",
+          "Tooltip": "A custom property"
+        },
+        {
+          "Name": "TotalRefresh",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": []
+          },
+          "DisplayName": "TotalRefresh",
+          "Tooltip": "A custom property"
+        },
+        {
+          "Name": "chatNotify",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": [
+              {
+                "Name": "chatNotify_email",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"String\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "String",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "email",
+                  "ParentPropertyName": "chatNotify",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "\"Text\"",
+                  "Description": "A parameter",
+                  "ParameterIndex": 1,
+                  "ScopePropertyDataType": 6,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "chatNotify_email",
+                "Tooltip": "A parameter"
+              },
+              {
+                "Name": "chatNotify_message",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"String\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "String",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "message",
+                  "ParentPropertyName": "chatNotify",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "\"Text\"",
+                  "Description": "A parameter",
+                  "ParameterIndex": 2,
+                  "ScopePropertyDataType": 6,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "chatNotify_message",
+                "Tooltip": "A parameter"
+              }
+            ]
+          },
+          "DisplayName": "chatNotify",
+          "Tooltip": "A custom property"
+        },
+        {
+          "Name": "completeNotify",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": [
+              {
+                "Name": "completeNotify_email",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"String\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "String",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "email",
+                  "ParentPropertyName": "completeNotify",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "\"Text\"",
+                  "Description": "A parameter",
+                  "ParameterIndex": 1,
+                  "ScopePropertyDataType": 6,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "completeNotify_email",
+                "Tooltip": "A parameter"
+              }
+            ]
+          },
+          "DisplayName": "completeNotify",
+          "Tooltip": "A custom property"
+        },
+        {
+          "Name": "MoveTemplateItemOrder",
+          "Category": 2,
+          "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Void\",\"EnumString\":\"\",\"Type\":[]}}",
+          "PropertyDataTypeKey": "Void",
+          "Hidden": true,
+          "PropertyScopeKey": {
+            "PropertyScopeRuleNamespaceKey": "86",
+            "PropertyScopeRulesKey": [
+              {
+                "Name": "MoveTemplateItemOrder_inputCurrentOrder",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "inputCurrentOrder",
+                  "ParentPropertyName": "MoveTemplateItemOrder",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "inputCurrentOrder",
+                  "ParameterIndex": 1,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "MoveTemplateItemOrder_inputCurrentOrder",
+                "Tooltip": "inputCurrentOrder"
+              },
+              {
+                "Name": "MoveTemplateItemOrder_inputNewOrder",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "inputNewOrder",
+                  "ParentPropertyName": "MoveTemplateItemOrder",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "inputNewOrder",
+                  "ParameterIndex": 2,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "MoveTemplateItemOrder_inputNewOrder",
+                "Tooltip": "inputNewOrder"
+              },
+              {
+                "Name": "MoveTemplateItemOrder_inputItemID",
+                "Type": "{\"Version\":\"1.349\",\"Type\":{\"Name\":\"Root\",\"Kind\":\"Number\",\"EnumString\":\"\",\"Type\":[]}}",
+                "PropertyDataTypeKey": "Number",
+                "ScopeVariableInfo": {
+                  "ScopeVariableName": "inputItemID",
+                  "ParentPropertyName": "MoveTemplateItemOrder",
+                  "ResolveSelects": false,
+                  "ResolveExpands": false,
+                  "DefaultRule": "100",
+                  "Description": "A parameter",
+                  "ParameterIndex": 3,
+                  "ScopePropertyDataType": 5,
+                  "IsRequired": true,
+                  "DependencyType": "New"
+                },
+                "DisplayName": "MoveTemplateItemOrder_inputItemID",
+                "Tooltip": "A parameter"
+              }
+            ]
+          },
+          "DisplayName": "MoveTemplateItemOrder",
+          "Tooltip": "Changes the order of items in the edit template screen"
+        }
+      ],
+      "ComponentType": "CanvasComponent",
+      "OverridableProperties": {}
+    },
+    "Index": 10,
+    "PublishOrderIndex": 0,
+    "VariantName": "",
+    "LayoutName": "",
+    "MetaDataIDKey": "",
+    "PersistMetaDataIDKey": false,
+    "IsFromScreenLayout": false,
+    "StyleName": "",
+    "Parent": "",
+    "IsDataControl": false,
+    "AllowAccessToGlobals": true,
+    "OptimizeForDevices": "Off",
+    "IsGroupControl": false,
+    "IsAutoGenerated": false,
+    "Rules": [
+      {
+        "Property": "MoveApprovalListItem_inputItemID",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "MoveApprovalListItem_inputNewOrder",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "MoveApprovalListItem_inputCurrentOrder",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "LoadAttachments_inputItemID",
+        "Category": "Data",
+        "InvariantScript": "-1",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "LoadApprovals_inputEHCRID",
+        "Category": "Data",
+        "InvariantScript": "-1",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "LoadTemplate_EHCRID",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "LoadTemplate_TemplateName",
+        "Category": "Data",
+        "InvariantScript": "\"Text\"",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "LoadTemplate_OrgID",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "RemovedUnSigned_ID",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "RemovedUnSigned_UnSigned",
+        "Category": "Data",
+        "InvariantScript": "true",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "approvalNotifyEmail_orderApproval",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "approvalNotifyEmail_itemID",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "approvalNotifyEmail_SignedApproval",
+        "Category": "Data",
+        "InvariantScript": "true",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "approvalNotifyEmail_email",
+        "Category": "Data",
+        "InvariantScript": "\"Text\"",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "chatNotify_message",
+        "Category": "Data",
+        "InvariantScript": "\"Text\"",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "chatNotify_email",
+        "Category": "Data",
+        "InvariantScript": "\"Text\"",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "approvalNotifyEmail_message",
+        "Category": "Data",
+        "InvariantScript": "\"Text\"",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "completeNotify_email",
+        "Category": "Data",
+        "InvariantScript": "\"Text\"",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "MoveTemplateItemOrder_inputCurrentOrder",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "MoveTemplateItemOrder_inputNewOrder",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "MoveTemplateItemOrder_inputItemID",
+        "Category": "Data",
+        "InvariantScript": "100",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "Fill",
+        "Category": "Design",
+        "InvariantScript": "RGBA(224, 86, 6, 1)",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "Height",
+        "Category": "Design",
+        "InvariantScript": "100",
+        "RuleProviderType": "Unknown"
+      },
+      {
+        "Property": "Width",
+        "Category": "Design",
+        "InvariantScript": "100",
+        "RuleProviderType": "Unknown"
+      },
+      {
+        "Property": "X",
+        "Category": "Design",
+        "InvariantScript": "0",
+        "RuleProviderType": "Unknown"
+      },
+      {
+        "Property": "Y",
+        "Category": "Design",
+        "InvariantScript": "0",
+        "RuleProviderType": "Unknown"
+      },
+      {
+        "Property": "ZIndex",
+        "Category": "Design",
+        "InvariantScript": "1",
+        "RuleProviderType": "Unknown"
+      },
+      {
+        "Property": "LoadTemplate",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "LoadApprovals",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "ClearCollections",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "MoveApprovalListItem",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "LoadAttachments",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "RemovedUnSigned",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "TotalRefresh",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "chatNotify",
+        "Category": "Behavior",
+        "InvariantScript": "Notify(Coalesce(message, \"Chat\"), NotificationType.Information)",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "approvalNotifyEmail",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "completeNotify",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      },
+      {
+        "Property": "MoveTemplateItemOrder",
+        "Category": "Behavior",
+        "InvariantScript": "false",
+        "RuleProviderType": "System"
+      }
+    ],
+    "ControlPropertyState": [
+      {
+        "InvariantPropertyName": "Fill",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      {
+        "InvariantPropertyName": "Height",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      {
+        "InvariantPropertyName": "Width",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      "X",
+      "Y",
+      "ZIndex",
+      {
+        "InvariantPropertyName": "ClearCollections",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      {
+        "InvariantPropertyName": "LoadApprovals",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "If(\n    inputTDRID >= 0,\n    ForAll(\n        Filter(\n            'VCDS 'VCDS THCEE \u2014 Approvals',\n            'EHCR ID' = inputTDRID\n        ) As Approval,\n        Collect(\n            colApprovalItems,\n            {\n                ID: Value(Approval.ID),\n                TDRID: Value(Approval.'TDR ID'),\n                SignedBy: Text(Approval.'Signed By'),\n                SignedOn: Approval.'Signed On',\n                Approver: Text(Approval.Approver),\n                Order: Value(Approval.Order),\n                DOA: Text(ParseJSON(Approval.Details).DOA),\n                ActionSought: Value(ParseJSON(Approval.Details).ActionSought),\n                Decision: Value(ParseJSON(Approval.Details).Decision),\n                Position: Text(ParseJSON(Approval.Details).Position),\n                Notes: Text(ParseJSON(Approval.Details).Notes)\n            }\n        )\n    )\n);\n",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      "LoadApprovals_inputEHCRID",
+      {
+        "InvariantPropertyName": "MoveApprovalListItem",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      "MoveApprovalListItem_inputItemID",
+      "MoveApprovalListItem_inputNewOrder",
+      "MoveApprovalListItem_inputCurrentOrder",
+      {
+        "InvariantPropertyName": "LoadAttachments_inputItemID",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "100",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      {
+        "InvariantPropertyName": "LoadAttachments",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      "LoadTemplate_EHCRID",
+      "LoadTemplate_TemplateName",
+      {
+        "InvariantPropertyName": "LoadTemplate",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "false",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      "LoadTemplate_OrgID",
+      "RemovedUnSigned_ID",
+      "RemovedUnSigned_UnSigned",
+      {
+        "InvariantPropertyName": "RemovedUnSigned",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "false",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      "approvalNotifyEmail_orderApproval",
+      "approvalNotifyEmail_itemID",
+      "approvalNotifyEmail_SignedApproval",
+      "TotalRefresh",
+      "approvalNotifyEmail_email",
+      {
+        "InvariantPropertyName": "chatNotify",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "false",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      "chatNotify_message",
+      "chatNotify_email",
+      "approvalNotifyEmail_message",
+      {
+        "InvariantPropertyName": "approvalNotifyEmail",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "false",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      "completeNotify_email",
+      {
+        "InvariantPropertyName": "completeNotify",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      },
+      "MoveTemplateItemOrder_inputCurrentOrder",
+      "MoveTemplateItemOrder_inputNewOrder",
+      "MoveTemplateItemOrder_inputItemID",
+      {
+        "InvariantPropertyName": "MoveTemplateItemOrder",
+        "AutoRuleBindingEnabled": false,
+        "AutoRuleBindingString": "false",
+        "NameMapSourceSchema": "?",
+        "IsLockable": false,
+        "AFDDataSourceName": ""
+      }
+    ],
+    "IsLocked": false,
+    "ControlUniqueId": "86",
+    "Children": [
+      {
+        "Type": "ControlInfo",
+        "Name": "TextCanvas1",
+        "HasDynamicProperties": false,
+        "Template": {
+          "Id": "http://microsoft.com/appmagic/modernText",
+          "Version": "1.0.0",
+          "LastModifiedTimestamp": "0",
+          "Name": "modernText",
+          "FirstParty": true,
+          "IsPremiumPcfControl": false,
+          "IsCustomGroupControlTemplate": false,
+          "CustomGroupControlTemplateName": "",
+          "IsComponentDefinition": false,
+          "OverridableProperties": {}
+        },
+        "Index": 0,
+        "PublishOrderIndex": 726,
+        "VariantName": "",
+        "LayoutName": "",
+        "MetaDataIDKey": "",
+        "PersistMetaDataIDKey": false,
+        "IsFromScreenLayout": false,
+        "StyleName": "",
+        "Parent": "ExternalFunctions",
+        "IsDataControl": false,
+        "AllowAccessToGlobals": true,
+        "OptimizeForDevices": "Off",
+        "IsGroupControl": false,
+        "IsAutoGenerated": false,
+        "Rules": [
+          {
+            "Property": "Text",
+            "Category": "Data",
+            "InvariantScript": "\"External Functions\"",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "ContentLanguage",
+            "Category": "Data",
+            "InvariantScript": "\"\"",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "FontWeight",
+            "Category": "Design",
+            "InvariantScript": "FontWeight.Semibold",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Align",
+            "Category": "Design",
+            "InvariantScript": "Align.Center",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "VerticalAlign",
+            "Category": "Design",
+            "InvariantScript": "VerticalAlign.Middle",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "PaddingTop",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "PaddingRight",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "PaddingBottom",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "PaddingLeft",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "X",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Y",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Width",
+            "Category": "Design",
+            "InvariantScript": "Parent.Width",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Height",
+            "Category": "Design",
+            "InvariantScript": "Parent.Height",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "DisplayMode",
+            "Category": "Design",
+            "InvariantScript": "DisplayMode.Edit",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "ZIndex",
+            "Category": "Design",
+            "InvariantScript": "1",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "RadiusBottomLeft",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "RadiusBottomRight",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "RadiusTopLeft",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "RadiusTopRight",
+            "Category": "Design",
+            "InvariantScript": "0",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Italic",
+            "Category": "Design",
+            "InvariantScript": "false",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Underline",
+            "Category": "Design",
+            "InvariantScript": "false",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Strikethrough",
+            "Category": "Design",
+            "InvariantScript": "false",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Size",
+            "Category": "Design",
+            "InvariantScript": "14",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "AutoHeight",
+            "Category": "Design",
+            "InvariantScript": "false",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Font",
+            "Category": "Design",
+            "InvariantScript": "Font.'Segoe UI'",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Wrap",
+            "Category": "Design",
+            "InvariantScript": "true",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "BorderStyle",
+            "Category": "Design",
+            "InvariantScript": "\"\"",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Visible",
+            "Category": "Design",
+            "InvariantScript": "true",
+            "RuleProviderType": "Unknown"
+          },
+          {
+            "Property": "Color",
+            "Category": "Design",
+            "InvariantScript": "RGBA(255, 255, 255, 1)",
+            "RuleProviderType": "Unknown"
+          }
+        ],
+        "ControlPropertyState": [
+          {
+            "InvariantPropertyName": "RadiusBottomLeft",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "RadiusBottomRight",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "RadiusTopLeft",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "RadiusTopRight",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Italic",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Underline",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Strikethrough",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "FontWeight",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Align",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "PaddingTop",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "PaddingBottom",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "PaddingLeft",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "PaddingRight",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "VerticalAlign",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Text",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Size",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "AutoHeight",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Height",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Font",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Wrap",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "BorderStyle",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "X",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Y",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Width",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Visible",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "DisplayMode",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "ZIndex",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "ContentLanguage",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          },
+          {
+            "InvariantPropertyName": "Color",
+            "AutoRuleBindingEnabled": false,
+            "AutoRuleBindingString": "",
+            "NameMapSourceSchema": "?",
+            "IsLockable": false,
+            "AFDDataSourceName": ""
+          }
+        ],
+        "IsLocked": false,
+        "ControlUniqueId": "87",
+        "Children": []
+      }
+    ]
+  }
+}

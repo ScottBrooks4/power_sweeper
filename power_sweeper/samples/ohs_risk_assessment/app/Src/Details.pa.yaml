@@ -1,0 +1,112 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# ************************************************************************************************
+Screens:
+  Details:
+    Properties:
+      Fill: =gblTheme.Page
+      LoadingSpinnerColor: =gblTheme.Accent
+    Children:
+      - imgMockupReview:
+          Control: Image@2.2.3
+          Properties:
+            DisplayMode: =DisplayMode.View
+            Height: =App.Height
+            Image: =MockupReview
+            ImagePosition: =ImagePosition.Fit
+            Width: =App.Width
+            X: =0
+            Y: =0
+            ZIndex: =1
+      - SidebarMenu_1:
+          Control: CanvasComponent
+          ComponentName: SidebarMenu
+          Properties:
+            Height: =App.Height
+            Visible: =true
+            Width: =gblNavWidth
+            X: =0
+            Y: =0
+            ZIndex: =90
+      - cmpRiskGrid_Review:
+          Control: CanvasComponent
+          ComponentName: cmpRiskGrid
+          Properties:
+            Fill: =gblTheme.Paper
+            Height: =248
+            HighlightP: =varHighlightP
+            HighlightS: =varHighlightS
+            Mode: ="Select"
+            Width: =320
+            X: =App.Width - 360
+            Y: =188
+            ZIndex: =40
+      - btnContactOPI:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =gblTheme.Border
+            Color: =gblTheme.Text
+            Fill: =gblTheme.Quiet
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =36
+            HoverFill: =ColorFade(gblTheme.Quiet, -10%)
+            OnSelect: =Notify("Contact Luc Joly · CFSU.O.SO.requirements@forces.gc.ca", NotificationType.Information)
+            RadiusBottomLeft: =gblRadius
+            RadiusBottomRight: =gblRadius
+            RadiusTopLeft: =gblRadius
+            RadiusTopRight: =gblRadius
+            Size: =12
+            Text: ="Contact OPI"
+            Width: =120
+            X: =App.Width - 300
+            Y: =22
+            ZIndex: =60
+      - btnSendTreat:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =gblTheme.Border
+            Color: =gblTheme.TextOnAccent
+            Fill: =gblTheme.Accent
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =36
+            HoverFill: =ColorFade(gblTheme.Accent, -10%)
+            OnSelect: =Navigate(Approvals, ScreenTransition.Fade)
+            RadiusBottomLeft: =gblRadius
+            RadiusBottomRight: =gblRadius
+            RadiusTopLeft: =gblRadius
+            RadiusTopRight: =gblRadius
+            Size: =12
+            Text: ="Send to Treat"
+            Width: =140
+            X: =App.Width - 168
+            Y: =22
+            ZIndex: =60
+      - lblReviewCrumb:
+          Control: Label@2.5.1
+          Properties:
+            Color: =gblTheme.TextMuted
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Normal
+            Height: =18
+            Size: =10
+            Text: ="Review & action · CFSG (O-G)"
+            Width: =640
+            X: =gblNavWidth + 22
+            Y: =18
+            ZIndex: =50
+      - lblReviewTitle:
+          Control: Label@2.5.1
+          Properties:
+            Color: =gblTheme.Text
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =36
+            Size: =21
+            Text: ="CFSG(O-G) · RA-0007-HS"
+            Width: =520
+            X: =gblNavWidth + 22
+            Y: =36
+            ZIndex: =50

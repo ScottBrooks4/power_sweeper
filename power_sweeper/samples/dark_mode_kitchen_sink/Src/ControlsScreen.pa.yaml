@@ -1,0 +1,616 @@
+ControlsScreen:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(248, 250, 252, 1)
+  Children:
+    - PageHeader:
+        Control: GroupContainer@1.0.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          BorderColor: =RGBA(226, 232, 240, 1)
+          BorderThickness: =1
+          DropShadow: =DropShadow.Regular
+          X: =0
+          Y: =0
+          Width: =800
+          Height: =72
+        Children:
+          - BackBtn:
+              Control: Classic/Button@2.0.0
+              Properties:
+                Text: ="← Home"
+                Fill: =RGBA(241, 245, 249, 1)
+                Color: =RGBA(51, 65, 85, 1)
+                BorderColor: =RGBA(203, 213, 225, 1)
+                HoverFill: =RGBA(226, 232, 240, 1)
+                HoverColor: =RGBA(15, 23, 42, 1)
+                PressedFill: =RGBA(203, 213, 225, 1)
+                X: =16
+                Y: =16
+                Width: =100
+                Height: =40
+                OnSelect: =Navigate(HomeScreen, ScreenTransition.Fade)
+          - PageTitle:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Controls gallery"
+                Color: =RGBA(15, 23, 42, 1)
+                X: =132
+                Y: =18
+                Width: =400
+                Height: =36
+
+    - LabelsSection:
+        Control: GroupContainer@1.0.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          BorderColor: =RGBA(226, 232, 240, 1)
+          BorderThickness: =1
+          BorderRadius: =8
+          DropShadow: =DropShadow.Light
+          X: =16
+          Y: =88
+          Width: =376
+          Height: =220
+        Children:
+          - LabelsHeading:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Labels / typography"
+                Color: =RGBA(15, 23, 42, 1)
+                FontWeight: =FontWeight.Semibold
+                X: =12
+                Y: =8
+                Width: =340
+                Height: =28
+          - LabelPrimary:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Primary ink on white"
+                Color: =RGBA(15, 23, 42, 1)
+                Fill: =RGBA(255, 255, 255, 1)
+                X: =12
+                Y: =44
+                Width: =340
+                Height: =28
+          - LabelMuted:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Muted secondary text"
+                Color: =RGBA(100, 116, 139, 1)
+                Fill: =RGBA(248, 250, 252, 1)
+                BorderColor: =RGBA(226, 232, 240, 1)
+                BorderThickness: =1
+                X: =12
+                Y: =80
+                Width: =340
+                Height: =28
+          - LabelInverse:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Inverse on slate"
+                Color: =RGBA(248, 250, 252, 1)
+                Fill: =RGBA(51, 65, 85, 1)
+                X: =12
+                Y: =116
+                Width: =340
+                Height: =28
+          - LabelDanger:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Danger / error text"
+                Color: =RGBA(185, 28, 28, 1)
+                Fill: =RGBA(254, 226, 226, 1)
+                BorderColor: =RGBA(252, 165, 165, 1)
+                BorderThickness: =1
+                X: =12
+                Y: =152
+                Width: =340
+                Height: =28
+          - LabelSuccess:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Success text"
+                Color: =RGBA(22, 101, 52, 1)
+                Fill: =RGBA(220, 252, 231, 1)
+                BorderColor: =RGBA(134, 239, 172, 1)
+                BorderThickness: =1
+                X: =12
+                Y: =188
+                Width: =340
+                Height: =28
+
+    - ButtonsSection:
+        Control: GroupContainer@1.0.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          BorderColor: =RGBA(226, 232, 240, 1)
+          BorderThickness: =1
+          BorderRadius: =8
+          DropShadow: =DropShadow.Semibold
+          X: =408
+          Y: =88
+          Width: =376
+          Height: =220
+        Children:
+          - ButtonsHeading:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Buttons (hover / pressed / disabled)"
+                Color: =RGBA(15, 23, 42, 1)
+                FontWeight: =FontWeight.Semibold
+                X: =12
+                Y: =8
+                Width: =340
+                Height: =28
+          - PrimaryBtn:
+              Control: Classic/Button@2.0.0
+              Properties:
+                Text: ="Primary"
+                Fill: =RGBA(37, 99, 235, 1)
+                Color: =RGBA(255, 255, 255, 1)
+                BorderColor: =RGBA(29, 78, 216, 1)
+                BorderThickness: =1
+                HoverFill: =RGBA(29, 78, 216, 1)
+                HoverColor: =RGBA(255, 255, 255, 1)
+                HoverBorderColor: =RGBA(30, 64, 175, 1)
+                PressedFill: =RGBA(30, 64, 175, 1)
+                PressedColor: =RGBA(241, 245, 249, 1)
+                PressedBorderColor: =RGBA(30, 58, 138, 1)
+                DisabledFill: =RGBA(203, 213, 225, 1)
+                DisabledColor: =RGBA(100, 116, 139, 1)
+                DisabledBorderColor: =RGBA(148, 163, 184, 1)
+                FocusedBorderColor: =RGBA(96, 165, 250, 1)
+                X: =12
+                Y: =48
+                Width: =160
+                Height: =40
+          - SecondaryBtn:
+              Control: Classic/Button@2.0.0
+              Properties:
+                Text: ="Secondary"
+                Fill: =RGBA(241, 245, 249, 1)
+                Color: =RGBA(51, 65, 85, 1)
+                BorderColor: =RGBA(148, 163, 184, 1)
+                BorderThickness: =1
+                HoverFill: =RGBA(226, 232, 240, 1)
+                HoverColor: =RGBA(15, 23, 42, 1)
+                PressedFill: =RGBA(203, 213, 225, 1)
+                PressedColor: =RGBA(15, 23, 42, 1)
+                DisabledFill: =RGBA(248, 250, 252, 1)
+                DisabledColor: =RGBA(148, 163, 184, 1)
+                X: =188
+                Y: =48
+                Width: =160
+                Height: =40
+          - DangerBtn:
+              Control: Classic/Button@2.0.0
+              Properties:
+                Text: ="Danger"
+                Fill: =RGBA(220, 38, 38, 1)
+                Color: =RGBA(255, 255, 255, 1)
+                BorderColor: =RGBA(185, 28, 28, 1)
+                HoverFill: =RGBA(185, 28, 28, 1)
+                HoverColor: =RGBA(254, 242, 242, 1)
+                PressedFill: =RGBA(153, 27, 27, 1)
+                PressedColor: =RGBA(254, 226, 226, 1)
+                X: =12
+                Y: =104
+                Width: =160
+                Height: =40
+          - TransparentBtn:
+              Control: Classic/Button@2.0.0
+              Properties:
+                Text: ="Transparent fill"
+                Fill: =RGBA(0, 0, 0, 0)
+                Color: =RGBA(37, 99, 235, 1)
+                BorderColor: =RGBA(37, 99, 235, 1)
+                BorderThickness: =1
+                HoverFill: =RGBA(239, 246, 255, 1)
+                HoverColor: =RGBA(29, 78, 216, 1)
+                PressedFill: =RGBA(219, 234, 254, 1)
+                X: =188
+                Y: =104
+                Width: =160
+                Height: =40
+          - DisabledBtnSample:
+              Control: Classic/Button@2.0.0
+              Properties:
+                Text: ="Looks disabled"
+                DisplayMode: =DisplayMode.Disabled
+                Fill: =RGBA(226, 232, 240, 1)
+                Color: =RGBA(148, 163, 184, 1)
+                BorderColor: =RGBA(203, 213, 225, 1)
+                DisabledFill: =RGBA(226, 232, 240, 1)
+                DisabledColor: =RGBA(148, 163, 184, 1)
+                DisabledBorderColor: =RGBA(203, 213, 225, 1)
+                X: =12
+                Y: =160
+                Width: =336
+                Height: =40
+
+    - InputsSection:
+        Control: GroupContainer@1.0.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          BorderColor: =RGBA(226, 232, 240, 1)
+          BorderThickness: =1
+          BorderRadius: =8
+          DropShadow: =DropShadow.Regular
+          X: =16
+          Y: =324
+          Width: =376
+          Height: =280
+        Children:
+          - InputsHeading:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Text input / icons"
+                Color: =RGBA(15, 23, 42, 1)
+                FontWeight: =FontWeight.Semibold
+                X: =12
+                Y: =8
+                Width: =340
+                Height: =28
+          - SampleTextInput:
+              Control: Classic/TextInput@2.0.0
+              Properties:
+                Default: ="Sample input"
+                Fill: =RGBA(255, 255, 255, 1)
+                Color: =RGBA(15, 23, 42, 1)
+                BorderColor: =RGBA(148, 163, 184, 1)
+                BorderThickness: =1
+                HoverFill: =RGBA(248, 250, 252, 1)
+                HoverBorderColor: =RGBA(100, 116, 139, 1)
+                PressedFill: =RGBA(241, 245, 249, 1)
+                FocusedBorderColor: =RGBA(59, 130, 246, 1)
+                DisabledFill: =RGBA(241, 245, 249, 1)
+                DisabledColor: =RGBA(148, 163, 184, 1)
+                DisabledBorderColor: =RGBA(203, 213, 225, 1)
+                X: =12
+                Y: =48
+                Width: =340
+                Height: =40
+          - SampleIcon:
+              Control: Classic/Icon@2.0.0
+              Properties:
+                Icon: =Icon.Home
+                Color: =RGBA(37, 99, 235, 1)
+                Fill: =RGBA(239, 246, 255, 1)
+                BorderColor: =RGBA(147, 197, 253, 1)
+                BorderThickness: =1
+                HoverColor: =RGBA(29, 78, 216, 1)
+                HoverFill: =RGBA(219, 234, 254, 1)
+                PressedColor: =RGBA(30, 64, 175, 1)
+                PressedFill: =RGBA(191, 219, 254, 1)
+                IconColor: =RGBA(37, 99, 235, 1)
+                IconBackground: =RGBA(219, 234, 254, 1)
+                X: =12
+                Y: =104
+                Width: =48
+                Height: =48
+          - SampleImage:
+              Control: Image@2.0.0
+              Properties:
+                Image: =SampleImage
+                Fill: =RGBA(241, 245, 249, 1)
+                BorderColor: =RGBA(203, 213, 225, 1)
+                BorderThickness: =1
+                X: =76
+                Y: =104
+                Width: =120
+                Height: =48
+          - SampleHtml:
+              Control: HtmlViewer@2.0.0
+              Properties:
+                HtmlText: |-
+                  ="<div style='padding:8px'>HTML viewer chrome</div>"
+                Fill: =RGBA(255, 255, 255, 1)
+                BorderColor: =RGBA(226, 232, 240, 1)
+                BorderThickness: =1
+                Color: =RGBA(51, 65, 85, 1)
+                X: =12
+                Y: =168
+                Width: =340
+                Height: =88
+
+    - ChoicesSection:
+        Control: GroupContainer@1.0.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          BorderColor: =RGBA(226, 232, 240, 1)
+          BorderThickness: =1
+          BorderRadius: =8
+          DropShadow: =DropShadow.Light
+          X: =408
+          Y: =324
+          Width: =376
+          Height: =280
+        Children:
+          - ChoicesHeading:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Toggle / checkbox / slider"
+                Color: =RGBA(15, 23, 42, 1)
+                FontWeight: =FontWeight.Semibold
+                X: =12
+                Y: =8
+                Width: =340
+                Height: =28
+          - SampleToggle:
+              Control: Classic/Toggle@2.1.0
+              Properties:
+                Text: ="Feature flag"
+                Default: =false
+                TrueFill: =RGBA(37, 99, 235, 1)
+                FalseFill: =RGBA(203, 213, 225, 1)
+                TrueHoverFill: =RGBA(29, 78, 216, 1)
+                FalseHoverFill: =RGBA(148, 163, 184, 1)
+                Color: =RGBA(51, 65, 85, 1)
+                HandleFill: =RGBA(255, 255, 255, 1)
+                X: =12
+                Y: =48
+                Width: =200
+                Height: =40
+          - SampleCheckbox:
+              Control: Classic/CheckBox@2.0.0
+              Properties:
+                Text: ="Accept terms"
+                CheckboxBackgroundFill: =RGBA(255, 255, 255, 1)
+                CheckmarkFill: =RGBA(37, 99, 235, 1)
+                CheckboxBorderColor: =RGBA(148, 163, 184, 1)
+                Color: =RGBA(51, 65, 85, 1)
+                Fill: =RGBA(248, 250, 252, 1)
+                HoverFill: =RGBA(241, 245, 249, 1)
+                PressedFill: =RGBA(226, 232, 240, 1)
+                X: =12
+                Y: =100
+                Width: =220
+                Height: =40
+          - SampleSlider:
+              Control: Classic/Slider@2.0.0
+              Properties:
+                Default: =40
+                Min: =0
+                Max: =100
+                ValueFill: =RGBA(37, 99, 235, 1)
+                RailFill: =RGBA(226, 232, 240, 1)
+                RailHoverFill: =RGBA(203, 213, 225, 1)
+                HandleFill: =RGBA(255, 255, 255, 1)
+                BorderColor: =RGBA(148, 163, 184, 1)
+                ActiveFill: =RGBA(37, 99, 235, 1)
+                InactiveFill: =RGBA(226, 232, 240, 1)
+                TrackFill: =RGBA(191, 219, 254, 1)
+                X: =12
+                Y: =156
+                Width: =340
+                Height: =40
+          - SampleRadio:
+              Control: Classic/Radio@2.0.0
+              Properties:
+                Items: =["One", "Two", "Three"]
+                Fill: =RGBA(255, 255, 255, 1)
+                Color: =RGBA(51, 65, 85, 1)
+                BorderColor: =RGBA(203, 213, 225, 1)
+                RadioBackgroundFill: =RGBA(255, 255, 255, 1)
+                RadioBorderColor: =RGBA(148, 163, 184, 1)
+                SelectionColor: =RGBA(37, 99, 235, 1)
+                SelectionFill: =RGBA(219, 234, 254, 1)
+                X: =12
+                Y: =208
+                Width: =340
+                Height: =56
+
+    - DropdownSection:
+        Control: GroupContainer@1.0.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          BorderColor: =RGBA(226, 232, 240, 1)
+          BorderThickness: =1
+          BorderRadius: =8
+          DropShadow: =DropShadow.Regular
+          X: =16
+          Y: =620
+          Width: =376
+          Height: =200
+        Children:
+          - DropdownHeading:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Dropdown / combo chrome"
+                Color: =RGBA(15, 23, 42, 1)
+                FontWeight: =FontWeight.Semibold
+                X: =12
+                Y: =8
+                Width: =340
+                Height: =28
+          - SampleDropdown:
+              Control: Classic/DropDown@2.0.0
+              Properties:
+                Items: =["Alpha", "Beta", "Gamma"]
+                Fill: =RGBA(255, 255, 255, 1)
+                Color: =RGBA(15, 23, 42, 1)
+                BorderColor: =RGBA(148, 163, 184, 1)
+                BorderThickness: =1
+                HoverFill: =RGBA(248, 250, 252, 1)
+                HoverColor: =RGBA(15, 23, 42, 1)
+                HoverBorderColor: =RGBA(100, 116, 139, 1)
+                PressedFill: =RGBA(241, 245, 249, 1)
+                PressedColor: =RGBA(15, 23, 42, 1)
+                DisabledFill: =RGBA(241, 245, 249, 1)
+                DisabledColor: =RGBA(148, 163, 184, 1)
+                SelectionColor: =RGBA(255, 255, 255, 1)
+                SelectionFill: =RGBA(37, 99, 235, 1)
+                ChevronBackground: =RGBA(241, 245, 249, 1)
+                ChevronFill: =RGBA(51, 65, 85, 1)
+                FocusedBorderColor: =RGBA(59, 130, 246, 1)
+                X: =12
+                Y: =48
+                Width: =340
+                Height: =40
+          - SampleCombo:
+              Control: Classic/ComboBox@2.0.0
+              Properties:
+                Items: =["Red", "Green", "Blue"]
+                Fill: =RGBA(255, 255, 255, 1)
+                Color: =RGBA(15, 23, 42, 1)
+                BorderColor: =RGBA(148, 163, 184, 1)
+                HoverFill: =RGBA(248, 250, 252, 1)
+                SelectionFill: =RGBA(219, 234, 254, 1)
+                SelectionColor: =RGBA(30, 64, 175, 1)
+                ChevronBackground: =RGBA(226, 232, 240, 1)
+                ChevronFill: =RGBA(71, 85, 105, 1)
+                IconBackground: =RGBA(241, 245, 249, 1)
+                IconColor: =RGBA(51, 65, 85, 1)
+                X: =12
+                Y: =108
+                Width: =340
+                Height: =40
+
+    - GallerySection:
+        Control: GroupContainer@1.0.0
+        Properties:
+          Fill: =RGBA(255, 255, 255, 1)
+          BorderColor: =RGBA(226, 232, 240, 1)
+          BorderThickness: =1
+          BorderRadius: =8
+          DropShadow: =DropShadow.Bold
+          X: =408
+          Y: =620
+          Width: =376
+          Height: =200
+        Children:
+          - GalleryHeading:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Gallery item surfaces"
+                Color: =RGBA(15, 23, 42, 1)
+                FontWeight: =FontWeight.Semibold
+                X: =12
+                Y: =8
+                Width: =340
+                Height: =28
+          - SampleGallery:
+              Control: Gallery@2.0.0
+              Variant: BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0
+              Properties:
+                Items: |-
+                  =Table({Title: "Item A", Subtitle: "One"}, {Title: "Item B", Subtitle: "Two"})
+                TemplateSize: =56
+                TemplatePadding: =4
+                Fill: =RGBA(248, 250, 252, 1)
+                BorderColor: =RGBA(226, 232, 240, 1)
+                BorderThickness: =1
+                TemplateFill: =RGBA(255, 255, 255, 1)
+                ItemColor: =RGBA(15, 23, 42, 1)
+                ItemFill: =RGBA(255, 255, 255, 1)
+                ItemBorderColor: =RGBA(226, 232, 240, 1)
+                SelectedFill: =RGBA(219, 234, 254, 1)
+                SelectedColor: =RGBA(30, 64, 175, 1)
+                SelectedBorderColor: =RGBA(147, 197, 253, 1)
+                HoverItemFill: =RGBA(241, 245, 249, 1)
+                PressedItemFill: =RGBA(226, 232, 240, 1)
+                DisabledItemFill: =RGBA(248, 250, 252, 1)
+                HighlightColor: =RGBA(59, 130, 246, 1)
+                Transition: =Transition.None
+                X: =12
+                Y: =44
+                Width: =340
+                Height: =140
+              Children:
+                - GalTitle:
+                    Control: Label@2.0.0
+                    Properties:
+                      Text: =ThisItem.Title
+                      Color: =RGBA(15, 23, 42, 1)
+                      X: =8
+                      Y: =8
+                      Width: =200
+                      Height: =24
+                - GalSub:
+                    Control: Label@2.0.0
+                    Properties:
+                      Text: =ThisItem.Subtitle
+                      Color: =RGBA(100, 116, 139, 1)
+                      X: =8
+                      Y: =32
+                      Width: =200
+                      Height: =20
+
+    - ProgressSection:
+        Control: GroupContainer@1.0.0
+        Properties:
+          Fill: =ColorValue("#FFFFFF")
+          BorderColor: =ColorValue("#E2E8F0")
+          BorderThickness: =1
+          BorderRadius: =8
+          DropShadow: =DropShadow.Regular
+          X: =16
+          Y: =840
+          Width: =768
+          Height: =120
+        Children:
+          - ProgressHeading:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Progress / date / misc chrome"
+                Color: =RGBA(15, 23, 42, 1)
+                FontWeight: =FontWeight.Semibold
+                X: =12
+                Y: =8
+                Width: =400
+                Height: =28
+          - SampleProgress:
+              Control: Classic/Circle@2.0.0
+              Properties:
+                Fill: =RGBA(37, 99, 235, 1)
+                BorderColor: =RGBA(29, 78, 216, 1)
+                BorderThickness: =2
+                X: =12
+                Y: =48
+                Width: =48
+                Height: =48
+          - SampleRect:
+              Control: Classic/Rectangle@2.0.0
+              Properties:
+                Fill: =RGBA(226, 232, 240, 1)
+                BorderColor: =RGBA(148, 163, 184, 1)
+                BorderThickness: =1
+                X: =76
+                Y: =56
+                Width: =200
+                Height: =32
+          - SampleDate:
+              Control: Classic/DatePicker@2.0.0
+              Properties:
+                Fill: =RGBA(255, 255, 255, 1)
+                Color: =RGBA(15, 23, 42, 1)
+                BorderColor: =RGBA(148, 163, 184, 1)
+                HoverFill: =RGBA(248, 250, 252, 1)
+                PressedFill: =RGBA(241, 245, 249, 1)
+                IconBackground: =RGBA(241, 245, 249, 1)
+                IconColor: =RGBA(51, 65, 85, 1)
+                SelectionFill: =RGBA(37, 99, 235, 1)
+                SelectionColor: =RGBA(255, 255, 255, 1)
+                X: =300
+                Y: =48
+                Width: =220
+                Height: =40
+          - SampleTimerBar:
+              Control: Label@2.0.0
+              Properties:
+                Text: ="Indicator"
+                Align: =Align.Center
+                Color: =RGBA(255, 255, 255, 1)
+                Fill: =RGBA(14, 165, 233, 1)
+                BorderColor: =RGBA(2, 132, 199, 1)
+                BorderThickness: =1
+                IndicatorFill: =RGBA(14, 165, 233, 1)
+                ProgressColor: =RGBA(56, 189, 248, 1)
+                BarColor: =RGBA(186, 230, 253, 1)
+                TintColor: =RGBA(125, 211, 252, 1)
+                UnderlineColor: =RGBA(2, 132, 199, 1)
+                X: =540
+                Y: =48
+                Width: =200
+                Height: =40

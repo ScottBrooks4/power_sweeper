@@ -1,0 +1,23 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(gblReady, true)
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+ComponentDefinitions:
+  ExternalFunctions:
+    DefinitionType: CanvasComponent
+    CustomProperties: {}
+    Properties:
+      Height: =40
+      Width: =200
+      Email_SendReminder: |-
+        =Office365Outlook.SendEmailV2(
+            Remindee,
+            "DND THCEE ACTION REQUIRED — "&varEHCRItem.UniqueID,
+            $"<table role='presentation' cellpadding='0' cellspacing='0' border='0' width='100%' bgcolor='#ffffff' style='background-color:#ffffff;padding:32px 0;'>
+              <tr><td style='color:#0F172A;'>Action required</td></tr>
+            </table>"
+        )

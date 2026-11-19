@@ -1,0 +1,123 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: |-
+      =Set(varLang, true);
+      Set(
+          gblTheme,
+          {
+              Accent: RGBA(0, 120, 212, 1),
+              Text: RGBA(50, 49, 48, 1),
+              BorderStrong: RGBA(200, 200, 200, 1),
+              Surface: RGBA(255, 255, 255, 1)
+          }
+      )
+Home:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =gblTheme.Surface
+  Children:
+    - TopbarAndSettings:
+        Control: GroupContainer@1.5.0
+        Variant: ManualLayout
+        Properties:
+          Width: =App.Width
+          Height: =400
+        Children:
+          - SettingsMiddle:
+              Control: GroupContainer@1.5.0
+              Variant: AutoLayout
+              Properties:
+                LayoutDirection: =LayoutDirection.Vertical
+                Width: =Parent.Width
+                Height: =300
+              Children:
+                - LanguagePreference:
+                    Control: GroupContainer@1.5.0
+                    Variant: AutoLayout
+                    Properties:
+                      BorderColor: =gblTheme.BorderStrong
+                      Height: =75
+                      LayoutDirection: =LayoutDirection.Vertical
+                      Visible: =false
+                    Children:
+                      - LanguageHeader:
+                          Control: Label@2.5.1
+                          Properties:
+                            Text: ="Language Preference"
+                            Color: =gblTheme.Text
+                      - LanguageRadio:
+                          Control: Radio@0.0.25
+                          Properties:
+                            DefaultSelectedItems: =If(varLang, ["English"], ["French"])
+                            Items: =["English"]
+                            Layout: ='RadioGroupCanvas.Layout'.Horizontal
+                            OnChange: =If(Self.Selected.Value = "English", Set(varLang, "EN"), Set(varLang, "FR"))
+                - ThemeCont:
+                    Control: GroupContainer@1.5.0
+                    Variant: AutoLayout
+                    Properties:
+                      Height: =75
+                      LayoutDirection: =LayoutDirection.Vertical
+                    Children:
+                      - ThemeHeader:
+                          Control: Label@2.5.1
+                          Properties:
+                            Text: ="Theme"
+                      - ThemeRadio:
+                          Control: Radio@0.0.25
+                          Properties:
+                            Items: =["Light", "Dark"]
+                            Layout: ='RadioGroupCanvas.Layout'.Horizontal
+          - SettingsContainer:
+              Control: GroupContainer@1.5.0
+              Variant: AutoLayout
+              Properties:
+                BorderColor: =gblTheme.BorderStrong
+                Height: =60
+                LayoutAlignItems: =LayoutAlignItems.Center
+                LayoutDirection: =LayoutDirection.Horizontal
+                Width: =Parent.Width
+              Children:
+                - Settings:
+                    Control: Label@2.5.1
+                    Properties:
+                      FillPortions: =1
+                      Size: =32
+                      Text: ="Settings"
+                      Color: =gblTheme.Text
+          - SettingsAndHelpCont:
+              Control: GroupContainer@1.5.0
+              Variant: AutoLayout
+              Properties:
+                BorderColor: =gblTheme.BorderStrong
+                Height: =65
+                LayoutAlignItems: =LayoutAlignItems.Center
+                LayoutDirection: =LayoutDirection.Horizontal
+                LayoutGap: =20
+                LayoutJustifyContent: =LayoutJustifyContent.End
+                Width: =Parent.Width
+              Children:
+                - SettingsCont:
+                    Control: GroupContainer@1.5.0
+                    Variant: ManualLayout
+                    Properties:
+                      FillPortions: =0
+                      Height: =Parent.Height
+                      Width: =100
+                    Children:
+                      - SettingsLabel:
+                          Control: Label@2.5.1
+                          Properties:
+                            Text: ="Settings"
+                            Color: =gblTheme.Text
+                      - SettingsButton:
+                          Control: Classic/Button@2.2.0
+                          Properties:
+                            Text: =
+                            Fill: =RGBA(0, 0, 0, 0)
+                            OnSelect: =Set(varTopMenu, !varTopMenu)
+    - Title:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Welcome"

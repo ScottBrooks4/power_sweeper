@@ -1,0 +1,148 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+App:
+  Properties:
+    Formulas: |-
+      =varEnv = "dev";   // "dev" or "prod"
+      fnIsDev = varEnv = "dev";
+      fnIsProd = varEnv = "prod";
+
+      LinkToApp =
+          If(
+              fnIsDev,
+              "https://apps.powerapps.com/play/e/9ed70000-7006-e3b7-a4b4-c31cb53e5df0/a/dd692a7a-782a-4903-a837-64f19b2913db?tenantId=325b4494-1587-40d5-bb31-8b660b7f1038&hint=ff71f6ed-120c-43b2-a51f-16f21de021d4",
+              "<PROD play URL>"
+          );
+
+      gblThemeLight = { /* full record from VCR — Accent, Page, Surface, Text, … */ };
+      gblThemeDark  = { /* full dark record from VCR */ };
+
+      // Colors
+      DefaultGrayBackgroud = RGBA(
+          250,
+          250,
+          250,
+          1
+      );
+
+      // Navigating Menu
+      SideMenuFirstTable = [
+          {
+              Screen: Homepage,
+              Name: "Home",
+              Icon: Icon.Home
+          },
+          //{
+          //    Screen: 'THCEE New Package',
+          //    Name: "New EHCR",
+          //    Icon: Icon.Add
+          //},
+          {
+              Screen: Dashboard,
+              Name: "Dashboard",
+              Icon: Icon.Items
+          }
+      ];
+      SideMenuSecondTable = [
+          {
+              Screen: Details,
+              Name: "Details",
+              Icon: Icon.LevelsLayersItems
+          },
+          {
+              Screen: Approvals,
+              Name: "Approvals",
+              Icon: Icon.LogJournal
+          },
+          {
+              Screen: Chat,
+              Name: "Chat",
+              Icon: Icon.Message
+          }
+      ];
+      SideMenuThirdTable = [
+          {
+              Screen: 'Admin Screen',
+              Name: "Users & Templates",
+              Icon: Icon.Printing3D
+          },
+          {
+              Screen: Homepage,
+              Name: "Metrics",
+              Icon: Icon.TrendingUpwards
+          }
+      ];
+
+
+
+      fxRiskFill(Score: Number): Color =
+          If(
+              Score <= 3, gblColorRiskLow,
+              Score <= 6, gblColorRiskModerate,
+              Score <= 12, gblColorRiskHigh,
+              gblColorRiskExtreme
+          );
+
+      fxRiskBand(Score: Number): Text =
+          If(
+              Score <= 3, "Low",
+              Score <= 6, "Moderate",
+              Score <= 12, "High",
+              "Extreme"
+          );
+    OnStart: |-
+      =// Use this property to set the app parameters using Param() and to set the app verision value
+      Set(AppVersion,"0.0.0");
+      Set(varSideMenu, false); // sidemenu closed OnStart
+      Set(varL2, "All");
+      Set(varProgram, "All");
+      Set(varHighOnly, false);
+
+      /*
+      ClearCollect(
+          colRisks,
+          AddColumns(
+              OHSRisks,
+              L2Short,
+                  If(
+                      StartsWith('VCDS Group', "VCDS Group HQ"), "VCDS HQ / DVCDS",
+                      StartsWith('VCDS Group', "CANELEMNORAD"), "CANELEMNORAD",
+                      StartsWith('VCDS Group', "CJCR"), "CJCR Gp",
+                      StartsWith('VCDS Group', "OUTCAN COORD"), "OUTCAN COORD",
+                      StartsWith('VCDS Group', "OUTCAN URS"), "OUTCAN URS/DFL",
+                      StartsWith('VCDS Group', "CFSG"), "CFSG (O-G)",
+                      StartsWith('VCDS Group', "DGDS"), "DGDS",
+                      StartsWith('VCDS Group', "C Prog"), "C Prog",
+                      StartsWith('VCDS Group', "CFD"), "CFD",
+                      "Other"
+                  ),
+              ScoreBand,
+                  Switch(
+                      true,
+                      'Initial Risk Score' <= 3, "Low",
+                      'Initial Risk Score' <= 6, "Moderate",
+                      'Initial Risk Score' <= 12, "High",
+                      "Extreme"
+                  )
+          )
+      );*/
+
+      Set(gblRadius, 8);
+
+      Set(gblColorRiskLow, ColorValue("#BFE4CF"));
+      Set(gblColorRiskModerate, ColorValue("#F3D48A"));
+      Set(gblColorRiskHigh, ColorValue("#F0A57A"));
+      Set(gblColorRiskExtreme, ColorValue("#E07A7A"));
+
+      Set(gblColorRiskLowInk, ColorValue("#1D6B43"));
+      Set(gblColorRiskModerateInk, ColorValue("#B45309"));
+      Set(gblColorRiskHighInk, ColorValue("#C2410C"));
+      Set(gblColorRiskExtremeInk, ColorValue("#9B1C1C"));
+    StartScreen: =Homepage
+    Theme: =PowerAppsTheme

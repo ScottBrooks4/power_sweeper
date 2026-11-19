@@ -1,0 +1,732 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PowerSweeper;
+
+/**
+ * Live App checker — scans unpacked .msapp documents for issues we can detect
+ * without Studio. Coverage is partial vs Studio's checker (especially formulas).
+ *
+ * When writing AppCheckerResult.sarif, live findings replace only rules we own
+ * authoritatively (accessibility + DelayItemLoading). Other prior Studio SARIF
+ * findings are preserved so we do not report false zeros for rules we cannot see.
+ */
+final class StudioLiveChecker
+{
+    /**
+     * Rules where the live checker is authoritative: if live does not report them,
+     * they are treated as cleared. Everything else from a prior Studio SARIF is kept.
+     */
+    public static function isLiveAuthoritativeRule(string $ruleId): bool
+    {
+        if (str_starts_with($ruleId, 'acc-')) {
+            return true;
+        }
+
+        return $ruleId === 'app-InefficientDelayLoading';
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @param array{extract_dir?:string,template_sarif?:array<string,mixed>|null} $options
+     * @return array{
+     *   total:int,
+     *   by_category:array<string,int>,
+     *   by_level:array<string,int>,
+     *   by_rule:array<string,int>,
+     *   by_screen:array<string,int>,
+     *   findings:list<array{
+     *     ruleId:string,
+     *     level:string,
+     *     messageArgs:list<string|int>,
+     *     location:string,
+     *     screen:string,
+     *     controlType:string,
+     *     property:string,
+     *     snippet:string,
+     *     charOffset:int,
+     *     charLength:int
+     *   }>
+     * }
+     */
+    public static function check(array $documents, array $options = []): array
+    {
+        $extractDir = $options['extract_dir'] ?? null;
+        $catalog = AppControlCatalog::build($documents);
+        $dataContext = AppDataContext::build($documents, is_string($extractDir) ? $extractDir : null);
+        $formulaChecker = new PowerFxFormulaChecker($catalog, $dataContext);
+        $scanDocs = $dataContext->documentsToScan($documents);
+
+        $allFormulaText = self::collectAllFormulaText($scanDocs);
+        $findings = [];
+
+        foreach ($scanDocs as $doc) {
+            $screen = $catalog->screenForDocument($doc) ?? $doc->screenName() ?? '(unknown)';
+            $localNames = [];
+            foreach ($doc->controls() as $c) {
+                $localNames[$c->name] = true;
+            }
+            $screenRecordVars = FormulaRefContext::recordVariableNames(self::collectAllFormulaText([$doc]));
+
+            foreach ($doc->controls() as $control) {
+                foreach ($control->propertyNames() as $prop) {
+                    $value = $control->getProperty($prop);
+                    if ($value === null || trim($value) === '') {
+                        continue;
+                    }
+                    $location = self::qualifiedLocation($screen, $control->path, $prop);
+                    foreach ($formulaChecker->check(
+                        $value,
+                        $screen,
+                        $location,
+                        self::controlTypeFqn($screen, $control),
+                        $prop,
+                        $control->name,
+                        $localNames,
+                        $screenRecordVars,
+                    ) as $finding) {
+                        $findings[] = $finding;
+                    }
+                }
+
+                foreach (self::checkAccessibility($control, $screen, $catalog) as $finding) {
+                    $findings[] = $finding;
+                }
+                foreach (self::checkPerformance($control, $screen) as $finding) {
+                    $findings[] = $finding;
+                }
+            }
+        }
+
+        foreach (self::checkAppLevel($scanDocs, $allFormulaText, $catalog) as $finding) {
+            $findings[] = $finding;
+        }
+
+        $findings = self::dedupeFindings($findings);
+
+        return self::summarize($findings);
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @return ($returnReport is true ? array{
+     *   total:int,
+     *   by_category:array<string,int>,
+     *   by_level:array<string,int>,
+     *   by_rule:array<string,int>,
+     *   by_screen:array<string,int>,
+     *   findings:list<array<string,mixed>>,
+     *   path:string
+     * } : string)
+     */
+    public static function writeSarifToExtractDir(
+        array $documents,
+        string $extractDir,
+        ?string $templateSarifPath = null,
+        bool $returnReport = false,
+    ): array|string {
+        $template = null;
+        if ($templateSarifPath !== null && is_file($templateSarifPath)) {
+            $raw = file_get_contents($templateSarifPath);
+            if (is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $template = $decoded;
+                }
+            }
+        } else {
+            $candidate = $extractDir . '/AppCheckerResult.sarif';
+            if (is_file($candidate)) {
+                $raw = file_get_contents($candidate);
+                if (is_string($raw)) {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) {
+                        $template = $decoded;
+                    }
+                }
+            }
+        }
+
+        $live = self::check($documents, ['extract_dir' => $extractDir, 'template_sarif' => $template]);
+        $preserved = self::preservedFindingsFromTemplate($template);
+        $merge = self::mergeLiveWithPreserved($live['findings'], $preserved);
+        $report = self::summarize($merge['findings']);
+        $report['live_total'] = $live['total'];
+        $report['preserved_total'] = $merge['preserved_added'];
+        $json = SarifWriter::toJson($merge['findings'], $template);
+        unset($template, $live, $preserved, $merge);
+        $outPath = $extractDir . '/AppCheckerResult.sarif';
+        file_put_contents($outPath, $json);
+        unset($json, $report['findings']);
+        $report['findings'] = [];
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
+
+        if ($returnReport) {
+            $report['path'] = $outPath;
+
+            return $report;
+        }
+
+        return $outPath;
+    }
+
+    /**
+     * @param array<string,mixed>|null $template
+     * @return list<array{
+     *   ruleId:string,
+     *   level:string,
+     *   messageArgs:list<string|int>,
+     *   location:string,
+     *   screen:string,
+     *   controlType:string,
+     *   property:string,
+     *   snippet:string,
+     *   charOffset:int,
+     *   charLength:int
+     * }>
+     */
+    private static function preservedFindingsFromTemplate(?array $template): array
+    {
+        if ($template === null) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($template['runs'] ?? [] as $run) {
+            if (!is_array($run)) {
+                continue;
+            }
+            foreach ($run['results'] ?? [] as $result) {
+                if (!is_array($result)) {
+                    continue;
+                }
+                $ruleId = (string) ($result['ruleId'] ?? '');
+                if ($ruleId === '' || self::isLiveAuthoritativeRule($ruleId)) {
+                    continue;
+                }
+                $location = '';
+                $snippet = '';
+                $module = '';
+                $charOffset = 0;
+                $charLength = 0;
+                foreach ($result['locations'] ?? [] as $loc) {
+                    if (!is_array($loc)) {
+                        continue;
+                    }
+                    $module = (string) (($loc['properties']['module'] ?? '') ?: $module);
+                    foreach ($loc['logicalLocations'] ?? [] as $ll) {
+                        if (is_array($ll) && isset($ll['fullyQualifiedName'])) {
+                            $location = (string) $ll['fullyQualifiedName'];
+                        }
+                    }
+                    $phys = $loc['physicalLocation'] ?? null;
+                    if (is_array($phys)) {
+                        if ($location === '' && isset($phys['address']['fullyQualifiedName'])) {
+                            $location = (string) $phys['address']['fullyQualifiedName'];
+                        }
+                        $region = $phys['region'] ?? null;
+                        if (is_array($region)) {
+                            $sn = $region['snippet']['text'] ?? null;
+                            if (is_string($sn)) {
+                                $snippet = $sn;
+                            }
+                            $charOffset = (int) ($region['charOffset'] ?? 0);
+                            $charLength = (int) ($region['charLength'] ?? 0);
+                        }
+                    }
+                }
+                if ($location === '') {
+                    continue;
+                }
+                $parts = explode('.', $location);
+                $property = count($parts) > 1 ? (string) end($parts) : '';
+                $screen = $module !== '' ? $module : (string) ($parts[0] ?? '');
+                $level = (string) (($result['properties']['level'] ?? '') ?: 'Medium');
+                $out[] = [
+                    'ruleId' => $ruleId,
+                    'level' => $level,
+                    'messageArgs' => [],
+                    'location' => $location,
+                    'screen' => $screen,
+                    'controlType' => '',
+                    'property' => $property,
+                    'snippet' => $snippet,
+                    'charOffset' => $charOffset,
+                    'charLength' => $charLength,
+                ];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $live
+     * @param list<array<string,mixed>> $preserved
+     * @return array{findings:list<array<string,mixed>>,preserved_added:int}
+     */
+    private static function mergeLiveWithPreserved(array $live, array $preserved): array
+    {
+        // Prefer prior Studio findings for rules we do not own. Key must include
+        // snippet + charOffset — many Studio formula errors share the same
+        // ruleId|location (e.g. dozens of ErrInvalidName on one OnVisible).
+        $byKey = [];
+        foreach ($preserved as $f) {
+            $key = self::findingIdentityKey($f);
+            if ($key === null) {
+                continue;
+            }
+            $byKey[$key] = $f;
+        }
+        $preservedAdded = count($byKey);
+
+        foreach ($live as $f) {
+            $ruleId = (string) ($f['ruleId'] ?? '');
+            $key = self::findingIdentityKey($f);
+            if ($key === null) {
+                continue;
+            }
+            if (self::isLiveAuthoritativeRule($ruleId)) {
+                $byKey[$key] = $f;
+                continue;
+            }
+            if (!isset($byKey[$key])) {
+                $byKey[$key] = $f;
+            }
+        }
+
+        return [
+            'findings' => array_values($byKey),
+            'preserved_added' => $preservedAdded,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $f
+     */
+    private static function findingIdentityKey(array $f): ?string
+    {
+        $ruleId = (string) ($f['ruleId'] ?? '');
+        $location = (string) ($f['location'] ?? '');
+        if ($ruleId === '' || $location === '') {
+            return null;
+        }
+        $snippet = (string) ($f['snippet'] ?? '');
+        $offset = (string) (int) ($f['charOffset'] ?? 0);
+
+        return $ruleId . '|' . $location . '|' . $snippet . '|' . $offset;
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     */
+    private static function collectAllFormulaText(array $documents): string
+    {
+        $text = '';
+        foreach ($documents as $doc) {
+            $doc->transformFormulas(static function (string $formula) use (&$text): string {
+                $text .= "\n" . $formula;
+                return $formula;
+            });
+        }
+        return $text;
+    }
+
+    /**
+     * @return list<array<string,mixed>>
+     */
+    private static function checkAccessibility(ControlNode $control, string $screen, AppControlCatalog $catalog): array
+    {
+        if (!$control->isAccessibilityInteractive()) {
+            return [];
+        }
+
+        $findings = [];
+        $locationBase = self::qualifiedLocation($screen, $control->path, '');
+
+        $label = $control->getProperty('AccessibleLabel');
+        if ($label === null || self::isBlankAccessibleLabel($label)) {
+            $findings[] = self::structFinding(
+                'acc-AccessibleLabelNeeded',
+                'Medium',
+                [],
+                self::qualifiedLocation($screen, $control->path, 'AccessibleLabel'),
+                $screen,
+                self::controlTypeFqn($screen, $control),
+                'AccessibleLabel',
+                '',
+                0,
+                0
+            );
+        }
+
+        $tab = $control->getProperty('TabIndex');
+        $tabMissing = $tab === null
+            || trim($tab) === ''
+            || !$control->tabIndexSatisfiesChecker();
+        if ($tabMissing) {
+            $findings[] = self::structFinding(
+                'acc-TabIndexShouldBeDefinedForInteractiveControl',
+                'Medium',
+                [],
+                self::qualifiedLocation($screen, $control->path, 'TabIndex'),
+                $screen,
+                self::controlTypeFqn($screen, $control),
+                'TabIndex',
+                '',
+                0,
+                0
+            );
+        }
+
+        $ft = $control->getProperty('FocusedBorderThickness');
+        if ($ft === null || self::isBlankOrZero($ft)) {
+            $findings[] = self::structFinding(
+                'acc-FocusBorderShouldBeVisible',
+                'Medium',
+                [],
+                self::qualifiedLocation($screen, $control->path, 'FocusedBorderThickness'),
+                $screen,
+                self::controlTypeFqn($screen, $control),
+                'FocusedBorderThickness',
+                '',
+                0,
+                0
+            );
+        }
+
+        unset($locationBase, $catalog);
+        return $findings;
+    }
+
+    /**
+     * @return list<array<string,mixed>>
+     */
+    private static function checkPerformance(ControlNode $control, string $screen): array
+    {
+        $findings = [];
+        if (str_contains(strtolower($control->type), 'gallery')) {
+            $delay = $control->getProperty('DelayItemLoading');
+            if ($delay === null || in_array(strtolower(trim(ltrim(trim($delay), '='))), ['false', '0'], true)) {
+                $findings[] = self::structFinding(
+                    'app-InefficientDelayLoading',
+                    'Medium',
+                    [],
+                    self::qualifiedLocation($screen, $control->path, 'DelayItemLoading'),
+                    $screen,
+                    self::controlTypeFqn($screen, $control),
+                    'DelayItemLoading',
+                    '',
+                    0,
+                    0
+                );
+            }
+        }
+        return $findings;
+    }
+
+    /**
+     * @param list<ControlDocument> $documents
+     * @return list<array<string,mixed>>
+     */
+    private static function checkAppLevel(array $documents, string $allFormulaText, AppControlCatalog $catalog): array
+    {
+        $findings = [];
+        $app = null;
+        foreach ($documents as $doc) {
+            foreach ($doc->controls() as $control) {
+                if ($control->isApp()) {
+                    $app = $control;
+                }
+            }
+        }
+        if ($app === null) {
+            return [];
+        }
+
+        $maxRows = $app->getProperty('MaxDataRowCount') ?? $app->getProperty('DataRowLimit');
+        if ($maxRows !== null) {
+            $n = (int) preg_replace('/\D/', '', $maxRows);
+            if ($n > 500) {
+                $findings[] = self::structFinding(
+                    'app-DataSourceDefaultMaxRowsLimit',
+                    'Medium',
+                    [],
+                    'App',
+                    'App',
+                    'App',
+                    'MaxDataRowCount',
+                    '',
+                    0,
+                    0
+                );
+            }
+        }
+
+        // Unused variables declared in App.OnStart
+        $onStart = $app->getProperty('OnStart') ?? '';
+        if ($onStart !== '' && preg_match_all('/\bSet\s*\(\s*(var[A-Za-z0-9_]+)\s*,/i', $onStart, $m)) {
+            foreach (array_unique($m[1]) as $var) {
+                $pattern = '/\b' . preg_quote($var, '/') . '\b/i';
+                $declCount = preg_match_all($pattern, $onStart);
+                $useCount = preg_match_all($pattern, $allFormulaText);
+                if ($useCount <= $declCount) {
+                    $findings[] = self::structFinding(
+                        'app-UnusedVariables',
+                        'Medium',
+                        [],
+                        'App.' . $var,
+                        'App',
+                        'App',
+                        $var,
+                        '',
+                        0,
+                        0
+                    );
+                }
+            }
+        }
+
+        // Cross-screen event dependencies (bare unqualified control refs only)
+        foreach ($documents as $doc) {
+            $screen = $catalog->screenForDocument($doc);
+            if ($screen === null) {
+                continue;
+            }
+            foreach ($doc->controls() as $control) {
+                foreach (['OnSelect', 'OnChange', 'OnVisible', 'OnCheck', 'OnUncheck'] as $prop) {
+                    $value = $control->getProperty($prop);
+                    if ($value === null || trim($value) === '') {
+                        continue;
+                    }
+                    $reported = false;
+                    foreach (FormulaReferenceExtractor::identifiers($value) as $id) {
+                        if (!FormulaRefContext::hasBareCrossScreenControlRef($value, $id, $screen, $catalog)) {
+                            continue;
+                        }
+                        $findings[] = self::structFinding(
+                            'app-CrossScreenEventDependencies',
+                            'Medium',
+                            [],
+                            self::qualifiedLocation($screen, $control->path, $prop),
+                            $screen,
+                            self::controlTypeFqn($screen, $control),
+                            $prop,
+                            $id,
+                            0,
+                            0
+                        );
+                        $reported = true;
+                        break;
+                    }
+                    if ($reported) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $findings;
+    }
+
+    private static function qualifiedLocation(string $screen, string $controlPath, string $property): string
+    {
+        $controlFqn = self::pathToControlFqn($controlPath, $screen);
+        if ($property === '') {
+            return $controlFqn;
+        }
+        return $controlFqn . '.' . $property;
+    }
+
+    private static function pathToControlFqn(string $path, string $screen): string
+    {
+        if ($screen !== '' && $screen !== '(unknown)' && str_contains($path, $screen)) {
+            $pos = strpos($path, $screen);
+            $rest = ltrim(substr($path, $pos + strlen($screen)), '/');
+            $segments = $rest === '' ? [] : array_values(array_filter(explode('/', $rest), static fn(string $s): bool => $s !== ''));
+            $parts = array_merge([$screen], $segments);
+            return implode('.', array_map([self::class, 'quoteName'], $parts));
+        }
+
+        $parts = array_values(array_filter(explode('/', $path)));
+        $meaningful = [];
+        foreach ($parts as $part) {
+            if (str_ends_with($part, '.json') || str_ends_with($part, '.pa.yaml')) {
+                continue;
+            }
+            if (in_array($part, ['Src', 'Controls', 'Components', 'Screens', 'ComponentDefinitions'], true)) {
+                continue;
+            }
+            $meaningful[] = $part;
+        }
+
+        if ($meaningful !== [] && $screen !== '' && $meaningful[0] === $screen) {
+            array_shift($meaningful);
+        }
+
+        if ($meaningful === []) {
+            return $screen !== '' ? self::quoteName($screen) : '';
+        }
+
+        if ($screen === '' || $screen === '(unknown)') {
+            return self::quoteName($meaningful[0]);
+        }
+
+        $screenQ = self::quoteName($screen);
+        return $screenQ . '.' . implode('.', array_map([self::class, 'quoteName'], $meaningful));
+    }
+
+    /** @deprecated use pathToControlFqn */
+    private static function pathToFqn(string $path): string
+    {
+        return self::pathToControlFqn($path, '');
+    }
+
+    private static function quoteName(string $name): string
+    {
+        if (preg_match('/^[A-Za-z_][\w]*$/', $name)) {
+            return $name;
+        }
+        return "'" . str_replace("'", "''", $name) . "'";
+    }
+
+    private static function controlTypeFqn(string $screen, ControlNode $control): string
+    {
+        return self::pathToControlFqn($control->path, $screen);
+    }
+
+    /**
+     * @param list<string|int> $args
+     * @return array<string,mixed>
+     */
+    private static function structFinding(
+        string $ruleId,
+        string $level,
+        array $args,
+        string $location,
+        string $screen,
+        string $controlType,
+        string $property,
+        string $snippet,
+        int $charOffset,
+        int $charLength,
+    ): array {
+        return [
+            'ruleId' => $ruleId,
+            'level' => $level,
+            'messageArgs' => $args,
+            'location' => $location,
+            'screen' => $screen,
+            'controlType' => $controlType,
+            'property' => $property,
+            'snippet' => $snippet,
+            'charOffset' => $charOffset,
+            'charLength' => $charLength,
+        ];
+    }
+
+    /**
+     * @param list<array<string,mixed>> $findings
+     * @return list<array<string,mixed>>
+     */
+    private static function dedupeFindings(array $findings): array
+    {
+        $seen = [];
+        $out = [];
+        foreach ($findings as $f) {
+            $key = $f['ruleId'] . '|' . $f['location'] . '|' . $f['snippet'] . '|' . $f['charOffset'];
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $f;
+        }
+        return $out;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $findings
+     * @return array{
+     *   total:int,
+     *   by_category:array<string,int>,
+     *   by_level:array<string,int>,
+     *   by_rule:array<string,int>,
+     *   by_screen:array<string,int>,
+     *   findings:list<array<string,mixed>>
+     * }
+     */
+    private static function summarize(array $findings): array
+    {
+        $byCategory = [];
+        $byLevel = [];
+        $byRule = [];
+        $byScreen = [];
+
+        foreach ($findings as $f) {
+            $ruleId = (string) $f['ruleId'];
+            $cat = StudioErrorDetector::ruleCategory($ruleId);
+            $byCategory[$cat] = ($byCategory[$cat] ?? 0) + 1;
+            $byLevel[(string) $f['level']] = ($byLevel[(string) $f['level']] ?? 0) + 1;
+            $byRule[$ruleId] = ($byRule[$ruleId] ?? 0) + 1;
+            $byScreen[(string) $f['screen']] = ($byScreen[(string) $f['screen']] ?? 0) + 1;
+        }
+
+        arsort($byCategory);
+        arsort($byLevel);
+        arsort($byRule);
+        arsort($byScreen);
+
+        return [
+            'total' => count($findings),
+            'by_category' => $byCategory,
+            'by_level' => $byLevel,
+            'by_rule' => $byRule,
+            'by_screen' => $byScreen,
+            'findings' => $findings,
+        ];
+    }
+
+    private static function inferCategory(string $ruleId): string
+    {
+        if (str_starts_with($ruleId, 'acc-')) {
+            return 'accessibility';
+        }
+        if (str_starts_with($ruleId, 'app-SuggestRemoteExecutionHint') || str_contains($ruleId, 'Inefficient') || str_contains($ruleId, 'MaxRows')) {
+            return 'performance';
+        }
+        if (str_starts_with($ruleId, 'app-Unused') || str_contains($ruleId, 'CrossScreen') || str_contains($ruleId, 'Collecting')) {
+            return 'maintainability';
+        }
+        return 'formulas';
+    }
+
+    private static function isBlankOrZero(string $value): bool
+    {
+        $v = strtolower(trim(ltrim(trim($value), '=')));
+        return $v === '' || $v === '0' || $v === '0.0' || $v === 'false';
+    }
+
+    /** Treat "", Blank(), and quote-only values as missing AccessibleLabel. */
+    private static function isBlankAccessibleLabel(string $value): bool
+    {
+        $v = trim($value);
+        if (str_starts_with($v, '=')) {
+            $v = trim(substr($v, 1));
+        }
+        if ($v === '' || strcasecmp($v, 'Blank()') === 0) {
+            return true;
+        }
+        if (
+            (str_starts_with($v, '"') && str_ends_with($v, '"'))
+            || (str_starts_with($v, "'") && str_ends_with($v, "'"))
+        ) {
+            $inner = substr($v, 1, -1);
+            return trim(str_replace('""', '', $inner)) === '';
+        }
+
+        return false;
+    }
+}

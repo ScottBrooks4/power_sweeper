@@ -1,0 +1,31 @@
+{
+    "id": "little_residential",
+    "name": "Little residential floorplan",
+    "class": "residential",
+    "split": "dev",
+    "licence": "internal",
+    "source": "synoptic_designer",
+    "annotation_fill": "#16A085",
+    "empty": "empty.svg",
+    "filled": "filled.svg",
+    "gt": "gt.json",
+    "raster_variants": [
+        {
+            "id": "work_400",
+            "file": "empty_400.png",
+            "note": "400x400 render"
+        },
+        {
+            "id": "work_900",
+            "file": "empty_900.png",
+            "note": "900x900 render"
+        },
+        {
+            "id": "native_676",
+            "file": "empty.png",
+            "note": "676x676 native"
+        }
+    ],
+    "heavy": false,
+    "notes": "Thick-wall residential; detector must return exactly 7 rooms."
+}

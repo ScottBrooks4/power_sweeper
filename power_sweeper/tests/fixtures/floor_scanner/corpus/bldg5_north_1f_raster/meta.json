@@ -1,0 +1,30 @@
+{
+    "id": "bldg5_north_1f_raster",
+    "name": "Building 5W North 1st floor (under-resolved raster)",
+    "class": "office",
+    "split": "holdout",
+    "licence": "internal",
+    "source": "synoptic_designer_raster",
+    "empty": "empty.png",
+    "filled": null,
+    "gt": "gt.json",
+    "raster_variants": [
+        {
+            "id": "work_1200",
+            "file": "empty_1200.png",
+            "note": "1200x574 render"
+        },
+        {
+            "id": "work_2000",
+            "file": "empty_2000.png",
+            "note": "2000x957 render"
+        },
+        {
+            "id": "native_886",
+            "file": "empty.png",
+            "note": "886x424 native"
+        }
+    ],
+    "heavy": false,
+    "notes": "Deliberately awkward 886x424 PNG; exercises scale normalisation. Holdout."
+}

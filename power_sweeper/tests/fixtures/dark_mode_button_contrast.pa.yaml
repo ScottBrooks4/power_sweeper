@@ -1,0 +1,31 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(gblDarkMode, false); Set(gblTheme, gblThemeLight)
+Home:
+  Control: Screen@2.0.0
+  Children:
+    - ActivateBtn:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Activate"
+          Fill: =RGBA(5, 102, 178, 1)
+          Color: =RGBA(38, 38, 38, 1)
+    - EditBtn:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Edit"
+          Fill: =RGBA(249, 83, 109, 1)
+          Color: =RGBA(15, 23, 42, 1)
+    - SaveCloseBtn:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Save and Close"
+          Fill: =RGBA(189, 178, 176, 1)
+    - StartLink:
+        Control: ModernButton@1.0.0
+        Properties:
+          Text: ="Start"
+          Appearance: =ButtonAppearance.Transparent
+          Color: =RGBA(38, 38, 38, 1)
+          BasePaletteColor: =RGBA(189, 178, 176, 1)

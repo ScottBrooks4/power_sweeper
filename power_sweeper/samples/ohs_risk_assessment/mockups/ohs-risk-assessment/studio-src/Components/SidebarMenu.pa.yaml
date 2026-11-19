@@ -1,0 +1,437 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  SidebarMenu:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    Properties:
+      Fill: =RGBA(240, 240, 240, 0.4)
+      Height: =App.Height - 65
+      Width: =If(varSideMenu, App.Width, 75)
+    Children:
+      - SidebarCont:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =If(varSideMenu, DropShadow.Bold, DropShadow.None)
+            Fill: =DefaultGrayBackgroud
+            Height: =Parent.Height
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Vertical
+            Width: =If(varSideMenu, 170, 75)
+          Children:
+            - HamburgerMenuCont:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =50
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                Children:
+                  - HamburgerIcon:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Height: =25
+                        Icon: =If(!varSideMenu, Icon.Hamburger, Icon.Cancel)
+                        OnSelect: =Set(varSideMenu, !varSideMenu)
+                        PaddingBottom: =2
+                        PaddingLeft: =2
+                        PaddingRight: =2
+                        PaddingTop: =2
+                        Width: =25
+                        X: =25
+                        Y: =(Parent.Height / 2) - (Self.Height / 2)
+                  - ButtonCanvas1:
+                      Control: Button@0.0.45
+                      Properties:
+                        Appearance: ='ButtonCanvas.Appearance'.Transparent
+                        Height: =HamburgerIcon.Height
+                        OnSelect: |-
+                          =Set(varSideMenu, !varSideMenu);
+                          Reset(SidebarGallery1);
+                          Reset(SidebarGallery2);
+                          Reset(SidebarGallery3)
+                        PaddingBottom: =2
+                        PaddingLeft: =2
+                        PaddingRight: =2
+                        PaddingTop: =2
+                        Text: =
+                        Width: =HamburgerIcon.Width
+                        X: =HamburgerIcon.X
+                        Y: =HamburgerIcon.Y
+                  - CloseMenuLabel:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        OnSelect: |-
+                          =Set(varSideMenu, !varSideMenu);
+                          Reset(SidebarGallery1);
+                          Reset(SidebarGallery2);
+                          Reset(SidebarGallery3)
+                        PaddingBottom: =0
+                        PaddingLeft: =12
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =8
+                        TabIndex: =0
+                        Text: ="Close Menu"
+                        Visible: =varSideMenu
+                        Width: |-
+                          =//Parent.Width - Self.X
+                          110
+                        Wrap: =false
+                        X: =HamburgerIcon.X + HamburgerIcon.Width
+            - HamburgerSpacer:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =20
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  LayoutMinWidth: =Parent.Width
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                  Width: =Parent.Width
+                Children:
+                  - HamburgerSpacerInner:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =RGBA(230, 230, 230, 1)
+                        Height: =1
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                        Width: =Parent.Width * 0.6
+                        X: =Parent.Width * 0.2
+                        Y: =(Parent.Height / 2) - (Self.Height / 2)
+            - SidebarGallery1:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  FillPortions: =0
+                  Height: =Self.AllItemsCount * Self.TemplateHeight
+                  Items: =SideMenuFirstTable
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  LayoutMinWidth: =Parent.Width
+                  TemplatePadding: =0
+                  TemplateSize: =50
+                  Width: =If(varSideMenu, Parent.Width, 75)
+                  X: =40
+                  Y: =40
+                Children:
+                  - Container70_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.Regular
+                        Fill: =RGBA(255, 255, 255, 1)
+                        Height: =Parent.TemplateHeight - 10
+                        Visible: =If(ThisItem.Screen = App.ActiveScreen, true, false)
+                        Width: =Parent.TemplateWidth - 20
+                        X: =10
+                        Y: =5
+                  - SidebarIcon:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Height: =25
+                        Icon: =ThisItem.Icon
+                        OnSelect: =Navigate(ThisItem.Screen,ScreenTransition.Fade)
+                        PaddingBottom: =2
+                        PaddingLeft: =2
+                        PaddingRight: =2
+                        PaddingTop: =2
+                        Width: =25
+                        X: =25
+                        Y: =(Parent.TemplateHeight / 2) - (Self.Height / 2)
+                  - SidebarTextLabel:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.TemplateHeight
+                        OnSelect: =Navigate(ThisItem.Screen,ScreenTransition.Fade)
+                        PaddingBottom: =0
+                        PaddingLeft: =12
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =8
+                        Text: =ThisItem.Name
+                        Visible: =varSideMenu
+                        Width: |-
+                          =//Parent.TemplateWidth - Self.X
+                          110
+                        Wrap: =false
+                        X: =SidebarIcon.X + SidebarIcon.Width
+                  - SidebarButton:
+                      Control: Button@0.0.45
+                      Properties:
+                        Appearance: ='ButtonCanvas.Appearance'.Transparent
+                        Height: =Container70_1.Height
+                        Layout: ='ButtonCanvas.Layout'.TextOnly
+                        OnSelect: =Navigate(ThisItem.Screen,ScreenTransition.Fade); Set(varSideMenu, false);
+                        Text: =
+                        Width: =Container70_1.Width
+                        X: =10
+                        Y: =5
+            - SidebarBottomLine:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =20
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  LayoutMinWidth: =Parent.Width
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                  Visible: =If(!(App.ActiveScreen = Dashboard ||  App.ActiveScreen = 'Admin Screen'), true, false)
+                  Width: =Parent.Width
+                Children:
+                  - Container7_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =RGBA(230, 230, 230, 1)
+                        Height: =1
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                        Width: =Parent.Width * 0.6
+                        X: =Parent.Width * 0.2
+                        Y: =(Parent.Height / 2) - (Self.Height / 2)
+            - SidebarGallery2:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  FillPortions: =0
+                  Height: =Self.AllItemsCount * Self.TemplateHeight
+                  Items: =SideMenuSecondTable
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  LayoutMinWidth: =Parent.Width
+                  TemplatePadding: =0
+                  TemplateSize: =50
+                  Visible: =If(!(App.ActiveScreen = Dashboard || App.ActiveScreen = 'Admin Screen'), true, false)
+                  Width: =If(varSideMenu, Parent.Width, 75)
+                  X: =40
+                  Y: =40
+                Children:
+                  - Container70:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.Regular
+                        Fill: =RGBA(255, 255, 255, 1)
+                        Height: =Parent.TemplateHeight - 10
+                        Visible: =If(ThisItem.Screen = App.ActiveScreen, true, false)
+                        Width: =Parent.TemplateWidth - 20
+                        X: =10
+                        Y: =5
+                  - Icon2_3:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Height: =25
+                        Icon: =ThisItem.Icon
+                        OnSelect: =Navigate(ThisItem.Screen, ScreenTransition.Fade)
+                        PaddingBottom: =2
+                        PaddingLeft: =2
+                        PaddingRight: =2
+                        PaddingTop: =2
+                        Width: =25
+                        X: =25
+                        Y: =(Parent.TemplateHeight / 2) - (Self.Height / 2)
+                  - Label7_190:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.TemplateHeight
+                        PaddingBottom: =0
+                        PaddingLeft: =12
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =8
+                        Text: =ThisItem.Name
+                        Visible: =varSideMenu
+                        Width: |-
+                          =//Parent.TemplateWidth - Self.X
+                          110
+                        Wrap: =false
+                        X: =Icon2_3.X + Icon2_3.Width
+                  - ButtonCanvas4_1:
+                      Control: Button@0.0.45
+                      Properties:
+                        Appearance: ='ButtonCanvas.Appearance'.Transparent
+                        Height: =Container70.Height
+                        Layout: ='ButtonCanvas.Layout'.TextOnly
+                        OnSelect: =Navigate(ThisItem.Screen, ScreenTransition.Fade); Set(varSideMenu, false);
+                        Text: =
+                        Width: =Container70.Width
+                        X: =10
+                        Y: =5
+            - Container6_3:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =20
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  LayoutMinWidth: =Parent.Width
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                  Visible: |-
+                    =//If(varUserRole = 4, false, true)
+                    true
+                  Width: =Parent.Width
+                Children:
+                  - Container7_2:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        Fill: =RGBA(230, 230, 230, 1)
+                        Height: =1
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                        Width: =Parent.Width * 0.6
+                        X: =Parent.Width * 0.2
+                        Y: =(Parent.Height / 2) - (Self.Height / 2)
+            - SidebarGallery3:
+                Control: Gallery@2.15.0
+                Variant: Vertical
+                Properties:
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  FillPortions: =0
+                  Height: =Self.AllItemsCount * Self.TemplateHeight
+                  Items: =SideMenuThirdTable
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  LayoutMinWidth: =Parent.Width
+                  TemplatePadding: =0
+                  TemplateSize: =50
+                  Visible: |-
+                    =//If(varUserRole = 4, false, true)
+                    true
+                  Width: =If(varSideMenu, Parent.Width, 75)
+                  X: =40
+                  Y: =40
+                Children:
+                  - Container70_2:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.Regular
+                        Fill: =RGBA(255, 255, 255, 1)
+                        Height: =Parent.TemplateHeight - 10
+                        Visible: =If(ThisItem.Screen = App.ActiveScreen, true, false)
+                        Width: =Parent.TemplateWidth - 20
+                        X: =10
+                        Y: =5
+                  - Icon2_4:
+                      Control: Classic/Icon@2.5.0
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Height: =25
+                        Icon: =ThisItem.Icon
+                        PaddingBottom: =2
+                        PaddingLeft: =2
+                        PaddingRight: =2
+                        PaddingTop: =2
+                        Width: =25
+                        X: =25
+                        Y: =(Parent.TemplateHeight / 2) - (Self.Height / 2)
+                  - Label7_191:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.TemplateHeight
+                        PaddingBottom: =0
+                        PaddingLeft: =12
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =8
+                        Text: =ThisItem.Name
+                        Visible: =varSideMenu
+                        Width: |-
+                          =//Parent.TemplateWidth - Self.X
+                          110
+                        Wrap: =false
+                        X: =Icon2_4.X + Icon2_4.Width
+                  - ButtonCanvas4_2:
+                      Control: Button@0.0.45
+                      Properties:
+                        Appearance: ='ButtonCanvas.Appearance'.Transparent
+                        Height: =Container70_2.Height
+                        Layout: ='ButtonCanvas.Layout'.TextOnly
+                        OnSelect: |-
+                          =// Don't forget to remove this once metrics are added
+                          If(
+                              ThisItem.Name = "Users & Templates",
+                              Navigate(ThisItem.Screen, ScreenTransition.Fade); Set(varSideMenu, false);,
+                              Notify("This feature is upcoming. Stay tuned...", NotificationType.Warning, 4000)
+                          )
+                        Text: =
+                        Width: =Container70_2.Width
+                        X: =10
+                        Y: =5
+      - Expand:
+          Control: ModernButton@1.0.0
+          Properties:
+            Appearance: =ButtonAppearance.Transparent
+            Height: =Parent.Height
+            OnSelect: =Set(varSideMenu, false);
+            Text: =
+            Visible: =varSideMenu
+            Width: =App.Width - Self.X
+            X: =SidebarCont.X + SidebarCont.Width

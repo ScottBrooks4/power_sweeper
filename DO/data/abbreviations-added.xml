@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<abbreviations>
+  <entry abbr="OHS" frAbbr="SST" source="OHS risk assessment">
+    <en>Occupational Health and Safety</en>
+    <fr>Santé et sécurité au travail</fr>
+  </entry>
+  <entry abbr="WHMIS" frAbbr="SIMDUT" source="OHS risk assessment">
+    <en>Workplace Hazardous Materials Information System</en>
+    <fr>Système d'information sur les matières dangereuses utilisées au travail</fr>
+  </entry>
+  <entry abbr="WHVP" source="OHS risk assessment">
+    <en>Workplace Harassment and Violence Prevention</en>
+    <fr>Prévention du harcèlement et de la violence dans le lieu de travail</fr>
+  </entry>
+  <entry abbr="AESP" source="OHS risk assessment">
+    <en>Ammunition and Explosives Safety Program</en>
+    <fr>Programme de sécurité des munitions et des explosifs</fr>
+  </entry>
+  <entry abbr="RACI" source="OHS risk assessment">
+    <en>Responsible, Accountable, Consulted, Informed</en>
+    <fr>Réalisateur, Approbateur, Consulté, Informé</fr>
+  </entry>
+  <entry abbr="GHS" frAbbr="SGH" source="OHS risk assessment">
+    <en>Globally Harmonized System</en>
+    <fr>Système général harmonisé</fr>
+  </entry>
+  <entry abbr="PAT" source="Digital Office">
+    <en>Procurement Authorization and Tracking</en>
+    <fr>Autorisation et suivi des achats</fr>
+  </entry>
+  <entry abbr="RAG" source="Digital Office">
+    <en>Red, Amber, Green</en>
+    <fr>Rouge, ambre, vert</fr>
+  </entry>
+</abbreviations>

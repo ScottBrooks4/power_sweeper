@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8">
+  <title>VCDS Group OHS · Review</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true">
+  <symbol id="flame" viewBox="0 0 48 48">
+    <path d="M24 2.6 45.4 24 24 45.4 2.6 24Z" fill="#fff" stroke="#c8102e" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M24.5 12.8c.2 4.2-3.4 6.2-3.4 10.4 0 3.4 2.6 6.2 6.2 6.2 3.8 0 6.6-3 6.6-7.2 0-4.6-3.4-6.6-5.2-10.2-2.4 2.8-4.2 4.2-4.2 1z" fill="#111"/>
+    <path d="M25.2 22.2c.8 1.4.6 2.6.2 3.6-.6 1.4-1.8 2.2-3.2 2.2" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="oxidizer" viewBox="0 0 48 48">
+    <path d="M24 2.6 45.4 24 24 45.4 2.6 24Z" fill="#fff" stroke="#c8102e" stroke-width="2.4" stroke-linejoin="round"/>
+    <circle cx="24" cy="30.2" r="5.4" fill="none" stroke="#111" stroke-width="2.1"/>
+    <path d="M24.2 11.8c.2 3-2.4 4.4-2.4 7.4 0 2.2 1.8 4.2 4.2 4.2 2.6 0 4.6-2.2 4.6-5.2 0-3.2-2.4-4.6-3.6-7.4-1.8 2-2.8 3-2.8 1z" fill="#111"/>
+  </symbol>
+  <symbol id="gas" viewBox="0 0 48 48">
+    <path d="M24 2.6 45.4 24 24 45.4 2.6 24Z" fill="#fff" stroke="#c8102e" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M21.2 12.4h5.6v2.2h1.4v2.4h-8.4v-2.4h1.4z" fill="#111"/>
+    <path d="M17.6 18.8h12.8v16.4c0 1.4-1 2.2-2.2 2.2H19.8c-1.2 0-2.2-.8-2.2-2.2z" fill="#111"/>
+    <path d="M20.4 22.2h7.2v1.6h-7.2zM20.4 25.6h7.2v1.6h-7.2z" fill="#fff"/>
+  </symbol>
+  <symbol id="corrosion" viewBox="0 0 48 48">
+    <path d="M24 2.6 45.4 24 24 45.4 2.6 24Z" fill="#fff" stroke="#c8102e" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M15.2 13.6h4.6l.4 6.2-3.6 4.2H12l2.2-4.2z" fill="#111"/>
+    <path d="M32.8 13.6h-4.6l-.4 6.2 3.6 4.2h6.6l-2.2-4.2z" fill="#111"/>
+    <path d="M13.4 31.4c2.8-3.6 5.8-3.4 8 0 .8 1.2 1 2.6.6 4.2h-9.8c.2-1.4.6-2.8 1.2-4.2z" fill="#111"/>
+    <path d="M29.4 33.6h9.2v2.2h-9.2zM30.6 31.2h7v1.8h-7zM31.6 29h5v1.6h-5z" fill="#111"/>
+  </symbol>
+  <symbol id="skull" viewBox="0 0 48 48">
+    <path d="M24 2.6 45.4 24 24 45.4 2.6 24Z" fill="#fff" stroke="#c8102e" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M24 12.6c5.6 0 9.4 3.8 9.4 8.6 0 3.4-1.6 5.4-3.4 6.6v2.2h-2.8v-1.4h-6.4v1.4h-2.8v-2.2c-1.8-1.2-3.4-3.2-3.4-6.6 0-4.8 3.8-8.6 9.4-8.6z" fill="#111"/>
+    <circle cx="20.2" cy="21.4" r="2" fill="#fff"/>
+    <circle cx="27.8" cy="21.4" r="2" fill="#fff"/>
+    <path d="M22.8 26.2h2.4v2.2h-2.4z" fill="#fff"/>
+    <path d="M15.8 34.4 20.6 31l3.4 2.2 3.4-2.2 4.8 3.4-2.2 2.2-2.6-1.6-3.4 2.4-3.4-2.4-2.6 1.6z" fill="#111"/>
+  </symbol>
+  <symbol id="health" viewBox="0 0 48 48">
+    <path d="M24 2.6 45.4 24 24 45.4 2.6 24Z" fill="#fff" stroke="#c8102e" stroke-width="2.4" stroke-linejoin="round"/>
+    <circle cx="24" cy="14.8" r="2.8" fill="#111"/>
+    <path d="M17.6 19.6h12.8l-1.6 9.2H19.2z" fill="#111"/>
+    <path d="M19.8 29.4h8.4l1.4 7.2H18.4z" fill="#111"/>
+    <path d="M24 18.4 28.2 14.6 29.6 16l-2.4 2.4 2.6 1.2-.8 1.8-2.8-1.2-.4 3h-1.6l-.4-3-2.8 1.2-.8-1.8 2.6-1.2-2.4-2.4 1.4-1.4z" fill="#111"/>
+  </symbol>
+  <symbol id="exclaim" viewBox="0 0 48 48">
+    <path d="M24 2.6 45.4 24 24 45.4 2.6 24Z" fill="#fff" stroke="#c8102e" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M22 13.4h4l-.7 13.2h-2.6z" fill="#111"/>
+    <circle cx="24" cy="33.2" r="2.3" fill="#111"/>
+  </symbol>
+  <symbol id="bomb" viewBox="0 0 48 48">
+    <path d="M24 2.6 45.4 24 24 45.4 2.6 24Z" fill="#fff" stroke="#c8102e" stroke-width="2.4" stroke-linejoin="round"/>
+    <circle cx="22.2" cy="27.2" r="8.4" fill="#111"/>
+    <path d="M27.6 17.2 31.8 14.2l1.6 1.8-3.4 2.4z" fill="#111"/>
+    <path d="M31 12.2 34.6 9.6l1 1.8-3.2 2.2zM34.2 15.2l3.8-1.4.7 1.8-3.6 1.2zM29.2 12.6l1.6-3.4 1.7.8-1.4 3.2z" fill="#111"/>
+  </symbol>
+  <symbol id="env" viewBox="0 0 48 48">
+    <path d="M24 2.6 45.4 24 24 45.4 2.6 24Z" fill="#fff" stroke="#c8102e" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M14.8 32.6c3.8-1.6 6.2-4.4 7.4-7.4 1.2 2.6 1.6 4.8.6 7.2 2.8-1.2 5-3.6 6.2-6.6.6 3.6-.4 7-2.6 9.2H14.8z" fill="#111"/>
+    <path d="M16.4 21.6c.4-5.2 5.2-8.2 8.2-8.6-2.2 3.6-2 6.8-1.4 9.2-2.6.2-5-.4-6.8-.6z" fill="#111"/>
+    <path d="M30.6 17.8c1.8 2.6 2 5.4 1.2 8 2-.8 3.2-2.8 3.6-4.8-1.2-1-2.8-2.6-4.8-3.2z" fill="#111"/>
+  </symbol>
+  <symbol id="bio" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="18.6" fill="#fff" stroke="#111" stroke-width="2.3"/>
+    <circle cx="24" cy="24" r="2.4" fill="#111"/>
+    <path d="M24 8.8c.6 4.8-.4 8.2-2.2 10.6 2.8-.2 5.8.8 8.2 2.8-2 2-2.8 4.4-2.8 7 2.6.8 5.6 2.8 7.6 6-3.2.8-6.2.6-8.8-.2.4 2.6.2 5.8-1.2 9.2-1.4-3.4-1.6-6.6-1.2-9.2-2.6.8-5.6 1-8.8.2 2-3.2 5-5.2 7.6-6 0-2.6-.8-5-2.8-7 2.4-2 5.4-3 8.2-2.8C24.4 17 23.4 13.6 24 8.8z" fill="#111"/>
+  </symbol>
+</svg>
+<div class="stage">
+  <aside class="nav">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M20 3 34 9v11c0 9.2-6.4 16.4-14 19-7.6-2.6-14-9.8-14-19V9L20 3Z" fill="#0e746c"/>
+        <path d="M20 8.2 29.2 13v8.2c0 6.4-4.3 11.6-9.2 13.6-4.9-2-9.2-7.2-9.2-13.6V13L20 8.2Z" fill="#efebe3"/>
+        <path d="M20 14.5v13.2" stroke="#0e746c" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="20" cy="20.4" r="2.1" fill="#0e746c"/>
+      </svg>
+      <div>
+        <div class="brand-kicker">VCDS Group</div>
+        <div class="brand-name">OHS Risk</div>
+      </div>
+    </div>
+    <a href="01-dashboard.html">
+      <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg></span>
+      Dashboard
+    </a>
+    <a href="02-inbox.html">
+      <span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 7.5 12 13l8-5.5V18a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V7.5Z"/><path d="M4.2 6.2 12 11.6l7.8-5.4"/></svg></span>
+      Inbox <span class="badge">4</span>
+    </a>
+    <a class="active" href="03-review.html">
+      <span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v5l3 2"/></svg></span>
+      Review
+    </a>
+    <a href="04-treat.html">
+      <span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M5 12.5 9.2 17 19 7"/></svg></span>
+      Treat
+    </a>
+    <div class="flow">
+      <div class="flow-label">Risk cycle</div>
+      <div class="step on"><span class="n">1</span> Identify</div>
+      <div class="step on"><span class="n">2</span> Review / score</div>
+      <div class="step"><span class="n">3</span> Treat</div>
+      <div class="step"><span class="n">4</span> Close / archive</div>
+    </div>
+    <div class="who">
+      <div class="avatar">L1</div>
+      <div>
+        <div class="who-name">L1 Safety Advisor</div>
+        <div class="who-role">VCDS Group HQ</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div>
+        <p class="crumb">Review &amp; action · CFSG (O-G)</p>
+        <h1>CFSG(O-G) · RA-0007-HS</h1>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" type="button">Contact OPI</button>
+        <button class="btn primary" type="button">Send to Treat</button>
+      </div>
+    </header>
+    <div class="body">
+      <div class="row" style="justify-content:space-between">
+        <div class="whmis-row">
+          <svg class="picto-lg"><use href="#flame"/></svg>
+          <svg class="picto-lg"><use href="#gas"/></svg>
+          <svg class="picto-lg"><use href="#corrosion"/></svg>
+          <svg class="picto-lg"><use href="#health"/></svg>
+          <svg class="picto-lg"><use href="#exclaim"/></svg>
+          <span class="meta" style="margin-left:8px">WHMIS 2015 · chemicals, fuels, oils, solvents, compressed gases, batteries, paints</span>
+        </div>
+        <div class="row">
+          <span class="score high">L2 12 High</span>
+          <span class="score low">L1 2 Low</span>
+        </div>
+      </div>
+
+      <div class="split-review">
+        <section class="panel">
+          <h2>Hazard / program condition</h2>
+          <p class="box">Hazardous substances are present across multiple client work areas. Historically, inconsistent adherence to hazardous materials and environmental directives occurred due to the absence of a dedicated Environmental Officer and HazMat Officer. Both positions are now staffed; inspections are occurring at the ammo compound and CRPTC.</p>
+          <div class="field" style="margin-top:10px">
+            <label>Establishment</label>
+            <div class="fake-input">Field / Lab / Misc DND facilities / Range</div>
+          </div>
+          <div class="field">
+            <label>Person responsible</label>
+            <div class="fake-input">Mr. Luc Joly · 2IC CFSG (O-G) Safety Office · CFSU.O.SO.requirements@forces.gc.ca</div>
+          </div>
+          <div class="field">
+            <label>OHS program status</label>
+            <div class="fake-input">OHS program in development — support needed</div>
+          </div>
+          <div class="field">
+            <label>L1 follow-up</label>
+            <div class="box">Assure HMRA personnel assignments and inventory. Finalize the Radiofrequency / HazMat program framework on the VCDS Group OHS Programs SPO. Educational campaigns ongoing (asbestos management, Carling Campus).</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Scoring · probability × severity</h2>
+          <div class="matrix" aria-label="Selected score cell">
+            <div class="axis y">Almost certain</div>
+            <div class="mcell c-mod"></div><div class="mcell c-high"></div><div class="mcell c-high"></div><div class="mcell c-ext"></div><div class="mcell c-ext"></div>
+            <div class="axis y">Likely</div>
+            <div class="mcell c-mod">4</div><div class="mcell c-high">8</div><div class="mcell c-high on">12</div><div class="mcell c-ext">16</div><div class="mcell c-ext">20</div>
+            <div class="axis y">Possible</div>
+            <div class="mcell c-mod">3</div><div class="mcell c-mod">6</div><div class="mcell c-high">9</div><div class="mcell c-high">12</div><div class="mcell c-ext">15</div>
+            <div class="axis y">Unlikely</div>
+            <div class="mcell c-low">2</div><div class="mcell c-mod">4</div><div class="mcell c-mod">6</div><div class="mcell c-high">8</div><div class="mcell c-high">10</div>
+            <div class="axis y">Rare</div>
+            <div class="mcell c-low">1</div><div class="mcell c-low">2</div><div class="mcell c-mod">3</div><div class="mcell c-mod">4</div><div class="mcell c-mod">5</div>
+            <div></div>
+            <div class="axis">Negligible</div><div class="axis">Minor</div><div class="axis">Moderate</div><div class="axis">Major</div><div class="axis">Catastrophic</div>
+          </div>
+          <div class="score-compare" style="margin-top:10px">
+            <div class="score-card">
+              <div class="who">Initial L2</div>
+              <div class="big">4 × 3 = 12</div>
+              <span class="score high">High</span>
+            </div>
+            <div class="score-card">
+              <div class="who">Aug 2026 L2</div>
+              <div class="big">2 × 3 = 6</div>
+              <span class="score mod">Moderate</span>
+            </div>
+            <div class="score-card">
+              <div class="who">L1 advisor</div>
+              <div class="big">1 × 2 = 2</div>
+              <span class="score low">Low</span>
+            </div>
+          </div>
+          <p class="note" style="margin-top:8px">L1 downgraded in the absence of DND 663s, CF 98s, WSIB claims or refusals to work. Revert to the L2 rating if new reports or CoC concerns are raised. Next cycle: Oct 2026.</p>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>RACI · who does what on this action</h2>
+        <div class="raci">
+          <div class="r"><b>R · Responsible</b>L2 GSO / HazMat O completes the corrective package and HMRA inventory.</div>
+          <div class="a"><b>A · Accountable</b>L2 COS / command team accepts residual risk and approves closure.</div>
+          <div><b>C · Consulted</b>L1 Safety Advisor, WHSC, D Safe G / technical authority, infrastructure.</div>
+          <div><b>I · Informed</b>Affected personnel, supervisors, VCDS Group OHS Programs OPI network.</div>
+        </div>
+        <div class="actions">
+          <button class="btn quiet" type="button">Keep L2 score</button>
+          <button class="btn dark" type="button">Apply L1 score</button>
+          <button class="btn ghost" type="button">Request lagging indicators</button>
+          <button class="btn primary" type="button">Accept &amp; continue to Treat</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(varLang, true)
+    Formulas: |-
+      =fnEmailTokens = [{ Key: "vcr_id", Label: "Request ID" }];
+Home:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - SettingsGallery:
+        Control: Gallery@2.15.0
+        Properties:
+          Items: |-
+            =["Help", "User Roles"]
+          Width: =200
+        Children:
+          - RoleBtn:
+              Control: Classic/Button@2.2.0
+              Properties:
+                Text: =ThisItem.Value
+                Width: =Parent.Width
+    - StatusLbl:
+        Control: Label@2.5.1
+        Properties:
+          Text: =ThisItem.approval_state
+    - MailHelp:
+        Control: HtmlViewer@2.1.0
+        Properties:
+          HtmlText: |-
+            ="<p>Our emails send dynamic information with {name_of_field} tokens for each message.</p>"

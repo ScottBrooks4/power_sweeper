@@ -1,0 +1,69 @@
+Screen1:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =RGBA(255, 255, 255, 1)
+  Children:
+    - FormBlock:
+        Control: GroupContainer@1.0.0
+        Properties:
+          X: =20
+          Y: =20
+          Width: =520
+          Height: =420
+        Children:
+          - ManagerReviewLabel:
+              Control: Label@2.5.1
+              Properties:
+                Text: ="Needs to be viewed by a manager"
+                X: =40
+                Y: =8
+                Width: =360
+                Height: =28
+          - ManagerReviewCheck:
+              Control: Classic/CheckBox@2.1.0
+              Properties:
+                X: =0
+                Y: =8
+                Width: =36
+                Height: =36
+          - NextFormIcon:
+              Control: Icon@2.5.0
+              Properties:
+                Icon: =Icon.ChevronRight
+                OnSelect: =Navigate(RequestForm)
+                X: =0
+                Y: =60
+                Width: =44
+                Height: =44
+          - SaveOnlyIcon:
+              Control: Icon@2.5.0
+              Properties:
+                Icon: =Icon.Save
+                X: =60
+                Y: =60
+                Width: =44
+                Height: =44
+          - OpenDetailsButton:
+              Control: Classic/Button@2.2.0
+              Properties:
+                Text: =""
+                OnSelect: =Navigate('Details Screen')
+                X: =0
+                Y: =120
+                Width: =160
+                Height: =40
+          - Button1:
+              Control: Classic/Button@2.2.0
+              Properties:
+                Text: =""
+                X: =180
+                Y: =120
+                Width: =120
+                Height: =40
+          - ApprovalRequiredToggle:
+              Control: Classic/Toggle@2.1.0
+              Properties:
+                X: =0
+                Y: =180
+                Width: =80
+                Height: =40

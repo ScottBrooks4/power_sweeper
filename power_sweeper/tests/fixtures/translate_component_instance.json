@@ -1,0 +1,51 @@
+{
+  "TopParent": {
+    "Name": "Home",
+    "Template": { "Name": "screen" },
+    "Children": [
+      {
+        "Type": "ControlInfo",
+        "Name": "TopbarHeader_1",
+        "Template": {
+          "Name": "TopbarHeader",
+          "IsComponentDefinition": false,
+          "ComponentDefinitionInfo": {
+            "Name": "TopbarHeader",
+            "Children": [
+              {
+                "Type": "ControlInfo",
+                "Name": "RadioGroupCanvas1_4",
+                "Template": { "Name": "PowerApps_CoreControls_RadioGroupCanvas" },
+                "Rules": [
+                  { "Property": "Items", "InvariantScript": "[\"English\", \"French\"]" },
+                  {
+                    "Property": "DefaultSelectedItems",
+                    "InvariantScript": "If(varLang, [\"English\"], [\"French\"])"
+                  },
+                  {
+                    "Property": "OnChange",
+                    "InvariantScript": "If(Self.Selected.Value = \"English\", Set(varLang, true), Set(varLang, false))"
+                  }
+                ],
+                "Children": []
+              },
+              {
+                "Type": "ControlInfo",
+                "Name": "Button1_4",
+                "Template": { "Name": "button" },
+                "Rules": [
+                  { "Property": "OnSelect", "InvariantScript": "Set(varLang, !varLang)" }
+                ],
+                "Children": []
+              }
+            ]
+          }
+        },
+        "Rules": [
+          { "Property": "X", "InvariantScript": "0" }
+        ],
+        "Children": []
+      }
+    ]
+  }
+}

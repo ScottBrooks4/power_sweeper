@@ -1,0 +1,218 @@
+ChromeScreen:
+  Control: Screen@2.0.0
+  Properties:
+    Fill: =gblTheme.Page
+  Children:
+    - TopbarHeader_1:
+        Control: CanvasComponent
+        ComponentName: TopbarAndSettings
+        Properties:
+          Fill: =gblTheme.Surface
+          Height: =65
+          Width: =App.Width
+          Y: =0
+          X: =0
+    - SidebarMenu_1:
+        Control: CanvasComponent
+        ComponentName: SidebarMenu
+        Properties:
+          Height: =App.Height - 65
+          Width: =If(varSideMenu, 186, 75)
+          Y: =65
+          X: =0
+    - Holding:
+        Control: GroupContainer@1.5.0
+        Variant: AutoLayout
+        Properties:
+          LayoutDirection: =LayoutDirection.Vertical
+          LayoutGap: =15
+          PaddingLeft: =5
+          PaddingRight: =15
+          X: =75
+          Y: =SidebarMenu_1.Y
+          Width: =Parent.Width - Self.X
+          Height: =Parent.Height - Self.Y
+        Children:
+          - NavTabsCont:
+              Control: GroupContainer@1.5.0
+              Variant: ManualLayout
+              Properties:
+                Height: =40
+                Fill: =gblTheme.InputFill
+              Children:
+                - FormNavTabs:
+                    Control: ModernTabList@1.0.2
+                    Properties:
+                      Height: =40
+                      Width: =1271
+                      Items: =colFormSectionsWithoutEmergency
+          - ScrollableForm:
+              Control: GroupContainer@1.5.0
+              Variant: AutoLayout
+              Properties:
+                LayoutDirection: =LayoutDirection.Vertical
+                Width: =0
+                Height: =Max(Parent.Height - FormNavTabs.Height - Self.Y - 30, 200)
+              Children:
+                - 1_Destination:
+                    Control: GroupContainer@1.5.0
+                    Variant: AutoLayout
+                    Properties:
+                      Fill: =gblTheme.Warning
+                      Height: =120
+                      Width: =Parent.Width
+                      LayoutDirection: =LayoutDirection.Vertical
+                      LayoutAlignItems: =LayoutAlignItems.Center
+                    Children:
+                      - Request_For_Visit:
+                          Control: ModernText@1.0.0
+                          Properties:
+                            Align: =Align.Center
+                            FontWeight: =FontWeight.Bold
+                            Size: =32
+                            Text: ="Visit Clearance Request / Notification"
+                            Width: =Parent.Width
+                            Height: =50
+                      - Destination_Container:
+                          Control: GroupContainer@1.5.0
+                          Variant: AutoLayout
+                          Properties:
+                            LayoutDirection: =LayoutDirection.Horizontal
+                            LayoutAlignItems: =LayoutAlignItems.Center
+                            LayoutJustifyContent: =LayoutJustifyContent.Center
+                            LayoutMinHeight: =32
+                            Width: =Parent.Width
+                          Children:
+                            - DestinationLabel:
+                                Control: Label@2.5.1
+                                Properties:
+                                  Text: ="1. TO:"
+                                  Width: =60
+                            - Destination:
+                                Control: Classic/DropDown@2.3.1
+                                Properties:
+                                  Height: =32
+                                  Width: =333
+                                  Items: =["", "United Kingdom", "Ireland"]
+                      - Destination_Legend:
+                          Control: ModernText@1.0.0
+                          Properties:
+                            Align: =Align.Center
+                            Text: ="(Country / international organisation name)"
+                            Width: =Parent.Width
+                - 2_Header:
+                    Control: ModernText@1.0.0
+                    Properties:
+                      Text: ="2. REQUESTING GOVERNMENT AGENCY, ORGANISATION OR INDUSTRIAL FACILITY"
+                      Height: =32
+                      Width: =Parent.Width
+                - 2_Checkboxes:
+                    Control: GroupContainer@1.5.0
+                    Variant: AutoLayout
+                    Properties:
+                      Height: =30
+                      LayoutDirection: =LayoutDirection.Horizontal
+                    Children:
+                      - RequestingAgencyMilitary:
+                          Control: Classic/CheckBox@2.1.0
+                          Properties:
+                            Text: ="Military"
+                            Height: =32
+                            FillPortions: =1
+                      - RequestingAgencyGovernment:
+                          Control: Classic/CheckBox@2.1.0
+                          Properties:
+                            Text: ="Government"
+                            Height: =32
+                            FillPortions: =1
+                - 5_Summary_Contents:
+                    Control: GroupContainer@1.5.0
+                    Variant: AutoLayout
+                    Properties:
+                      Height: =120
+                      LayoutDirection: =LayoutDirection.Vertical
+                    Children:
+                      - SitesContainer:
+                          Control: GroupContainer@1.5.0
+                          Variant: AutoLayout
+                          Properties:
+                            LayoutDirection: =LayoutDirection.Horizontal
+                            LayoutMaxHeight: =40
+                            LayoutMinHeight: =16
+                          Children:
+                            - SitesLabel:
+                                Control: Label@2.5.1
+                                Properties:
+                                  Text: ="Sites"
+                                  Width: =300
+                                  Height: =32
+                            - Sites:
+                                Control: ModernNumberInput@1.1.2
+                                Properties:
+                                  Default: =Max(1, CountRows(colSites))
+                                  Width: =400
+                                  LayoutMinHeight: =16
+                            - JumpToSites:
+                                Control: HtmlViewer@2.1.0
+                                Properties:
+                                  HtmlText: ="<span style='color:" & gblTheme.LinkCss & "; text-decoration:underline;'>Jump to Sites</span>"
+                                  LayoutMinHeight: =16
+                      - VisitorsContainer:
+                          Control: GroupContainer@1.5.0
+                          Variant: AutoLayout
+                          Properties:
+                            LayoutDirection: =LayoutDirection.Horizontal
+                            LayoutMaxHeight: =40
+                            LayoutMinHeight: =16
+                          Children:
+                            - VisitorsLabel:
+                                Control: Label@2.5.1
+                                Properties:
+                                  Text: ="Number of Visitors"
+                                  Width: =300
+                                  Height: =32
+                            - Visitors:
+                                Control: ModernNumberInput@1.1.2
+                                Properties:
+                                  Default: =Max(1, CountRows(colVisitors))
+                                  Width: =400
+                                  LayoutMinHeight: =16
+                            - JumpToVisitors:
+                                Control: HtmlViewer@2.1.0
+                                Properties:
+                                  HtmlText: ="<span>Jump to Visitors</span>"
+                                  LayoutMinHeight: =16
+                      - VIPContainer:
+                          Control: GroupContainer@1.5.0
+                          Variant: AutoLayout
+                          Properties:
+                            Height: =40
+                            LayoutDirection: =LayoutDirection.Horizontal
+                          Children:
+                            - VIP:
+                                Control: Classic/CheckBox@2.1.0
+                                Properties:
+                                  Text: ="VIP"
+                                  Width: =71
+                                  Height: =32
+                            - VIPLabel:
+                                Control: Label@2.5.1
+                                Properties:
+                                  Text: |-
+                                    =If(
+                                        VIP.Value,
+                                        "",
+                                        "(above general or deputy minister)"
+                                    )
+                                  Height: =30
+                                  Width: =300
+    - topSubmit_1:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Submit"
+          Width: =150
+          Height: =40
+          X: =1202
+          Y: =65
+          Fill: =RGBA(31, 41, 55, 1)
+          Color: =RGBA(255, 255, 255, 1)

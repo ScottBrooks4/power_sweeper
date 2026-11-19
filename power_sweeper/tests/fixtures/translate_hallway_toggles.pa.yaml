@@ -1,0 +1,34 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: =Set(varLang, true)
+Home:
+  Control: Screen@2.0.0
+  Children:
+    - TopbarHeader:
+        Control: CanvasComponent@1.0.0
+        Properties:
+          AccessAppScope: =true
+        Children:
+          - LanguageRadio:
+              Control: Radio@0.0.25
+              Properties:
+                Items: =["English", "French"]
+                OnChange: =If(Self.Selected.Value = "English", Set(varLang, true), Set(varLang, false))
+          - LangChip:
+              Control: Label@2.5.1
+              Properties:
+                Text: =If(varLang, "EN", "FR")
+          - LangHit:
+              Control: Classic/Button@2.2.0
+              Properties:
+                Text: =
+                OnSelect: =Set(varLang, !varLang)
+    - Title:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Settings"
+    - SaveBtn:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Save and Close"

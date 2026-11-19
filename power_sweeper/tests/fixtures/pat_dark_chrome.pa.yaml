@@ -1,0 +1,148 @@
+Screens:
+  Screen1:
+    Properties:
+      Fill: =RGBA(255, 255, 255, 1)
+    Children:
+      - TabBar:
+          Control: GroupContainer@1.5.0
+          Properties:
+            Fill: =Color.DarkCyan
+      - PrimaryBtn:
+          Control: Button@0.0.45
+          Properties:
+            BasePaletteColor: =//BackgroundRed //RGBA(37, 99, 235, 1)
+            BorderColor: =Color.Aquamarine
+            Color: =Color.White
+      - AzureLbl:
+          Control: Label@2.5.1
+          Properties:
+            Fill: =RGBA(30, 144, 255, 0.10) //Color.Azure
+            Color: =//FontColour
+      - HtmlLbl:
+          Control: HtmlViewer@2.1.0
+          Properties:
+            HtmlText: ="<div style='color:#111111;'>Hi</div>"
+      - SidebarBg:
+          Control: HtmlViewer@2.1.0
+          Properties:
+            HtmlText: |-
+              ="<div style='
+              background: #a6b0ff;
+              background: linear-gradient(180deg,rgba(166, 176, 255, 1) 35%, rgba(245, 245, 245, 1) 100%);
+                  width: " & Parent.Width & "px; height: " & Parent.Height& "px;
+              '></div>"
+      - DraftChip:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Text: ="Draft"
+            Fill: =RGBA(253, 233, 180,1)
+            Color: =RGBA(0, 0, 0, 1)
+            Width: =100
+            Height: =20
+      - TealTabBar:
+          Control: GroupContainer@1.5.0
+          Properties:
+            Fill: =PacsTeal
+            Height: =42
+            Width: =400
+      - HeaderSave:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Text: ="Save"
+            Fill: =RGBA(37, 99, 235, 1)
+            Color: =RGBA(255, 255, 255, 1)
+            DisplayMode: =If(true, DisplayMode.Edit, DisplayMode.Disabled)
+            Width: =75
+            Height: =34
+      - ExecSummaryTab:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Text: ="Executive Summary"
+            Color: |-
+              =If(
+                  varTab = "2",
+                  Self.HoverColor,
+                  RGBA(51, 51, 51, 1)
+              )
+            Fill: |-
+              =If(
+                  varTab = "2",
+                  Self.HoverFill,
+                  RGBA(0, 0, 0, 0)
+              )
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =RGBA(110, 110, 110, 1)
+      - EmailPdfBtn:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Text: ="Email PDF to Self"
+            Color: =RGBA(255, 255, 255, 1)
+            Width: =200
+            Height: =36
+      - StatusDropdown:
+          Control: Classic/DropDown@2.3.1
+          Properties:
+            Items: =["Draft", "Closed"]
+            Fill: =RGBA(255, 255, 255, 1)
+            Color: =RGBA(15, 23, 42, 1)
+            ChevronFill: =RGBA(255, 255, 255, 1)
+            Width: =175
+            Height: =32
+      - ClearanceCombo:
+          Control: Classic/ComboBox@2.4.0
+          Properties:
+            Items: =["Reliable", "Secret"]
+            Fill: =RGBA(255, 255, 255, 1)
+            Color: =RGBA(15, 23, 42, 1)
+            Width: =200
+            Height: =32
+      - FieldTagIcon:
+          Control: Classic/Icon@2.5.0
+          Properties:
+            Icon: =Icon.Tag
+            Color: =RGBA(255, 255, 255, 1)
+            Fill: =RGBA(0, 0, 0, 0)
+            Width: =20
+            Height: =20
+      - StepOneBadge:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Text: ="1"
+            DisplayMode: =DisplayMode.View
+            Fill: =RGBA(9, 33, 98, 1)
+            Color: =RGBA(255, 255, 255, 1)
+            Width: =30
+            Height: =30
+      - RolePopupCard:
+          Control: GroupContainer@1.5.0
+          Properties:
+            Fill: =RGBA(166, 176, 255, 1)
+            Width: =400
+            Height: =200
+          Children:
+            - RolePopupInner:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Width: =400
+                  Height: =200
+                Children:
+                  - RolePopupSubmit:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        Text: ="Submit"
+                        Fill: =RGBA(168, 110, 235, 1)
+                        Color: =RGBA(255, 255, 255, 1)
+                        Height: =42
+      - ReportedAttachments:
+          Control: Attachments@2.3.0
+          Properties:
+            Fill: |-
+              =If(
+                  !varReview,
+                  RGBA(240, 240, 240, 1.0),
+                  RGBA(30, 144, 255, 0.10)
+              )
+            ItemColor: =RGBA(255, 255, 255, 1)
+            ItemFill: =RGBA(0, 18, 107, 1)
+            NoAttachmentsText: ="There is nothing attached."

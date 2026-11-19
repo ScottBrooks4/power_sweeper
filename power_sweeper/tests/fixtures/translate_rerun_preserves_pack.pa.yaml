@@ -1,0 +1,58 @@
+App:
+  Control: App@1.0.0
+  Properties:
+    OnStart: |-
+      =/* ps-i18n:start */ /* En/Fr side-by-side — translators edit Fr */
+      If(IsBlank(varLang), Set(varLang, true));
+      Set(gblStrings, {
+          AccountOverview: { En: "Account Overview", Fr: "Account Overview" },
+          Activate: { En: "Activate", Fr: "Activate" },
+          SaveAndClose: { En: "Save and Close", Fr: "Save and Close" },
+          StatusYes: { En: "Yes", Fr: "Oui" },
+          PendingCount: { En: "// place here the total number of packages related to the current user that are pending approval", Fr: "// place here the total number of packages related to the current user that are pending approval" },
+          PxHeight: { En: "px; height: ", Fr: "px; height: " }
+      })
+      /* ps-i18n:end */
+Home:
+  Control: Screen@2.0.0
+  Children:
+    - LanguageRadio:
+        Control: Radio@0.0.25
+        Properties:
+          Items: =["English", "French"]
+          OnChange: =If(Self.Selected.Value = "English", Set(varLang, true), Set(varLang, false))
+    - Title:
+        Control: Label@2.5.1
+        Properties:
+          Text: =If(varLang, gblStrings.AccountOverview.En, gblStrings.AccountOverview.Fr)
+    - SaveBtn:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: =If(varLang, gblStrings.SaveAndClose.En, gblStrings.SaveAndClose.Fr)
+    - ActivateBtn:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: =If(varLang, gblStrings.Activate.En, gblStrings.Activate.Fr)
+          OnSelect: =Refresh('VHCP - Admins'); Set(varLang, !varLang)
+    - SignedIn:
+        Control: Label@2.5.1
+        Properties:
+          Text: ="Signed in as " & User().Email
+    - GenerateBtn:
+        Control: Classic/Button@2.2.0
+        Properties:
+          Text: ="Generate pairings"
+          OnSelect: =Notify("Pairings generated for review"); Filter(People, Language = "English" || Language = "French")
+    - PendingNum:
+        Control: Label@2.5.1
+        Properties:
+          Text: =If(varLang, gblStrings.PendingCount.En, gblStrings.PendingCount.Fr)
+    - InvolvedNum:
+        Control: Label@2.5.1
+        Properties:
+          Text: =// place here the total number of packages that the current user is involved in.
+    - StyleHtml:
+        Control: HtmlViewer@2.1.0
+        Properties:
+          HtmlText: |-
+            ="width: " & Parent.Width & If(varLang, gblStrings.PxHeight.En, gblStrings.PxHeight.Fr) & Parent.Height

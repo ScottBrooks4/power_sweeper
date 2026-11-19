@@ -1,0 +1,870 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+ComponentDefinitions:
+  TopbarHeader:
+    DefinitionType: CanvasComponent
+    AccessAppScope: true
+    Properties:
+      Fill: =DefaultGrayBackgroud
+      Height: |+
+        =If(varTopMenu, App.Height, 65)
+      Width: =App.Width
+    Children:
+      - Container71:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =Parent.Height - Self.Y
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            Width: '=Parent.Width - Self.X '
+            X: =Container65.X
+            Y: =Container65.Y + Container65.Height + 10
+          Children:
+            - Container63_1:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Height: =Parent.Height - Self.Y
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  PaddingBottom: =25
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                  Visible: =varTopMenu
+                  Width: =Parent.Width - Self.X
+                  X: =Container65.X
+                  Y: =Container65.Y + Container65.Height + 15
+                Children:
+                  - Label1_11:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        LayoutMaxHeight: =
+                        LayoutMaxWidth: =
+                        Size: =16
+                        Text: ="Account Overview"
+                        Underline: =true
+                        Width: =Parent.Width - Self.X
+                        X: =25
+                        Y: =90
+                  - Container64_4:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =75
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                      Children:
+                        - Label1_12:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =35
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              Size: =12
+                              Text: ="Full name"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                        - Label1_15:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              FillPortions: =1
+                              Font: =Font.'Segoe UI'
+                              Height: =25
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              PaddingTop: =0
+                              Size: =12
+                              Text: =User().FullName
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                  - Container64_6:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =75
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                      Children:
+                        - Label1_16:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =35
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              Size: =12
+                              Text: ="Email"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                        - Label1_17:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              FillPortions: =1
+                              Font: =Font.'Segoe UI'
+                              Height: =25
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              PaddingTop: =0
+                              Size: =12
+                              Text: =User().Email
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                  - Container64_7:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =75
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                      Children:
+                        - Label1_18:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =35
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              Size: =12
+                              Text: ="Organization"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                        - Label1_19:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              FillPortions: =1
+                              Font: =Font.'Segoe UI'
+                              Height: =25
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              PaddingTop: =0
+                              Size: =12
+                              Text: =
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                  - Container64_8:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =75
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                      Children:
+                        - Label1_20:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =35
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              Size: =12
+                              Text: ="User Role"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                        - Label1_21:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              FillPortions: =1
+                              Font: =Font.'Segoe UI'
+                              Height: =25
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              PaddingTop: =0
+                              Size: =12
+                              Text: |-
+                                =//    LookUp(
+                                //        First(
+                                //            Filter(UserRoleTable, LangFilter = If(varLang, "EN", "FR"))
+                                //        ).Values, 
+                                //        Value = varUserRole
+                                //    ).Text
+                              VerticalAlign: =VerticalAlign.Top
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                  - Container68_1:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                        X: =40
+                        Y: =40
+            - Container63_2:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Height: =Parent.Height - Self.Y
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  PaddingBottom: =25
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                  Visible: =varTopMenu
+                  Width: =Parent.Width - Self.X
+                  X: =Container65.X
+                  Y: =Container65.Y + Container65.Height + 15
+                Children:
+                  - Label1_28:
+                      Control: Label@2.5.1
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =Parent.Height
+                        LayoutMaxHeight: =
+                        LayoutMaxWidth: =
+                        Size: =16
+                        Text: ="UI Preference"
+                        Underline: =true
+                        Width: =Parent.Width - Self.X
+                        X: =25
+                        Y: =90
+                  - Container64_12:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =75
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                      Children:
+                        - Label1_29:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =35
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              Size: =12
+                              Text: ="Language Preference"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                        - RadioGroupCanvas1_4:
+                            Control: Radio@0.0.25
+                            Properties:
+                              DefaultSelectedItems: |-
+                                =If(
+                                    varLang,
+                                    ["English"],
+                                    ["French"]
+                                )
+                              FillPortions: =1
+                              Items: =["English", "French"]
+                              Layout: ='RadioGroupCanvas.Layout'.Horizontal
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              OnChange: |-
+                                =If(
+                                    Self.Selected.Value = "English",
+                                    Set(varLang, true),
+                                    Set(varLang, false))
+                  - Container64_13:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =75
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                      Children:
+                        - Label1_30:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderColor: =RGBA(0, 18, 107, 1)
+                              Color: =RGBA(51, 51, 51, 1)
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =35
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              Size: =12
+                              Text: ="Theme"
+                              VerticalAlign: =VerticalAlign.Bottom
+                              Width: =Parent.Width - Self.X
+                              X: =25
+                              Y: =90
+                        - RadioGroupCanvas1_5:
+                            Control: Radio@0.0.25
+                            Properties:
+                              DefaultSelectedItems: |
+                                =["Light"]
+                              FillPortions: =1
+                              Items: =["Light"]
+                              Layout: ='RadioGroupCanvas.Layout'.Horizontal
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                  - Container68_2:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                        X: =40
+                        Y: =40
+            - Container63_3:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  Height: =Parent.Height - Self.Y
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  PaddingBottom: =25
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                  Visible: =varTopMenu
+                  Width: =Parent.Width - Self.X
+                  X: =Container65.X
+                  Y: =Container65.Y + Container65.Height + 15
+                Children:
+                  - Container68_3:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                        X: =40
+                        Y: =40
+                  - Container67_3:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        Height: =25
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =10
+                        LayoutJustifyContent: =LayoutJustifyContent.End
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingRight: =15
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                      Children:
+                        - ButtonCanvas1_68:
+                            Control: Button@0.0.45
+                            Properties:
+                              Align: =Align.Center
+                              BasePaletteColor: =RGBA(189, 178, 176, 1)
+                              Font: =Font.'Segoe UI'
+                              FontSize: =12
+                              Height: =25
+                              Icon: ="ArrowExit"
+                              Layout: ='ButtonCanvas.Layout'.TextOnly
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              OnSelect: =Set(varTopMenu, false)
+                              Text: ="Cancel"
+                              Width: =150
+                              X: =Parent.Width - Self.Width
+                              Y: =7
+                        - ButtonCanvas1_69:
+                            Control: Button@0.0.45
+                            Properties:
+                              Align: =Align.Center
+                              BasePaletteColor: =RGBA(189, 178, 176, 1)
+                              Font: =Font.'Segoe UI'
+                              FontSize: =12
+                              Height: =25
+                              Icon: ="ArrowExit"
+                              Layout: ='ButtonCanvas.Layout'.TextOnly
+                              LayoutMaxHeight: =
+                              LayoutMaxWidth: =
+                              OnSelect: =Set(varTopMenu, false)
+                              Text: ="Save and Close"
+                              Width: =150
+                              X: =Parent.Width - Self.Width
+                              Y: =7
+      - Container65:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =60
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            PaddingRight: =25
+            Visible: =varTopMenu
+            Width: =Parent.Width - Self.X
+            X: =25
+            Y: =90
+          Children:
+            - Label1_3:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(0, 18, 107, 1)
+                  Color: =RGBA(51, 51, 51, 1)
+                  FillPortions: =1
+                  Font: =Font.'Segoe UI'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =Parent.Height
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  Size: =32
+                  Text: ="Settings"
+                  Width: =Parent.Width - Self.X
+                  X: =25
+                  Y: =90
+      - Image1:
+          Control: Image@2.2.3
+          Group: TopMenu
+          Properties:
+            BorderColor: =RGBA(0, 18, 107, 1)
+            Height: =45
+            Image: ='VCDS-Logo'
+            Width: =45
+            X: =15
+            Y: =(65 - Self.Height)/2
+      - Label1:
+          Control: Label@2.5.1
+          Group: TopMenu
+          Properties:
+            BorderColor: =RGBA(0, 18, 107, 1)
+            Color: =RGBA(51, 51, 51, 1)
+            Font: =Font.'Segoe UI'
+            FontWeight: =FontWeight.Semibold
+            Height: =Image1.Height
+            Size: =20
+            Text: ="VCDS OHS Risk Assessment"
+            Width: =423
+            X: =Image1.X + Image1.Width + 10
+            Y: =Image1.Y
+      - Container1:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Group: TopMenu
+          Properties:
+            DropShadow: =DropShadow.None
+            Height: =65
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =20
+            LayoutJustifyContent: =LayoutJustifyContent.End
+            PaddingRight: =15
+            Width: =Parent.Width - Self.X
+            X: =Label1.X + Label1.Width
+          Children:
+            - Container2_4:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =Parent.Height
+                  LayoutMaxHeight: =
+                  LayoutMaxWidth: =
+                  LayoutMinHeight: =Parent.Height
+                  Visible: =false
+                  Width: =200
+                  X: =40
+                  Y: =40
+                Children:
+                  - Label3_3:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Open Sans'
+                        Height: =Parent.Height
+                        Size: =11
+                        Text: ="Refresh Data Sources"
+                        Width: =Parent.Width
+                  - Button1_3:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =ColorFade(Self.Fill, -15%)
+                        Color: =RGBA(255, 255, 255, 1)
+                        DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                        Fill: =RGBA(0, 0, 0, 0)
+                        Font: =Font.'Open Sans'
+                        Height: =Parent.Height
+                        HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                        HoverColor: =RGBA(255, 255, 255, 1)
+                        HoverFill: =RGBA(0, 0, 0, 0)
+                        OnSelect: |-
+                          =With(
+                              {ImportedData: 'VCDSTDR—ImportDataFlow'.Run()},
+                              IfError(
+                                  ImportedData,
+                                  Notify(
+                                      "ERROR: There was an error refreshing the datasources...",
+                                      NotificationType.Error,
+                                      4000
+                                  ),
+                                  ClearCollect(
+                                      colLocations,
+                                      ForAll(
+                                          Table(ParseJSON(ImportedData.locations).value),
+                                          {
+                                              ID: Trim(Text(Value.ID)),
+                                              City_EN: Trim(
+                                                  Text(
+                                                      First(
+                                                          Split(
+                                                              Value.field_4,
+                                                              "/"
+                                                          )
+                                                      ).Value
+                                                  )
+                                              ),
+                                              City_FR: Trim(
+                                                  Text(
+                                                      Last(
+                                                          Split(
+                                                              Value.field_4,
+                                                              "/"
+                                                          )
+                                                      ).Value
+                                                  )
+                                              ),
+                                              ProvinceState: Trim(Text(Value.field_2)),
+                                              Country_EN: Trim(
+                                                  Text(
+                                                      First(
+                                                          Split(
+                                                              Value.field_5,
+                                                              "/"
+                                                          )
+                                                      ).Value
+                                                  )
+                                              ),
+                                              Country_FR: Trim(
+                                                  Text(
+                                                      Last(
+                                                          Split(
+                                                              Value.field_5,
+                                                              "/"
+                                                          )
+                                                      ).Value
+                                                  )
+                                              )
+                                          }
+                                      )
+                                  );
+                                  ClearCollect(
+                                      colMealCosts,
+                                      ForAll(
+                                          Table(ParseJSON(ImportedData.mealcosts).value),
+                                          {
+                                              ID: Trim(Text(Value.ID)),
+                                              Country: Trim(Text(Value.field_1)),
+                                              City: Trim(Text(Value.field_2)),
+                                              RateType: First(
+                                                  Split(
+                                                      Trim(Text(Value.field_3)),
+                                                      "-"
+                                                  )
+                                              ).Value,
+                                              RateCode: Switch(
+                                                  Trim(
+                                                      Last(
+                                                          Split(
+                                                              Trim(Text(Value.field_3)),
+                                                              "Day"
+                                                          )
+                                                      ).Value
+                                                  ),
+                                                  "1-30",
+                                                  0,
+                                                  "31-120",
+                                                  1,
+                                                  2
+                                              ),
+                                              Breakfast: Trim(Text(Value.field_4)),
+                                              Lunch: Trim(Text(Value.field_5)),
+                                              Dinner: Trim(Text(Value.field_6)),
+                                              Incidental: Trim(Text(Value.field_8)),
+                                              Date: Trim(Text(Value.field_10)),
+                                              Currency: Trim(Text(Value.field_12))
+                                          }
+                                      )
+                                  );
+                                  ClearCollect(
+                                      colExchangeRates,
+                                      ForAll(
+                                          Table(ParseJSON(ImportedData.exchangerates).value),
+                                          {
+                                              ID: Trim(Text(Value.ID)),
+                                              Date: Trim(Text(Value.field_0)),
+                                              CurrencyNameEN: Trim(Text(Value.field_2)),
+                                              CurrencyNameFR: Trim(Text(Value.field_3)),
+                                              Rate: Trim(Text(Value.field_4)),
+                                              Currency: Trim(Text(Value.Title))
+                                          }
+                                      )
+                                  );
+                                  ClearCollect(
+                                      colOrganizationHierarchy,
+                                      ForAll(
+                                          Table(ParseJSON(ImportedData.org).value),
+                                          {
+                                              ID: Trim(Text(Value.ID)),
+                                              EnglishNameShort: Trim(Text(Value.EnglishName_x0028_Long_x0029_)),
+                                              EnglishNameLong: Trim(Text(Value.EnglishName)),
+                                              FrenchNameShort: Trim(Text(Value.FrenchName)),
+                                              Level: Trim(Text(Value.Level)),
+                                              ParentID: Trim(Value(Value.ParentOrgId))
+                                          }
+                                      )
+                                  );
+                                  Notify(
+                                      "Data sources refreshed.",
+                                      NotificationType.Success,
+                                      2000
+                                  )
+                              )
+                          )
+                        PressedBorderColor: =Self.Fill
+                        PressedColor: =Self.Fill
+                        PressedFill: =RGBA(0, 0, 0, 0)
+                        Size: =11
+                        Text: =
+                        Width: =Parent.Width
+            - Container2_2:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =Parent.Height
+                  LayoutMinHeight: =Parent.Height
+                  LayoutMinWidth: =16
+                  Width: =100
+                Children:
+                  - Label3_2:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Open Sans'
+                        Height: =Parent.Height
+                        Size: =11
+                        Text: ="Help Guide"
+                        Width: =Parent.Width
+                  - Button1_2:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =ColorFade(Self.Fill, -15%)
+                        Color: =RGBA(255, 255, 255, 1)
+                        DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                        Fill: =RGBA(0, 0, 0, 0)
+                        Font: =Font.'Open Sans'
+                        Height: =Parent.Height
+                        HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                        HoverColor: =RGBA(255, 255, 255, 1)
+                        HoverFill: =RGBA(0, 0, 0, 0)
+                        OnSelect: =Notify("This feature is upcoming. Stay tuned...", NotificationType.Warning, 4000);
+                        PressedBorderColor: =Self.Fill
+                        PressedColor: =Self.Fill
+                        PressedFill: =RGBA(0, 0, 0, 0)
+                        Text: =
+                        Width: =Parent.Width
+            - Container2_1:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =Parent.Height
+                  LayoutMinHeight: =Parent.Height
+                  LayoutMinWidth: =16
+                  Width: =100
+                Children:
+                  - Label3_1:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Open Sans'
+                        Height: =Parent.Height
+                        Size: =11
+                        Text: ="Settings"
+                        Width: =Parent.Width
+                  - Button1_1:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =ColorFade(Self.Fill, -15%)
+                        Color: =RGBA(255, 255, 255, 1)
+                        DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                        Fill: =RGBA(0, 0, 0, 0)
+                        Font: =Font.'Open Sans'
+                        Height: =Parent.Height
+                        HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                        HoverColor: =RGBA(255, 255, 255, 1)
+                        HoverFill: =RGBA(0, 0, 0, 0)
+                        OnSelect: =Set(varTopMenu, !varTopMenu)
+                        PressedBorderColor: =Self.Fill
+                        PressedColor: =Self.Fill
+                        PressedFill: =RGBA(0, 0, 0, 0)
+                        Size: =11
+                        Text: =
+                        Width: =Parent.Width
+            - Container2_5:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =Parent.Height
+                  LayoutMinHeight: =Parent.Height
+                  LayoutMinWidth: =16
+                  Width: =100
+                Children:
+                  - Label3_4:
+                      Control: Label@2.5.1
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Color: =RGBA(51, 51, 51, 1)
+                        Font: =Font.'Open Sans'
+                        Height: =Parent.Height
+                        Size: =11
+                        Text: =If(varLang, "EN", "FR")
+                        Width: =Parent.Width
+                  - Button1_4:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =ColorFade(Self.Fill, -15%)
+                        Color: =RGBA(255, 255, 255, 1)
+                        DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                        Fill: =RGBA(0, 0, 0, 0)
+                        Font: =Font.'Open Sans'
+                        Height: =Parent.Height
+                        HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                        HoverColor: =RGBA(255, 255, 255, 1)
+                        HoverFill: =RGBA(0, 0, 0, 0)
+                        OnSelect: =Set(varLang, !varLang)
+                        PressedBorderColor: =Self.Fill
+                        PressedColor: =Self.Fill
+                        PressedFill: =RGBA(0, 0, 0, 0)
+                        Size: =11
+                        Text: =
+                        Width: =Parent.Width
+            - Container2_3:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  DropShadow: =DropShadow.None
+                  FillPortions: =0
+                  Height: =Parent.Height
+                  LayoutMinHeight: =Parent.Height
+                  LayoutMinWidth: =16
+                  Width: =44
+                Children:
+                  - conHeaderHeader_UserProfile_2:
+                      Control: Image@2.2.3
+                      Properties:
+                        BorderColor: =RGBA(0, 18, 107, 1)
+                        Height: =40
+                        Image: =User().Image
+                        RadiusBottomLeft: =conHeaderHeader_UserProfile_2.Height
+                        RadiusBottomRight: =conHeaderHeader_UserProfile_2.Height
+                        RadiusTopLeft: =conHeaderHeader_UserProfile_2.Height
+                        RadiusTopRight: =conHeaderHeader_UserProfile_2.Height
+                        Width: =40
+                        X: =Parent.Width * 0.1
+                        Y: =(Parent.Height - Self.Height) / 2

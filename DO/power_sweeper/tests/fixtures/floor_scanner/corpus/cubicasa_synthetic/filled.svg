@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <g class="Space Kitchen" id="kitchen1">
+    <polygon points="20,20 180,20 180,140 20,140" fill="#ccc"/>
+  </g>
+  <g class="Space LivingRoom" id="living1">
+    <polygon points="200,20 380,20 380,160 200,160" fill="#ddd"/>
+  </g>
+  <g class="Space BedRoom" id="bed1">
+    <rect x="20" y="160" width="160" height="120" fill="#eee"/>
+  </g>
+  <g class="Space Bath" id="bath1">
+    <path d="M200 180 L280 180 L280 280 L200 280 Z" fill="#bbb"/>
+  </g>
+  <g class="FixedFurniture Toilet" id="furn1">
+    <rect x="210" y="200" width="30" height="40" fill="#999"/>
+  </g>
+</svg>
