@@ -1,0 +1,45 @@
+name: Pull Azure wwwroot
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download wwwroot from the App Service
+        env:
+          PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        run: |
+          set -euo pipefail
+          test -n "$PROFILE"
+          USER=$(printf '%s' "$PROFILE" | tr '\n' ' ' | sed -n 's/.*userName="\([^"]*\)".*/\1/p' | head -1)
+          PASS=$(printf '%s' "$PROFILE" | tr '\n' ' ' | sed -n 's/.*userPWD="\([^"]*\)".*/\1/p' | head -1)
+          URL=$(printf '%s' "$PROFILE" | tr '\n' ' ' | sed -n 's/.*publishUrl="\([^"]*\)".*/\1/p' | head -1)
+          HOST=$(printf '%s' "$URL" | sed 's#https://##; s#:443##; s#/.*##')
+          curl --fail -L -u "$USER:$PASS" -o wwwroot.zip "https://${HOST}/api/zip/site/wwwroot/"
+          rm -rf _azure
+          mkdir _azure
+          unzip -q wwwroot.zip -d _azure
+          find _azure -name '*.msapp' -delete
+          rm -f wwwroot.zip
+
+      - name: Commit the branch from-azure
+        run: |
+          set -euo pipefail
+          git checkout --orphan from-azure
+          git rm -rfq .
+          git checkout HEAD -- .gitignore
+          cp -a _azure/. .
+          rm -rf _azure
+          git add -A
+          git -c user.name=github-actions -c user.email=github-actions@github.com \
+            commit -m "Copy current Azure wwwroot"
+          git push --force origin from-azure
