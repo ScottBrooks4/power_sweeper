@@ -34,11 +34,13 @@ jobs:
       - name: Commit the branch from-azure
         run: |
           set -euo pipefail
+          cp .gitignore /tmp/keep-gitignore
           git checkout --orphan from-azure
           git rm -rfq .
-          git checkout HEAD -- .gitignore
+          cp /tmp/keep-gitignore .gitignore
           cp -a _azure/. .
           rm -rf _azure
+          find . -type f -size +90M -print -delete
           git add -A
           git -c user.name=github-actions -c user.email=github-actions@github.com \
             commit -m "Copy current Azure wwwroot"
